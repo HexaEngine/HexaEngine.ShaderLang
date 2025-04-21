@@ -5,7 +5,7 @@
 
 namespace HXSL
 {
-	inline void HXSLNode::AssignId()
+	inline void ASTNode::AssignId()
 	{
 		auto compilation = GetCompilation();
 		HXSL_ASSERT(compilation != nullptr, "Cannot assign ID compilation was null.");
@@ -94,7 +94,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 	{
 	}
 
-	void HXSLStruct::Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
+	void HXSLStruct::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -131,7 +131,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 		Symbol->Read(stream);
 	}
 
-	void HXSLParameter::Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
+	void HXSLParameter::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
 	{
 	}
 
@@ -150,7 +150,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 		Symbol->Read(stream);
 	}
 
-	void HXSLField::Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
+	void HXSLField::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
 	{
 	}
 
@@ -169,7 +169,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 		ReturnSymbol->Read(stream);
 	}
 
-	void HXSLFunction::Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
+	void HXSLFunction::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -195,7 +195,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 		//HXSL_ASSERT(false, "Cannot read declaration statements.");
 	}
 
-	void HXSLDeclarationStatement::Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
+	void HXSLDeclarationStatement::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
 	{
 		//HXSL_ASSERT(false, "Cannot build declaration statements.");
 	}
@@ -208,7 +208,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 	{
 	}
 
-	void HXSLClass::Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
+	void HXSLClass::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -238,7 +238,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 	{
 	}
 
-	void HXSLNamespace::Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
+	void HXSLNamespace::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)

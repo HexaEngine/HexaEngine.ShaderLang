@@ -14,7 +14,7 @@ namespace HXSL
 
 		struct ScopeContext
 		{
-			const HXSLNode* Parent;
+			const ASTNode* Parent;
 			size_t NodeIndex;
 			uint ScopeCounter;
 			HXSLSymbolScopeType Type;
@@ -31,7 +31,7 @@ namespace HXSL
 
 		bool Push(HXSLSymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, HXSLSymbolScopeType type);
 
-		bool PushScope(const HXSLNode* parent, TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, HXSLSymbolScopeType type);
+		bool PushScope(const ASTNode* parent, TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, HXSLSymbolScopeType type);
 
 		bool PushLeaf(HXSLSymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata);
 
@@ -40,9 +40,9 @@ namespace HXSL
 		{
 		}
 
-		void VisitClose(HXSLNode* node, size_t depth) override;
+		void VisitClose(ASTNode* node, size_t depth) override;
 
-		HXSLTraversalBehavior Visit(HXSLNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override;
+		HXSLTraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override;
 	};
 }
 #endif

@@ -13,7 +13,7 @@ namespace HXSL
 		static std::vector<std::unique_ptr<HXSLSubAnalyzer>> analyzers;
 
 	public:
-		static HXSLTraversalBehavior TryAnalyze(HXSLAnalyzer& analyzer, HXSLNode* node, HXSLCompilation* compilation)
+		static HXSLTraversalBehavior TryAnalyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation)
 		{
 			for (auto& subAnalyzer : analyzers)
 			{

@@ -8,6 +8,7 @@
 #include "log.h"
 #include "token.h"
 #include "numbers.h"
+#include "lang/language.h"
 
 namespace HXSL
 {
@@ -198,8 +199,6 @@ namespace HXSL
 		}
 	};
 
-#include "lang/language.h"
-
 	class LexerConfigHXSL
 	{
 	public:
@@ -228,6 +227,7 @@ namespace HXSL
 
 namespace Lexer
 {
+	using namespace HXSL;
 	Token TokenizeStep(LexerState& state, LexerConfig* config);
 }
 

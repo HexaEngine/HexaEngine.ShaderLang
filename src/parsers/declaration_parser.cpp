@@ -2,11 +2,10 @@
 #include "sub_parser_registry.hpp"
 
 #include <memory>
-using namespace std;
 
 namespace HXSL
 {
-	static bool ParseField(const Token& start, HXSLAccessModifier access, HXSLFieldFlags flags, TextSpan name, unique_ptr<HXSLSymbolRef> symbol, TextSpan semantic, HXSLParser& parser, TokenStream& stream, HXSLCompilation* compilation)
+	static bool ParseField(const Token& start, HXSLAccessModifier access, HXSLFieldFlags flags, TextSpan name, std::unique_ptr<HXSLSymbolRef> symbol, TextSpan semantic, HXSLParser& parser, TokenStream& stream, Compilation* compilation)
 	{
 		parser.RejectAttribute("cannot be applied to fields, found on '%s'", name.toString().c_str());
 		auto scopeType = parser.scopeType();
@@ -15,21 +14,21 @@ namespace HXSL
 			ERR_RETURN_FALSE(parser, "Cannot declare field in this scope");
 		}
 
-		HXSLNode* parent = parser.scopeParent();
+		ASTNode* parent = parser.scopeParent();
 		auto span = start.Span.merge(stream.LastToken().Span);
-		auto field = make_unique<HXSLField>(span, parent, access, flags, name, move(symbol), semantic);
+		auto field = std::make_unique<HXSLField>(span, parent, access, flags, name, std::move(symbol), semantic);
 
 		auto parentType = parent->GetType();
 		switch (parentType)
 		{
 		case HXSLNodeType_Compilation:
-			compilation->AddField(move(field));
+			compilation->AddField(std::move(field));
 			break;
 		case HXSLNodeType_Namespace:
-			parent->As<HXSLNamespace>()->AddField(move(field));
+			parent->As<HXSLNamespace>()->AddField(std::move(field));
 			break;
 		case HXSLNodeType_Struct:
-			parent->As<HXSLStruct>()->AddField(move(field));
+			parent->As<HXSLStruct>()->AddField(std::move(field));
 			break;
 		default:
 			return false;
@@ -38,7 +37,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseParameter(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, unique_ptr<HXSLParameter>& parameter)
+	static bool ParseParameter(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLParameter>& parameter)
 	{
 		auto startingToken = stream.Current();
 
@@ -57,11 +56,11 @@ namespace HXSL
 
 		auto span = startingToken.Span.merge(stream.LastToken().Span);
 
-		parameter = make_unique<HXSLParameter>(span, parent, flags, move(symbol.make()), name, semantic);
+		parameter = std::make_unique<HXSLParameter>(span, parent, flags, std::move(symbol.make()), name, semantic);
 		return true;
 	}
 
-	static bool ParseFunction(const Token& start, HXSLAccessModifier access, HXSLFunctionFlags flags, TextSpan name, unique_ptr<HXSLSymbolRef> returnSymbol, HXSLParser& parser, TokenStream& stream, HXSLCompilation* compilation, TakeHandle<HXSLAttributeDeclaration>* attribute)
+	static bool ParseFunction(const Token& start, HXSLAccessModifier access, HXSLFunctionFlags flags, TextSpan name, std::unique_ptr<HXSLSymbolRef> returnSymbol, HXSLParser& parser, TokenStream& stream, Compilation* compilation, TakeHandle<HXSLAttributeDeclaration>* attribute)
 	{
 		auto scopeType = parser.scopeType();
 		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct)
@@ -70,13 +69,13 @@ namespace HXSL
 		}
 
 		auto parent = parser.scopeParent();
-		auto function = make_unique<HXSLFunction>(TextSpan(), parent, access, flags, name, move(returnSymbol));
+		auto function = std::make_unique<HXSLFunction>(TextSpan(), parent, access, flags, name, std::move(returnSymbol));
 		if (attribute && attribute->HasResource())
 		{
-			function->AddAttribute(move(attribute->Take()));
+			function->AddAttribute(std::move(attribute->Take()));
 		}
 
-		vector<unique_ptr<HXSLParameter>> parameters;
+		std::vector<std::unique_ptr<HXSLParameter>> parameters;
 
 		bool firstParameter = true;
 		while (!stream.TryGetDelimiter(')'))
@@ -87,14 +86,14 @@ namespace HXSL
 			}
 			firstParameter = false;
 
-			unique_ptr<HXSLParameter> parameter;
+			std::unique_ptr<HXSLParameter> parameter;
 
 			IF_ERR_RET_FALSE(ParseParameter(parser, stream, function.get(), parameter));
 
-			parameters.push_back(move(parameter));
+			parameters.push_back(std::move(parameter));
 		}
 
-		function->SetParameters(move(parameters));
+		function->SetParameters(std::move(parameters));
 
 		if (stream.TryGetOperator(HXSLOperator_Colon))
 		{
@@ -105,9 +104,9 @@ namespace HXSL
 
 		if (!stream.TryGetDelimiter(';'))
 		{
-			unique_ptr<HXSLBlockStatement> statement;
+			std::unique_ptr<HXSLBlockStatement> statement;
 			IF_ERR_RET_FALSE(ParseStatementBody(name, ScopeType_Function, function.get(), parser, stream, statement));
-			function->SetBody(move(statement));
+			function->SetBody(std::move(statement));
 		}
 
 		function->SetSpan(stream.MakeFromLast(start));
@@ -116,13 +115,13 @@ namespace HXSL
 		switch (parentType)
 		{
 		case HXSLNodeType_Compilation:
-			compilation->AddFunction(move(function));
+			compilation->AddFunction(std::move(function));
 			break;
 		case HXSLNodeType_Namespace:
-			parent->As<HXSLNamespace>()->AddFunction(move(function));
+			parent->As<HXSLNamespace>()->AddFunction(std::move(function));
 			break;
 		case HXSLNodeType_Struct:
-			parent->As<HXSLStruct>()->AddFunction(move(function));
+			parent->As<HXSLStruct>()->AddFunction(std::move(function));
 			break;
 		default:
 			return false;
@@ -131,7 +130,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool HXSLDeclarationParser::TryParse(HXSLParser& parser, TokenStream& stream, HXSLCompilation* compilation)
+	bool HXSLDeclarationParser::TryParse(HXSLParser& parser, TokenStream& stream, Compilation* compilation)
 	{
 		auto startingToken = stream.Current();
 
@@ -150,24 +149,24 @@ namespace HXSL
 		{
 			TakeHandle<HXSLAttributeDeclaration>* attribute = nullptr;
 			parser.AcceptAttribute(&attribute, "");
-			IF_ERR_RET_FALSE(ParseFunction(startingToken, access, functionFlags, name, move(symbol.make()), parser, stream, compilation, attribute));
+			IF_ERR_RET_FALSE(ParseFunction(startingToken, access, functionFlags, name, std::move(symbol.make()), parser, stream, compilation, attribute));
 			return true;
 		}
 		else if (stream.TryGetDelimiter(';'))
 		{
-			ParseField(startingToken, access, fieldFlags, name, move(symbol.make()), {}, parser, stream, compilation);
+			ParseField(startingToken, access, fieldFlags, name, std::move(symbol.make()), {}, parser, stream, compilation);
 			return true;
 		}
 		else if (stream.TryGetOperator(HXSLOperator_Colon) && stream.TryGetIdentifier(fieldSemantic) && stream.TryGetDelimiter(';'))
 		{
-			ParseField(startingToken, access, fieldFlags, name, move(symbol.make()), fieldSemantic, parser, stream, compilation);
+			ParseField(startingToken, access, fieldFlags, name, std::move(symbol.make()), fieldSemantic, parser, stream, compilation);
 			return true;
 		}
 
 		return false;
 	}
 
-	bool HXSLStructParser::TryParse(HXSLParser& parser, TokenStream& stream, HXSLCompilation* compilation)
+	bool HXSLStructParser::TryParse(HXSLParser& parser, TokenStream& stream, Compilation* compilation)
 	{
 		auto startingToken = stream.Current();
 
@@ -187,7 +186,7 @@ namespace HXSL
 		}
 
 		auto parent = parser.scopeParent();
-		auto _struct = make_unique<HXSLStruct>(TextSpan(), parent, access, name);
+		auto _struct = std::make_unique<HXSLStruct>(TextSpan(), parent, access, name);
 
 		Token t;
 		IF_ERR_RET_FALSE(parser.EnterScope(name, ScopeType_Struct, _struct.get(), t));
@@ -205,13 +204,13 @@ namespace HXSL
 		switch (parentType)
 		{
 		case HXSLNodeType_Compilation:
-			compilation->AddStruct(move(_struct));
+			compilation->AddStruct(std::move(_struct));
 			break;
 		case HXSLNodeType_Namespace:
-			parent->As<HXSLNamespace>()->AddStruct(move(_struct));
+			parent->As<HXSLNamespace>()->AddStruct(std::move(_struct));
 			break;
 		case HXSLNodeType_Struct:
-			parent->As<HXSLStruct>()->AddStruct(move(_struct));
+			parent->As<HXSLStruct>()->AddStruct(std::move(_struct));
 			break;
 		default:
 			return false;

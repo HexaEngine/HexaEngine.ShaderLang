@@ -15,14 +15,16 @@
 #include <string>
 #include <analyzer.hpp>
 
+using namespace HXSL;
+
 void Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
 {
-	std::unique_ptr<HXSLCompilation> compilation = std::make_unique<HXSLCompilation>();
+	std::unique_ptr<Compilation> compilation = std::make_unique<Compilation>();
 
 	std::vector<std::unique_ptr<std::string>> sources;
 	for (auto& file : files)
 	{
-		std::ifstream fs(file);
+		std::ifstream fs = std::ifstream(file);
 
 		if (!fs) {
 			std::cerr << "Error opening file." << std::endl;
@@ -32,8 +34,8 @@ void Compile(const std::vector<std::string>& files, const std::string& output, c
 		std::stringstream buffer;
 		buffer << fs.rdbuf();
 
-		std::unique_ptr<std::string> content = std::make_unique<std::string>(std::move(buffer.str()));
-		sources.push_back(std::move(content));
+		std::unique_ptr<std::string> content = std::make_unique<std::string>(move(buffer.str()));
+		sources.push_back(move(content));
 		auto& c = sources.back();
 
 		LexerState state = LexerState(compilation.get(), c->data(), c->length());

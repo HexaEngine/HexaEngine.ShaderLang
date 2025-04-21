@@ -3,10 +3,13 @@
 
 #include "il.h"
 #include "text_span.h"
+#include "config.h"
+
+#include <fstream>
+#include <iostream>
 #include <stdio.h>
 #include <stdint.h>
 #include <string>
-#include "config.h"
 
 namespace EndianUtils
 {
@@ -185,8 +188,6 @@ namespace HXSL
 		}
 	};
 
-#include <fstream>
-#include <iostream>
 	struct HXSLFileStream : public HXSLStream
 	{
 		HXSLFileStream(FILE* file)

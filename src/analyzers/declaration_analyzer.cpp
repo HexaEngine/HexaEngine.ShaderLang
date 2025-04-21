@@ -60,7 +60,7 @@ namespace HXSL
 		return HXSLTraversalBehavior_AnalyzerSkip;
 	}
 
-	HXSLTraversalBehavior HXSLDeclarationAnalyzer::Analyze(HXSLAnalyzer& analyzer, HXSLNode* node, HXSLCompilation* compilation)
+	HXSLTraversalBehavior HXSLDeclarationAnalyzer::Analyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation)
 	{
 		auto& type = node->GetType();
 

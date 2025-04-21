@@ -18,7 +18,7 @@ if (!expr) { \
 	struct HXSLAnalyzer
 	{
 	private:
-		HXSLCompilation* compilation;
+		Compilation* compilation;
 		HXSLPrimitiveManager& primitives;
 
 		const AssemblyCollection& references;
@@ -26,13 +26,13 @@ if (!expr) { \
 		std::unique_ptr<HXSLSwizzleManager> swizzleManager;
 
 	public:
-		HXSLAnalyzer(HXSLCompilation* compilation, const AssemblyCollection& references) : compilation(compilation), references(references), outputAssembly(Assembly::Create("")), swizzleManager(std::make_unique<HXSLSwizzleManager>()), primitives(HXSLPrimitiveManager::GetInstance())
+		HXSLAnalyzer(Compilation* compilation, const AssemblyCollection& references) : compilation(compilation), references(references), outputAssembly(Assembly::Create("")), swizzleManager(std::make_unique<HXSLSwizzleManager>()), primitives(HXSLPrimitiveManager::GetInstance())
 		{
 		}
 
 		std::unique_ptr<Assembly>& GetOutputAssembly() noexcept { return outputAssembly; }
 
-		HXSLCompilation* Compilation() const noexcept { return compilation; }
+		Compilation* Compilation() const noexcept { return compilation; }
 
 		bool Analyze();
 

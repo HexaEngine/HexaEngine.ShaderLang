@@ -9,7 +9,7 @@ namespace HXSL
 		return false; \
 	} while (0)
 
-	void HXSLParser::EnterScopeInternal(TextSpan name, ScopeType type, HXSLNode* userdata)
+	void HXSLParser::EnterScopeInternal(TextSpan name, ScopeType type, ASTNode* userdata)
 	{
 		ScopeFlags newFlags = CurrentScope.Flags;
 		switch (type) {
@@ -74,7 +74,7 @@ namespace HXSL
 		}
 	}
 
-	bool HXSLParser::TryEnterScope(TextSpan name, ScopeType type, HXSLNode* parent)
+	bool HXSLParser::TryEnterScope(TextSpan name, ScopeType type, ASTNode* parent)
 	{
 		if (Stream.TryGetDelimiter('{'))
 		{
@@ -84,14 +84,14 @@ namespace HXSL
 		return false;
 	}
 
-	bool HXSLParser::EnterScope(TextSpan name, ScopeType type, HXSLNode* parent, Token& token)
+	bool HXSLParser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token)
 	{
 		ERR_IF_RETURN_FALSE(!Stream.ExpectDelimiter('{', token));
 		EnterScopeInternal(name, type, parent);
 		return true;
 	}
 
-	bool HXSLParser::EnterScope(TextSpan name, ScopeType type, HXSLNode* parent)
+	bool HXSLParser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent)
 	{
 		Token token;
 		ERR_IF_RETURN_FALSE(!EnterScope(name, type, parent, token));
@@ -190,7 +190,7 @@ namespace HXSL
 				if (ScopeLevel != 0) ERR_RETURN_FALSE_INTERNAL("Namespaces must be at the global scope.");
 				if (CurrentNamespace != nullptr) ERR_RETURN_FALSE_INTERNAL("Only one namespace can be declared in the current scope.");
 				bool scoped;
-				CurrentNamespace = Compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
+				CurrentNamespace = m_compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
 				if (!scoped)
 				{
 					CurrentScope = ResolverScopeContext(CurrentNamespace->GetName(), ScopeType_Namespace, CurrentNamespace, ScopeFlags_None);
@@ -207,7 +207,7 @@ namespace HXSL
 				}
 				else
 				{
-					Compilation->AddUsing(declaration);
+					m_compilation->AddUsing(declaration);
 				}
 			}
 			else if (Stream.TryGetDelimiter('{'))
@@ -256,7 +256,7 @@ namespace HXSL
 			{
 				attribute.Reset(std::move(attr));
 			}
-			HXSLSubParserRegistry::TryParse(*this, Stream, Compilation, Compilation);
+			HXSLSubParserRegistry::TryParse(*this, Stream, m_compilation, m_compilation);
 		}
 		return true;
 	}

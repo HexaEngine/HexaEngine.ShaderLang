@@ -2,6 +2,9 @@
 #define OPERATOR_H
 
 #include <string>
+
+#include "tst.hpp"
+
 namespace HXSL
 {
 	enum HXSLOperator : int
@@ -90,8 +93,6 @@ namespace HXSL
 		default: return "Unknown";
 		}
 	}
-
-#include "tst.hpp"
 
 	static void BuildOperatorTST(TernarySearchTreeDictionary<int>* tst) {
 		tst->Insert("+", HXSLOperator_Add);

@@ -10,7 +10,7 @@ namespace HXSL
 {
 	class HXSLDebugVisitor : public HXSLVisitor<EmptyDeferralContext>
 	{
-		HXSLTraversalBehavior Visit(HXSLNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override
+		HXSLTraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override
 		{
 			std::string indentation(depth * 2, ' ');
 			auto& span = node->GetSpan();
@@ -29,7 +29,7 @@ namespace HXSL
 		{
 		}
 
-		HXSLTraversalBehavior Visit(HXSLNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override
+		HXSLTraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override
 		{
 			return HXSLSubAnalyzerRegistry::TryAnalyze(analyzer, node, analyzer.Compilation());
 		}

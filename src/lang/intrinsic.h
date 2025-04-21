@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <string>
 #include "nodes.hpp"
+
 namespace HXSL
 {
 	class HXSLIntrinsicFunction : HXSLFunction

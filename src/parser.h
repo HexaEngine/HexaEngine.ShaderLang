@@ -92,11 +92,11 @@ namespace HXSL
 	{
 		TextSpan Name;
 		ScopeType Type;
-		HXSLNode* Parent;
+		ASTNode* Parent;
 		ScopeFlags Flags;
 
 		ResolverScopeContext() : Name({ }), Type(ScopeType_Global), Parent(nullptr), Flags(ScopeFlags_None) {}
-		ResolverScopeContext(TextSpan name, ScopeType type, HXSLNode* parent, ScopeFlags flags) : Name(name), Type(type), Parent(parent), Flags(flags) {}
+		ResolverScopeContext(TextSpan name, ScopeType type, ASTNode* parent, ScopeFlags flags) : Name(name), Type(type), Parent(parent), Flags(flags) {}
 	};
 
 	static TextSpan ParseQualifiedName(TokenStream& stream, bool& hasDot)
@@ -163,17 +163,19 @@ namespace HXSL
 		TokenStream& Stream;
 		int ScopeLevel;
 		int NamespaceScope;
-		HXSLCompilation* Compilation;
+		Compilation* m_compilation;
 		HXSLNamespace* CurrentNamespace;
-		HXSLNode* ParentNode;
+		ASTNode* ParentNode;
 		ResolverScopeContext CurrentScope;
 		std::stack<ResolverScopeContext> ScopeStack;
-		std::stack<HXSLNode*> ParentStack;
+		std::stack<ASTNode*> ParentStack;
 		TakeHandle<HXSLAttributeDeclaration> attribute;
 
-		HXSLParser(TokenStream& stream, HXSLCompilation* compilation) : Stream(stream), ScopeLevel(0), NamespaceScope(0), Compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ResolverScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None))
+		HXSLParser(TokenStream& stream, Compilation* compilation) : Stream(stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ResolverScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None))
 		{
 		}
+
+		Compilation* Compilation() const noexcept { return m_compilation; }
 
 		TokenStream& stream() noexcept { return Stream; }
 
@@ -183,11 +185,11 @@ namespace HXSL
 
 		TextSpan scopeName() const noexcept { return CurrentScope.Name; }
 
-		HXSLNode* scopeParent() const noexcept { return CurrentScope.Parent; }
+		ASTNode* scopeParent() const noexcept { return CurrentScope.Parent; }
 
 		ScopeFlags scopeFlags() const noexcept { return CurrentScope.Flags; }
 
-		HXSLNode* parentNode() const noexcept { return ParentNode; }
+		ASTNode* parentNode() const noexcept { return ParentNode; }
 
 		template<typename... Args>
 		void LogError(const std::string& message, TextSpan span, Args&&... args) const
@@ -224,7 +226,7 @@ namespace HXSL
 			return inScope(flags, "Invalid token in current scope.");
 		}
 
-		void pushParentNode(HXSLNode* parent)
+		void pushParentNode(ASTNode* parent)
 		{
 			HXSL_ASSERT(parent != nullptr, "Parent node cannot be null.");
 			ParentStack.push(ParentNode);
@@ -254,11 +256,11 @@ namespace HXSL
 
 		HXSLFieldFlags ParseFieldFlags();
 		bool TryParseAttribute(std::unique_ptr<HXSLAttributeDeclaration>& attribute);
-		void EnterScopeInternal(TextSpan name, ScopeType type, HXSLNode* userdata);
+		void EnterScopeInternal(TextSpan name, ScopeType type, ASTNode* userdata);
 		void ExitScopeInternal();
-		bool TryEnterScope(TextSpan name, ScopeType type, HXSLNode* parent);
-		bool EnterScope(TextSpan name, ScopeType type, HXSLNode* parent, Token& token);
-		bool EnterScope(TextSpan name, ScopeType type, HXSLNode* parent);
+		bool TryEnterScope(TextSpan name, ScopeType type, ASTNode* parent);
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token);
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent);
 		bool SkipScope(Token& token);
 		bool IterateScope();
 		UsingDeclaration ParseUsingDeclaration();

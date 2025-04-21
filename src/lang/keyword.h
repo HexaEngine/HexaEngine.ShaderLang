@@ -2,6 +2,7 @@
 #define KEYWORD_H
 
 #include <string>
+#include "tst.hpp"
 
 namespace HXSL
 {
@@ -274,8 +275,6 @@ namespace HXSL
 		default: return "Unknown";
 		}
 	}
-
-#include "tst.hpp"
 
 	static void BuildKeywordTST(TernarySearchTreeDictionary<int>* tst)
 	{

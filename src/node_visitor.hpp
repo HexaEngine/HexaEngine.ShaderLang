@@ -23,19 +23,19 @@ namespace HXSL
 	{
 	protected:
 
-		virtual HXSLTraversalBehavior Visit(HXSLNode*& node, size_t depth, bool deferred, DeferralContext& context) = 0;
-		virtual void VisitClose(HXSLNode* node, size_t depth)
+		virtual HXSLTraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, DeferralContext& context) = 0;
+		virtual void VisitClose(ASTNode* node, size_t depth)
 		{
 		}
 	public:
 
-		using VisitFnType = std::function<HXSLTraversalBehavior(HXSLNode*& node, size_t depth, bool deferred, DeferralContext& context)>;
-		using VisitCloseFnType = std::function<void(HXSLNode* node, size_t depth)>;
+		using VisitFnType = std::function<HXSLTraversalBehavior(ASTNode*& node, size_t depth, bool deferred, DeferralContext& context)>;
+		using VisitCloseFnType = std::function<void(ASTNode* node, size_t depth)>;
 
-		void Traverse(HXSLNode* node, VisitFnType visit, VisitCloseFnType visitClose)
+		void Traverse(ASTNode* node, VisitFnType visit, VisitCloseFnType visitClose)
 		{
-			std::deque<std::tuple<HXSLNode*, size_t, DeferralContext>> deferredQueue;
-			std::stack<std::tuple<HXSLNode*, size_t, bool>> nodeStack;
+			std::deque<std::tuple<ASTNode*, size_t, DeferralContext>> deferredQueue;
+			std::stack<std::tuple<ASTNode*, size_t, bool>> nodeStack;
 			nodeStack.push(std::make_tuple(node, 0, false));
 
 			while (!nodeStack.empty())
@@ -96,7 +96,7 @@ namespace HXSL
 			}
 		}
 
-		virtual void Traverse(HXSLNode* node)
+		virtual void Traverse(ASTNode* node)
 		{
 			Traverse(node, std::bind(&HXSLVisitor::Visit, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&HXSLVisitor::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 		}

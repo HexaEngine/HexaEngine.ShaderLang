@@ -19,7 +19,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool HXSLSymbolCollector::PushScope(const HXSLNode* parent, TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, HXSLSymbolScopeType type)
+	bool HXSLSymbolCollector::PushScope(const ASTNode* parent, TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, HXSLSymbolScopeType type)
 	{
 		stack.push(current);
 		size_t newIndex = targetAssembly->AddSymbolScope(span, metadata, current.NodeIndex);
@@ -46,14 +46,14 @@ namespace HXSL
 		return true;
 	}
 
-	void HXSLSymbolCollector::VisitClose(HXSLNode* node, size_t depth)
+	void HXSLSymbolCollector::VisitClose(ASTNode* node, size_t depth)
 	{
 		if (current.Parent != node) return;
 		current = stack.top();
 		stack.pop();
 	}
 
-	HXSLTraversalBehavior HXSLSymbolCollector::Visit(HXSLNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context)
+	HXSLTraversalBehavior HXSLSymbolCollector::Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context)
 	{
 		auto& type = node->GetType();
 		switch (type)

@@ -19,7 +19,7 @@ namespace HXSL
 
 	void SymbolMetadata::Read(HXSLStream& stream, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes, StringPool& container)
 	{
-		SymbolType = static_cast<HXSLSymbolType>(stream.ReadUInt());
+		SymbolType = static_cast<SymbolType>(stream.ReadUInt());
 		Scope = static_cast<HXSLSymbolScopeType>(stream.ReadUInt());
 		AccessModifier = static_cast<HXSLAccessModifier>(stream.ReadUInt());
 		Size = stream.ReadUInt();

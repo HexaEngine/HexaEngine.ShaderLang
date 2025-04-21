@@ -4,19 +4,21 @@
 
 namespace ParserHelper
 {
-	bool TryParseMemberAccessPath(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLExpression>& expressionOut);
+	using namespace HXSL;
 
-	bool ParseFunctionCallInner(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::vector<std::unique_ptr<HXSLCallParameter>>& parameters);
+	bool TryParseMemberAccessPath(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expressionOut);
 
-	bool ParseFunctionCallInner(const Token& start, LazySymbol& lazy, HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLFunctionCallExpression>& expression);
+	bool ParseFunctionCallInner(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::vector<std::unique_ptr<HXSLCallParameter>>& parameters);
 
-	bool TryParseFunctionCall(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLFunctionCallExpression>& expression);
+	bool ParseFunctionCallInner(const Token& start, LazySymbol& lazy, HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLFunctionCallExpression>& expression);
+
+	bool TryParseFunctionCall(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLFunctionCallExpression>& expression);
 
 	bool TryParseSymbol(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut);
 
-	bool TryParseLiteralExpression(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLLiteralExpression>& expressionOut);
+	bool TryParseLiteralExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLLiteralExpression>& expressionOut);
 
-	bool TryParseInitializationExpression(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLInitializationExpression>& expressionOut);
+	bool TryParseInitializationExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLInitializationExpression>& expressionOut);
 }
 
 #endif

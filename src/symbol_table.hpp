@@ -18,7 +18,7 @@ namespace HXSL
 	class SymbolMetadata
 	{
 	public:
-		HXSLSymbolType SymbolType;
+		SymbolType SymbolType;
 		HXSLSymbolScopeType Scope;
 		HXSLAccessModifier AccessModifier;
 		size_t Size;
@@ -28,11 +28,11 @@ namespace HXSL
 		{
 		}
 
-		SymbolMetadata(const HXSLSymbolType& symbolType, const HXSLSymbolScopeType& scope, const HXSLAccessModifier& modifier, const size_t& size) : SymbolType(symbolType), Scope(scope), AccessModifier(modifier), Size(size), Declaration(nullptr)
+		SymbolMetadata(const SymbolType& symbolType, const HXSLSymbolScopeType& scope, const HXSLAccessModifier& modifier, const size_t& size) : SymbolType(symbolType), Scope(scope), AccessModifier(modifier), Size(size), Declaration(nullptr)
 		{
 		}
 
-		SymbolMetadata(const HXSLSymbolType& symbolType, const HXSLSymbolScopeType& scope, const HXSLAccessModifier& modifier, const size_t& size, HXSLSymbolDef* declaration) : SymbolType(symbolType), Scope(scope), AccessModifier(modifier), Size(size), Declaration(declaration)
+		SymbolMetadata(const SymbolType& symbolType, const HXSLSymbolScopeType& scope, const HXSLAccessModifier& modifier, const size_t& size, HXSLSymbolDef* declaration) : SymbolType(symbolType), Scope(scope), AccessModifier(modifier), Size(size), Declaration(declaration)
 		{
 		}
 
@@ -68,7 +68,7 @@ namespace HXSL
 	private:
 		std::vector<SymbolTableNode> nodes;
 		StringPool stringPool;
-		std::unique_ptr<HXSLCompilation> compilation = std::make_unique<HXSLCompilation>(true);
+		std::unique_ptr<Compilation> compilation = std::make_unique<Compilation>(true);
 	public:
 		SymbolTable()
 		{
@@ -89,7 +89,7 @@ namespace HXSL
 			compilation->Clear();
 		}
 
-		HXSLCompilation* GetCompilation() const
+		Compilation* GetCompilation() const
 		{
 			return compilation.get();
 		}

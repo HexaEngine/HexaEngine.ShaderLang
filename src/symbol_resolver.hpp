@@ -133,7 +133,7 @@ namespace HXSL
 	struct ResolverScopeContext
 	{
 		HXSLNamespace* CurrentNamespace;
-		HXSLNode* Parent;
+		ASTNode* Parent;
 		size_t SymbolTableIndex;
 		uint ScopeCounter;
 
@@ -165,7 +165,7 @@ namespace HXSL
 		HXSLSwizzleManager* swizzleManager;
 		ResolverScopeContext current;
 		IterStack<ResolverScopeContext> stack;
-		HXSLCompilation* compilation;
+		Compilation* compilation;
 
 	public:
 		HXSLSymbolResolver(HXSLAnalyzer& analyzer, const AssemblyCollection& references, const Assembly* targetAssembly, HXSLSwizzleManager* swizzleManager)
@@ -205,27 +205,27 @@ namespace HXSL
 		/// <returns>-1 Failed, 0 Success, 1 Defer</returns>
 		int ResolveMemberInner(HXSLSymbolRef* type, IHXSLHasSymbolRef* getter) const;
 
-		HXSLTraversalBehavior ResolveMember(HXSLMemberAccessExpression* memberAccessExpr, HXSLNode*& next) const;
+		HXSLTraversalBehavior ResolveMember(HXSLMemberAccessExpression* memberAccessExpr, ASTNode*& next) const;
 
-		void PushScope(HXSLNode* parent, const TextSpan& span, bool external = false);
+		void PushScope(ASTNode* parent, const TextSpan& span, bool external = false);
 
-		void VisitClose(HXSLNode* node, size_t depth) override;
+		void VisitClose(ASTNode* node, size_t depth) override;
 
-		HXSLTraversalBehavior VisitExternal(HXSLNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
+		HXSLTraversalBehavior VisitExternal(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
 
-		bool UseBeforeDeclarationCheck(HXSLSymbolRef* ref, HXSLNode* parent) const;
+		bool UseBeforeDeclarationCheck(HXSLSymbolRef* ref, ASTNode* parent) const;
 
-		HXSLTraversalBehavior Visit(HXSLNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context) override;
+		HXSLTraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context) override;
 
 		HXSLSymbolDef* GetNumericType(const HXSLNumberType& type) const;
 
 		void TypeCheckExpression(HXSLExpression* node);
 
-		void TypeCheckStatement(HXSLNode*& node);
+		void TypeCheckStatement(ASTNode*& node);
 
-		HXSLTraversalBehavior TypeChecksExpression(HXSLNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
+		HXSLTraversalBehavior TypeChecksExpression(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
 
-		void Traverse(HXSLNode* node) override
+		void Traverse(ASTNode* node) override
 		{
 			for (auto& reference : references.GetAssemblies())
 			{

@@ -32,7 +32,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(HXSLParser& parser, TokenStream& stream, HXSLCompilation* compilation)
+		virtual bool TryParse(HXSLParser& parser, TokenStream& stream, Compilation* compilation)
 		{
 			return false;
 		}

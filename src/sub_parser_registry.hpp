@@ -12,7 +12,7 @@ namespace HXSL
 		static std::vector<std::unique_ptr<HXSLSubParser>> parsers;
 
 	public:
-		static bool TryParse(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, HXSLCompilation* compilation)
+		static bool TryParse(HXSLParser& parser, TokenStream& stream, ASTNode* parent, Compilation* compilation)
 		{
 			parser.pushParentNode(parent);
 			for (auto& subParser : parsers)
@@ -51,7 +51,7 @@ namespace HXSL
 		static std::vector<std::unique_ptr<HXSLStatementParser>> parsers;
 
 	public:
-		static bool TryParse(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLStatement>& statementOut, bool leaveOpen = false)
+		static bool TryParse(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLStatement>& statementOut, bool leaveOpen = false)
 		{
 			parser.pushParentNode(parent);
 			for (auto& subParser : parsers)
@@ -88,7 +88,7 @@ namespace HXSL
 		}
 	};
 
-	static bool ParseStatementBodyInner(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, HXSLStatementContainer* container, bool leaveOpen = false)
+	static bool ParseStatementBodyInner(HXSLParser& parser, TokenStream& stream, ASTNode* parent, HXSLStatementContainer* container, bool leaveOpen = false)
 	{
 		if (stream.TryGetDelimiter(';'))
 		{
@@ -111,7 +111,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseStatementBody(TextSpan name, ScopeType type, HXSLNode* parent, HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLBlockStatement>& statement)
+	static bool ParseStatementBody(TextSpan name, ScopeType type, ASTNode* parent, HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLBlockStatement>& statement)
 	{
 		Token first;
 		IF_ERR_RET_FALSE(parser.EnterScope(name, type, parent, first));
@@ -134,7 +134,7 @@ namespace HXSL
 		static std::vector<std::unique_ptr<HXSLExpressionParser>> parsers;
 
 	public:
-		static bool TryParse(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLExpression>& expressionOut)
+		static bool TryParse(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expressionOut)
 		{
 			auto first = stream.Current();
 			parser.pushParentNode(parent);
@@ -160,7 +160,7 @@ namespace HXSL
 
 			if (!expressionOut.get())
 			{
-				expressionOut = std::make_unique<HXSLEmptyExpression>(first.Span.merge(stream.LastToken().Span), static_cast<HXSLNode*>(nullptr));
+				expressionOut = std::make_unique<HXSLEmptyExpression>(first.Span.merge(stream.LastToken().Span), static_cast<ASTNode*>(nullptr));
 				return true;
 			}
 

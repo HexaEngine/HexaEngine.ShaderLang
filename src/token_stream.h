@@ -6,6 +6,7 @@
 
 #include <string>
 #include <stack>
+#include <deque>
 
 namespace HXSL
 {

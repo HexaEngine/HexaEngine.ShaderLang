@@ -18,9 +18,7 @@
 
 namespace HXSL
 {
-	using namespace std;
-
-	class HXSLCompilation;
+	class Compilation;
 	class HXSLFunction;
 	class HXSLStruct;
 	class HXSLClass;
@@ -151,7 +149,7 @@ namespace HXSL
 		}
 	}
 
-	static string toString(HXSLNodeType nodeType)
+	static std::string toString(HXSLNodeType nodeType)
 	{
 		switch (nodeType)
 		{
@@ -207,19 +205,19 @@ namespace HXSL
 		}
 	}
 
-	class HXSLNode
+	class ASTNode
 	{
 	private:
-		HXSLCompilation* Compilation = nullptr;
+		Compilation* m_compilation = nullptr;
 		size_t ID;
 
-		void AddChild(HXSLNode* node)
+		void AddChild(ASTNode* node)
 		{
 			HXSL_ASSERT(node, "Child node was null");
 			children.push_back(node);
 		}
 
-		void RemoveChild(HXSLNode* node)
+		void RemoveChild(ASTNode* node)
 		{
 			HXSL_ASSERT(node, "Child node was null");
 			children.erase(remove(children.begin(), children.end(), node), children.end());
@@ -231,16 +229,16 @@ namespace HXSL
 		}
 
 	protected:
-		vector<HXSLNode*> children;
+		std::vector<ASTNode*> children;
 		TextSpan Span;
-		HXSLNode* parent;
+		ASTNode* parent;
 		HXSLNodeType type;
 		bool isExtern;
 
 		void AssignId();
 
 	public:
-		HXSLNode(TextSpan span, HXSLNode* parent, HXSLNodeType type, bool isExtern = false) : Span(span), parent(parent), type(type), children({}), isExtern(isExtern)
+		ASTNode(TextSpan span, ASTNode* parent, HXSLNodeType type, bool isExtern = false) : Span(span), parent(parent), type(type), children({}), isExtern(isExtern)
 		{
 			//HXSL_ASSERT(parent, "Parent cannot be null");
 			if (parent)
@@ -257,16 +255,16 @@ namespace HXSL
 			}
 		}
 
-		virtual	HXSLCompilation* GetCompilation()
+		virtual	Compilation* GetCompilation()
 		{
-			if (Compilation)
+			if (m_compilation)
 			{
-				return Compilation;
+				return m_compilation;
 			}
 			if (parent)
 			{
-				Compilation = parent->GetCompilation();
-				return Compilation;
+				m_compilation = parent->GetCompilation();
+				return m_compilation;
 			}
 			return nullptr;
 		}
@@ -278,8 +276,8 @@ namespace HXSL
 			return isExtern;
 		}
 
-		HXSLNode* GetParent() noexcept { return parent; }
-		void SetParent(HXSLNode* newParent) noexcept
+		ASTNode* GetParent() noexcept { return parent; }
+		void SetParent(ASTNode* newParent) noexcept
 		{
 			if (parent == newParent) return;
 
@@ -301,7 +299,7 @@ namespace HXSL
 			}
 		}
 
-		const std::vector<HXSLNode*>& GetChildren() const noexcept { return children; }
+		const std::vector<ASTNode*>& GetChildren() const noexcept { return children; }
 		const HXSLNodeType& GetType() const noexcept { return type; }
 		const TextSpan& GetSpan() const noexcept { return Span; }
 		void SetSpan(TextSpan newSpan) noexcept { Span = newSpan; }
@@ -324,7 +322,7 @@ namespace HXSL
 
 		template <typename T>
 		T* As() { return dynamic_cast<T*>(this); };
-		virtual ~HXSLNode()
+		virtual ~ASTNode()
 		{
 			if (parent)
 			{
@@ -333,7 +331,7 @@ namespace HXSL
 		}
 	};
 
-	enum HXSLSymbolType
+	enum SymbolType
 	{
 		HXSLSymbolType_Unknown,
 
@@ -354,7 +352,7 @@ namespace HXSL
 		HXSLSymbolType_Alias,
 	};
 
-	static std::string ToString(HXSLSymbolType type)
+	static std::string ToString(SymbolType type)
 	{
 		switch (type)
 		{
@@ -410,7 +408,7 @@ namespace HXSL
 		HXSLSymbolScopeType_Block
 	};
 
-	class HXSLSymbolDef : virtual public HXSLNode
+	class HXSLSymbolDef : virtual public ASTNode
 	{
 	private:
 		HXSLSymbolDef() = delete;
@@ -421,8 +419,8 @@ namespace HXSL
 		const Assembly* m_assembly;
 		size_t TableIndex;
 
-		HXSLSymbolDef(TextSpan span, HXSLNode* parent, HXSLNodeType type, TextSpan name, bool isExtern = false)
-			: HXSLNode(span, parent, type, isExtern),
+		HXSLSymbolDef(TextSpan span, ASTNode* parent, HXSLNodeType type, TextSpan name, bool isExtern = false)
+			: ASTNode(span, parent, type, isExtern),
 			Name(name),
 			TableIndex(0),
 			m_assembly(nullptr)
@@ -467,18 +465,18 @@ namespace HXSL
 			Name = name;
 		}
 
-		virtual HXSLSymbolType GetSymbolType() const = 0;
+		virtual SymbolType GetSymbolType() const = 0;
 
 		virtual void Write(HXSLStream& stream) const = 0;
 
 		virtual void Read(HXSLStream& stream, StringPool& container) = 0;
 
-		virtual void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) = 0;
+		virtual void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) = 0;
 
 		virtual ~HXSLSymbolDef() = default;
 	};
 
-	class HXSLContainer : virtual public HXSLNode
+	class HXSLContainer : virtual public ASTNode
 	{
 	protected:
 		std::vector<std::unique_ptr<HXSLFunction>> Functions;
@@ -487,8 +485,8 @@ namespace HXSL
 		std::vector<std::unique_ptr<HXSLField>> Fields;
 
 	public:
-		HXSLContainer(TextSpan span, HXSLNode* parent, HXSLNodeType type, bool isExtern = false)
-			:HXSLNode(span, parent, type, isExtern)
+		HXSLContainer(TextSpan span, ASTNode* parent, HXSLNodeType type, bool isExtern = false)
+			:ASTNode(span, parent, type, isExtern)
 		{
 		}
 		virtual ~HXSLContainer() {}
@@ -542,7 +540,7 @@ namespace HXSL
 	private:
 		HXSLType() = delete;
 	public:
-		HXSLType(TextSpan span, HXSLNode* parent, HXSLNodeType type, TextSpan name, bool isExtern = false) : HXSLSymbolDef(span, parent, type, name, isExtern)
+		HXSLType(TextSpan span, ASTNode* parent, HXSLNodeType type, TextSpan name, bool isExtern = false) : HXSLSymbolDef(span, parent, type, name, isExtern)
 		{
 		}
 		virtual ~HXSLType() {}
@@ -592,9 +590,9 @@ namespace HXSL
 		uint Rows;
 		uint Columns;
 	public:
-		HXSLPrimitive(TextSpan span, HXSLNode* parent, HXSLPrimitiveKind kind, HXSLPrimitiveClass _class, std::string& name, uint rows, uint columns)
+		HXSLPrimitive(TextSpan span, ASTNode* parent, HXSLPrimitiveKind kind, HXSLPrimitiveClass _class, std::string& name, uint rows, uint columns)
 			: HXSLType(span, parent, HXSLNodeType_Primitive, TextSpan()),
-			HXSLNode(span, parent, HXSLNodeType_Primitive),
+			ASTNode(span, parent, HXSLNodeType_Primitive),
 			Kind(kind),
 			Class(_class),
 			backing_name(std::move(name)),
@@ -606,7 +604,7 @@ namespace HXSL
 
 		HXSLPrimitive(HXSLPrimitiveKind kind, HXSLPrimitiveClass _class, std::string& name, uint rows, uint columns)
 			: HXSLType(name, nullptr, HXSLNodeType_Primitive, TextSpan()),
-			HXSLNode(name, nullptr, HXSLNodeType_Primitive),
+			ASTNode(name, nullptr, HXSLNodeType_Primitive),
 			Kind(kind),
 			Class(_class),
 			backing_name(std::move(name)),
@@ -636,7 +634,7 @@ namespace HXSL
 			return Class;
 		}
 
-		HXSLSymbolType GetSymbolType() const override
+		SymbolType GetSymbolType() const override
 		{
 			return HXSLSymbolType_Primitive;
 		}
@@ -651,7 +649,7 @@ namespace HXSL
 			HXSL_ASSERT(false, "Cannot read primitive types")
 		}
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override
 		{
 			HXSL_ASSERT(false, "Cannot build primitive types")
 		}
@@ -757,14 +755,14 @@ namespace HXSL
 		};
 	};
 
-	class HXSLSwizzleDefinition : virtual public HXSLNode, public HXSLSymbolDef, public IHXSLHasSymbolRef
+	class HXSLSwizzleDefinition : virtual public ASTNode, public HXSLSymbolDef, public IHXSLHasSymbolRef
 	{
 	private:
 		TextSpan Expression;
 		std::unique_ptr<HXSLSymbolRef> Symbol;
 	public:
 		HXSLSwizzleDefinition(TextSpan expression, std::unique_ptr<HXSLSymbolRef> symbol)
-			: HXSLNode(expression, nullptr, HXSLNodeType_SwizzleDefinition),
+			: ASTNode(expression, nullptr, HXSLNodeType_SwizzleDefinition),
 			HXSLSymbolDef(expression, nullptr, HXSLNodeType_SwizzleDefinition, expression),
 			Expression(expression),
 			Symbol(std::move(symbol))
@@ -776,7 +774,7 @@ namespace HXSL
 			return Symbol;
 		}
 
-		HXSLSymbolType GetSymbolType() const override
+		SymbolType GetSymbolType() const override
 		{
 			return HXSLSymbolType_Field;
 		}
@@ -791,7 +789,7 @@ namespace HXSL
 			HXSL_ASSERT(false, "Cannot read swizzle types")
 		}
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override
 		{
 			HXSL_ASSERT(false, "Cannot build swizzle types")
 		}
@@ -799,20 +797,20 @@ namespace HXSL
 
 	class HXSLLiteralExpression;
 
-	class HXSLAttributeDeclaration : public HXSLNode
+	class HXSLAttributeDeclaration : public ASTNode
 	{
 	private:
 		std::unique_ptr<HXSLSymbolRef> Symbol;
 		std::vector<std::unique_ptr<HXSLLiteralExpression>> Parameters;
 	public:
-		HXSLAttributeDeclaration(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, std::vector<std::unique_ptr<HXSLLiteralExpression>> parameters)
-			: HXSLNode(span, parent, HXSLNodeType_AttributeDeclaration),
+		HXSLAttributeDeclaration(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, std::vector<std::unique_ptr<HXSLLiteralExpression>> parameters)
+			: ASTNode(span, parent, HXSLNodeType_AttributeDeclaration),
 			Symbol(std::move(symbol)),
 			Parameters(std::move(parameters))
 		{
 		}
-		HXSLAttributeDeclaration(TextSpan span, HXSLNode* parent)
-			: HXSLNode(span, parent, HXSLNodeType_AttributeDeclaration)
+		HXSLAttributeDeclaration(TextSpan span, ASTNode* parent)
+			: ASTNode(span, parent, HXSLNodeType_AttributeDeclaration)
 		{
 		}
 
@@ -833,12 +831,12 @@ namespace HXSL
 		virtual ~HXSLAttributeContainer() {}
 		void AddAttribute(std::unique_ptr<HXSLAttributeDeclaration> attribute)
 		{
-			attribute->SetParent(dynamic_cast<HXSLNode*>(this));
+			attribute->SetParent(dynamic_cast<ASTNode*>(this));
 			Attributes.push_back(std::move(attribute));
 		}
 	};
 
-	class HXSLParameter : virtual public HXSLNode, public HXSLSymbolDef, public IHXSLHasSymbolRef
+	class HXSLParameter : virtual public ASTNode, public HXSLSymbolDef, public IHXSLHasSymbolRef
 	{
 	private:
 		HXSLParameterFlags Flags;
@@ -848,14 +846,14 @@ namespace HXSL
 	public:
 		HXSLParameter()
 			: HXSLSymbolDef(TextSpan(), nullptr, HXSLNodeType_Parameter, TextSpan(), true),
-			HXSLNode(TextSpan(), nullptr, HXSLNodeType_Parameter, true),
+			ASTNode(TextSpan(), nullptr, HXSLNodeType_Parameter, true),
 			Flags(HXSLParameterFlags_None),
 			Semantic(TextSpan())
 		{
 		}
-		HXSLParameter(TextSpan span, HXSLNode* parent, HXSLParameterFlags flags, std::unique_ptr<HXSLSymbolRef> symbol, TextSpan name, TextSpan semantic)
+		HXSLParameter(TextSpan span, ASTNode* parent, HXSLParameterFlags flags, std::unique_ptr<HXSLSymbolRef> symbol, TextSpan name, TextSpan semantic)
 			: HXSLSymbolDef(span, parent, HXSLNodeType_Parameter, name),
-			HXSLNode(span, parent, HXSLNodeType_Parameter),
+			ASTNode(span, parent, HXSLNodeType_Parameter),
 			Flags(flags),
 			Symbol(std::move(symbol)),
 			Semantic(semantic)
@@ -867,7 +865,7 @@ namespace HXSL
 			return Symbol;
 		}
 
-		HXSLSymbolType GetSymbolType() const override
+		SymbolType GetSymbolType() const override
 		{
 			return HXSLSymbolType_Parameter;
 		}
@@ -876,18 +874,18 @@ namespace HXSL
 
 		void Read(HXSLStream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
 
 		~HXSLParameter() override
 		{
 		}
 	};
 
-	class HXSLStatement : virtual public HXSLNode
+	class HXSLStatement : virtual public ASTNode
 	{
 	protected:
-		HXSLStatement(TextSpan span, HXSLNode* parent, HXSLNodeType type)
-			: HXSLNode(span, parent, type)
+		HXSLStatement(TextSpan span, ASTNode* parent, HXSLNodeType type)
+			: ASTNode(span, parent, type)
 		{
 		}
 	};
@@ -914,9 +912,9 @@ namespace HXSL
 	class HXSLBlockStatement : public HXSLStatement, public HXSLStatementContainer
 	{
 	public:
-		HXSLBlockStatement(TextSpan span, HXSLNode* parent)
+		HXSLBlockStatement(TextSpan span, ASTNode* parent)
 			: HXSLStatement(span, parent, HXSLNodeType_BlockStatement),
-			HXSLNode(span, parent, HXSLNodeType_BlockStatement)
+			ASTNode(span, parent, HXSLNodeType_BlockStatement)
 		{
 		}
 
@@ -926,14 +924,14 @@ namespace HXSL
 		}
 	};
 
-	class HXSLExpression : public HXSLNode
+	class HXSLExpression : public ASTNode
 	{
 	private:
 		HXSLSymbolDef* InferredType;
 		bool LazyEval;
 	protected:
-		HXSLExpression(TextSpan span, HXSLNode* parent, HXSLNodeType type)
-			: HXSLNode(span, parent, type),
+		HXSLExpression(TextSpan span, ASTNode* parent, HXSLNodeType type)
+			: ASTNode(span, parent, type),
 			LazyEval(false),
 			InferredType(nullptr)
 		{
@@ -978,7 +976,7 @@ namespace HXSL
 		HXSLOperator Operator;
 		std::unique_ptr<HXSLExpression> Operand;
 	protected:
-		HXSLUnaryExpression(TextSpan span, HXSLNode* parent, HXSLNodeType type, HXSLOperator op, std::unique_ptr<HXSLExpression> operand)
+		HXSLUnaryExpression(TextSpan span, ASTNode* parent, HXSLNodeType type, HXSLOperator op, std::unique_ptr<HXSLExpression> operand)
 			: HXSLExpression(span, parent, type),
 			Operator(op),
 			Operand(std::move(operand))
@@ -996,7 +994,7 @@ namespace HXSL
 	class HXSLPrefixExpression : public HXSLUnaryExpression
 	{
 	public:
-		HXSLPrefixExpression(TextSpan span, HXSLNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> operand)
+		HXSLPrefixExpression(TextSpan span, ASTNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> operand)
 			: HXSLUnaryExpression(span, parent, HXSLNodeType_PrefixExpression, op, std::move(operand))
 		{
 		}
@@ -1005,7 +1003,7 @@ namespace HXSL
 	class HXSLPostfixExpression : public HXSLUnaryExpression
 	{
 	public:
-		HXSLPostfixExpression(TextSpan span, HXSLNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> operand)
+		HXSLPostfixExpression(TextSpan span, ASTNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> operand)
 			: HXSLUnaryExpression(span, parent, HXSLNodeType_PostfixExpression, op, std::move(operand))
 		{
 		}
@@ -1018,7 +1016,7 @@ namespace HXSL
 		std::unique_ptr<HXSLExpression> Left;
 		std::unique_ptr<HXSLExpression> Right;
 	public:
-		HXSLBinaryExpression(TextSpan span, HXSLNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> left, std::unique_ptr<HXSLExpression> right)
+		HXSLBinaryExpression(TextSpan span, ASTNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> left, std::unique_ptr<HXSLExpression> right)
 			: HXSLExpression(span, parent, HXSLNodeType_BinaryExpression),
 			Operator(op),
 			Left(std::move(left)),
@@ -1052,7 +1050,7 @@ namespace HXSL
 		std::unique_ptr<HXSLExpression> Left;
 		std::unique_ptr<HXSLExpression> Right;
 	public:
-		HXSLCastExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> left, std::unique_ptr<HXSLExpression> right)
+		HXSLCastExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> left, std::unique_ptr<HXSLExpression> right)
 			: HXSLExpression(span, parent, HXSLNodeType_CastExpression),
 			Left(std::move(left)),
 			Right(std::move(right))
@@ -1073,7 +1071,7 @@ namespace HXSL
 		std::unique_ptr<HXSLExpression> Left;
 		std::unique_ptr<HXSLExpression> Right;
 	public:
-		HXSLTernaryExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> condition, std::unique_ptr<HXSLExpression> left, std::unique_ptr<HXSLExpression> right)
+		HXSLTernaryExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> condition, std::unique_ptr<HXSLExpression> left, std::unique_ptr<HXSLExpression> right)
 			: HXSLExpression(span, parent, HXSLNodeType_TernaryExpression),
 			Condition(std::move(condition)),
 			Left(std::move(left)),
@@ -1093,7 +1091,7 @@ namespace HXSL
 	class HXSLEmptyExpression : public HXSLExpression
 	{
 	public:
-		HXSLEmptyExpression(TextSpan span, HXSLNode* parent)
+		HXSLEmptyExpression(TextSpan span, ASTNode* parent)
 			: HXSLExpression(span, parent, HXSLNodeType_EmptyExpression)
 		{
 		}
@@ -1104,7 +1102,7 @@ namespace HXSL
 	private:
 		Token ExpressionToken;
 	public:
-		HXSLLiteralExpression(TextSpan span, HXSLNode* parent, Token token)
+		HXSLLiteralExpression(TextSpan span, ASTNode* parent, Token token)
 			: HXSLExpression(span, parent, HXSLNodeType_LiteralExpression),
 			ExpressionToken(token)
 		{
@@ -1118,7 +1116,7 @@ namespace HXSL
 	private:
 		std::unique_ptr<HXSLSymbolRef> Symbol;
 	public:
-		HXSLSymbolRefExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLSymbolRef> symbol)
+		HXSLSymbolRefExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLSymbolRef> symbol)
 			: HXSLExpression(span, parent, HXSLNodeType_SymbolRefExpression),
 			Symbol(std::move(symbol))
 		{
@@ -1134,13 +1132,13 @@ namespace HXSL
 			DEFINE_DETATCH(std::unique_ptr<HXSLSymbolRef>, Symbol)
 	};
 
-	class HXSLCallParameter : public HXSLNode
+	class HXSLCallParameter : public ASTNode
 	{
 	private:
 		std::unique_ptr<HXSLExpression> Expression;
 	public:
-		HXSLCallParameter(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> expression)
-			: HXSLNode(span, parent, HXSLNodeType_FunctionCallParameter),
+		HXSLCallParameter(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> expression)
+			: ASTNode(span, parent, HXSLNodeType_FunctionCallParameter),
 			Expression(std::move(expression))
 		{
 			if (Expression) Expression->SetParent(this);
@@ -1155,14 +1153,14 @@ namespace HXSL
 		std::unique_ptr<HXSLSymbolRef> Symbol;
 		std::vector<std::unique_ptr<HXSLCallParameter>> Parameters;
 	public:
-		HXSLFunctionCallExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, std::vector<std::unique_ptr<HXSLCallParameter>> parameters)
+		HXSLFunctionCallExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, std::vector<std::unique_ptr<HXSLCallParameter>> parameters)
 			: HXSLExpression(span, parent, HXSLNodeType_FunctionCallExpression),
 			Symbol(std::move(symbol)),
 			Parameters(std::move(parameters))
 		{
 		}
 
-		HXSLFunctionCallExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLSymbolRef> symbol)
+		HXSLFunctionCallExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLSymbolRef> symbol)
 			: HXSLExpression(span, parent, HXSLNodeType_FunctionCallExpression),
 			Symbol(std::move(symbol))
 		{
@@ -1188,7 +1186,7 @@ namespace HXSL
 		std::unique_ptr<HXSLSymbolRef> Symbol;
 		std::unique_ptr<HXSLExpression> Expression;
 	public:
-		HXSLMemberAccessExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, std::unique_ptr<HXSLExpression> expression)
+		HXSLMemberAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, std::unique_ptr<HXSLExpression> expression)
 			: HXSLExpression(span, parent, HXSLNodeType_MemberAccessExpression),
 			Symbol(std::move(symbol)),
 			Expression(std::move(expression))
@@ -1225,14 +1223,14 @@ namespace HXSL
 		std::vector<std::unique_ptr<HXSLExpression>> Indices;
 
 	public:
-		HXSLIndexerAccessExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, std::vector<std::unique_ptr<HXSLExpression>> indices)
+		HXSLIndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, std::vector<std::unique_ptr<HXSLExpression>> indices)
 			: HXSLExpression(span, parent, HXSLNodeType_IndexerAccessExpression),
 			Symbol(std::move(symbol)),
 			Indices(std::move(indices))
 		{
 		}
 
-		HXSLIndexerAccessExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLSymbolRef> symbol)
+		HXSLIndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLSymbolRef> symbol)
 			: HXSLExpression(span, parent, HXSLNodeType_IndexerAccessExpression),
 			Symbol(std::move(symbol))
 		{
@@ -1256,7 +1254,7 @@ namespace HXSL
 		std::unique_ptr<HXSLExpression> Expression;
 
 	protected:
-		HXSLAssignmentExpression(TextSpan span, HXSLNode* parent, HXSLNodeType type, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
+		HXSLAssignmentExpression(TextSpan span, ASTNode* parent, HXSLNodeType type, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
 			: HXSLExpression(span, parent, type),
 			Target(std::move(target)),
 			Expression(std::move(expression))
@@ -1266,7 +1264,7 @@ namespace HXSL
 		}
 
 	public:
-		HXSLAssignmentExpression(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
+		HXSLAssignmentExpression(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
 			: HXSLExpression(span, parent, HXSLNodeType_AssignmentExpression),
 			Target(std::move(target)),
 			Expression(std::move(expression))
@@ -1285,7 +1283,7 @@ namespace HXSL
 		HXSLOperator Operator;
 
 	public:
-		HXSLCompoundAssignmentExpression(TextSpan span, HXSLNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
+		HXSLCompoundAssignmentExpression(TextSpan span, ASTNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
 			: HXSLAssignmentExpression(span, parent, HXSLNodeType_CompoundAssignmentExpression, std::move(target), std::move(expression)),
 			Operator(op)
 		{
@@ -1300,12 +1298,12 @@ namespace HXSL
 		std::vector<std::unique_ptr<HXSLExpression>> Parameters;
 
 	public:
-		HXSLInitializationExpression(TextSpan span, HXSLNode* parent, std::vector<std::unique_ptr<HXSLExpression>> parameters)
+		HXSLInitializationExpression(TextSpan span, ASTNode* parent, std::vector<std::unique_ptr<HXSLExpression>> parameters)
 			: HXSLExpression(span, parent, HXSLNodeType_InitializationExpression),
 			Parameters(std::move(parameters))
 		{
 		}
-		HXSLInitializationExpression(TextSpan span, HXSLNode* parent)
+		HXSLInitializationExpression(TextSpan span, ASTNode* parent)
 			: HXSLExpression(span, parent, HXSLNodeType_InitializationExpression)
 		{
 		}
@@ -1328,14 +1326,14 @@ namespace HXSL
 		HXSLDeclarationStatement()
 			: HXSLStatement(TextSpan(), nullptr, HXSLNodeType_DeclarationStatement),
 			HXSLSymbolDef(TextSpan(), nullptr, HXSLNodeType_DeclarationStatement, TextSpan(), true),
-			HXSLNode(TextSpan(), nullptr, HXSLNodeType_DeclarationStatement, true)
+			ASTNode(TextSpan(), nullptr, HXSLNodeType_DeclarationStatement, true)
 		{
 			if (Initializer) Initializer->SetParent(this);
 		}
-		HXSLDeclarationStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, TextSpan name, std::unique_ptr<HXSLExpression> initializer)
+		HXSLDeclarationStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLSymbolRef> symbol, TextSpan name, std::unique_ptr<HXSLExpression> initializer)
 			: HXSLStatement(span, parent, HXSLNodeType_DeclarationStatement),
 			HXSLSymbolDef(span, parent, HXSLNodeType_DeclarationStatement, name),
-			HXSLNode(span, parent, HXSLNodeType_DeclarationStatement),
+			ASTNode(span, parent, HXSLNodeType_DeclarationStatement),
 			Symbol(std::move(symbol)),
 			Initializer(std::move(initializer))
 		{
@@ -1347,7 +1345,7 @@ namespace HXSL
 			return Symbol;
 		}
 
-		HXSLSymbolType GetSymbolType() const override
+		SymbolType GetSymbolType() const override
 		{
 			return HXSLSymbolType_Variable;
 		}
@@ -1356,7 +1354,7 @@ namespace HXSL
 
 		void Read(HXSLStream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER_MOVE(std::unique_ptr<HXSLExpression>, Initializer)
 	};
@@ -1367,9 +1365,9 @@ namespace HXSL
 		std::unique_ptr<HXSLExpression> Expression;
 
 	protected:
-		HXSLAssignmentStatement(TextSpan span, HXSLNode* parent, HXSLNodeType type, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
+		HXSLAssignmentStatement(TextSpan span, ASTNode* parent, HXSLNodeType type, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
 			: HXSLStatement(span, parent, type),
-			HXSLNode(span, parent, type),
+			ASTNode(span, parent, type),
 			Target(std::move(target)),
 			Expression(std::move(expression))
 		{
@@ -1378,9 +1376,9 @@ namespace HXSL
 		}
 
 	public:
-		HXSLAssignmentStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
+		HXSLAssignmentStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
 			: HXSLStatement(span, parent, HXSLNodeType_AssignmentStatement),
-			HXSLNode(span, parent, HXSLNodeType_AssignmentStatement),
+			ASTNode(span, parent, HXSLNodeType_AssignmentStatement),
 			Target(std::move(target)),
 			Expression(std::move(expression))
 		{
@@ -1398,9 +1396,9 @@ namespace HXSL
 		HXSLOperator Operator;
 
 	public:
-		HXSLCompoundAssignmentStatement(TextSpan span, HXSLNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
+		HXSLCompoundAssignmentStatement(TextSpan span, ASTNode* parent, HXSLOperator op, std::unique_ptr<HXSLExpression> target, std::unique_ptr<HXSLExpression> expression)
 			: HXSLAssignmentStatement(span, parent, HXSLNodeType_CompoundAssignmentStatement, std::move(target), std::move(expression)),
-			HXSLNode(span, parent, HXSLNodeType_CompoundAssignmentStatement),
+			ASTNode(span, parent, HXSLNodeType_CompoundAssignmentStatement),
 			Operator(op)
 		{
 		}
@@ -1414,9 +1412,9 @@ namespace HXSL
 		std::unique_ptr<HXSLFunctionCallExpression> Expression;
 
 	public:
-		HXSLFunctionCallStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLFunctionCallExpression> expression)
+		HXSLFunctionCallStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLFunctionCallExpression> expression)
 			: HXSLStatement(span, parent, HXSLNodeType_FunctionCallStatement),
-			HXSLNode(span, parent, HXSLNodeType_FunctionCallStatement),
+			ASTNode(span, parent, HXSLNodeType_FunctionCallStatement),
 			Expression(std::move(expression))
 		{
 			if (Expression) Expression->SetParent(this);
@@ -1430,9 +1428,9 @@ namespace HXSL
 		std::unique_ptr<HXSLExpression> ReturnValueExpression;
 
 	public:
-		HXSLReturnStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> returnValueExpression)
+		HXSLReturnStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> returnValueExpression)
 			: HXSLStatement(span, parent, HXSLNodeType_ReturnStatement),
-			HXSLNode(span, parent, HXSLNodeType_ReturnStatement),
+			ASTNode(span, parent, HXSLNodeType_ReturnStatement),
 			ReturnValueExpression(std::move(returnValueExpression))
 		{
 			if (ReturnValueExpression) ReturnValueExpression->SetParent(this);
@@ -1447,9 +1445,9 @@ namespace HXSL
 		std::unique_ptr<HXSLBlockStatement> Body;
 
 	public:
-		HXSLIfStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> expression, std::unique_ptr<HXSLBlockStatement> body)
+		HXSLIfStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> expression, std::unique_ptr<HXSLBlockStatement> body)
 			: HXSLStatement(span, parent, HXSLNodeType_IfStatement),
-			HXSLNode(span, parent, HXSLNodeType_IfStatement),
+			ASTNode(span, parent, HXSLNodeType_IfStatement),
 			Expression(std::move(expression)),
 			Body(std::move(body))
 		{
@@ -1467,9 +1465,9 @@ namespace HXSL
 		std::unique_ptr<HXSLBlockStatement> Body;
 
 	public:
-		HXSLElseStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLBlockStatement> body)
+		HXSLElseStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLBlockStatement> body)
 			: HXSLStatement(span, parent, HXSLNodeType_ElseStatement),
-			HXSLNode(span, parent, HXSLNodeType_ElseStatement),
+			ASTNode(span, parent, HXSLNodeType_ElseStatement),
 			Body(std::move(body))
 		{
 			if (Body) Body->SetParent(this);
@@ -1484,9 +1482,9 @@ namespace HXSL
 		std::unique_ptr<HXSLBlockStatement> Body;
 
 	public:
-		HXSLElseIfStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> expression, std::unique_ptr<HXSLBlockStatement> body)
+		HXSLElseIfStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> expression, std::unique_ptr<HXSLBlockStatement> body)
 			: HXSLStatement(span, parent, HXSLNodeType_ElseIfStatement),
-			HXSLNode(span, parent, HXSLNodeType_ElseIfStatement),
+			ASTNode(span, parent, HXSLNodeType_ElseIfStatement),
 			Expression(std::move(expression)),
 			Body(std::move(body))
 		{
@@ -1504,9 +1502,9 @@ namespace HXSL
 	private:
 		std::unique_ptr<HXSLExpression> Expression;
 	public:
-		HXSLCaseStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> expression)
+		HXSLCaseStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> expression)
 			: HXSLStatement(span, parent, HXSLNodeType_CaseStatement),
-			HXSLNode(span, parent, HXSLNodeType_CaseStatement),
+			ASTNode(span, parent, HXSLNodeType_CaseStatement),
 			Expression(std::move(expression))
 		{
 		}
@@ -1519,9 +1517,9 @@ namespace HXSL
 	private:
 
 	public:
-		HXSLDefaultCaseStatement(TextSpan span, HXSLNode* parent)
+		HXSLDefaultCaseStatement(TextSpan span, ASTNode* parent)
 			: HXSLStatement(span, parent, HXSLNodeType_DefaultCaseStatement),
-			HXSLNode(span, parent, HXSLNodeType_DefaultCaseStatement)
+			ASTNode(span, parent, HXSLNodeType_DefaultCaseStatement)
 		{
 		}
 	};
@@ -1533,17 +1531,17 @@ namespace HXSL
 		std::vector<std::unique_ptr<HXSLCaseStatement>> Cases;
 		std::unique_ptr<HXSLDefaultCaseStatement> DefaultCase;
 	public:
-		HXSLSwitchStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> expression, std::vector<std::unique_ptr<HXSLCaseStatement>> cases, std::unique_ptr<HXSLDefaultCaseStatement> defaultCase)
+		HXSLSwitchStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> expression, std::vector<std::unique_ptr<HXSLCaseStatement>> cases, std::unique_ptr<HXSLDefaultCaseStatement> defaultCase)
 			: HXSLStatement(span, parent, HXSLNodeType_SwitchStatement),
-			HXSLNode(span, parent, HXSLNodeType_SwitchStatement),
+			ASTNode(span, parent, HXSLNodeType_SwitchStatement),
 			Expression(std::move(expression)),
 			Cases(std::move(cases)),
 			DefaultCase(std::move(defaultCase))
 		{
 		}
-		HXSLSwitchStatement(TextSpan span, HXSLNode* parent)
+		HXSLSwitchStatement(TextSpan span, ASTNode* parent)
 			: HXSLStatement(span, parent, HXSLNodeType_SwitchStatement),
-			HXSLNode(span, parent, HXSLNodeType_SwitchStatement)
+			ASTNode(span, parent, HXSLNodeType_SwitchStatement)
 		{
 		}
 
@@ -1562,17 +1560,17 @@ namespace HXSL
 		std::unique_ptr<HXSLExpression> Iteration;
 		std::unique_ptr<HXSLBlockStatement> Body;
 	public:
-		HXSLForStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLStatement> init, std::unique_ptr<HXSLExpression> condition, std::unique_ptr<HXSLBlockStatement> body)
+		HXSLForStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLStatement> init, std::unique_ptr<HXSLExpression> condition, std::unique_ptr<HXSLBlockStatement> body)
 			: HXSLStatement(span, parent, HXSLNodeType_ForStatement),
-			HXSLNode(span, parent, HXSLNodeType_ForStatement),
+			ASTNode(span, parent, HXSLNodeType_ForStatement),
 			Init(std::move(init)),
 			Condition(std::move(condition)),
 			Body(std::move(body))
 		{
 		}
-		HXSLForStatement(TextSpan span, HXSLNode* parent)
+		HXSLForStatement(TextSpan span, ASTNode* parent)
 			: HXSLStatement(span, parent, HXSLNodeType_ForStatement),
-			HXSLNode(span, parent, HXSLNodeType_ForStatement)
+			ASTNode(span, parent, HXSLNodeType_ForStatement)
 		{
 		}
 
@@ -1584,27 +1582,27 @@ namespace HXSL
 
 	class HXSLBreakStatement : public HXSLStatement {
 	public:
-		HXSLBreakStatement(TextSpan span, HXSLNode* parent)
+		HXSLBreakStatement(TextSpan span, ASTNode* parent)
 			: HXSLStatement(span, parent, HXSLNodeType_BreakStatement),
-			HXSLNode(span, parent, HXSLNodeType_BreakStatement)
+			ASTNode(span, parent, HXSLNodeType_BreakStatement)
 		{
 		}
 	};
 
 	class HXSLContinueStatement : public HXSLStatement {
 	public:
-		HXSLContinueStatement(TextSpan span, HXSLNode* parent)
+		HXSLContinueStatement(TextSpan span, ASTNode* parent)
 			: HXSLStatement(span, parent, HXSLNodeType_ContinueStatement),
-			HXSLNode(span, parent, HXSLNodeType_ContinueStatement)
+			ASTNode(span, parent, HXSLNodeType_ContinueStatement)
 		{
 		}
 	};
 
 	class HXSLDiscardStatement : public HXSLStatement {
 	public:
-		HXSLDiscardStatement(TextSpan span, HXSLNode* parent)
+		HXSLDiscardStatement(TextSpan span, ASTNode* parent)
 			: HXSLStatement(span, parent, HXSLNodeType_DiscardStatement),
-			HXSLNode(span, parent, HXSLNodeType_DiscardStatement)
+			ASTNode(span, parent, HXSLNodeType_DiscardStatement)
 		{
 		}
 	};
@@ -1615,9 +1613,9 @@ namespace HXSL
 		std::unique_ptr<HXSLBlockStatement> Body;
 
 	public:
-		HXSLWhileStatement(TextSpan span, HXSLNode* parent, std::unique_ptr<HXSLExpression> expression, std::unique_ptr<HXSLBlockStatement> body)
+		HXSLWhileStatement(TextSpan span, ASTNode* parent, std::unique_ptr<HXSLExpression> expression, std::unique_ptr<HXSLBlockStatement> body)
 			: HXSLStatement(span, parent, HXSLNodeType_WhileStatement),
-			HXSLNode(span, parent, HXSLNodeType_WhileStatement),
+			ASTNode(span, parent, HXSLNodeType_WhileStatement),
 			Expression(std::move(expression)),
 			Body(std::move(body))
 		{
@@ -1641,9 +1639,9 @@ namespace HXSL
 		std::unique_ptr<HXSLBlockStatement> Body;
 
 	protected:
-		HXSLFunction(TextSpan span, HXSLNode* parent, HXSLNodeType type, TextSpan name)
+		HXSLFunction(TextSpan span, ASTNode* parent, HXSLNodeType type, TextSpan name)
 			: HXSLSymbolDef(span, parent, type, name),
-			HXSLNode(span, parent, type),
+			ASTNode(span, parent, type),
 			Flags(HXSLFunctionFlags_None),
 			AccessModifiers(HXSLAccessModifier_Private)
 		{
@@ -1652,15 +1650,15 @@ namespace HXSL
 	public:
 		HXSLFunction()
 			: HXSLSymbolDef(TextSpan(), nullptr, HXSLNodeType_Function, TextSpan(), true),
-			HXSLNode(TextSpan(), nullptr, HXSLNodeType_Function, true),
+			ASTNode(TextSpan(), nullptr, HXSLNodeType_Function, true),
 			AccessModifiers(HXSLAccessModifier_Private),
 			Flags(HXSLFunctionFlags_None),
 			Semantic(TextSpan())
 		{
 		}
-		HXSLFunction(TextSpan span, HXSLNode* parent, HXSLAccessModifier accessModifiers, HXSLFunctionFlags flags, TextSpan name, std::unique_ptr<HXSLSymbolRef> returnSymbol, std::vector<std::unique_ptr<HXSLParameter>> parameters, TextSpan semantic)
+		HXSLFunction(TextSpan span, ASTNode* parent, HXSLAccessModifier accessModifiers, HXSLFunctionFlags flags, TextSpan name, std::unique_ptr<HXSLSymbolRef> returnSymbol, std::vector<std::unique_ptr<HXSLParameter>> parameters, TextSpan semantic)
 			: HXSLSymbolDef(span, parent, HXSLNodeType_Function, name),
-			HXSLNode(span, parent, HXSLNodeType_Function),
+			ASTNode(span, parent, HXSLNodeType_Function),
 			AccessModifiers(accessModifiers),
 			Flags(flags),
 			ReturnSymbol(std::move(returnSymbol)),
@@ -1669,9 +1667,9 @@ namespace HXSL
 		{
 		}
 
-		HXSLFunction(TextSpan span, HXSLNode* parent, HXSLAccessModifier accessModifiers, HXSLFunctionFlags flags, TextSpan name, std::unique_ptr<HXSLSymbolRef> returnSymbol)
+		HXSLFunction(TextSpan span, ASTNode* parent, HXSLAccessModifier accessModifiers, HXSLFunctionFlags flags, TextSpan name, std::unique_ptr<HXSLSymbolRef> returnSymbol)
 			: HXSLSymbolDef(span, parent, HXSLNodeType_Function, name),
-			HXSLNode(span, parent, HXSLNodeType_Function),
+			ASTNode(span, parent, HXSLNodeType_Function),
 			AccessModifiers(accessModifiers),
 			Flags(flags),
 			ReturnSymbol(std::move(returnSymbol))
@@ -1689,7 +1687,7 @@ namespace HXSL
 			return ReturnSymbol;
 		}
 
-		HXSLSymbolType GetSymbolType() const override
+		SymbolType GetSymbolType() const override
 		{
 			return HXSLSymbolType_Function;
 		}
@@ -1698,7 +1696,7 @@ namespace HXSL
 
 		void Read(HXSLStream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
 
 		std::string DebugName() const override
 		{
@@ -1712,7 +1710,7 @@ namespace HXSL
 			DEFINE_GETTER_SETTER_MOVE(std::unique_ptr<HXSLBlockStatement>, Body)
 	};
 
-	class HXSLField : virtual public HXSLNode, public HXSLSymbolDef, public IHXSLHasSymbolRef
+	class HXSLField : virtual public ASTNode, public HXSLSymbolDef, public IHXSLHasSymbolRef
 	{
 	private:
 		HXSLAccessModifier AccessModifiers;
@@ -1722,15 +1720,15 @@ namespace HXSL
 	public:
 		HXSLField()
 			: HXSLSymbolDef(TextSpan(), nullptr, HXSLNodeType_Field, TextSpan(), true),
-			HXSLNode(TextSpan(), nullptr, HXSLNodeType_Field, true),
+			ASTNode(TextSpan(), nullptr, HXSLNodeType_Field, true),
 			AccessModifiers(HXSLAccessModifier_Private),
 			Flags(HXSLFieldFlags_None),
 			Semantic(TextSpan())
 		{
 		}
-		HXSLField(TextSpan span, HXSLNode* parent, HXSLAccessModifier access, HXSLFieldFlags flags, TextSpan name, std::unique_ptr<HXSLSymbolRef> symbol, TextSpan semantic)
+		HXSLField(TextSpan span, ASTNode* parent, HXSLAccessModifier access, HXSLFieldFlags flags, TextSpan name, std::unique_ptr<HXSLSymbolRef> symbol, TextSpan semantic)
 			: HXSLSymbolDef(span, parent, HXSLNodeType_Field, name),
-			HXSLNode(span, parent, HXSLNodeType_Field),
+			ASTNode(span, parent, HXSLNodeType_Field),
 			AccessModifiers(access),
 			Flags(flags),
 			Symbol(std::move(symbol)),
@@ -1743,7 +1741,7 @@ namespace HXSL
 			return Symbol;
 		}
 
-		HXSLSymbolType GetSymbolType() const override
+		SymbolType GetSymbolType() const override
 		{
 			return HXSLSymbolType_Field;
 		}
@@ -1752,7 +1750,7 @@ namespace HXSL
 
 		void Read(HXSLStream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(HXSLAccessModifier, AccessModifiers)
 	};
@@ -1764,14 +1762,14 @@ namespace HXSL
 	public:
 		HXSLStruct()
 			: HXSLType(TextSpan(), nullptr, HXSLNodeType_Struct, TextSpan(), true),
-			HXSLNode(TextSpan(), nullptr, HXSLNodeType_Struct, true),
+			ASTNode(TextSpan(), nullptr, HXSLNodeType_Struct, true),
 			HXSLContainer(TextSpan(), nullptr, HXSLNodeType_Struct, true),
 			AccessModifiers(HXSLAccessModifier_Private)
 		{
 		}
-		HXSLStruct(TextSpan span, HXSLNode* parent, HXSLAccessModifier access, TextSpan name)
+		HXSLStruct(TextSpan span, ASTNode* parent, HXSLAccessModifier access, TextSpan name)
 			: HXSLType(span, parent, HXSLNodeType_Struct, name),
-			HXSLNode(span, parent, HXSLNodeType_Struct),
+			ASTNode(span, parent, HXSLNodeType_Struct),
 			HXSLContainer(span, parent, HXSLNodeType_Struct),
 			AccessModifiers(access)
 		{
@@ -1782,7 +1780,7 @@ namespace HXSL
 			return "[" + toString(type) + "] Name: " + Name.toString();
 		}
 
-		HXSLSymbolType GetSymbolType() const override
+		SymbolType GetSymbolType() const override
 		{
 			return HXSLSymbolType_Struct;
 		}
@@ -1791,7 +1789,7 @@ namespace HXSL
 
 		void Read(HXSLStream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(HXSLAccessModifier, AccessModifiers)
 	};
@@ -1803,14 +1801,14 @@ namespace HXSL
 	public:
 		HXSLClass()
 			: HXSLType(TextSpan(), nullptr, HXSLNodeType_Class, TextSpan(), true),
-			HXSLNode(TextSpan(), nullptr, HXSLNodeType_Class, true),
+			ASTNode(TextSpan(), nullptr, HXSLNodeType_Class, true),
 			HXSLContainer(TextSpan(), nullptr, HXSLNodeType_Class, true),
 			AccessModifiers(HXSLAccessModifier_Private)
 		{
 		}
-		HXSLClass(TextSpan span, HXSLNode* parent, HXSLAccessModifier access, TextSpan name)
+		HXSLClass(TextSpan span, ASTNode* parent, HXSLAccessModifier access, TextSpan name)
 			: HXSLType(span, parent, HXSLNodeType_Class, name),
-			HXSLNode(span, parent, HXSLNodeType_Class),
+			ASTNode(span, parent, HXSLNodeType_Class),
 			HXSLContainer(span, parent, HXSLNodeType_Class),
 			AccessModifiers(access)
 		{
@@ -1821,7 +1819,7 @@ namespace HXSL
 			return "[" + toString(type) + "] Name: " + Name.toString();
 		}
 
-		HXSLSymbolType GetSymbolType() const override
+		SymbolType GetSymbolType() const override
 		{
 			return HXSLSymbolType_Struct;
 		}
@@ -1830,7 +1828,7 @@ namespace HXSL
 
 		void Read(HXSLStream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(HXSLAccessModifier, AccessModifiers)
 	};
@@ -1887,7 +1885,7 @@ namespace HXSL
 		VariableReference() = default;
 	};
 
-	class HXSLNamespace : virtual public HXSLNode, public HXSLContainer, public HXSLSymbolDef
+	class HXSLNamespace : virtual public ASTNode, public HXSLContainer, public HXSLSymbolDef
 	{
 	private:
 		std::vector<UsingDeclaration> Usings;
@@ -1895,13 +1893,13 @@ namespace HXSL
 	public:
 		HXSLNamespace()
 			: HXSLSymbolDef(TextSpan(), nullptr, HXSLNodeType_Namespace, TextSpan(), true),
-			HXSLNode(TextSpan(), nullptr, HXSLNodeType_Namespace, true),
+			ASTNode(TextSpan(), nullptr, HXSLNodeType_Namespace, true),
 			HXSLContainer(TextSpan(), nullptr, HXSLNodeType_Namespace, true)
 		{
 		}
-		HXSLNamespace(HXSLNode* parent, const NamespaceDeclaration& declaration)
+		HXSLNamespace(ASTNode* parent, const NamespaceDeclaration& declaration)
 			: HXSLSymbolDef(declaration.Span, parent, HXSLNodeType_Namespace, declaration.Name),
-			HXSLNode(declaration.Span, parent, HXSLNodeType_Namespace),
+			ASTNode(declaration.Span, parent, HXSLNodeType_Namespace),
 			HXSLContainer(declaration.Span, parent, HXSLNodeType_Namespace)
 		{
 		}
@@ -1915,13 +1913,13 @@ namespace HXSL
 
 		const std::vector<AssemblySymbolRef>& GetAssemblyReferences() { return References; }
 
-		virtual HXSLSymbolType GetSymbolType() const { return HXSLSymbolType_Namespace; }
+		virtual SymbolType GetSymbolType() const { return HXSLSymbolType_Namespace; }
 
 		void Write(HXSLStream& stream) const override;
 
 		void Read(HXSLStream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, HXSLCompilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes) override;
 
 		void Warmup(const AssemblyCollection& references);
 	};

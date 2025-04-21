@@ -15,11 +15,11 @@ namespace HXSL
 		}
 
 	public:
-		virtual bool CanAnalyze(HXSLNode* node) = 0;
+		virtual bool CanAnalyze(ASTNode* node) = 0;
 
-		virtual HXSLTraversalBehavior Analyze(HXSLAnalyzer& analyzer, HXSLNode* node, HXSLCompilation* compilation) = 0;
+		virtual HXSLTraversalBehavior Analyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation) = 0;
 
-		HXSLTraversalBehavior TryAnalyze(HXSLAnalyzer& analyzer, HXSLNode* node, HXSLCompilation* compilation)
+		HXSLTraversalBehavior TryAnalyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation)
 		{
 			if (CanAnalyze(node))
 			{

@@ -4,9 +4,9 @@
 #include "sub_parser_registry.hpp"
 namespace HXSL
 {
-	static bool ParseSingleLeftExpression(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLExpression>& expression, bool& hadBrackets);
+	static bool ParseSingleLeftExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expression, bool& hadBrackets);
 
-	static bool ParseExpressionInner(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLExpression>& expression, int precedence = 0)
+	static bool ParseExpressionInner(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expression, int precedence = 0)
 	{
 		auto start = stream.Current();
 
@@ -109,7 +109,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool ParseSingleLeftExpression(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLExpression>& expression, bool& hadBrackets)
+	bool ParseSingleLeftExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expression, bool& hadBrackets)
 	{
 		if (stream.TryGetDelimiter('('))
 		{
@@ -124,7 +124,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseExpression(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, std::unique_ptr<HXSLExpression>& expression)
+	static bool ParseExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expression)
 	{
 		HXSL_ASSERT(parent, "Parent cannot be null.");
 		auto start = stream.Current();

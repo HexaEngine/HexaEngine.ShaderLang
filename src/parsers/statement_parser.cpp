@@ -93,7 +93,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseCaseInner(HXSLParser& parser, TokenStream& stream, HXSLNode* parent, HXSLStatementContainer* container)
+	static bool ParseCaseInner(HXSLParser& parser, TokenStream& stream, ASTNode* parent, HXSLStatementContainer* container)
 	{
 		static const std::unordered_set<char> unexpectedDelimiters = { '}', ')', '.', ':' };
 		static const std::unordered_set<HXSLNodeType> breakoutTypes = { HXSLNodeType_BreakStatement, HXSLNodeType_ReturnStatement, HXSLNodeType_ContinueStatement, HXSLNodeType_DiscardStatement };

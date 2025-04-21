@@ -246,7 +246,7 @@ namespace HXSL
 		return true;
 	}
 
-	void HXSLSymbolResolver::PushScope(HXSLNode* parent, const TextSpan& span, bool external)
+	void HXSLSymbolResolver::PushScope(ASTNode* parent, const TextSpan& span, bool external)
 	{
 		stack.push(current);
 		current.Parent = parent;
@@ -275,14 +275,14 @@ namespace HXSL
 		HXSL_ASSERT(current.SymbolTableIndex != -1, "Invalid index");
 	}
 
-	void HXSLSymbolResolver::VisitClose(HXSLNode* node, size_t depth)
+	void HXSLSymbolResolver::VisitClose(ASTNode* node, size_t depth)
 	{
 		if (current.Parent != node) return;
 		current = stack.top();
 		stack.pop();
 	}
 
-	HXSLTraversalBehavior HXSLSymbolResolver::VisitExternal(HXSLNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
+	HXSLTraversalBehavior HXSLSymbolResolver::VisitExternal(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
 	{
 		auto& type = node->GetType();
 
@@ -324,7 +324,7 @@ namespace HXSL
 		return HXSLTraversalBehavior_Keep;
 	}
 
-	bool HXSLSymbolResolver::UseBeforeDeclarationCheck(HXSLSymbolRef* ref, HXSLNode* parent) const
+	bool HXSLSymbolResolver::UseBeforeDeclarationCheck(HXSLSymbolRef* ref, ASTNode* parent) const
 	{
 		auto decl = ref->GetDeclaration();
 		if (decl)
@@ -345,7 +345,7 @@ namespace HXSL
 		return true;
 	}
 
-	HXSLTraversalBehavior HXSLSymbolResolver::Visit(HXSLNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
+	HXSLTraversalBehavior HXSLSymbolResolver::Visit(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
 	{
 		auto& type = node->GetType();
 
@@ -723,7 +723,7 @@ namespace HXSL
 		}
 	}
 
-	void HXSLSymbolResolver::TypeCheckStatement(HXSLNode*& node)
+	void HXSLSymbolResolver::TypeCheckStatement(ASTNode*& node)
 	{
 		auto& type = node->GetType();
 		switch (type)
@@ -742,7 +742,7 @@ namespace HXSL
 		}
 	}
 
-	HXSLTraversalBehavior HXSLSymbolResolver::TypeChecksExpression(HXSLNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
+	HXSLTraversalBehavior HXSLSymbolResolver::TypeChecksExpression(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
 	{
 		auto& type = node->GetType();
 		if (!IsStatementType(type)) return HXSLTraversalBehavior_Keep;
@@ -794,7 +794,7 @@ namespace HXSL
 		return 0;
 	}
 
-	HXSLTraversalBehavior HXSLSymbolResolver::ResolveMember(HXSLMemberAccessExpression* memberAccessExpr, HXSLNode*& next) const
+	HXSLTraversalBehavior HXSLSymbolResolver::ResolveMember(HXSLMemberAccessExpression* memberAccessExpr, ASTNode*& next) const
 	{
 		auto getter = dynamic_cast<IHXSLHasSymbolRef*>(memberAccessExpr);
 		auto chain = dynamic_cast<IHXSLChainExpression*>(memberAccessExpr);

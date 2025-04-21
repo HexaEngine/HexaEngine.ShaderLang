@@ -9,7 +9,7 @@
 #include <string>
 namespace HXSL
 {
-	class HXSLCompilation : virtual public HXSLNode, public HXSLContainer, public ILogger
+	class Compilation : virtual public ASTNode, public HXSLContainer, public ILogger
 	{
 	private:
 		std::atomic<size_t> currentID = 0;
@@ -17,8 +17,8 @@ namespace HXSL
 		std::vector<UsingDeclaration> Usings;
 
 	public:
-		HXSLCompilation(bool isExtern = false)
-			: HXSLNode({ }, nullptr, HXSLNodeType_Compilation, isExtern), HXSLContainer({ }, nullptr, HXSLNodeType_Compilation, isExtern), ILogger()
+		Compilation(bool isExtern = false)
+			: ASTNode({ }, nullptr, HXSLNodeType_Compilation, isExtern), HXSLContainer({ }, nullptr, HXSLNodeType_Compilation, isExtern), ILogger()
 		{
 			AssignId();
 		}
@@ -28,7 +28,7 @@ namespace HXSL
 			return currentID.fetch_add(1, std::memory_order_relaxed);
 		}
 
-		HXSLCompilation* GetCompilation() override
+		Compilation* GetCompilation() override
 		{
 			return this;
 		}
