@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="TextSpan">
+		<DisplayString>"[{Start}, {Length}]"</DisplayString>
+		<Expand>
+			<Item Name="Start">Start</Item>
+			<Item Name="Length">Length</Item>
+			<Item Name="Line">Line</Item>
+			<Item Name="Column">Column</Item>
+			<ArrayItems>
+				<Size>Length</Size>
+				<ValuePointer>Text + Start</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+</AutoVisualizer>

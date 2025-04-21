@@ -1,0 +1,8 @@
+namespace Test;
+using Core;
+
+float4 main(PS_INPUT pixel) : SV_TARGET
+{
+    float4 color = pixel.color * fontTex.Sample(samplerState, pixel.tex);
+    return color;
+}
