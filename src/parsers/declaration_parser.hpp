@@ -3,16 +3,16 @@
 
 #include "sub_parser.hpp"
 
-namespace HXSL
+namespace HXSL 
 {
-	class HXSLDeclarationParser : public HXSLSubParser
+	class DeclarationParser : public SubParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, Compilation* compilation) override;
+		bool TryParse(Parser& parser, TokenStream& stream, Compilation* compilation) override;
 	};
 
-	class HXSLStructParser : public HXSLSubParser
+	class StructParser : public SubParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, Compilation* compilation) override;
+		bool TryParse(Parser& parser, TokenStream& stream, Compilation* compilation) override;
 	};
 }
 

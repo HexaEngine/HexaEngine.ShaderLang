@@ -2,7 +2,7 @@
 #define SYMBOL_RESOLVER_HPP
 
 #include "analyzer.hpp"
-#include "nodes.hpp"
+#include "ast.hpp"
 #include <memory>
 #include <stack>
 
@@ -132,7 +132,7 @@ namespace HXSL
 
 	struct ResolverScopeContext
 	{
-		HXSLNamespace* CurrentNamespace;
+		Namespace* CurrentNamespace;
 		ASTNode* Parent;
 		size_t SymbolTableIndex;
 		uint ScopeCounter;
@@ -154,23 +154,23 @@ namespace HXSL
 		}
 	};
 
-	class HXSLSymbolResolver : public HXSLVisitor<ResolverDeferralContext>
+	class SymbolResolver : public Visitor<ResolverDeferralContext>
 	{
 	private:
 
-		HXSLAnalyzer& analyzer;
-		HXSLPrimitiveManager& primitives;
+		Analyzer& analyzer;
+		PrimitiveManager& primitives;
 		const AssemblyCollection& references;
 		const Assembly* targetAssembly;
-		HXSLSwizzleManager* swizzleManager;
+		SwizzleManager* swizzleManager;
 		ResolverScopeContext current;
 		IterStack<ResolverScopeContext> stack;
 		Compilation* compilation;
 
 	public:
-		HXSLSymbolResolver(HXSLAnalyzer& analyzer, const AssemblyCollection& references, const Assembly* targetAssembly, HXSLSwizzleManager* swizzleManager)
+		SymbolResolver(Analyzer& analyzer, const AssemblyCollection& references, const Assembly* targetAssembly, SwizzleManager* swizzleManager)
 			: analyzer(analyzer),
-			primitives(HXSLPrimitiveManager::GetInstance()),
+			primitives(PrimitiveManager::GetInstance()),
 			references(references),
 			targetAssembly(targetAssembly),
 			swizzleManager(swizzleManager),
@@ -178,24 +178,24 @@ namespace HXSL
 		{
 		}
 
-		bool SymbolTypeSanityCheck(SymbolMetadata* metadata, HXSLSymbolRef* ref) const;
+		bool SymbolTypeSanityCheck(SymbolMetadata* metadata, SymbolRef* ref) const;
 
-		bool SymbolVisibilityChecks(SymbolMetadata* metadata, HXSLSymbolRef* ref, ResolverScopeContext& context) const;
+		bool SymbolVisibilityChecks(SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const;
 
-		bool TryResolve(const SymbolTable* table, const TextSpan& name, size_t nodeIndex, const SymbolTable*& outTable, size_t& outNodeIndex, HXSLSymbolDef*& outDefinition) const;
+		bool TryResolve(const SymbolTable* table, const TextSpan& name, size_t nodeIndex, const SymbolTable*& outTable, size_t& outNodeIndex, SymbolDef*& outDefinition) const;
 
-		bool TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const TextSpan& name, const SymbolTable*& outTable, size_t& nodeIndexOut, HXSLSymbolDef*& outDefinition) const;
+		bool TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const TextSpan& name, const SymbolTable*& outTable, size_t& nodeIndexOut, SymbolDef*& outDefinition) const;
 
-		HXSLSymbolDef* ResolveSymbol(const TextSpan& name, const SymbolTable*& outTable, size_t& nodeIndexOut) const;
+		SymbolDef* ResolveSymbol(const TextSpan& name, const SymbolTable*& outTable, size_t& nodeIndexOut) const;
 
-		HXSLSymbolDef* ResolveSymbol(const std::string& str) const
+		SymbolDef* ResolveSymbol(const std::string& str) const
 		{
 			const SymbolTable* t;
 			size_t i;
 			return ResolveSymbol(TextSpan(str), t, i);
 		}
 
-		bool ResolveSymbol(HXSLSymbolRef* ref) const;
+		bool ResolveSymbol(SymbolRef* ref) const;
 
 		/// <summary>
 		///
@@ -203,39 +203,39 @@ namespace HXSL
 		/// <param name="type"></param>
 		/// <param name="getter"></param>
 		/// <returns>-1 Failed, 0 Success, 1 Defer</returns>
-		int ResolveMemberInner(HXSLSymbolRef* type, IHXSLHasSymbolRef* getter) const;
+		int ResolveMemberInner(SymbolRef* type, IHasSymbolRef* getter) const;
 
-		HXSLTraversalBehavior ResolveMember(HXSLMemberAccessExpression* memberAccessExpr, ASTNode*& next) const;
+		TraversalBehavior ResolveMember(MemberAccessExpression* memberAccessExpr, ASTNode*& next) const;
 
 		void PushScope(ASTNode* parent, const TextSpan& span, bool external = false);
 
 		void VisitClose(ASTNode* node, size_t depth) override;
 
-		HXSLTraversalBehavior VisitExternal(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
+		TraversalBehavior VisitExternal(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
 
-		bool UseBeforeDeclarationCheck(HXSLSymbolRef* ref, ASTNode* parent) const;
+		bool UseBeforeDeclarationCheck(SymbolRef* ref, ASTNode* parent) const;
 
-		HXSLTraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context) override;
+		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context) override;
 
-		HXSLSymbolDef* GetNumericType(const HXSLNumberType& type) const;
+		SymbolDef* GetNumericType(const NumberType& type) const;
 
-		void TypeCheckExpression(HXSLExpression* node);
+		void TypeCheckExpression(Expression* node);
 
 		void TypeCheckStatement(ASTNode*& node);
 
-		HXSLTraversalBehavior TypeChecksExpression(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
+		TraversalBehavior TypeChecksExpression(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
 
 		void Traverse(ASTNode* node) override
 		{
 			for (auto& reference : references.GetAssemblies())
 			{
 				auto table = reference->GetSymbolTable();
-				HXSLVisitor::Traverse(table->GetCompilation(), std::bind(&HXSLSymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&HXSLSymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
+				Visitor::Traverse(table->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 			}
 
-			HXSLVisitor::Traverse(node);
+			Visitor::Traverse(node);
 
-			HXSLVisitor::Traverse(node, std::bind(&HXSLSymbolResolver::TypeChecksExpression, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), nullptr);
+			Visitor::Traverse(node, std::bind(&SymbolResolver::TypeChecksExpression, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), nullptr);
 		}
 	};
 }

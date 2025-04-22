@@ -7,31 +7,31 @@
 #include <cstdlib>
 #include <sstream>
 
-namespace HXSL
+namespace HXSL 
 {
-	enum HXSLNumberType
+	enum NumberType
 	{
-		HXSLNumberType_Unknown,
-		HXSLNumberType_Char,
-		HXSLNumberType_SByte,
-		HXSLNumberType_Short,
-		HXSLNumberType_UShort,
-		HXSLNumberType_Int,
-		HXSLNumberType_UInt,
-		HXSLNumberType_LongLong,
-		HXSLNumberType_ULongLong,
-		HXSLNumberType_Half,
-		HXSLNumberType_Float,
-		HXSLNumberType_Double,
+		NumberType_Unknown,
+		NumberType_Char,
+		NumberType_SByte,
+		NumberType_Short,
+		NumberType_UShort,
+		NumberType_Int,
+		NumberType_UInt,
+		NumberType_LongLong,
+		NumberType_ULongLong,
+		NumberType_Half,
+		NumberType_Float,
+		NumberType_Double,
 	};
 
-	struct HXSLNumber
+	struct Number
 	{
-		HXSLNumber() : Kind(HXSLNumberType_Unknown), longLongValue(0)
+		Number() : Kind(NumberType_Unknown), longLongValue(0)
 		{
 		}
 
-		HXSLNumberType Kind;
+		NumberType Kind;
 		union {
 			char charValue;
 			signed char sbyteValue;
@@ -46,6 +46,6 @@ namespace HXSL
 		};
 	};
 
-	bool ParseNumber(const char* text, size_t length, size_t position, bool isHex, bool isBinary, bool isSigned, HXSLNumber& number, size_t& tokenLength);
+	bool ParseNumber(const char* text, size_t length, size_t position, bool isHex, bool isBinary, bool isSigned, Number& number, size_t& tokenLength);
 }
 #endif

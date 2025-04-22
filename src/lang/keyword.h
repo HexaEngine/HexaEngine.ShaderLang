@@ -6,406 +6,406 @@
 
 namespace HXSL
 {
-	enum HXSLKeyword : int
+	enum Keyword : int
 	{
-		HXSLKeyword_Unknown,
-		HXSLKeyword_AppendStructuredBuffer,
-		HXSLKeyword_Asm,
-		HXSLKeyword_AsmFragment,
-		HXSLKeyword_BlendState,
-		HXSLKeyword_Bool,
-		HXSLKeyword_Break,
-		HXSLKeyword_Buffer,
-		HXSLKeyword_ByteAddressBuffer,
-		HXSLKeyword_Case,
-		HXSLKeyword_Cbuffer,
-		HXSLKeyword_Centroid,
-		HXSLKeyword_Class,
-		HXSLKeyword_ColumnMajor,
-		HXSLKeyword_Compile,
-		HXSLKeyword_CompileFragment,
-		HXSLKeyword_CompileShader,
-		HXSLKeyword_Const,
-		HXSLKeyword_Continue,
-		HXSLKeyword_ComputeShader,
-		HXSLKeyword_ConsumeStructuredBuffer,
-		HXSLKeyword_Default,
-		HXSLKeyword_DepthStencilState,
-		HXSLKeyword_DepthStencilView,
-		HXSLKeyword_Discard,
-		HXSLKeyword_Do,
-		HXSLKeyword_Double,
-		HXSLKeyword_DomainShader,
-		HXSLKeyword_Dword,
-		HXSLKeyword_Else,
-		HXSLKeyword_Export,
-		HXSLKeyword_Extern,
-		HXSLKeyword_False,
-		HXSLKeyword_Float,
-		HXSLKeyword_For,
-		HXSLKeyword_Fxgroup,
-		HXSLKeyword_GeometryShader,
-		HXSLKeyword_Groupshared,
-		HXSLKeyword_Half,
-		HXSLKeyword_Hullshader,
-		HXSLKeyword_If,
-		HXSLKeyword_In,
-		HXSLKeyword_Inline,
-		HXSLKeyword_Inout,
-		HXSLKeyword_InputPatch,
-		HXSLKeyword_Int,
-		HXSLKeyword_Interface,
-		HXSLKeyword_Line,
-		HXSLKeyword_Lineadj,
-		HXSLKeyword_Linear,
-		HXSLKeyword_LineStream,
-		HXSLKeyword_Matrix,
-		HXSLKeyword_Min16float,
-		HXSLKeyword_Min10float,
-		HXSLKeyword_Min16int,
-		HXSLKeyword_Min12int,
-		HXSLKeyword_Min16uint,
-		HXSLKeyword_Namespace,
-		HXSLKeyword_Nointerpolation,
-		HXSLKeyword_Noperspective,
-		HXSLKeyword_Null,
-		HXSLKeyword_Out,
-		HXSLKeyword_OutputPatch,
-		HXSLKeyword_Packoffset,
-		HXSLKeyword_Pass,
-		HXSLKeyword_Pixelfragment,
-		HXSLKeyword_PixelShader,
-		HXSLKeyword_Point,
-		HXSLKeyword_PointStream,
-		HXSLKeyword_Precise,
-		HXSLKeyword_RasterizerState,
-		HXSLKeyword_RenderTargetView,
-		HXSLKeyword_Return,
-		HXSLKeyword_Register,
-		HXSLKeyword_RowMajor,
-		HXSLKeyword_RWBuffer,
-		HXSLKeyword_RWByteAddressBuffer,
-		HXSLKeyword_RWStructuredBuffer,
-		HXSLKeyword_RWTexture1D,
-		HXSLKeyword_RWTexture1DArray,
-		HXSLKeyword_RWTexture2D,
-		HXSLKeyword_RWTexture2DArray,
-		HXSLKeyword_RWTexture3D,
-		HXSLKeyword_Sample,
-		HXSLKeyword_Sampler,
-		HXSLKeyword_SamplerState,
-		HXSLKeyword_SamplerComparisonState,
-		HXSLKeyword_Shared,
-		HXSLKeyword_Snorm,
-		HXSLKeyword_Stateblock,
-		HXSLKeyword_StateblockState,
-		HXSLKeyword_Static,
-		HXSLKeyword_String,
-		HXSLKeyword_Struct,
-		HXSLKeyword_Switch,
-		HXSLKeyword_StructuredBuffer,
-		HXSLKeyword_Tbuffer,
-		HXSLKeyword_Technique,
-		HXSLKeyword_Technique10,
-		HXSLKeyword_Technique11,
-		HXSLKeyword_Texture,
-		HXSLKeyword_Texture1D,
-		HXSLKeyword_Texture1DArray,
-		HXSLKeyword_Texture2D,
-		HXSLKeyword_Texture2DArray,
-		HXSLKeyword_Texture2DMS,
-		HXSLKeyword_Texture2DMSArray,
-		HXSLKeyword_Texture3D,
-		HXSLKeyword_TextureCube,
-		HXSLKeyword_TextureCubeArray,
-		HXSLKeyword_True,
-		HXSLKeyword_Typedef,
-		HXSLKeyword_Triangle,
-		HXSLKeyword_Triangleadj,
-		HXSLKeyword_TriangleStream,
-		HXSLKeyword_Uint,
-		HXSLKeyword_Uniform,
-		HXSLKeyword_Unorm,
-		HXSLKeyword_Unsigned,
-		HXSLKeyword_Vector,
-		HXSLKeyword_Vertexfragment,
-		HXSLKeyword_VertexShader,
-		HXSLKeyword_Void,
-		HXSLKeyword_Volatile,
-		HXSLKeyword_While,
-		HXSLKeyword_Using,
-		HXSLKeyword_Private,
-		HXSLKeyword_Internal,
-		HXSLKeyword_Public,
+		Keyword_Unknown,
+		Keyword_AppendStructuredBuffer,
+		Keyword_Asm,
+		Keyword_AsmFragment,
+		Keyword_BlendState,
+		Keyword_Bool,
+		Keyword_Break,
+		Keyword_Buffer,
+		Keyword_ByteAddressBuffer,
+		Keyword_Case,
+		Keyword_Cbuffer,
+		Keyword_Centroid,
+		Keyword_Class,
+		Keyword_ColumnMajor,
+		Keyword_Compile,
+		Keyword_CompileFragment,
+		Keyword_CompileShader,
+		Keyword_Const,
+		Keyword_Continue,
+		Keyword_ComputeShader,
+		Keyword_ConsumeStructuredBuffer,
+		Keyword_Default,
+		Keyword_DepthStencilState,
+		Keyword_DepthStencilView,
+		Keyword_Discard,
+		Keyword_Do,
+		Keyword_Double,
+		Keyword_DomainShader,
+		Keyword_Dword,
+		Keyword_Else,
+		Keyword_Export,
+		Keyword_Extern,
+		Keyword_False,
+		Keyword_Float,
+		Keyword_For,
+		Keyword_Fxgroup,
+		Keyword_GeometryShader,
+		Keyword_Groupshared,
+		Keyword_Half,
+		Keyword_Hullshader,
+		Keyword_If,
+		Keyword_In,
+		Keyword_Inline,
+		Keyword_Inout,
+		Keyword_InputPatch,
+		Keyword_Int,
+		Keyword_Interface,
+		Keyword_Line,
+		Keyword_Lineadj,
+		Keyword_Linear,
+		Keyword_LineStream,
+		Keyword_Matrix,
+		Keyword_Min16float,
+		Keyword_Min10float,
+		Keyword_Min16int,
+		Keyword_Min12int,
+		Keyword_Min16uint,
+		Keyword_Namespace,
+		Keyword_Nointerpolation,
+		Keyword_Noperspective,
+		Keyword_Null,
+		Keyword_Out,
+		Keyword_OutputPatch,
+		Keyword_Packoffset,
+		Keyword_Pass,
+		Keyword_Pixelfragment,
+		Keyword_PixelShader,
+		Keyword_Point,
+		Keyword_PointStream,
+		Keyword_Precise,
+		Keyword_RasterizerState,
+		Keyword_RenderTargetView,
+		Keyword_Return,
+		Keyword_Register,
+		Keyword_RowMajor,
+		Keyword_RWBuffer,
+		Keyword_RWByteAddressBuffer,
+		Keyword_RWStructuredBuffer,
+		Keyword_RWTexture1D,
+		Keyword_RWTexture1DArray,
+		Keyword_RWTexture2D,
+		Keyword_RWTexture2DArray,
+		Keyword_RWTexture3D,
+		Keyword_Sample,
+		Keyword_Sampler,
+		Keyword_SamplerState,
+		Keyword_SamplerComparisonState,
+		Keyword_Shared,
+		Keyword_Snorm,
+		Keyword_Stateblock,
+		Keyword_StateblockState,
+		Keyword_Static,
+		Keyword_String,
+		Keyword_Struct,
+		Keyword_Switch,
+		Keyword_StructuredBuffer,
+		Keyword_Tbuffer,
+		Keyword_Technique,
+		Keyword_Technique10,
+		Keyword_Technique11,
+		Keyword_Texture,
+		Keyword_Texture1D,
+		Keyword_Texture1DArray,
+		Keyword_Texture2D,
+		Keyword_Texture2DArray,
+		Keyword_Texture2DMS,
+		Keyword_Texture2DMSArray,
+		Keyword_Texture3D,
+		Keyword_TextureCube,
+		Keyword_TextureCubeArray,
+		Keyword_True,
+		Keyword_Typedef,
+		Keyword_Triangle,
+		Keyword_Triangleadj,
+		Keyword_TriangleStream,
+		Keyword_Uint,
+		Keyword_Uniform,
+		Keyword_Unorm,
+		Keyword_Unsigned,
+		Keyword_Vector,
+		Keyword_Vertexfragment,
+		Keyword_VertexShader,
+		Keyword_Void,
+		Keyword_Volatile,
+		Keyword_While,
+		Keyword_Using,
+		Keyword_Private,
+		Keyword_Internal,
+		Keyword_Public,
 	};
 
-	static std::string ToString(HXSLKeyword keyword)
+	static std::string ToString(Keyword keyword)
 	{
 		switch (keyword)
 		{
-		case HXSLKeyword_Unknown: return "Unknown";
-		case HXSLKeyword_AppendStructuredBuffer: return "AppendStructuredBuffer";
-		case HXSLKeyword_Asm: return "asm";
-		case HXSLKeyword_AsmFragment: return "asm_fragment";
-		case HXSLKeyword_BlendState: return "BlendState";
-		case HXSLKeyword_Bool: return "bool";
-		case HXSLKeyword_Break: return "break";
-		case HXSLKeyword_Buffer: return "Buffer";
-		case HXSLKeyword_ByteAddressBuffer: return "ByteAddressBuffer";
-		case HXSLKeyword_Case: return "case";
-		case HXSLKeyword_Cbuffer: return "cbuffer";
-		case HXSLKeyword_Centroid: return "centroid";
-		case HXSLKeyword_Class: return "class";
-		case HXSLKeyword_ColumnMajor: return "column_major";
-		case HXSLKeyword_Compile: return "compile";
-		case HXSLKeyword_CompileFragment: return "compile_fragment";
-		case HXSLKeyword_CompileShader: return "CompileShader";
-		case HXSLKeyword_Const: return "const";
-		case HXSLKeyword_Continue: return "continue";
-		case HXSLKeyword_ComputeShader: return "ComputeShader";
-		case HXSLKeyword_ConsumeStructuredBuffer: return "ConsumeStructuredBuffer";
-		case HXSLKeyword_Default: return "default";
-		case HXSLKeyword_DepthStencilState: return "DepthStencilState";
-		case HXSLKeyword_DepthStencilView: return "DepthStencilView";
-		case HXSLKeyword_Discard: return "discard";
-		case HXSLKeyword_Do: return "do";
-		case HXSLKeyword_Double: return "double";
-		case HXSLKeyword_DomainShader: return "DomainShader";
-		case HXSLKeyword_Dword: return "dword";
-		case HXSLKeyword_Else: return "else";
-		case HXSLKeyword_Export: return "export";
-		case HXSLKeyword_Extern: return "extern";
-		case HXSLKeyword_False: return "false";
-		case HXSLKeyword_Float: return "float";
-		case HXSLKeyword_For: return "for";
-		case HXSLKeyword_Fxgroup: return "fxgroup";
-		case HXSLKeyword_GeometryShader: return "GeometryShader";
-		case HXSLKeyword_Groupshared: return "groupshared";
-		case HXSLKeyword_Half: return "half";
-		case HXSLKeyword_Hullshader: return "Hullshader";
-		case HXSLKeyword_If: return "if";
-		case HXSLKeyword_In: return "in";
-		case HXSLKeyword_Inline: return "inline";
-		case HXSLKeyword_Inout: return "inout";
-		case HXSLKeyword_InputPatch: return "InputPatch";
-		case HXSLKeyword_Int: return "int";
-		case HXSLKeyword_Interface: return "interface";
-		case HXSLKeyword_Line: return "line";
-		case HXSLKeyword_Lineadj: return "lineadj";
-		case HXSLKeyword_Linear: return "linear";
-		case HXSLKeyword_LineStream: return "LineStream";
-		case HXSLKeyword_Matrix: return "matrix";
-		case HXSLKeyword_Min16float: return "min16float";
-		case HXSLKeyword_Min10float: return "min10float";
-		case HXSLKeyword_Min16int: return "min16int";
-		case HXSLKeyword_Min12int: return "min12int";
-		case HXSLKeyword_Min16uint: return "min16uint";
-		case HXSLKeyword_Namespace: return "namespace";
-		case HXSLKeyword_Nointerpolation: return "nointerpolation";
-		case HXSLKeyword_Noperspective: return "noperspective";
-		case HXSLKeyword_Null: return "NULL";
-		case HXSLKeyword_Out: return "out";
-		case HXSLKeyword_OutputPatch: return "OutputPatch";
-		case HXSLKeyword_Packoffset: return "packoffset";
-		case HXSLKeyword_Pass: return "pass";
-		case HXSLKeyword_Pixelfragment: return "pixelfragment";
-		case HXSLKeyword_PixelShader: return "PixelShader";
-		case HXSLKeyword_Point: return "point";
-		case HXSLKeyword_PointStream: return "PointStream";
-		case HXSLKeyword_Precise: return "precise";
-		case HXSLKeyword_RasterizerState: return "RasterizerState";
-		case HXSLKeyword_RenderTargetView: return "RenderTargetView";
-		case HXSLKeyword_Return: return "return";
-		case HXSLKeyword_Register: return "register";
-		case HXSLKeyword_RowMajor: return "row_major";
-		case HXSLKeyword_RWBuffer: return "RWBuffer";
-		case HXSLKeyword_RWByteAddressBuffer: return "RWByteAddressBuffer";
-		case HXSLKeyword_RWStructuredBuffer: return "RWStructuredBuffer";
-		case HXSLKeyword_RWTexture1D: return "RWTexture1D";
-		case HXSLKeyword_RWTexture1DArray: return "RWTexture1DArray";
-		case HXSLKeyword_RWTexture2D: return "RWTexture2D";
-		case HXSLKeyword_RWTexture2DArray: return "RWTexture2DArray";
-		case HXSLKeyword_RWTexture3D: return "RWTexture3D";
-		case HXSLKeyword_Sample: return "sample";
-		case HXSLKeyword_Sampler: return "sampler";
-		case HXSLKeyword_SamplerState: return "SamplerState";
-		case HXSLKeyword_SamplerComparisonState: return "SamplerComparisonState";
-		case HXSLKeyword_Shared: return "shared";
-		case HXSLKeyword_Snorm: return "snorm";
-		case HXSLKeyword_Stateblock: return "stateblock";
-		case HXSLKeyword_StateblockState: return "stateblock_state";
-		case HXSLKeyword_Static: return "static";
-		case HXSLKeyword_String: return "string";
-		case HXSLKeyword_Struct: return "struct";
-		case HXSLKeyword_Switch: return "switch";
-		case HXSLKeyword_StructuredBuffer: return "StructuredBuffer";
-		case HXSLKeyword_Tbuffer: return "tbuffer";
-		case HXSLKeyword_Technique: return "technique";
-		case HXSLKeyword_Technique10: return "technique10";
-		case HXSLKeyword_Technique11: return "technique11";
-		case HXSLKeyword_Texture: return "texture";
-		case HXSLKeyword_Texture1D: return "Texture1D";
-		case HXSLKeyword_Texture1DArray: return "Texture1DArray";
-		case HXSLKeyword_Texture2D: return "Texture2D";
-		case HXSLKeyword_Texture2DArray: return "Texture2DArray";
-		case HXSLKeyword_Texture2DMS: return "Texture2DMS";
-		case HXSLKeyword_Texture2DMSArray: return "Texture2DMSArray";
-		case HXSLKeyword_Texture3D: return "Texture3D";
-		case HXSLKeyword_TextureCube: return "TextureCube";
-		case HXSLKeyword_TextureCubeArray: return "TextureCubeArray";
-		case HXSLKeyword_True: return "true";
-		case HXSLKeyword_Typedef: return "typedef";
-		case HXSLKeyword_Triangle: return "triangle";
-		case HXSLKeyword_Triangleadj: return "triangleadj";
-		case HXSLKeyword_TriangleStream: return "TriangleStream";
-		case HXSLKeyword_Uint: return "uint";
-		case HXSLKeyword_Uniform: return "uniform";
-		case HXSLKeyword_Unorm: return "unorm";
-		case HXSLKeyword_Unsigned: return "unsigned";
-		case HXSLKeyword_Vector: return "vector";
-		case HXSLKeyword_Vertexfragment: return "vertexfragment";
-		case HXSLKeyword_VertexShader: return "VertexShader";
-		case HXSLKeyword_Void: return "void";
-		case HXSLKeyword_Volatile: return "volatile";
-		case HXSLKeyword_While: return "while";
-		case HXSLKeyword_Using: return "using";
-		case HXSLKeyword_Private: return "private";
-		case HXSLKeyword_Internal: return "internal";
-		case HXSLKeyword_Public: return "public";
+		case Keyword_Unknown: return "Unknown";
+		case Keyword_AppendStructuredBuffer: return "AppendStructuredBuffer";
+		case Keyword_Asm: return "asm";
+		case Keyword_AsmFragment: return "asm_fragment";
+		case Keyword_BlendState: return "BlendState";
+		case Keyword_Bool: return "bool";
+		case Keyword_Break: return "break";
+		case Keyword_Buffer: return "Buffer";
+		case Keyword_ByteAddressBuffer: return "ByteAddressBuffer";
+		case Keyword_Case: return "case";
+		case Keyword_Cbuffer: return "cbuffer";
+		case Keyword_Centroid: return "centroid";
+		case Keyword_Class: return "class";
+		case Keyword_ColumnMajor: return "column_major";
+		case Keyword_Compile: return "compile";
+		case Keyword_CompileFragment: return "compile_fragment";
+		case Keyword_CompileShader: return "CompileShader";
+		case Keyword_Const: return "const";
+		case Keyword_Continue: return "continue";
+		case Keyword_ComputeShader: return "ComputeShader";
+		case Keyword_ConsumeStructuredBuffer: return "ConsumeStructuredBuffer";
+		case Keyword_Default: return "default";
+		case Keyword_DepthStencilState: return "DepthStencilState";
+		case Keyword_DepthStencilView: return "DepthStencilView";
+		case Keyword_Discard: return "discard";
+		case Keyword_Do: return "do";
+		case Keyword_Double: return "double";
+		case Keyword_DomainShader: return "DomainShader";
+		case Keyword_Dword: return "dword";
+		case Keyword_Else: return "else";
+		case Keyword_Export: return "export";
+		case Keyword_Extern: return "extern";
+		case Keyword_False: return "false";
+		case Keyword_Float: return "float";
+		case Keyword_For: return "for";
+		case Keyword_Fxgroup: return "fxgroup";
+		case Keyword_GeometryShader: return "GeometryShader";
+		case Keyword_Groupshared: return "groupshared";
+		case Keyword_Half: return "half";
+		case Keyword_Hullshader: return "Hullshader";
+		case Keyword_If: return "if";
+		case Keyword_In: return "in";
+		case Keyword_Inline: return "inline";
+		case Keyword_Inout: return "inout";
+		case Keyword_InputPatch: return "InputPatch";
+		case Keyword_Int: return "int";
+		case Keyword_Interface: return "interface";
+		case Keyword_Line: return "line";
+		case Keyword_Lineadj: return "lineadj";
+		case Keyword_Linear: return "linear";
+		case Keyword_LineStream: return "LineStream";
+		case Keyword_Matrix: return "matrix";
+		case Keyword_Min16float: return "min16float";
+		case Keyword_Min10float: return "min10float";
+		case Keyword_Min16int: return "min16int";
+		case Keyword_Min12int: return "min12int";
+		case Keyword_Min16uint: return "min16uint";
+		case Keyword_Namespace: return "namespace";
+		case Keyword_Nointerpolation: return "nointerpolation";
+		case Keyword_Noperspective: return "noperspective";
+		case Keyword_Null: return "NULL";
+		case Keyword_Out: return "out";
+		case Keyword_OutputPatch: return "OutputPatch";
+		case Keyword_Packoffset: return "packoffset";
+		case Keyword_Pass: return "pass";
+		case Keyword_Pixelfragment: return "pixelfragment";
+		case Keyword_PixelShader: return "PixelShader";
+		case Keyword_Point: return "point";
+		case Keyword_PointStream: return "PointStream";
+		case Keyword_Precise: return "precise";
+		case Keyword_RasterizerState: return "RasterizerState";
+		case Keyword_RenderTargetView: return "RenderTargetView";
+		case Keyword_Return: return "return";
+		case Keyword_Register: return "register";
+		case Keyword_RowMajor: return "row_major";
+		case Keyword_RWBuffer: return "RWBuffer";
+		case Keyword_RWByteAddressBuffer: return "RWByteAddressBuffer";
+		case Keyword_RWStructuredBuffer: return "RWStructuredBuffer";
+		case Keyword_RWTexture1D: return "RWTexture1D";
+		case Keyword_RWTexture1DArray: return "RWTexture1DArray";
+		case Keyword_RWTexture2D: return "RWTexture2D";
+		case Keyword_RWTexture2DArray: return "RWTexture2DArray";
+		case Keyword_RWTexture3D: return "RWTexture3D";
+		case Keyword_Sample: return "sample";
+		case Keyword_Sampler: return "sampler";
+		case Keyword_SamplerState: return "SamplerState";
+		case Keyword_SamplerComparisonState: return "SamplerComparisonState";
+		case Keyword_Shared: return "shared";
+		case Keyword_Snorm: return "snorm";
+		case Keyword_Stateblock: return "stateblock";
+		case Keyword_StateblockState: return "stateblock_state";
+		case Keyword_Static: return "static";
+		case Keyword_String: return "string";
+		case Keyword_Struct: return "struct";
+		case Keyword_Switch: return "switch";
+		case Keyword_StructuredBuffer: return "StructuredBuffer";
+		case Keyword_Tbuffer: return "tbuffer";
+		case Keyword_Technique: return "technique";
+		case Keyword_Technique10: return "technique10";
+		case Keyword_Technique11: return "technique11";
+		case Keyword_Texture: return "texture";
+		case Keyword_Texture1D: return "Texture1D";
+		case Keyword_Texture1DArray: return "Texture1DArray";
+		case Keyword_Texture2D: return "Texture2D";
+		case Keyword_Texture2DArray: return "Texture2DArray";
+		case Keyword_Texture2DMS: return "Texture2DMS";
+		case Keyword_Texture2DMSArray: return "Texture2DMSArray";
+		case Keyword_Texture3D: return "Texture3D";
+		case Keyword_TextureCube: return "TextureCube";
+		case Keyword_TextureCubeArray: return "TextureCubeArray";
+		case Keyword_True: return "true";
+		case Keyword_Typedef: return "typedef";
+		case Keyword_Triangle: return "triangle";
+		case Keyword_Triangleadj: return "triangleadj";
+		case Keyword_TriangleStream: return "TriangleStream";
+		case Keyword_Uint: return "uint";
+		case Keyword_Uniform: return "uniform";
+		case Keyword_Unorm: return "unorm";
+		case Keyword_Unsigned: return "unsigned";
+		case Keyword_Vector: return "vector";
+		case Keyword_Vertexfragment: return "vertexfragment";
+		case Keyword_VertexShader: return "VertexShader";
+		case Keyword_Void: return "void";
+		case Keyword_Volatile: return "volatile";
+		case Keyword_While: return "while";
+		case Keyword_Using: return "using";
+		case Keyword_Private: return "private";
+		case Keyword_Internal: return "internal";
+		case Keyword_Public: return "public";
 		default: return "Unknown";
 		}
 	}
 
 	static void BuildKeywordTST(TernarySearchTreeDictionary<int>* tst)
 	{
-		tst->Insert("AppendStructuredBuffer", HXSLKeyword_AppendStructuredBuffer);
-		tst->Insert("asm", HXSLKeyword_Asm);
-		tst->Insert("asm_fragment", HXSLKeyword_AsmFragment);
-		tst->Insert("BlendState", HXSLKeyword_BlendState);
-		tst->Insert("bool", HXSLKeyword_Bool);
-		tst->Insert("break", HXSLKeyword_Break);
-		tst->Insert("Buffer", HXSLKeyword_Buffer);
-		tst->Insert("ByteAddressBuffer", HXSLKeyword_ByteAddressBuffer);
-		tst->Insert("case", HXSLKeyword_Case);
-		tst->Insert("cbuffer", HXSLKeyword_Cbuffer);
-		tst->Insert("centroid", HXSLKeyword_Centroid);
-		tst->Insert("class", HXSLKeyword_Class);
-		tst->Insert("column_major", HXSLKeyword_ColumnMajor);
-		tst->Insert("compile", HXSLKeyword_Compile);
-		tst->Insert("compile_fragment", HXSLKeyword_CompileFragment);
-		tst->Insert("CompileShader", HXSLKeyword_CompileShader);
-		tst->Insert("const", HXSLKeyword_Const);
-		tst->Insert("continue", HXSLKeyword_Continue);
-		tst->Insert("ComputeShader", HXSLKeyword_ComputeShader);
-		tst->Insert("ConsumeStructuredBuffer", HXSLKeyword_ConsumeStructuredBuffer);
-		tst->Insert("default", HXSLKeyword_Default);
-		tst->Insert("DepthStencilState", HXSLKeyword_DepthStencilState);
-		tst->Insert("DepthStencilView", HXSLKeyword_DepthStencilView);
-		tst->Insert("discard", HXSLKeyword_Discard);
-		tst->Insert("do", HXSLKeyword_Do);
-		tst->Insert("double", HXSLKeyword_Double);
-		tst->Insert("DomainShader", HXSLKeyword_DomainShader);
-		tst->Insert("dword", HXSLKeyword_Dword);
-		tst->Insert("else", HXSLKeyword_Else);
-		tst->Insert("export", HXSLKeyword_Export);
-		tst->Insert("extern", HXSLKeyword_Extern);
-		tst->Insert("false", HXSLKeyword_False);
-		tst->Insert("float", HXSLKeyword_Float);
-		tst->Insert("for", HXSLKeyword_For);
-		tst->Insert("fxgroup", HXSLKeyword_Fxgroup);
-		tst->Insert("GeometryShader", HXSLKeyword_GeometryShader);
-		tst->Insert("groupshared", HXSLKeyword_Groupshared);
-		tst->Insert("half", HXSLKeyword_Half);
-		tst->Insert("Hullshader", HXSLKeyword_Hullshader);
-		tst->Insert("if", HXSLKeyword_If);
-		tst->Insert("in", HXSLKeyword_In);
-		tst->Insert("inline", HXSLKeyword_Inline);
-		tst->Insert("inout", HXSLKeyword_Inout);
-		tst->Insert("InputPatch", HXSLKeyword_InputPatch);
-		tst->Insert("int", HXSLKeyword_Int);
-		tst->Insert("interface", HXSLKeyword_Interface);
-		tst->Insert("line", HXSLKeyword_Line);
-		tst->Insert("lineadj", HXSLKeyword_Lineadj);
-		tst->Insert("linear", HXSLKeyword_Linear);
-		tst->Insert("LineStream", HXSLKeyword_LineStream);
-		tst->Insert("matrix", HXSLKeyword_Matrix);
-		tst->Insert("min16float", HXSLKeyword_Min16float);
-		tst->Insert("min10float", HXSLKeyword_Min10float);
-		tst->Insert("min16int", HXSLKeyword_Min16int);
-		tst->Insert("min12int", HXSLKeyword_Min12int);
-		tst->Insert("min16uint", HXSLKeyword_Min16uint);
-		tst->Insert("namespace", HXSLKeyword_Namespace);
-		tst->Insert("nointerpolation", HXSLKeyword_Nointerpolation);
-		tst->Insert("noperspective", HXSLKeyword_Noperspective);
-		tst->Insert("NULL", HXSLKeyword_Null);
-		tst->Insert("out", HXSLKeyword_Out);
-		tst->Insert("OutputPatch", HXSLKeyword_OutputPatch);
-		tst->Insert("packoffset", HXSLKeyword_Packoffset);
-		tst->Insert("pass", HXSLKeyword_Pass);
-		tst->Insert("pixelfragment", HXSLKeyword_Pixelfragment);
-		tst->Insert("PixelShader", HXSLKeyword_PixelShader);
-		tst->Insert("point", HXSLKeyword_Point);
-		tst->Insert("PointStream", HXSLKeyword_PointStream);
-		tst->Insert("precise", HXSLKeyword_Precise);
-		tst->Insert("RasterizerState", HXSLKeyword_RasterizerState);
-		tst->Insert("RenderTargetView", HXSLKeyword_RenderTargetView);
-		tst->Insert("return", HXSLKeyword_Return);
-		tst->Insert("register", HXSLKeyword_Register);
-		tst->Insert("row_major", HXSLKeyword_RowMajor);
-		tst->Insert("RWBuffer", HXSLKeyword_RWBuffer);
-		tst->Insert("RWByteAddressBuffer", HXSLKeyword_RWByteAddressBuffer);
-		tst->Insert("RWStructuredBuffer", HXSLKeyword_RWStructuredBuffer);
-		tst->Insert("RWTexture1D", HXSLKeyword_RWTexture1D);
-		tst->Insert("RWTexture1DArray", HXSLKeyword_RWTexture1DArray);
-		tst->Insert("RWTexture2D", HXSLKeyword_RWTexture2D);
-		tst->Insert("RWTexture2DArray", HXSLKeyword_RWTexture2DArray);
-		tst->Insert("RWTexture3D", HXSLKeyword_RWTexture3D);
-		tst->Insert("sample", HXSLKeyword_Sample);
-		tst->Insert("sampler", HXSLKeyword_Sampler);
-		tst->Insert("SamplerState", HXSLKeyword_SamplerState);
-		tst->Insert("SamplerComparisonState", HXSLKeyword_SamplerComparisonState);
-		tst->Insert("shared", HXSLKeyword_Shared);
-		tst->Insert("snorm", HXSLKeyword_Snorm);
-		tst->Insert("stateblock", HXSLKeyword_Stateblock);
-		tst->Insert("stateblock_state", HXSLKeyword_StateblockState);
-		tst->Insert("static", HXSLKeyword_Static);
-		tst->Insert("string", HXSLKeyword_String);
-		tst->Insert("struct", HXSLKeyword_Struct);
-		tst->Insert("switch", HXSLKeyword_Switch);
-		tst->Insert("StructuredBuffer", HXSLKeyword_StructuredBuffer);
-		tst->Insert("tbuffer", HXSLKeyword_Tbuffer);
-		tst->Insert("technique", HXSLKeyword_Technique);
-		tst->Insert("technique10", HXSLKeyword_Technique10);
-		tst->Insert("technique11", HXSLKeyword_Technique11);
-		tst->Insert("texture", HXSLKeyword_Texture);
-		tst->Insert("Texture1D", HXSLKeyword_Texture1D);
-		tst->Insert("Texture1DArray", HXSLKeyword_Texture1DArray);
-		tst->Insert("Texture2D", HXSLKeyword_Texture2D);
-		tst->Insert("Texture2DArray", HXSLKeyword_Texture2DArray);
-		tst->Insert("Texture2DMS", HXSLKeyword_Texture2DMS);
-		tst->Insert("Texture2DMSArray", HXSLKeyword_Texture2DMSArray);
-		tst->Insert("Texture3D", HXSLKeyword_Texture3D);
-		tst->Insert("TextureCube", HXSLKeyword_TextureCube);
-		tst->Insert("TextureCubeArray", HXSLKeyword_TextureCubeArray);
-		tst->Insert("true", HXSLKeyword_True);
-		tst->Insert("typedef", HXSLKeyword_Typedef);
-		tst->Insert("triangle", HXSLKeyword_Triangle);
-		tst->Insert("triangleadj", HXSLKeyword_Triangleadj);
-		tst->Insert("TriangleStream", HXSLKeyword_TriangleStream);
-		tst->Insert("uint", HXSLKeyword_Uint);
-		tst->Insert("uniform", HXSLKeyword_Uniform);
-		tst->Insert("unorm", HXSLKeyword_Unorm);
-		tst->Insert("unsigned", HXSLKeyword_Unsigned);
-		tst->Insert("vector", HXSLKeyword_Vector);
-		tst->Insert("vertexfragment", HXSLKeyword_Vertexfragment);
-		tst->Insert("VertexShader", HXSLKeyword_VertexShader);
-		tst->Insert("void", HXSLKeyword_Void);
-		tst->Insert("volatile", HXSLKeyword_Volatile);
-		tst->Insert("while", HXSLKeyword_While);
-		tst->Insert("using", HXSLKeyword_Using);
-		tst->Insert("private", HXSLKeyword_Private);
-		tst->Insert("internal", HXSLKeyword_Internal);
-		tst->Insert("public", HXSLKeyword_Public);
+		tst->Insert("AppendStructuredBuffer", Keyword_AppendStructuredBuffer);
+		tst->Insert("asm", Keyword_Asm);
+		tst->Insert("asm_fragment", Keyword_AsmFragment);
+		tst->Insert("BlendState", Keyword_BlendState);
+		tst->Insert("bool", Keyword_Bool);
+		tst->Insert("break", Keyword_Break);
+		tst->Insert("Buffer", Keyword_Buffer);
+		tst->Insert("ByteAddressBuffer", Keyword_ByteAddressBuffer);
+		tst->Insert("case", Keyword_Case);
+		tst->Insert("cbuffer", Keyword_Cbuffer);
+		tst->Insert("centroid", Keyword_Centroid);
+		tst->Insert("class", Keyword_Class);
+		tst->Insert("column_major", Keyword_ColumnMajor);
+		tst->Insert("compile", Keyword_Compile);
+		tst->Insert("compile_fragment", Keyword_CompileFragment);
+		tst->Insert("CompileShader", Keyword_CompileShader);
+		tst->Insert("const", Keyword_Const);
+		tst->Insert("continue", Keyword_Continue);
+		tst->Insert("ComputeShader", Keyword_ComputeShader);
+		tst->Insert("ConsumeStructuredBuffer", Keyword_ConsumeStructuredBuffer);
+		tst->Insert("default", Keyword_Default);
+		tst->Insert("DepthStencilState", Keyword_DepthStencilState);
+		tst->Insert("DepthStencilView", Keyword_DepthStencilView);
+		tst->Insert("discard", Keyword_Discard);
+		tst->Insert("do", Keyword_Do);
+		tst->Insert("double", Keyword_Double);
+		tst->Insert("DomainShader", Keyword_DomainShader);
+		tst->Insert("dword", Keyword_Dword);
+		tst->Insert("else", Keyword_Else);
+		tst->Insert("export", Keyword_Export);
+		tst->Insert("extern", Keyword_Extern);
+		tst->Insert("false", Keyword_False);
+		tst->Insert("float", Keyword_Float);
+		tst->Insert("for", Keyword_For);
+		tst->Insert("fxgroup", Keyword_Fxgroup);
+		tst->Insert("GeometryShader", Keyword_GeometryShader);
+		tst->Insert("groupshared", Keyword_Groupshared);
+		tst->Insert("half", Keyword_Half);
+		tst->Insert("Hullshader", Keyword_Hullshader);
+		tst->Insert("if", Keyword_If);
+		tst->Insert("in", Keyword_In);
+		tst->Insert("inline", Keyword_Inline);
+		tst->Insert("inout", Keyword_Inout);
+		tst->Insert("InputPatch", Keyword_InputPatch);
+		tst->Insert("int", Keyword_Int);
+		tst->Insert("interface", Keyword_Interface);
+		tst->Insert("line", Keyword_Line);
+		tst->Insert("lineadj", Keyword_Lineadj);
+		tst->Insert("linear", Keyword_Linear);
+		tst->Insert("LineStream", Keyword_LineStream);
+		tst->Insert("matrix", Keyword_Matrix);
+		tst->Insert("min16float", Keyword_Min16float);
+		tst->Insert("min10float", Keyword_Min10float);
+		tst->Insert("min16int", Keyword_Min16int);
+		tst->Insert("min12int", Keyword_Min12int);
+		tst->Insert("min16uint", Keyword_Min16uint);
+		tst->Insert("namespace", Keyword_Namespace);
+		tst->Insert("nointerpolation", Keyword_Nointerpolation);
+		tst->Insert("noperspective", Keyword_Noperspective);
+		tst->Insert("NULL", Keyword_Null);
+		tst->Insert("out", Keyword_Out);
+		tst->Insert("OutputPatch", Keyword_OutputPatch);
+		tst->Insert("packoffset", Keyword_Packoffset);
+		tst->Insert("pass", Keyword_Pass);
+		tst->Insert("pixelfragment", Keyword_Pixelfragment);
+		tst->Insert("PixelShader", Keyword_PixelShader);
+		tst->Insert("point", Keyword_Point);
+		tst->Insert("PointStream", Keyword_PointStream);
+		tst->Insert("precise", Keyword_Precise);
+		tst->Insert("RasterizerState", Keyword_RasterizerState);
+		tst->Insert("RenderTargetView", Keyword_RenderTargetView);
+		tst->Insert("return", Keyword_Return);
+		tst->Insert("register", Keyword_Register);
+		tst->Insert("row_major", Keyword_RowMajor);
+		tst->Insert("RWBuffer", Keyword_RWBuffer);
+		tst->Insert("RWByteAddressBuffer", Keyword_RWByteAddressBuffer);
+		tst->Insert("RWStructuredBuffer", Keyword_RWStructuredBuffer);
+		tst->Insert("RWTexture1D", Keyword_RWTexture1D);
+		tst->Insert("RWTexture1DArray", Keyword_RWTexture1DArray);
+		tst->Insert("RWTexture2D", Keyword_RWTexture2D);
+		tst->Insert("RWTexture2DArray", Keyword_RWTexture2DArray);
+		tst->Insert("RWTexture3D", Keyword_RWTexture3D);
+		tst->Insert("sample", Keyword_Sample);
+		tst->Insert("sampler", Keyword_Sampler);
+		tst->Insert("SamplerState", Keyword_SamplerState);
+		tst->Insert("SamplerComparisonState", Keyword_SamplerComparisonState);
+		tst->Insert("shared", Keyword_Shared);
+		tst->Insert("snorm", Keyword_Snorm);
+		tst->Insert("stateblock", Keyword_Stateblock);
+		tst->Insert("stateblock_state", Keyword_StateblockState);
+		tst->Insert("static", Keyword_Static);
+		tst->Insert("string", Keyword_String);
+		tst->Insert("struct", Keyword_Struct);
+		tst->Insert("switch", Keyword_Switch);
+		tst->Insert("StructuredBuffer", Keyword_StructuredBuffer);
+		tst->Insert("tbuffer", Keyword_Tbuffer);
+		tst->Insert("technique", Keyword_Technique);
+		tst->Insert("technique10", Keyword_Technique10);
+		tst->Insert("technique11", Keyword_Technique11);
+		tst->Insert("texture", Keyword_Texture);
+		tst->Insert("Texture1D", Keyword_Texture1D);
+		tst->Insert("Texture1DArray", Keyword_Texture1DArray);
+		tst->Insert("Texture2D", Keyword_Texture2D);
+		tst->Insert("Texture2DArray", Keyword_Texture2DArray);
+		tst->Insert("Texture2DMS", Keyword_Texture2DMS);
+		tst->Insert("Texture2DMSArray", Keyword_Texture2DMSArray);
+		tst->Insert("Texture3D", Keyword_Texture3D);
+		tst->Insert("TextureCube", Keyword_TextureCube);
+		tst->Insert("TextureCubeArray", Keyword_TextureCubeArray);
+		tst->Insert("true", Keyword_True);
+		tst->Insert("typedef", Keyword_Typedef);
+		tst->Insert("triangle", Keyword_Triangle);
+		tst->Insert("triangleadj", Keyword_Triangleadj);
+		tst->Insert("TriangleStream", Keyword_TriangleStream);
+		tst->Insert("uint", Keyword_Uint);
+		tst->Insert("uniform", Keyword_Uniform);
+		tst->Insert("unorm", Keyword_Unorm);
+		tst->Insert("unsigned", Keyword_Unsigned);
+		tst->Insert("vector", Keyword_Vector);
+		tst->Insert("vertexfragment", Keyword_Vertexfragment);
+		tst->Insert("VertexShader", Keyword_VertexShader);
+		tst->Insert("void", Keyword_Void);
+		tst->Insert("volatile", Keyword_Volatile);
+		tst->Insert("while", Keyword_While);
+		tst->Insert("using", Keyword_Using);
+		tst->Insert("private", Keyword_Private);
+		tst->Insert("internal", Keyword_Internal);
+		tst->Insert("public", Keyword_Public);
 	}
 }
 #endif

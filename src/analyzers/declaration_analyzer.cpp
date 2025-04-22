@@ -2,22 +2,22 @@
 
 namespace HXSL
 {
-	static HXSLTraversalBehavior AnalyzeStruct(HXSLAnalyzer& analyzer, HXSLStruct* node)
+	static TraversalBehavior AnalyzeStruct(Analyzer& analyzer, Struct* node)
 	{
-		std::stack<HXSLStruct*> traversalStack;
-		std::unordered_set<HXSLStruct*> visited;
-		std::unordered_set<HXSLStruct*> processing;
+		std::stack<Struct*> traversalStack;
+		std::unordered_set<Struct*> visited;
+		std::unordered_set<Struct*> processing;
 
 		traversalStack.push(node);
 
 		while (!traversalStack.empty())
 		{
-			HXSLStruct* currentNode = traversalStack.top();
+			Struct* currentNode = traversalStack.top();
 
 			if (processing.find(currentNode) != processing.end())
 			{
 				analyzer.LogError("Recursive struct layout detected.", currentNode->GetSpan());
-				return HXSLTraversalBehavior_Break;
+				return TraversalBehavior_Break;
 			}
 
 			if (visited.find(currentNode) != visited.end())
@@ -34,7 +34,7 @@ namespace HXSL
 			{
 				auto decl = field->GetSymbolRef()->GetDeclaration();
 
-				if (auto fieldStruct = dynamic_cast<HXSLStruct*>(decl))
+				if (auto fieldStruct = dynamic_cast<Struct*>(decl))
 				{
 					if (visited.find(fieldStruct) == visited.end())
 					{
@@ -44,7 +44,7 @@ namespace HXSL
 					else
 					{
 						analyzer.LogError("Recursive struct layout detected.", currentNode->GetSpan());
-						return HXSLTraversalBehavior_Break;
+						return TraversalBehavior_Break;
 					}
 				}
 			}
@@ -57,22 +57,22 @@ namespace HXSL
 			}
 		}
 
-		return HXSLTraversalBehavior_AnalyzerSkip;
+		return TraversalBehavior_AnalyzerSkip;
 	}
 
-	HXSLTraversalBehavior HXSLDeclarationAnalyzer::Analyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation)
+	TraversalBehavior DeclarationAnalyzer::Analyze(Analyzer& analyzer, ASTNode* node, Compilation* compilation)
 	{
 		auto& type = node->GetType();
 
 		switch (type)
 		{
-		case HXSLNodeType_Struct:
-			return AnalyzeStruct(analyzer, dynamic_cast<HXSLStruct*>(node));
+		case NodeType_Struct:
+			return AnalyzeStruct(analyzer, dynamic_cast<Struct*>(node));
 
 		default:
 			break;
 		}
 
-		return HXSLTraversalBehavior_AnalyzerSkip;
+		return TraversalBehavior_AnalyzerSkip;
 	}
 }

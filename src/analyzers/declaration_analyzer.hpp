@@ -7,15 +7,15 @@
 
 namespace HXSL
 {
-	class HXSLDeclarationAnalyzer : public HXSLSubAnalyzer
+	class DeclarationAnalyzer : public SubAnalyzer
 	{
 		virtual bool CanAnalyze(ASTNode* node) override
 		{
-			static const std::unordered_set<HXSLNodeType> allowedTypes = { HXSLNodeType_Struct, HXSLNodeType_Function, HXSLNodeType_Field };
+			static const std::unordered_set<NodeType> allowedTypes = { NodeType_Struct, NodeType_Function, NodeType_Field };
 			return node->IsAnyTypeOf(allowedTypes);
 		}
 
-		virtual HXSLTraversalBehavior Analyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation) override;
+		virtual TraversalBehavior Analyze(Analyzer& analyzer, ASTNode* node, Compilation* compilation) override;
 	};
 }
 

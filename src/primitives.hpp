@@ -2,53 +2,53 @@
 #define PRIMITIVES_HPP
 
 #include "config.h"
-#include "nodes.hpp"
+#include "ast.hpp"
 #include "text_span.h"
-#include "symbol_table.hpp"
+#include "symbols/symbol_table.hpp"
 #include <string>
 #include <unordered_map>
 #include <mutex>
 #include <memory>
 namespace HXSL
 {
-	static std::string toString(HXSLPrimitiveKind kind)
+	static std::string toString(PrimitiveKind kind)
 	{
 		switch (kind)
 		{
-		case HXSLPrimitiveKind_Void:
+		case PrimitiveKind_Void:
 			return "void";
 			break;
-		case HXSLPrimitiveKind_Bool:
+		case PrimitiveKind_Bool:
 			return "bool";
 			break;
-		case HXSLPrimitiveKind_Int:
+		case PrimitiveKind_Int:
 			return "int";
 			break;
-		case HXSLPrimitiveKind_Float:
+		case PrimitiveKind_Float:
 			return "float";
 			break;
-		case HXSLPrimitiveKind_Uint:
+		case PrimitiveKind_Uint:
 			return "uint";
 			break;
-		case HXSLPrimitiveKind_Double:
+		case PrimitiveKind_Double:
 			return "double";
 			break;
-		case HXSLPrimitiveKind_Min8Float:
+		case PrimitiveKind_Min8Float:
 			return "min8float";
 			break;
-		case HXSLPrimitiveKind_Min10Float:
+		case PrimitiveKind_Min10Float:
 			return "min10float";
 			break;
-		case HXSLPrimitiveKind_Min16Float:
+		case PrimitiveKind_Min16Float:
 			return "min16float";
 			break;
-		case HXSLPrimitiveKind_Min12Int:
+		case PrimitiveKind_Min12Int:
 			return "min12int";
 			break;
-		case HXSLPrimitiveKind_Min16Int:
+		case PrimitiveKind_Min16Int:
 			return "min16int";
 			break;
-		case HXSLPrimitiveKind_Min16Uint:
+		case PrimitiveKind_Min16Uint:
 			return "min16uint";
 			break;
 		default:
@@ -57,12 +57,12 @@ namespace HXSL
 		}
 	}
 
-	class HXSLPrimitiveManager
+	class PrimitiveManager
 	{
 	public:
-		static HXSLPrimitiveManager& GetInstance()
+		static PrimitiveManager& GetInstance()
 		{
-			static HXSLPrimitiveManager instance;
+			static PrimitiveManager instance;
 
 			std::call_once(initFlag, []() {
 				instance.PrimitiveSymbolTable = std::make_unique<SymbolTable>();
@@ -72,7 +72,7 @@ namespace HXSL
 			return instance;
 		}
 
-		HXSLPrimitive* GetPrimitiveType(const TextSpan& name) const;
+		Primitive* GetPrimitiveType(const TextSpan& name) const;
 		const SymbolTable* GetSymbolTable() const
 		{
 			return PrimitiveSymbolTable.get();
@@ -83,25 +83,25 @@ namespace HXSL
 	private:
 		static std::once_flag initFlag;
 
-		HXSLPrimitiveManager() = default;
+		PrimitiveManager() = default;
 
-		HXSLPrimitiveManager(const HXSLPrimitiveManager&) = delete;
-		HXSLPrimitiveManager& operator=(const HXSLPrimitiveManager&) = delete;
+		PrimitiveManager(const PrimitiveManager&) = delete;
+		PrimitiveManager& operator=(const PrimitiveManager&) = delete;
 
-		std::unordered_map<TextSpan, std::unique_ptr<HXSLPrimitive>, TextSpanHash, TextSpanEqual> PrimitiveTypesCache;
+		std::unordered_map<TextSpan, std::unique_ptr<Primitive>, TextSpanHash, TextSpanEqual> PrimitiveTypesCache;
 		std::unique_ptr<SymbolTable> PrimitiveSymbolTable;
 
-		void AddPrimClass(TextSpan name, HXSLClass** outClass = nullptr, size_t* indexOut = nullptr);
-		void AddPrim(HXSLPrimitiveKind kind, HXSLPrimitiveClass primitiveClass, uint rows, uint columns);
-		void ResolveInternal(HXSLSymbolRef* ref);
+		void AddPrimClass(TextSpan name, Class** outClass = nullptr, size_t* indexOut = nullptr);
+		void AddPrim(PrimitiveKind kind, PrimitiveClass primitiveClass, uint rows, uint columns);
+		void ResolveInternal(SymbolRef* ref);
 	};
 
-	class HXSLSwizzleManager
+	class SwizzleManager
 	{
 	private:
 		std::unique_ptr<SymbolTable> swizzleTable;
-		std::vector<std::unique_ptr<HXSLSwizzleDefinition>> definitions;
-		HXSLPrimitiveManager& primitives;
+		std::vector<std::unique_ptr<SwizzleDefinition>> definitions;
+		PrimitiveManager& primitives;
 
 		static char NormalizeSwizzleChar(const char& c)
 		{
@@ -129,14 +129,14 @@ namespace HXSL
 		}
 
 	public:
-		HXSLSwizzleManager() : swizzleTable(std::make_unique<SymbolTable>()), primitives(HXSLPrimitiveManager::GetInstance())
+		SwizzleManager() : swizzleTable(std::make_unique<SymbolTable>()), primitives(PrimitiveManager::GetInstance())
 		{
 		}
 
-		bool VerifySwizzle(HXSLPrimitive* prim, HXSLSymbolRef* ref)
+		bool VerifySwizzle(Primitive* prim, SymbolRef* ref)
 		{
 			auto _class = prim->GetClass();
-			if (_class == HXSLPrimitiveClass_Matrix) return false;
+			if (_class == PrimitiveClass_Matrix) return false;
 			auto& pattern = ref->GetSpan();
 			if (pattern.Length < 1 || pattern.Length > 4)
 				return false;
@@ -165,12 +165,12 @@ namespace HXSL
 
 			auto primitivesTable = primitives.GetSymbolTable();
 			auto primitiveIndex = primitivesTable->FindNodeIndexPart(typeName);
-			auto& resultingType = primitivesTable->GetNode(primitiveIndex).Metadata->Declaration;
+			auto& resultingType = primitivesTable->GetNode(primitiveIndex).Metadata->declaration;
 
-			auto symbolRef = std::make_unique<HXSLSymbolRef>(Token(), HXSLSymbolRefType_Member);
+			auto symbolRef = std::make_unique<SymbolRef>(Token(), SymbolRefType_Member);
 			symbolRef->SetTable(primitivesTable, primitiveIndex);
-			auto swizzleDef = std::make_unique<HXSLSwizzleDefinition>(resultingType->GetSpan(), std::move(symbolRef));
-			auto metaField = std::make_shared<SymbolMetadata>(HXSLSymbolType_Field, HXSLSymbolScopeType_Struct, HXSLAccessModifier_Public, 0, swizzleDef.get());
+			auto swizzleDef = std::make_unique<SwizzleDefinition>(resultingType->GetSpan(), std::move(symbolRef));
+			auto metaField = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, AccessModifier_Public, 0, swizzleDef.get());
 
 			index = swizzleTable->Insert(pattern, metaField, 0);
 			ref->SetTable(swizzleTable.get(), index);

@@ -1,17 +1,17 @@
 #ifndef NODE_VISITOR_HPP
 #define NODE_VISITOR_HPP
 
-#include "nodes.hpp"
+#include "ast.hpp"
 
 namespace HXSL
 {
-	enum HXSLTraversalBehavior
+	enum TraversalBehavior
 	{
-		HXSLTraversalBehavior_Break,
-		HXSLTraversalBehavior_Skip,
-		HXSLTraversalBehavior_Keep,
-		HXSLTraversalBehavior_Defer,
-		HXSLTraversalBehavior_AnalyzerSkip,
+		TraversalBehavior_Break,
+		TraversalBehavior_Skip,
+		TraversalBehavior_Keep,
+		TraversalBehavior_Defer,
+		TraversalBehavior_AnalyzerSkip,
 	};
 
 	struct EmptyDeferralContext
@@ -19,17 +19,17 @@ namespace HXSL
 	};
 
 	template<typename DeferralContext>
-	class HXSLVisitor
+	class Visitor
 	{
 	protected:
 
-		virtual HXSLTraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, DeferralContext& context) = 0;
+		virtual TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, DeferralContext& context) = 0;
 		virtual void VisitClose(ASTNode* node, size_t depth)
 		{
 		}
 	public:
 
-		using VisitFnType = std::function<HXSLTraversalBehavior(ASTNode*& node, size_t depth, bool deferred, DeferralContext& context)>;
+		using VisitFnType = std::function<TraversalBehavior(ASTNode*& node, size_t depth, bool deferred, DeferralContext& context)>;
 		using VisitCloseFnType = std::function<void(ASTNode* node, size_t depth)>;
 
 		void Traverse(ASTNode* node, VisitFnType visit, VisitCloseFnType visitClose)
@@ -53,17 +53,17 @@ namespace HXSL
 				else
 				{
 					DeferralContext context;
-					HXSLTraversalBehavior result = visit(currentNode, depth, false, context);
+					TraversalBehavior result = visit(currentNode, depth, false, context);
 
-					if (result == HXSLTraversalBehavior_Break)
+					if (result == TraversalBehavior_Break)
 					{
 						break;
 					}
-					else if (result == HXSLTraversalBehavior_Skip)
+					else if (result == TraversalBehavior_Skip)
 					{
 						continue;
 					}
-					else if (result == HXSLTraversalBehavior_Defer)
+					else if (result == TraversalBehavior_Defer)
 					{
 						deferredQueue.push_back(std::make_tuple(currentNode, depth, context));
 					}
@@ -84,12 +84,12 @@ namespace HXSL
 			{
 				auto [currentNode, depth, context] = deferredQueue.front();
 				deferredQueue.pop_front();
-				HXSLTraversalBehavior result = visit(currentNode, depth, true, context);
-				if (result == HXSLTraversalBehavior_Break)
+				TraversalBehavior result = visit(currentNode, depth, true, context);
+				if (result == TraversalBehavior_Break)
 				{
 					break;
 				}
-				else if (result == HXSLTraversalBehavior_Defer)
+				else if (result == TraversalBehavior_Defer)
 				{
 					deferredQueue.push_back(std::make_tuple(currentNode, depth, context));
 				}
@@ -98,7 +98,7 @@ namespace HXSL
 
 		virtual void Traverse(ASTNode* node)
 		{
-			Traverse(node, std::bind(&HXSLVisitor::Visit, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&HXSLVisitor::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
+			Traverse(node, std::bind(&Visitor::Visit, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&Visitor::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 		}
 	};
 }

@@ -4,28 +4,28 @@
 #include "sub_parser_registry.hpp"
 namespace HXSL
 {
-	static bool ParseSingleLeftExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expression, bool& hadBrackets);
+	static bool ParseSingleLeftExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, bool& hadBrackets);
 
-	static bool ParseExpressionInner(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expression, int precedence = 0)
+	static bool ParseExpressionInner(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, int precedence = 0)
 	{
 		auto start = stream.Current();
 
 		bool hadBrackets = false;
-		HXSLOperator unaryOp;
+		Operator unaryOp;
 		if (start.isUnaryOperator(unaryOp))
 		{
 			stream.Advance();
-			std::unique_ptr<HXSLExpression> operand;
+			std::unique_ptr<Expression> operand;
 			IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, parent, operand, hadBrackets));
-			if (unaryOp == HXSLOperator_Increment || unaryOp == HXSLOperator_Decrement)
+			if (unaryOp == Operator_Increment || unaryOp == Operator_Decrement)
 			{
-				if (operand->GetType() != HXSLNodeType_SymbolRefExpression)
+				if (operand->GetType() != NodeType_SymbolRefExpression)
 				{
 					parser.LogError("Prefix increment/decrement must target a variable.", operand->GetSpan());
 					return false;
 				}
 			}
-			expression = std::make_unique<HXSLPrefixExpression>(TextSpan(), parent, unaryOp, std::move(operand));
+			expression = std::make_unique<PrefixExpression>(TextSpan(), parent, unaryOp, std::move(operand));
 			expression->SetSpan(stream.MakeFromLast(start));
 			hadBrackets = false;
 		}
@@ -38,7 +38,7 @@ namespace HXSL
 		{
 			auto token = stream.Current();
 
-			HXSLOperator op;
+			Operator op;
 			if (!token.isOperator(op))
 			{
 				if (token.isDelimiterOf({ ';' ,')', '}', ']', ',', ':' }))
@@ -46,11 +46,11 @@ namespace HXSL
 					return true;
 				}
 
-				if (hadBrackets && expression->GetType() == HXSLNodeType_SymbolRefExpression)
+				if (hadBrackets && expression->GetType() == NodeType_SymbolRefExpression)
 				{
-					std::unique_ptr<HXSLExpression> rightCast;
+					std::unique_ptr<Expression> rightCast;
 					IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, parent, rightCast, hadBrackets));
-					expression = std::make_unique<HXSLCastExpression>(TextSpan(), parent, std::move(expression), std::move(rightCast));
+					expression = std::make_unique<CastExpression>(TextSpan(), parent, std::move(expression), std::move(rightCast));
 					expression->SetSpan(stream.MakeFromLast(start));
 					continue;
 				}
@@ -67,31 +67,31 @@ namespace HXSL
 
 			stream.Advance();
 
-			if (Operators::isUnaryOperator(op) && op != HXSLOperator_Subtract)
+			if (Operators::isUnaryOperator(op) && op != Operator_Subtract)
 			{
-				if (op != HXSLOperator_Increment && op != HXSLOperator_Decrement)
+				if (op != Operator_Increment && op != Operator_Decrement)
 				{
 					parser.LogError("Invalid postfix operator.", stream.LastToken());
 					return false;
 				}
 
-				if (expression->GetType() != HXSLNodeType_SymbolRefExpression)
+				if (expression->GetType() != NodeType_SymbolRefExpression)
 				{
 					parser.LogError("Postfix increment/decrement must target a variable.", expression->GetSpan());
 					return false;
 				}
 
-				expression = std::make_unique<HXSLPostfixExpression>(TextSpan(), parent, op, std::move(expression));
+				expression = std::make_unique<PostfixExpression>(TextSpan(), parent, op, std::move(expression));
 				expression->SetSpan(stream.MakeFromLast(start));
 			}
 			else if (Operators::isTernaryOperator(op))
 			{
-				auto ternary = std::make_unique<HXSLTernaryExpression>(TextSpan(), parent, std::move(expression), nullptr, nullptr);
-				std::unique_ptr<HXSLExpression> right;
+				auto ternary = std::make_unique<TernaryExpression>(TextSpan(), parent, std::move(expression), nullptr, nullptr);
+				std::unique_ptr<Expression> right;
 				IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, ternary.get(), right, hadBrackets));
 				ternary->SetRight(std::move(right));
-				stream.ExpectOperator(HXSLOperator_TernaryElse);
-				std::unique_ptr<HXSLExpression> left;
+				stream.ExpectOperator(Operator_TernaryElse);
+				std::unique_ptr<Expression> left;
 				IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, ternary.get(), left, hadBrackets));
 				ternary->SetRight(std::move(left));
 				ternary->SetSpan(stream.MakeFromLast(start));
@@ -99,9 +99,9 @@ namespace HXSL
 			}
 			else
 			{
-				std::unique_ptr<HXSLExpression> right;
+				std::unique_ptr<Expression> right;
 				IF_ERR_RET_FALSE(ParseExpressionInner(parser, stream, parent, right, prec));
-				expression = std::make_unique<HXSLBinaryExpression>(TextSpan(), parent, op, std::move(expression), std::move(right));
+				expression = std::make_unique<BinaryExpression>(TextSpan(), parent, op, std::move(expression), std::move(right));
 				expression->SetSpan(stream.MakeFromLast(start));
 			}
 		}
@@ -109,7 +109,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool ParseSingleLeftExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expression, bool& hadBrackets)
+	bool ParseSingleLeftExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, bool& hadBrackets)
 	{
 		if (stream.TryGetDelimiter('('))
 		{
@@ -119,12 +119,12 @@ namespace HXSL
 		}
 		else
 		{
-			IF_ERR_RET_FALSE(HXSLExpressionParserRegistry::TryParse(parser, stream, parent, expression)); // member expressions and complex grammar.
+			IF_ERR_RET_FALSE(ExpressionParserRegistry::TryParse(parser, stream, parent, expression)); // member expressions and complex grammar.
 		}
 		return true;
 	}
 
-	static bool ParseExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expression)
+	static bool ParseExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression)
 	{
 		HXSL_ASSERT(parent, "Parent cannot be null.");
 		auto start = stream.Current();

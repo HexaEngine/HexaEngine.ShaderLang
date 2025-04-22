@@ -7,31 +7,31 @@
 
 namespace HXSL
 {
-	class HXSLSubAnalyzerRegistry
+	class SubAnalyzerRegistry
 	{
 	private:
-		static std::vector<std::unique_ptr<HXSLSubAnalyzer>> analyzers;
+		static std::vector<std::unique_ptr<SubAnalyzer>> analyzers;
 
 	public:
-		static HXSLTraversalBehavior TryAnalyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation)
+		static TraversalBehavior TryAnalyze(Analyzer& analyzer, ASTNode* node, Compilation* compilation)
 		{
 			for (auto& subAnalyzer : analyzers)
 			{
-				HXSLTraversalBehavior result = subAnalyzer->TryAnalyze(analyzer, node, compilation);
-				if (result != HXSLTraversalBehavior_AnalyzerSkip)
+				TraversalBehavior result = subAnalyzer->TryAnalyze(analyzer, node, compilation);
+				if (result != TraversalBehavior_AnalyzerSkip)
 				{
 					return result;
 				}
 			}
 #ifdef ALLOW_PARTIAL_ANALYSIS
-			return HXSLTraversalBehavior_Keep;
+			return TraversalBehavior_Keep;
 #else
-			return HXSLTraversalBehavior_Break;
+			return TraversalBehavior_Break;
 #endif
 		}
 
 		template <typename SubAnalyzerType>
-		static typename std::enable_if<std::is_base_of<HXSLSubAnalyzer, SubAnalyzerType>::value>::type
+		static typename std::enable_if<std::is_base_of<SubAnalyzer, SubAnalyzerType>::value>::type
 			Register()
 		{
 			analyzers.push_back(std::make_unique<SubAnalyzerType>());

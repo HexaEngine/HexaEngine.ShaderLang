@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace HXSL
+namespace HXSL 
 {
 	template <typename T>
 	class TernarySearchTreeDictionary
@@ -230,12 +230,12 @@ namespace HXSL
 		{
 			if (nodes == nullptr)
 			{
-				nodes = (Node*)HXSLAlloc(value * sizeof(Node));
+				nodes = (Node*)Alloc(value * sizeof(Node));
 				capacity = value;
 			}
 			else
 			{
-				nodes = (Node*)HXSLReAlloc(nodes, value * sizeof(Node));
+				nodes = (Node*)ReAlloc(nodes, value * sizeof(Node));
 				capacity = value;
 				count = capacity < count ? capacity : count;
 			}

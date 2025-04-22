@@ -7,190 +7,190 @@
 
 namespace HXSL
 {
-	enum HXSLOperator : int
+	enum Operator : int
 	{
-		HXSLOperator_Unknown,
-		HXSLOperator_Add,
-		HXSLOperator_Subtract,
-		HXSLOperator_Multiply,
-		HXSLOperator_Divide,
-		HXSLOperator_Modulus,
-		HXSLOperator_Assign,
-		HXSLOperator_PlusAssign,
-		HXSLOperator_MinusAssign,
-		HXSLOperator_MultiplyAssign,
-		HXSLOperator_DivideAssign,
-		HXSLOperator_ModulusAssign,
-		HXSLOperator_BitwiseNot,
-		HXSLOperator_BitwiseShiftLeft,
-		HXSLOperator_BitwiseShiftRight,
-		HXSLOperator_BitwiseAnd,
-		HXSLOperator_BitwiseOr,
-		HXSLOperator_BitwiseXor,
-		HXSLOperator_BitwiseShiftLeftAssign,
-		HXSLOperator_BitwiseShiftRightAssign,
-		HXSLOperator_BitwiseAndAssign,
-		HXSLOperator_BitwiseOrAssign,
-		HXSLOperator_BitwiseXorAssign,
-		HXSLOperator_AndAnd,
-		HXSLOperator_OrOr,
-		HXSLOperator_Ternary,
-		HXSLOperator_TernaryElse,
-		HXSLOperator_LessThan,
-		HXSLOperator_GreaterThan,
-		HXSLOperator_Equal,
-		HXSLOperator_NotEqual,
-		HXSLOperator_LessThanOrEqual,
-		HXSLOperator_GreaterThanOrEqual,
-		HXSLOperator_Increment,
-		HXSLOperator_Decrement,
-		HXSLOperator_MemberAccess,
-		HXSLOperator_LogicalNot,
+		Operator_Unknown,
+		Operator_Add,
+		Operator_Subtract,
+		Operator_Multiply,
+		Operator_Divide,
+		Operator_Modulus,
+		Operator_Assign,
+		Operator_PlusAssign,
+		Operator_MinusAssign,
+		Operator_MultiplyAssign,
+		Operator_DivideAssign,
+		Operator_ModulusAssign,
+		Operator_BitwiseNot,
+		Operator_BitwiseShiftLeft,
+		Operator_BitwiseShiftRight,
+		Operator_BitwiseAnd,
+		Operator_BitwiseOr,
+		Operator_BitwiseXor,
+		Operator_BitwiseShiftLeftAssign,
+		Operator_BitwiseShiftRightAssign,
+		Operator_BitwiseAndAssign,
+		Operator_BitwiseOrAssign,
+		Operator_BitwiseXorAssign,
+		Operator_AndAnd,
+		Operator_OrOr,
+		Operator_Ternary,
+		Operator_TernaryElse,
+		Operator_LessThan,
+		Operator_GreaterThan,
+		Operator_Equal,
+		Operator_NotEqual,
+		Operator_LessThanOrEqual,
+		Operator_GreaterThanOrEqual,
+		Operator_Increment,
+		Operator_Decrement,
+		Operator_MemberAccess,
+		Operator_LogicalNot,
 
-		HXSLOperator_Colon = HXSLOperator_TernaryElse
+		Operator_Colon = Operator_TernaryElse
 	};
 
-	static std::string ToString(HXSLOperator op)
+	static std::string ToString(Operator op)
 	{
 		switch (op)
 		{
-		case HXSLOperator_Add: return "+";
-		case HXSLOperator_Subtract: return "-";
-		case HXSLOperator_Multiply: return "*";
-		case HXSLOperator_Divide: return "/";
-		case HXSLOperator_Modulus: return "%";
-		case HXSLOperator_Assign: return "=";
-		case HXSLOperator_PlusAssign: return "+=";
-		case HXSLOperator_MinusAssign: return "-=";
-		case HXSLOperator_MultiplyAssign: return "*=";
-		case HXSLOperator_DivideAssign: return "/=";
-		case HXSLOperator_ModulusAssign: return "%=";
-		case HXSLOperator_BitwiseNot: return "~";
-		case HXSLOperator_BitwiseShiftLeft: return "<<";
-		case HXSLOperator_BitwiseShiftRight: return ">>";
-		case HXSLOperator_BitwiseAnd: return "&";
-		case HXSLOperator_BitwiseOr: return "|";
-		case HXSLOperator_BitwiseXor: return "^";
-		case HXSLOperator_BitwiseShiftLeftAssign: return "<<=";
-		case HXSLOperator_BitwiseShiftRightAssign: return ">>=";
-		case HXSLOperator_BitwiseAndAssign: return "&=";
-		case HXSLOperator_BitwiseOrAssign: return "|=";
-		case HXSLOperator_BitwiseXorAssign: return "^=";
-		case HXSLOperator_AndAnd: return "&&";
-		case HXSLOperator_OrOr: return "||";
-		case HXSLOperator_Ternary: return "?";
-		case HXSLOperator_TernaryElse: return ":";
-		case HXSLOperator_LessThan: return "<";
-		case HXSLOperator_GreaterThan: return ">";
-		case HXSLOperator_Equal: return "==";
-		case HXSLOperator_NotEqual: return "!=";
-		case HXSLOperator_LessThanOrEqual: return "<=";
-		case HXSLOperator_GreaterThanOrEqual: return ">=";
-		case HXSLOperator_Increment: return "++";
-		case HXSLOperator_Decrement: return "--";
-		case HXSLOperator_MemberAccess: return ".";
-		case HXSLOperator_LogicalNot: return "!";
+		case Operator_Add: return "+";
+		case Operator_Subtract: return "-";
+		case Operator_Multiply: return "*";
+		case Operator_Divide: return "/";
+		case Operator_Modulus: return "%";
+		case Operator_Assign: return "=";
+		case Operator_PlusAssign: return "+=";
+		case Operator_MinusAssign: return "-=";
+		case Operator_MultiplyAssign: return "*=";
+		case Operator_DivideAssign: return "/=";
+		case Operator_ModulusAssign: return "%=";
+		case Operator_BitwiseNot: return "~";
+		case Operator_BitwiseShiftLeft: return "<<";
+		case Operator_BitwiseShiftRight: return ">>";
+		case Operator_BitwiseAnd: return "&";
+		case Operator_BitwiseOr: return "|";
+		case Operator_BitwiseXor: return "^";
+		case Operator_BitwiseShiftLeftAssign: return "<<=";
+		case Operator_BitwiseShiftRightAssign: return ">>=";
+		case Operator_BitwiseAndAssign: return "&=";
+		case Operator_BitwiseOrAssign: return "|=";
+		case Operator_BitwiseXorAssign: return "^=";
+		case Operator_AndAnd: return "&&";
+		case Operator_OrOr: return "||";
+		case Operator_Ternary: return "?";
+		case Operator_TernaryElse: return ":";
+		case Operator_LessThan: return "<";
+		case Operator_GreaterThan: return ">";
+		case Operator_Equal: return "==";
+		case Operator_NotEqual: return "!=";
+		case Operator_LessThanOrEqual: return "<=";
+		case Operator_GreaterThanOrEqual: return ">=";
+		case Operator_Increment: return "++";
+		case Operator_Decrement: return "--";
+		case Operator_MemberAccess: return ".";
+		case Operator_LogicalNot: return "!";
 		default: return "Unknown";
 		}
 	}
 
 	static void BuildOperatorTST(TernarySearchTreeDictionary<int>* tst) {
-		tst->Insert("+", HXSLOperator_Add);
-		tst->Insert("-", HXSLOperator_Subtract);
-		tst->Insert("*", HXSLOperator_Multiply);
-		tst->Insert("/", HXSLOperator_Divide);
-		tst->Insert("%", HXSLOperator_Modulus);
-		tst->Insert("=", HXSLOperator_Assign);
-		tst->Insert("+=", HXSLOperator_PlusAssign);
-		tst->Insert("-=", HXSLOperator_MinusAssign);
-		tst->Insert("*=", HXSLOperator_MultiplyAssign);
-		tst->Insert("/=", HXSLOperator_DivideAssign);
-		tst->Insert("%=", HXSLOperator_ModulusAssign);
-		tst->Insert("~", HXSLOperator_BitwiseNot);
-		tst->Insert("<<", HXSLOperator_BitwiseShiftLeft);
-		tst->Insert(">>", HXSLOperator_BitwiseShiftRight);
-		tst->Insert("&", HXSLOperator_BitwiseAnd);
-		tst->Insert("|", HXSLOperator_BitwiseOr);
-		tst->Insert("^", HXSLOperator_BitwiseXor);
-		tst->Insert("<<=", HXSLOperator_BitwiseShiftLeftAssign);
-		tst->Insert(">>=", HXSLOperator_BitwiseShiftRightAssign);
-		tst->Insert("&=", HXSLOperator_BitwiseAndAssign);
-		tst->Insert("|=", HXSLOperator_BitwiseOrAssign);
-		tst->Insert("^=", HXSLOperator_BitwiseXorAssign);
-		tst->Insert("&&", HXSLOperator_AndAnd);
-		tst->Insert("||", HXSLOperator_OrOr);
-		tst->Insert("?", HXSLOperator_Ternary);
-		tst->Insert(":", HXSLOperator_TernaryElse);
-		tst->Insert("<", HXSLOperator_LessThan);
-		tst->Insert(">", HXSLOperator_GreaterThan);
-		tst->Insert("==", HXSLOperator_Equal);
-		tst->Insert("!=", HXSLOperator_NotEqual);
-		tst->Insert("<=", HXSLOperator_LessThanOrEqual);
-		tst->Insert(">=", HXSLOperator_GreaterThanOrEqual);
-		tst->Insert("++", HXSLOperator_Increment);
-		tst->Insert("--", HXSLOperator_Decrement);
-		tst->Insert(".", HXSLOperator_MemberAccess);
-		tst->Insert("!", HXSLOperator_LogicalNot);
+		tst->Insert("+", Operator_Add);
+		tst->Insert("-", Operator_Subtract);
+		tst->Insert("*", Operator_Multiply);
+		tst->Insert("/", Operator_Divide);
+		tst->Insert("%", Operator_Modulus);
+		tst->Insert("=", Operator_Assign);
+		tst->Insert("+=", Operator_PlusAssign);
+		tst->Insert("-=", Operator_MinusAssign);
+		tst->Insert("*=", Operator_MultiplyAssign);
+		tst->Insert("/=", Operator_DivideAssign);
+		tst->Insert("%=", Operator_ModulusAssign);
+		tst->Insert("~", Operator_BitwiseNot);
+		tst->Insert("<<", Operator_BitwiseShiftLeft);
+		tst->Insert(">>", Operator_BitwiseShiftRight);
+		tst->Insert("&", Operator_BitwiseAnd);
+		tst->Insert("|", Operator_BitwiseOr);
+		tst->Insert("^", Operator_BitwiseXor);
+		tst->Insert("<<=", Operator_BitwiseShiftLeftAssign);
+		tst->Insert(">>=", Operator_BitwiseShiftRightAssign);
+		tst->Insert("&=", Operator_BitwiseAndAssign);
+		tst->Insert("|=", Operator_BitwiseOrAssign);
+		tst->Insert("^=", Operator_BitwiseXorAssign);
+		tst->Insert("&&", Operator_AndAnd);
+		tst->Insert("||", Operator_OrOr);
+		tst->Insert("?", Operator_Ternary);
+		tst->Insert(":", Operator_TernaryElse);
+		tst->Insert("<", Operator_LessThan);
+		tst->Insert(">", Operator_GreaterThan);
+		tst->Insert("==", Operator_Equal);
+		tst->Insert("!=", Operator_NotEqual);
+		tst->Insert("<=", Operator_LessThanOrEqual);
+		tst->Insert(">=", Operator_GreaterThanOrEqual);
+		tst->Insert("++", Operator_Increment);
+		tst->Insert("--", Operator_Decrement);
+		tst->Insert(".", Operator_MemberAccess);
+		tst->Insert("!", Operator_LogicalNot);
 	}
 
 	namespace Operators
 	{
-		static int GetOperatorPrecedence(HXSLOperator op) {
+		static int GetOperatorPrecedence(Operator op) {
 			switch (op)
 			{
-			case HXSLOperator_BitwiseShiftLeftAssign:
-			case HXSLOperator_BitwiseShiftRightAssign:
-			case HXSLOperator_BitwiseAndAssign:
-			case HXSLOperator_BitwiseOrAssign:
-			case HXSLOperator_BitwiseXorAssign:
-			case HXSLOperator_Assign:
-			case HXSLOperator_PlusAssign:
-			case HXSLOperator_MinusAssign:
-			case HXSLOperator_MultiplyAssign:
-			case HXSLOperator_DivideAssign:
-			case HXSLOperator_ModulusAssign:
+			case Operator_BitwiseShiftLeftAssign:
+			case Operator_BitwiseShiftRightAssign:
+			case Operator_BitwiseAndAssign:
+			case Operator_BitwiseOrAssign:
+			case Operator_BitwiseXorAssign:
+			case Operator_Assign:
+			case Operator_PlusAssign:
+			case Operator_MinusAssign:
+			case Operator_MultiplyAssign:
+			case Operator_DivideAssign:
+			case Operator_ModulusAssign:
 				return 0;
 
-			case HXSLOperator_Ternary:
+			case Operator_Ternary:
 				return 5;
 
-			case HXSLOperator_LessThan:
-			case HXSLOperator_GreaterThan:
-			case HXSLOperator_Equal:
-			case HXSLOperator_NotEqual:
-			case HXSLOperator_LessThanOrEqual:
-			case HXSLOperator_GreaterThanOrEqual:
+			case Operator_LessThan:
+			case Operator_GreaterThan:
+			case Operator_Equal:
+			case Operator_NotEqual:
+			case Operator_LessThanOrEqual:
+			case Operator_GreaterThanOrEqual:
 				return 10;
 
-			case HXSLOperator_OrOr:
+			case Operator_OrOr:
 				return 15;
 
-			case HXSLOperator_AndAnd:
+			case Operator_AndAnd:
 				return 20;
 
-			case HXSLOperator_BitwiseShiftLeft:
-			case HXSLOperator_BitwiseShiftRight:
-			case HXSLOperator_BitwiseAnd:
-			case HXSLOperator_BitwiseOr:
-			case HXSLOperator_BitwiseXor:
+			case Operator_BitwiseShiftLeft:
+			case Operator_BitwiseShiftRight:
+			case Operator_BitwiseAnd:
+			case Operator_BitwiseOr:
+			case Operator_BitwiseXor:
 				return 25;
 
-			case HXSLOperator_Add:
-			case HXSLOperator_Subtract:
+			case Operator_Add:
+			case Operator_Subtract:
 				return 30;
 
-			case HXSLOperator_Multiply:
-			case HXSLOperator_Divide:
-			case HXSLOperator_Modulus:
+			case Operator_Multiply:
+			case Operator_Divide:
+			case Operator_Modulus:
 				return 35;
 
-			case HXSLOperator_LogicalNot:
-			case HXSLOperator_BitwiseNot:
-			case HXSLOperator_Increment:
-			case HXSLOperator_Decrement:
+			case Operator_LogicalNot:
+			case Operator_BitwiseNot:
+			case Operator_Increment:
+			case Operator_Decrement:
 				return 40;
 
-			case HXSLOperator_MemberAccess:
+			case Operator_MemberAccess:
 				return 45;
 
 			default:
@@ -198,45 +198,45 @@ namespace HXSL
 			}
 		}
 
-		static bool isUnaryOperator(HXSLOperator op)
+		static bool isUnaryOperator(Operator op)
 		{
 			switch (op)
 			{
-			case HXSLOperator_Subtract:
-			case HXSLOperator_LogicalNot:
-			case HXSLOperator_BitwiseNot:
-			case HXSLOperator_Increment:
-			case HXSLOperator_Decrement:
+			case Operator_Subtract:
+			case Operator_LogicalNot:
+			case Operator_BitwiseNot:
+			case Operator_Increment:
+			case Operator_Decrement:
 				return true;
 			default:
 				return false;
 			}
 		}
 
-		static bool isTernaryOperator(HXSLOperator op)
+		static bool isTernaryOperator(Operator op)
 		{
-			return op == HXSLOperator_Ternary;
+			return op == Operator_Ternary;
 		}
 
-		static bool isMemberAccessOperator(HXSLOperator op)
+		static bool isMemberAccessOperator(Operator op)
 		{
-			return op == HXSLOperator_MemberAccess;
+			return op == Operator_MemberAccess;
 		}
 
-		static bool isCompoundAssignment(HXSLOperator op)
+		static bool isCompoundAssignment(Operator op)
 		{
 			switch (op)
 			{
-			case HXSLOperator_PlusAssign:
-			case HXSLOperator_MinusAssign:
-			case HXSLOperator_MultiplyAssign:
-			case HXSLOperator_DivideAssign:
-			case HXSLOperator_ModulusAssign:
-			case HXSLOperator_BitwiseShiftLeftAssign:
-			case HXSLOperator_BitwiseShiftRightAssign:
-			case HXSLOperator_BitwiseAndAssign:
-			case HXSLOperator_BitwiseOrAssign:
-			case HXSLOperator_BitwiseXorAssign:
+			case Operator_PlusAssign:
+			case Operator_MinusAssign:
+			case Operator_MultiplyAssign:
+			case Operator_DivideAssign:
+			case Operator_ModulusAssign:
+			case Operator_BitwiseShiftLeftAssign:
+			case Operator_BitwiseShiftRightAssign:
+			case Operator_BitwiseAndAssign:
+			case Operator_BitwiseOrAssign:
+			case Operator_BitwiseXorAssign:
 				return true;
 			default:
 				return false;

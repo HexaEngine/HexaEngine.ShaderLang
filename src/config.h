@@ -42,24 +42,21 @@ static bool EnableErrorOutput = true;
 
 #define MAX_LOG_LENGTH 512
 
-#define DEFINE_GETTER_SETTER(type, name)    \
-    const type& Get##name() const noexcept { return name; } \
-    void Set##name(const type &value) noexcept { name = value; }
+#define DEFINE_GETTER_SETTER(type, name, field)    \
+    const type& Get##name() const noexcept { return field; } \
+    void Set##name(const type &value) noexcept { field = value; }
 
-#define DEFINE_GETTER_SETTER_PTR(type, name)    \
-    type Get##name() const noexcept { return name; } \
-    void Set##name(type value) noexcept { name = value; }
+#define DEFINE_GETTER_SETTER_PTR(type, name, field)    \
+    type Get##name() const noexcept { return field; } \
+    void Set##name(type value) noexcept { field = value; }
 
-#define DEFINE_GETTER_SETTER_MOVE(type, name)    \
-    const type& Get##name() const noexcept { return name; } \
-    void Set##name(type&& value) noexcept { name = std::move(value); }
+#define DEFINE_GETTER_SETTER_MOVE(type, name, field)    \
+    const type& Get##name() const noexcept { return field; } \
+    void Set##name(type&& value) noexcept { field = std::move(value); }
 
-#define DEFINE_DETATCH(type, name)    \
-    void Detach##name(type& valueOut) noexcept { valueOut = std::move(name); }
+#define ILVersionString "1.0.0.0"
 
-#define HXSLILVersionString "1.0.0.0"
-
-#define HXSLILVersion ((1 << 24) | (0 << 16) | (0 << 8) | 0);
+#define ILVersion ((1 << 24) | (0 << 16) | (0 << 8) | 0);
 
 typedef unsigned int uint;
 

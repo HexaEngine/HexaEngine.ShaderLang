@@ -1,6 +1,6 @@
 #include "sub_analyzer_registry.hpp"
 
-namespace HXSL
+namespace HXSL 
 {
-	std::vector<std::unique_ptr<HXSLSubAnalyzer>> HXSLSubAnalyzerRegistry::analyzers;
+	std::vector<std::unique_ptr<SubAnalyzer>> SubAnalyzerRegistry::analyzers;
 }

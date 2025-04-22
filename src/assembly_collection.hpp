@@ -3,7 +3,7 @@
 
 #include "text_span.h"
 #include "assembly.hpp"
-#include "nodes.hpp"
+#include "ast.hpp"
 
 #include <memory>
 #include <vector>

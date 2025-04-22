@@ -9,7 +9,7 @@ namespace HXSL
 		return false; \
 	} while (0)
 
-	void HXSLParser::EnterScopeInternal(TextSpan name, ScopeType type, ASTNode* userdata)
+	void Parser::EnterScopeInternal(TextSpan name, ScopeType type, ASTNode* userdata)
 	{
 		ScopeFlags newFlags = CurrentScope.Flags;
 		switch (type) {
@@ -55,7 +55,7 @@ namespace HXSL
 		ScopeLevel++;
 	}
 
-	void HXSLParser::ExitScopeInternal()
+	void Parser::ExitScopeInternal()
 	{
 		ScopeLevel--;
 		if (ScopeLevel < 0)
@@ -74,7 +74,7 @@ namespace HXSL
 		}
 	}
 
-	bool HXSLParser::TryEnterScope(TextSpan name, ScopeType type, ASTNode* parent)
+	bool Parser::TryEnterScope(TextSpan name, ScopeType type, ASTNode* parent)
 	{
 		if (Stream.TryGetDelimiter('{'))
 		{
@@ -84,21 +84,21 @@ namespace HXSL
 		return false;
 	}
 
-	bool HXSLParser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token)
+	bool Parser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token)
 	{
 		ERR_IF_RETURN_FALSE(!Stream.ExpectDelimiter('{', token));
 		EnterScopeInternal(name, type, parent);
 		return true;
 	}
 
-	bool HXSLParser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent)
+	bool Parser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent)
 	{
 		Token token;
 		ERR_IF_RETURN_FALSE(!EnterScope(name, type, parent, token));
 		return true;
 	}
 
-	bool HXSLParser::SkipScope(Token& token)
+	bool Parser::SkipScope(Token& token)
 	{
 		int targetScope = ScopeLevel - 1;
 		while (TryAdvance())
@@ -120,7 +120,7 @@ namespace HXSL
 		return false;
 	}
 
-	bool HXSLParser::IterateScope()
+	bool Parser::IterateScope()
 	{
 		if (Stream.TryGetDelimiter('}'))
 		{
@@ -130,7 +130,7 @@ namespace HXSL
 		return true;
 	}
 
-	UsingDeclaration HXSLParser::ParseUsingDeclaration()
+	UsingDeclaration Parser::ParseUsingDeclaration()
 	{
 		auto nsKeywordSpan = Stream.LastToken().Span;
 		UsingDeclaration us = UsingDeclaration();
@@ -140,7 +140,7 @@ namespace HXSL
 		{
 			us.Target = identifier;
 		}
-		else if (Stream.TryGetOperator(HXSLOperator_Equal))
+		else if (Stream.TryGetOperator(Operator_Equal))
 		{
 			us.Alias = identifier;
 			us.Target = ParseQualifiedName(Stream, hasDot);
@@ -155,7 +155,7 @@ namespace HXSL
 		return us;
 	}
 
-	NamespaceDeclaration HXSLParser::ParseNamespaceDeclaration(bool& scoped)
+	NamespaceDeclaration Parser::ParseNamespaceDeclaration(bool& scoped)
 	{
 		auto nsKeywordSpan = Stream.LastToken().Span;
 		bool hasDot;
@@ -176,7 +176,7 @@ namespace HXSL
 		return NamespaceDeclaration(nsKeywordSpan.merge(Stream.LastToken().Span), name);
 	}
 
-	bool HXSLParser::TryAdvance()
+	bool Parser::TryAdvance()
 	{
 		if (Stream.Current().Type == TokenType_Unknown || Stream.HasErrors())
 		{
@@ -185,10 +185,10 @@ namespace HXSL
 
 		while (true)
 		{
-			if (Stream.TryGetKeyword(HXSLKeyword_Namespace))
+			if (Stream.TryGetKeyword(Keyword_Namespace))
 			{
 				if (ScopeLevel != 0) ERR_RETURN_FALSE_INTERNAL("Namespaces must be at the global scope.");
-				if (CurrentNamespace != nullptr) ERR_RETURN_FALSE_INTERNAL("Only one namespace can be declared in the current scope.");
+				if (CurrentNamespace != nullptr) ERR_RETURN_FALSE_INTERNAL("Only one namespace HXSL can be declared in the current scope.");
 				bool scoped;
 				CurrentNamespace = m_compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
 				if (!scoped)
@@ -197,9 +197,9 @@ namespace HXSL
 				}
 				NamespaceScope = ScopeLevel;
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Using))
+			else if (Stream.TryGetKeyword(Keyword_Using))
 			{
-				if (!IsInGlobalOrNamespaceScope()) ERR_RETURN_FALSE_INTERNAL("Usings must be at the global or namespace scope.");
+				if (!IsInGlobalOrNamespaceScope()) ERR_RETURN_FALSE_INTERNAL("Usings must be at the global or namespace HXSL scope.");
 				auto declaration = ParseUsingDeclaration();
 				if (CurrentNamespace != nullptr)
 				{
@@ -233,50 +233,50 @@ namespace HXSL
 
 		if (CurrentNamespace == nullptr)
 		{
-			ERR_RETURN_FALSE_INTERNAL("Expected namespace.");
+			ERR_RETURN_FALSE_INTERNAL("Expected namespace HXSL.");
 		}
 
 		return true;
 	}
 
-	bool HXSLParser::Parse()
+	bool Parser::Parse()
 	{
 		Stream.Advance();
 		ParseSubStep();
 		return !Stream.HasErrors();
 	}
 
-	bool HXSLParser::ParseSubStep()
+	bool Parser::ParseSubStep()
 	{
 		while (TryAdvance())
 		{
-			std::unique_ptr<HXSLAttributeDeclaration> attr;
+			std::unique_ptr<AttributeDeclaration> attr;
 			TryParseAttribute(attr);
 			if (attr)
 			{
 				attribute.Reset(std::move(attr));
 			}
-			HXSLSubParserRegistry::TryParse(*this, Stream, m_compilation, m_compilation);
+			SubParserRegistry::TryParse(*this, Stream, m_compilation, m_compilation);
 		}
 		return true;
 	}
 
-	HXSLAccessModifier HXSLParser::ParseAccessModifier()
+	AccessModifier Parser::ParseAccessModifier()
 	{
-		HXSLAccessModifier modifier = HXSLAccessModifier_Private;
+		AccessModifier modifier = AccessModifier_Private;
 		while (true)
 		{
-			if (Stream.TryGetKeyword(HXSLKeyword_Public))
+			if (Stream.TryGetKeyword(Keyword_Public))
 			{
-				modifier = HXSLAccessModifier_Public;
+				modifier = AccessModifier_Public;
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Internal))
+			else if (Stream.TryGetKeyword(Keyword_Internal))
 			{
-				modifier = HXSLAccessModifier_Internal;
+				modifier = AccessModifier_Internal;
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Private))
+			else if (Stream.TryGetKeyword(Keyword_Private))
 			{
-				modifier = HXSLAccessModifier_Private;
+				modifier = AccessModifier_Private;
 			}
 			else
 			{
@@ -287,34 +287,34 @@ namespace HXSL
 		return modifier;
 	}
 
-	static const std::unordered_set<HXSLKeyword> BuiltInTypes = {
-		HXSLKeyword_Void,
-		HXSLKeyword_Bool,
-		HXSLKeyword_Uint,
-		HXSLKeyword_Int,
-		HXSLKeyword_Float,
-		HXSLKeyword_Double,
-		HXSLKeyword_Matrix,
-		HXSLKeyword_Min16float,
-		HXSLKeyword_Min10float,
-		HXSLKeyword_Min16int,
-		HXSLKeyword_Min12int,
-		HXSLKeyword_Min16uint,
-		HXSLKeyword_SamplerState,
-		HXSLKeyword_Texture1D,
-		HXSLKeyword_Texture2D,
-		HXSLKeyword_Texture3D,
-		HXSLKeyword_Texture1DArray,
-		HXSLKeyword_Texture2DArray,
-		HXSLKeyword_Texture2DMS,
-		HXSLKeyword_Texture2DMSArray,
-		HXSLKeyword_TextureCube
+	static const std::unordered_set<Keyword> BuiltInTypes = {
+		Keyword_Void,
+		Keyword_Bool,
+		Keyword_Uint,
+		Keyword_Int,
+		Keyword_Float,
+		Keyword_Double,
+		Keyword_Matrix,
+		Keyword_Min16float,
+		Keyword_Min10float,
+		Keyword_Min16int,
+		Keyword_Min12int,
+		Keyword_Min16uint,
+		Keyword_SamplerState,
+		Keyword_Texture1D,
+		Keyword_Texture2D,
+		Keyword_Texture3D,
+		Keyword_Texture1DArray,
+		Keyword_Texture2DArray,
+		Keyword_Texture2DMS,
+		Keyword_Texture2DMSArray,
+		Keyword_TextureCube
 	};
 
-	bool HXSLParser::TryParseSymbol(HXSLSymbolRefType expectedType, LazySymbol& type)
+	bool Parser::TryParseSymbol(SymbolRefType expectedType, LazySymbol& type)
 	{
 		TextSpan span;
-		if (expectedType != HXSLSymbolRefType_Variable && expectedType != HXSLSymbolRefType_Attribute && Stream.TryGetKeywords(BuiltInTypes))
+		if (expectedType != SymbolRefType_Variable && expectedType != SymbolRefType_Attribute && Stream.TryGetKeywords(BuiltInTypes))
 		{
 			type = LazySymbol(Stream.LastToken(), expectedType);
 			return true;
@@ -328,7 +328,7 @@ namespace HXSL
 		return false;
 	}
 
-	bool HXSLParser::ParseSymbol(HXSLSymbolRefType expectedType, std::unique_ptr<HXSLSymbolRef>& type)
+	bool Parser::ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type)
 	{
 		LazySymbol symbol;
 		if (!TryParseSymbol(expectedType, symbol))
@@ -341,26 +341,26 @@ namespace HXSL
 		return true;
 	}
 
-	HXSLParameterFlags HXSLParser::ParseParameterFlags()
+	ParameterFlags Parser::ParseParameterFlags()
 	{
-		HXSLParameterFlags flags = HXSLParameterFlags_None;
+		ParameterFlags flags = ParameterFlags_None;
 		while (true)
 		{
-			if (Stream.TryGetKeyword(HXSLKeyword_In))
+			if (Stream.TryGetKeyword(Keyword_In))
 			{
-				flags = static_cast<HXSLParameterFlags>(flags | HXSLParameterFlags_In);
+				flags = static_cast<ParameterFlags>(flags | ParameterFlags_In);
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Out))
+			else if (Stream.TryGetKeyword(Keyword_Out))
 			{
-				flags = static_cast<HXSLParameterFlags>(flags | HXSLParameterFlags_Out);
+				flags = static_cast<ParameterFlags>(flags | ParameterFlags_Out);
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Inout))
+			else if (Stream.TryGetKeyword(Keyword_Inout))
 			{
-				flags = static_cast<HXSLParameterFlags>(flags | HXSLParameterFlags_InOut);
+				flags = static_cast<ParameterFlags>(flags | ParameterFlags_InOut);
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Uniform))
+			else if (Stream.TryGetKeyword(Keyword_Uniform))
 			{
-				flags = static_cast<HXSLParameterFlags>(flags | HXSLParameterFlags_Uniform);
+				flags = static_cast<ParameterFlags>(flags | ParameterFlags_Uniform);
 			}
 			else
 			{
@@ -371,14 +371,14 @@ namespace HXSL
 		return flags;
 	}
 
-	HXSLFunctionFlags HXSLParser::ParseFunctionFlags()
+	FunctionFlags Parser::ParseFunctionFlags()
 	{
-		HXSLFunctionFlags flags = HXSLFunctionFlags_None;
+		FunctionFlags flags = FunctionFlags_None;
 		while (true)
 		{
-			if (Stream.TryGetKeyword(HXSLKeyword_Inline))
+			if (Stream.TryGetKeyword(Keyword_Inline))
 			{
-				flags = static_cast<HXSLFunctionFlags>(flags | HXSLFunctionFlags_Inline);
+				flags = static_cast<FunctionFlags>(flags | FunctionFlags_Inline);
 			}
 			else
 			{
@@ -389,34 +389,34 @@ namespace HXSL
 		return flags;
 	}
 
-	HXSLFieldFlags HXSLParser::ParseFieldFlags()
+	FieldFlags Parser::ParseFieldFlags()
 	{
-		HXSLFieldFlags flags = HXSLFieldFlags_None;
+		FieldFlags flags = FieldFlags_None;
 		while (true)
 		{
-			if (Stream.TryGetKeyword(HXSLKeyword_Static))
+			if (Stream.TryGetKeyword(Keyword_Static))
 			{
-				flags = static_cast<HXSLFieldFlags>(flags | HXSLFieldFlags_Static);
+				flags = static_cast<FieldFlags>(flags | FieldFlags_Static);
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Nointerpolation))
+			else if (Stream.TryGetKeyword(Keyword_Nointerpolation))
 			{
-				flags = static_cast<HXSLFieldFlags>(flags | HXSLFieldFlags_Nointerpolation);
+				flags = static_cast<FieldFlags>(flags | FieldFlags_Nointerpolation);
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Shared))
+			else if (Stream.TryGetKeyword(Keyword_Shared))
 			{
-				flags = static_cast<HXSLFieldFlags>(flags | HXSLFieldFlags_Shared);
+				flags = static_cast<FieldFlags>(flags | FieldFlags_Shared);
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Groupshared))
+			else if (Stream.TryGetKeyword(Keyword_Groupshared))
 			{
-				flags = static_cast<HXSLFieldFlags>(flags | HXSLFieldFlags_GroupShared);
+				flags = static_cast<FieldFlags>(flags | FieldFlags_GroupShared);
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Uniform))
+			else if (Stream.TryGetKeyword(Keyword_Uniform))
 			{
-				flags = static_cast<HXSLFieldFlags>(flags | HXSLFieldFlags_Uniform);
+				flags = static_cast<FieldFlags>(flags | FieldFlags_Uniform);
 			}
-			else if (Stream.TryGetKeyword(HXSLKeyword_Volatile))
+			else if (Stream.TryGetKeyword(Keyword_Volatile))
 			{
-				flags = static_cast<HXSLFieldFlags>(flags | HXSLFieldFlags_Volatile);
+				flags = static_cast<FieldFlags>(flags | FieldFlags_Volatile);
 			}
 			else
 			{
@@ -427,17 +427,17 @@ namespace HXSL
 		return flags;
 	}
 
-	bool HXSLParser::TryParseAttribute(std::unique_ptr<HXSLAttributeDeclaration>& attributeOut)
+	bool Parser::TryParseAttribute(std::unique_ptr<AttributeDeclaration>& attributeOut)
 	{
 		auto start = Stream.Current();
 		IF_ERR_RET_FALSE(Stream.TryGetDelimiter('['));
 
-		std::unique_ptr<HXSLSymbolRef> symbol;
-		IF_ERR_RET_FALSE(ParseSymbol(HXSLSymbolRefType_Attribute, symbol));
+		std::unique_ptr<SymbolRef> symbol;
+		IF_ERR_RET_FALSE(ParseSymbol(SymbolRefType_Attribute, symbol));
 
-		auto attribute = std::make_unique<HXSLAttributeDeclaration>(TextSpan(), nullptr);
+		auto attribute = std::make_unique<AttributeDeclaration>(TextSpan(), nullptr);
 
-		std::vector<std::unique_ptr<HXSLLiteralExpression>> parameters;
+		std::vector<std::unique_ptr<LiteralExpression>> parameters;
 		if (Stream.TryGetDelimiter('('))
 		{
 			bool firstParam = true;
@@ -448,7 +448,7 @@ namespace HXSL
 					IF_ERR_RET_FALSE(Stream.ExpectDelimiter(','));
 				}
 				firstParam = false;
-				std::unique_ptr<HXSLLiteralExpression> parameter;
+				std::unique_ptr<LiteralExpression> parameter;
 				if (!ParserHelper::TryParseLiteralExpression(*this, Stream, attribute.get(), parameter))
 				{
 					LogError("Expected an constant expression.");

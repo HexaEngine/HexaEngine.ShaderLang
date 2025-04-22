@@ -1,9 +1,8 @@
 #ifndef SUB_PARSER_H
 #define SUB_PARSER_H
 
-#include "parser.h"
-#include "compilation.hpp"
-#include "token_stream.h"
+#include "parsers/parser.h"
+#include "lexical/token_stream.h"
 #include <memory>
 #include <iostream>
 
@@ -25,40 +24,40 @@ namespace HXSL
 		return false; \
 	}
 
-	class HXSLSubParser
+	class SubParser
 	{
 	protected:
-		HXSLSubParser()
+		SubParser()
 		{
 		}
 	public:
-		virtual bool TryParse(HXSLParser& parser, TokenStream& stream, Compilation* compilation)
+		virtual bool TryParse(Parser& parser, TokenStream& stream, Compilation* compilation)
 		{
 			return false;
 		}
 	};
 
-	class HXSLStatementParser
+	class StatementParser
 	{
 	protected:
-		HXSLStatementParser()
+		StatementParser()
 		{
 		}
 	public:
-		virtual bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut)
+		virtual bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
 		{
 			return false;
 		}
 	};
 
-	class HXSLExpressionParser
+	class ExpressionParser
 	{
 	protected:
-		HXSLExpressionParser()
+		ExpressionParser()
 		{
 		}
 	public:
-		virtual bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut)
+		virtual bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 		{
 			return false;
 		}

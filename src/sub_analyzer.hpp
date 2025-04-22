@@ -2,30 +2,29 @@
 #define SUB_ANALYZER_HPP
 
 #include "analyzer.hpp"
-#include "nodes.hpp"
-#include "compilation.hpp"
+#include "ast.hpp"
 
 namespace HXSL
 {
-	class HXSLSubAnalyzer
+	class SubAnalyzer
 	{
 	protected:
-		HXSLSubAnalyzer()
+		SubAnalyzer()
 		{
 		}
 
 	public:
 		virtual bool CanAnalyze(ASTNode* node) = 0;
 
-		virtual HXSLTraversalBehavior Analyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation) = 0;
+		virtual TraversalBehavior Analyze(Analyzer& analyzer, ASTNode* node, Compilation* compilation) = 0;
 
-		HXSLTraversalBehavior TryAnalyze(HXSLAnalyzer& analyzer, ASTNode* node, Compilation* compilation)
+		TraversalBehavior TryAnalyze(Analyzer& analyzer, ASTNode* node, Compilation* compilation)
 		{
 			if (CanAnalyze(node))
 			{
 				return Analyze(analyzer, node, compilation);
 			}
-			return HXSLTraversalBehavior_AnalyzerSkip;
+			return TraversalBehavior_AnalyzerSkip;
 		}
 	};
 }

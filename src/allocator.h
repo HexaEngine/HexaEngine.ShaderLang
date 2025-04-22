@@ -13,13 +13,13 @@ extern "C" {
 	typedef void* (*ReAllocCallback)(void* oldPtr, size_t newSize);
 	typedef void(*FreeCallback)(void* ptr);
 
-	HXSL_API void* HXSLAlloc(size_t size);
+	HXSL_API void* Alloc(size_t size);
 
-	HXSL_API void* HXSLReAlloc(void* oldPtr, size_t newSize);
+	HXSL_API void* ReAlloc(void* oldPtr, size_t newSize);
 
-	HXSL_API void HXSLFree(void* ptr);
+	HXSL_API void Free(void* ptr);
 
-	HXSL_API void HXSLSetAllocatorCallbacks(AllocCallback allocCallback, ReAllocCallback reallocCallback, FreeCallback freeCallback);
+	HXSL_API void SetAllocatorCallbacks(AllocCallback allocCallback, ReAllocCallback reallocCallback, FreeCallback freeCallback);
 
 #ifdef __cplusplus
 }
@@ -28,21 +28,21 @@ extern "C" {
 #ifdef __cplusplus
 
 template <typename T>
-T* HXSLAlloc()
+T* Alloc()
 {
-	return (T*)HXSLAlloc(sizeof(T));
+	return (T*)Alloc(sizeof(T));
 }
 
 template <typename T>
-T* HXSLAllocArray(size_t count)
+T* AllocArray(size_t count)
 {
-	return (T*)HXSLAlloc(sizeof(T) * count);
+	return (T*)Alloc(sizeof(T) * count);
 }
 
 template <typename T>
-T* HXSLReAllocArray(T* oldPtr, size_t newCount)
+T* ReAllocArray(T* oldPtr, size_t newCount)
 {
-	return (T*)HXSLReAlloc(oldPtr, sizeof(T) * newCount);
+	return (T*)ReAlloc(oldPtr, sizeof(T) * newCount);
 }
 
 #endif

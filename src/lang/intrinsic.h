@@ -5,13 +5,13 @@
 #include <string>
 #include "nodes.hpp"
 
-namespace HXSL
+namespace HXSL 
 {
-	class HXSLIntrinsicFunction : HXSLFunction
+	class IntrinsicFunction : Function
 	{
 	public:
-		HXSLIntrinsicFunction :
-		HXSLFunction(TextSpan(), nullptr, HXSLNodeType_IntrinsicFunction)
+		IntrinsicFunction :
+		Function(TextSpan(), nullptr, NodeType_IntrinsicFunction)
 		{
 		}
 	};

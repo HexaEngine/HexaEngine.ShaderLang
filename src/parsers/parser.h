@@ -1,10 +1,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "token_stream.h"
-#include "compilation.hpp"
+#include "lexical/token_stream.h"
 #include "text_span.h"
-#include "nodes.hpp"
+#include "ast.hpp"
 #include "lang/language.h"
 
 #include <stack>
@@ -157,21 +156,21 @@ namespace HXSL
 		}
 	};
 
-	class HXSLParser
+	class Parser
 	{
 	public:
 		TokenStream& Stream;
 		int ScopeLevel;
 		int NamespaceScope;
 		Compilation* m_compilation;
-		HXSLNamespace* CurrentNamespace;
+		Namespace* CurrentNamespace;
 		ASTNode* ParentNode;
 		ResolverScopeContext CurrentScope;
 		std::stack<ResolverScopeContext> ScopeStack;
 		std::stack<ASTNode*> ParentStack;
-		TakeHandle<HXSLAttributeDeclaration> attribute;
+		TakeHandle<AttributeDeclaration> attribute;
 
-		HXSLParser(TokenStream& stream, Compilation* compilation) : Stream(stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ResolverScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None))
+		Parser(TokenStream& stream, Compilation* compilation) : Stream(stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ResolverScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None))
 		{
 		}
 
@@ -195,7 +194,7 @@ namespace HXSL
 		void LogError(const std::string& message, TextSpan span, Args&&... args) const
 		{
 			std::string format = message + " (Line: %i, Column: %i)";
-			Stream.StreamState.State.logger()->LogFormatted(HXSLLogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+			Stream.LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
 		}
 
 		template<typename... Args>
@@ -254,8 +253,8 @@ namespace HXSL
 			return ScopeLevel == NamespaceScope || ScopeLevel == 0;
 		}
 
-		HXSLFieldFlags ParseFieldFlags();
-		bool TryParseAttribute(std::unique_ptr<HXSLAttributeDeclaration>& attribute);
+		FieldFlags ParseFieldFlags();
+		bool TryParseAttribute(std::unique_ptr<AttributeDeclaration>& attribute);
 		void EnterScopeInternal(TextSpan name, ScopeType type, ASTNode* userdata);
 		void ExitScopeInternal();
 		bool TryEnterScope(TextSpan name, ScopeType type, ASTNode* parent);
@@ -294,7 +293,7 @@ namespace HXSL
 		/// `true` to continue normally, regardless of the input.
 		/// </remarks>
 		template<typename... Args>
-		bool AcceptAttribute(TakeHandle<HXSLAttributeDeclaration>** attributeOut, const std::string& message, Args&&... args)
+		bool AcceptAttribute(TakeHandle<AttributeDeclaration>** attributeOut, const std::string& message, Args&&... args)
 		{
 			if (!attribute.Get())
 			{
@@ -323,11 +322,11 @@ namespace HXSL
 			return AcceptAttribute(nullptr, message, std::forward<Args>(args)...);
 		}
 
-		HXSLAccessModifier ParseAccessModifier();
-		bool TryParseSymbol(HXSLSymbolRefType expectedType, LazySymbol& type);
-		bool ParseSymbol(HXSLSymbolRefType expectedType, std::unique_ptr<HXSLSymbolRef>& type);
-		HXSLParameterFlags ParseParameterFlags();
-		HXSLFunctionFlags ParseFunctionFlags();
+		AccessModifier ParseAccessModifier();
+		bool TryParseSymbol(SymbolRefType expectedType, LazySymbol& type);
+		bool ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type);
+		ParameterFlags ParseParameterFlags();
+		FunctionFlags ParseFunctionFlags();
 	};
 }
 #endif

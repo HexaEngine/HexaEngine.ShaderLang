@@ -8,10 +8,10 @@
 #include <fstream>
 #include <sstream>
 
-namespace HXSL
+namespace HXSL 
 {
 	class SymbolTable;
-	class HXSLSymbolDef;
+	class SymbolDef;
 	class SymbolMetadata;
 
 	enum AssemblyLoadResult
@@ -33,7 +33,7 @@ namespace HXSL
 
 		const SymbolTable* GetSymbolTable() const noexcept { return Table.get(); }
 
-		size_t AddSymbol(HXSLSymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex = 0);
+		size_t AddSymbol(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex = 0);
 
 		size_t AddSymbolScope(TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex = 0);
 
@@ -41,11 +41,11 @@ namespace HXSL
 
 		static AssemblyLoadResult LoadFromFile(const std::string& path, std::unique_ptr<Assembly>& assemblyOut);
 
-		static AssemblyLoadResult LoadFromStream(const std::string& path, HXSLStream& stream, std::unique_ptr<Assembly>& assemblyOut);
+		static AssemblyLoadResult LoadFromStream(const std::string& path, Stream& stream, std::unique_ptr<Assembly>& assemblyOut);
 
 		int WriteToFile(const std::string& path) const;
 
-		int WriteToStream(HXSLStream& stream) const;
+		int WriteToStream(Stream& stream) const;
 	};
 }
 #endif

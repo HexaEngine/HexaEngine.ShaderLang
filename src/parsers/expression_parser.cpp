@@ -2,58 +2,58 @@
 
 #include "sub_parser_registry.hpp"
 #include "statement_parser.hpp"
-#include "parser.h"
-#include "nodes.hpp"
+#include "parsers/parser.h"
+#include "ast.hpp"
 #include "parser_helper.hpp"
 #include "pratt_parser.hpp"
 namespace HXSL
 {
-	bool HXSLSymbolExpressionParser::TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut)
+	bool SymbolExpressionParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 	{
 		return ParserHelper::TryParseSymbol(parser, stream, expressionOut);
 	}
 
-	bool HXSLLiteralExpressionParser::TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut)
+	bool LiteralExpressionParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 	{
-		std::unique_ptr<HXSLLiteralExpression> expr;
+		std::unique_ptr<LiteralExpression> expr;
 		IF_ERR_RET_FALSE(ParserHelper::TryParseLiteralExpression(parser, stream, parser.parentNode(), expr));
 		expressionOut = std::move(expr);
 		return true;
 	}
 
-	bool HXSLFuncCallExpressionParser::TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut)
+	bool FuncCallExpressionParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 	{
 		auto current = stream.Current();
 
-		std::unique_ptr<HXSLFunctionCallExpression> expression;
+		std::unique_ptr<FunctionCallExpression> expression;
 		IF_ERR_RET_FALSE(ParserHelper::TryParseFunctionCall(parser, stream, parser.parentNode(), expression));
 		expressionOut = std::move(expression);
 
 		return true;
 	}
 
-	bool HXSLMemberAccessExpressionParser::TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut)
+	bool MemberAccessExpressionParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 	{
 		auto start = stream.Current();
-		std::unique_ptr<HXSLExpression> expression;
+		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(ParserHelper::TryParseMemberAccessPath(parser, stream, parser.parentNode(), expression));
 		expressionOut = std::move(expression);
 		return true;
 	}
 
-	bool HXSLAssignmentExpressionParser::TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut)
+	bool AssignmentExpressionParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 	{
 		auto start = stream.Current();
-		std::unique_ptr<HXSLExpression> target;
+		std::unique_ptr<Expression> target;
 		if (!ParserHelper::TryParseMemberAccessPath(parser, stream, nullptr, target))
 		{
 			return false;
 		}
 
-		if (stream.TryGetOperator(HXSLOperator_Assign))
+		if (stream.TryGetOperator(Operator_Assign))
 		{
-			auto assignmentStatement = std::make_unique<HXSLAssignmentExpression>(TextSpan(), parser.parentNode(), std::move(target), nullptr);
-			std::unique_ptr<HXSLExpression> expression;
+			auto assignmentStatement = std::make_unique<AssignmentExpression>(TextSpan(), parser.parentNode(), std::move(target), nullptr);
+			std::unique_ptr<Expression> expression;
 			IF_ERR_RET_FALSE(ParseExpression(parser, stream, assignmentStatement.get(), expression));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
 			assignmentStatement->SetExpression(std::move(expression));
@@ -63,12 +63,12 @@ namespace HXSL
 		}
 
 		auto token = stream.Current();
-		HXSLOperator op;
+		Operator op;
 		if (token.isCompoundAssignment(op))
 		{
 			stream.Advance();
-			auto assignmentStatement = std::make_unique<HXSLCompoundAssignmentExpression>(TextSpan(), parser.parentNode(), op, std::move(target), nullptr);
-			std::unique_ptr<HXSLExpression> expression;
+			auto assignmentStatement = std::make_unique<CompoundAssignmentExpression>(TextSpan(), parser.parentNode(), op, std::move(target), nullptr);
+			std::unique_ptr<Expression> expression;
 			IF_ERR_RET_FALSE(ParseExpression(parser, stream, assignmentStatement.get(), expression));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
 			assignmentStatement->SetExpression(std::move(expression));

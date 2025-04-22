@@ -4,7 +4,7 @@ project(TestApp VERSION 1.0)
 
 add_executable(TestApp main.cpp)
 
-target_link_libraries(TestApp HXSLCompilerStatic)
+target_link_libraries(TestApp CompilerStatic)
 
 
 set(SOURCE_FILES

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(HXSLCompiler VERSION 1.0)
+project(Compiler VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -27,29 +27,30 @@ endif()
 file(GLOB SOURCES
     src/lexical/lexer.cpp
     src/lexical/numbers.cpp
-    src/parser.cpp
-    src/analyzer.cpp
-    src/assembly.cpp
-    src/token_stream.cpp
-    src/stream.cpp
-    src/text_helper.cpp
-    src/allocator.cpp
-    src/symbol_table.cpp
-    src/symbol_resolver.cpp
-    src/symbol_collector.cpp
-    src/nodes.cpp
-    src/primitives.cpp
-    src/sub_parser_registry.cpp
-    src/sub_analyzer_registry.cpp
-    src/analyzers/declaration_analyzer.cpp
+    src/lexical/token_stream.cpp
+    src/parsers/parser.cpp
     src/parsers/parser_helper.cpp
     src/parsers/declaration_parser.cpp
     src/parsers/statement_parser.cpp
     src/parsers/expression_parser.cpp
+    src/analyzer.cpp
+    src/assembly.cpp
+    src/stream.cpp
+    src/text_helper.cpp
+    src/allocator.cpp
+    src/symbols/symbol_table.cpp
+    src/symbols/symbol_resolver.cpp
+    src/symbols/symbol_collector.cpp
+    src/ast.cpp
+    src/primitives.cpp
+    src/sub_parser_registry.cpp
+    src/sub_analyzer_registry.cpp
+    src/analyzers/declaration_analyzer.cpp
+
 )
 
-add_library(HXSLCompiler SHARED ${SOURCES})
-add_library(HXSLCompilerStatic STATIC ${SOURCES})
+add_library(Compiler SHARED ${SOURCES})
+add_library(CompilerStatic STATIC ${SOURCES})
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/test)
 add_subdirectory(${PROJECT_SOURCE_DIR}/tools)

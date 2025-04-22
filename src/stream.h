@@ -1,7 +1,6 @@
-#ifndef IL_STREAM_H
-#define IL_STREAM_H
+#ifndef STREAM_H
+#define STREAM_H
 
-#include "il.h"
 #include "text_span.h"
 #include "config.h"
 
@@ -69,23 +68,23 @@ namespace HXSL
 		SeekOrigin_End = 2
 	};
 
-	typedef size_t(*HXSLStreamReadFunc)(void* userdata, void* buffer, size_t size);
-	typedef size_t(*HXSLStreamWriteFunc)(void* userdata, const void* buffer, size_t size);
-	typedef int64_t(*HXSLStreamSeekFunc)(void* userdata, int64_t offset, SeekOrigin origin);
-	typedef int64_t(*HXSLStreamGetPositionFunc)(void* userdata);
-	typedef int64_t(*HXSLStreamGetLengthFunc)(void* userdata);
+	typedef size_t(*StreamReadFunc)(void* userdata, void* buffer, size_t size);
+	typedef size_t(*StreamWriteFunc)(void* userdata, const void* buffer, size_t size);
+	typedef int64_t(*StreamSeekFunc)(void* userdata, int64_t offset, SeekOrigin origin);
+	typedef int64_t(*StreamGetPositionFunc)(void* userdata);
+	typedef int64_t(*StreamGetLengthFunc)(void* userdata);
 
-	struct HXSLStream
+	struct Stream
 	{
 	private:
 		void* userdata;
-		HXSLStreamReadFunc readFunc;
-		HXSLStreamWriteFunc writeFunc;
-		HXSLStreamSeekFunc seekFunc;
-		HXSLStreamGetPositionFunc getPositionFunc;
-		HXSLStreamGetLengthFunc getLengthFunc;
+		StreamReadFunc readFunc;
+		StreamWriteFunc writeFunc;
+		StreamSeekFunc seekFunc;
+		StreamGetPositionFunc getPositionFunc;
+		StreamGetLengthFunc getLengthFunc;
 	public:
-		HXSLStream(void* userdata, const HXSLStreamReadFunc& readFunc, const HXSLStreamWriteFunc& writeFunc, const HXSLStreamSeekFunc& seekFunc, const HXSLStreamGetPositionFunc& getPositionFunc, const HXSLStreamGetLengthFunc& getLengthFunc)
+		Stream(void* userdata, const StreamReadFunc& readFunc, const StreamWriteFunc& writeFunc, const StreamSeekFunc& seekFunc, const StreamGetPositionFunc& getPositionFunc, const StreamGetLengthFunc& getLengthFunc)
 			: userdata(userdata), readFunc(readFunc), writeFunc(writeFunc), seekFunc(seekFunc), getPositionFunc(getPositionFunc), getLengthFunc(getLengthFunc)
 		{
 		}
@@ -188,10 +187,10 @@ namespace HXSL
 		}
 	};
 
-	struct HXSLFileStream : public HXSLStream
+	struct FileStream : public Stream
 	{
-		HXSLFileStream(FILE* file)
-			: HXSLStream(file, FileStreamRead, FileStreamWrite, FileStreamSeek, FileStreamPosition, FileStreamLength)
+		FileStream(FILE* file)
+			: Stream(file, FileStreamRead, FileStreamWrite, FileStreamSeek, FileStreamPosition, FileStreamLength)
 		{
 		}
 

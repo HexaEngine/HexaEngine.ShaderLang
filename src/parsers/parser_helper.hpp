@@ -6,19 +6,19 @@ namespace ParserHelper
 {
 	using namespace HXSL;
 
-	bool TryParseMemberAccessPath(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expressionOut);
+	bool TryParseMemberAccessPath(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expressionOut);
 
-	bool ParseFunctionCallInner(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::vector<std::unique_ptr<HXSLCallParameter>>& parameters);
+	bool ParseFunctionCallInner(Parser& parser, TokenStream& stream, ASTNode* parent, std::vector<std::unique_ptr<CallParameter>>& parameters);
 
-	bool ParseFunctionCallInner(const Token& start, LazySymbol& lazy, HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLFunctionCallExpression>& expression);
+	bool ParseFunctionCallInner(const Token& start, LazySymbol& lazy, Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<FunctionCallExpression>& expression);
 
-	bool TryParseFunctionCall(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLFunctionCallExpression>& expression);
+	bool TryParseFunctionCall(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<FunctionCallExpression>& expression);
 
-	bool TryParseSymbol(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut);
+	bool TryParseSymbol(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut);
 
-	bool TryParseLiteralExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLLiteralExpression>& expressionOut);
+	bool TryParseLiteralExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<LiteralExpression>& expressionOut);
 
-	bool TryParseInitializationExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLInitializationExpression>& expressionOut);
+	bool TryParseInitializationExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<InitializationExpression>& expressionOut);
 }
 
 #endif

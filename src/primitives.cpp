@@ -1,10 +1,10 @@
 #include "primitives.hpp"
-#include "nodes.hpp"
+#include "ast.hpp"
 namespace HXSL
 {
-	std::once_flag HXSLPrimitiveManager::initFlag;
+	std::once_flag PrimitiveManager::initFlag;
 
-	HXSLPrimitive* HXSLPrimitiveManager::GetPrimitiveType(const TextSpan& name) const
+	Primitive* PrimitiveManager::GetPrimitiveType(const TextSpan& name) const
 	{
 		auto it = PrimitiveTypesCache.find(name);
 		if (it != PrimitiveTypesCache.end())
@@ -14,55 +14,55 @@ namespace HXSL
 		return nullptr;
 	}
 
-	void HXSLPrimitiveManager::Populate()
+	void PrimitiveManager::Populate()
 	{
-		AddPrim(HXSLPrimitiveKind_Void, HXSLPrimitiveClass_Scalar, 1, 1);
+		AddPrim(PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
 
-		for (int i = HXSLPrimitiveKind_Bool; i <= HXSLPrimitiveKind_Min16Uint; i++)
+		for (int i = PrimitiveKind_Bool; i <= PrimitiveKind_Min16Uint; i++)
 		{
-			auto kind = static_cast<HXSLPrimitiveKind>(i);
+			auto kind = static_cast<PrimitiveKind>(i);
 
-			AddPrim(kind, HXSLPrimitiveClass_Scalar, 1, 1);
+			AddPrim(kind, PrimitiveClass_Scalar, 1, 1);
 
 			for (uint n = 2; n <= 4; ++n)
 			{
-				AddPrim(kind, HXSLPrimitiveClass_Vector, n, 1);
+				AddPrim(kind, PrimitiveClass_Vector, n, 1);
 			}
 
 			for (uint r = 1; r <= 4; ++r)
 			{
 				for (uint c = 1; c <= 4; ++c)
 				{
-					AddPrim(kind, HXSLPrimitiveClass_Matrix, r, c);
+					AddPrim(kind, PrimitiveClass_Matrix, r, c);
 				}
 			}
 		}
 
-		HXSLClass* _class;
+		Class* _class;
 		size_t index;
 		AddPrimClass(TextSpan("Texture2D"), &_class, &index);
 
-		auto func = std::make_unique<HXSLFunction>();
+		auto func = std::make_unique<Function>();
 		func->SetName(TextSpan(PrimitiveSymbolTable->GetStringPool().add("Sample")));
 
-		auto ret = std::make_unique<HXSLSymbolRef>(TextSpan(PrimitiveSymbolTable->GetStringPool().add("float4")), HXSLSymbolRefType_AnyType);
+		auto ret = std::make_unique<SymbolRef>(TextSpan(PrimitiveSymbolTable->GetStringPool().add("float4")), SymbolRefType_AnyType);
 		ResolveInternal(ret.get());
 		func->SetReturnSymbol(std::move(ret));
 
-		auto meta = std::make_shared<SymbolMetadata>(HXSLSymbolType_Function, HXSLSymbolScopeType_Class, HXSLAccessModifier_Public, 0, func.get());
+		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Function, SymbolScopeType_Class, AccessModifier_Public, 0, func.get());
 		PrimitiveSymbolTable->Insert(TextSpan(func->GetName()), meta, index);
 		_class->AddFunction(std::move(func));
 
 		AddPrimClass(TextSpan("SamplerState"));
 	}
 
-	void HXSLPrimitiveManager::AddPrimClass(TextSpan name, HXSLClass** outClass, size_t* indexOut)
+	void PrimitiveManager::AddPrimClass(TextSpan name, Class** outClass, size_t* indexOut)
 	{
-		auto _class = std::make_unique<HXSLClass>();
-		_class->SetAccessModifiers(HXSLAccessModifier_Public);
+		auto _class = std::make_unique<Class>();
+		_class->SetAccessModifiers(AccessModifier_Public);
 		_class->SetName(PrimitiveSymbolTable->GetStringPool().add(name.toString()));
 
-		auto meta = std::make_shared<SymbolMetadata>(HXSLSymbolType_Class, HXSLSymbolScopeType_Global, HXSLAccessModifier_Public, 0, _class.get());
+		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, _class.get());
 		auto index = PrimitiveSymbolTable->Insert(TextSpan(_class->GetName()), meta);
 		if (outClass)
 		{
@@ -76,74 +76,74 @@ namespace HXSL
 		compilation->AddClass(std::move(_class));
 	}
 
-	void HXSLPrimitiveManager::AddPrim(HXSLPrimitiveKind kind, HXSLPrimitiveClass primitiveClass, uint rows, uint columns)
+	void PrimitiveManager::AddPrim(PrimitiveKind kind, PrimitiveClass primitiveClass, uint rows, uint columns)
 	{
 		std::ostringstream name;
 
 		switch (kind)
 		{
-		case HXSLPrimitiveKind_Void:
+		case PrimitiveKind_Void:
 			name << "void";
 			break;
-		case HXSLPrimitiveKind_Bool:
+		case PrimitiveKind_Bool:
 			name << "bool";
 			break;
-		case HXSLPrimitiveKind_Int:
+		case PrimitiveKind_Int:
 			name << "int";
 			break;
-		case HXSLPrimitiveKind_Float:
+		case PrimitiveKind_Float:
 			name << "float";
 			break;
-		case HXSLPrimitiveKind_Uint:
+		case PrimitiveKind_Uint:
 			name << "uint";
 			break;
-		case HXSLPrimitiveKind_Double:
+		case PrimitiveKind_Double:
 			name << "double";
 			break;
-		case HXSLPrimitiveKind_Min8Float:
+		case PrimitiveKind_Min8Float:
 			name << "min8float";
 			break;
-		case HXSLPrimitiveKind_Min10Float:
+		case PrimitiveKind_Min10Float:
 			name << "min10float";
 			break;
-		case HXSLPrimitiveKind_Min16Float:
+		case PrimitiveKind_Min16Float:
 			name << "min16float";
 			break;
-		case HXSLPrimitiveKind_Min12Int:
+		case PrimitiveKind_Min12Int:
 			name << "min12int";
 			break;
-		case HXSLPrimitiveKind_Min16Int:
+		case PrimitiveKind_Min16Int:
 			name << "min16int";
 			break;
-		case HXSLPrimitiveKind_Min16Uint:
+		case PrimitiveKind_Min16Uint:
 			name << "min16uint";
 			break;
 		}
 
 		switch (primitiveClass)
 		{
-		case HXSLPrimitiveClass_Scalar:
+		case PrimitiveClass_Scalar:
 			break;
 
-		case HXSLPrimitiveClass_Vector:
+		case PrimitiveClass_Vector:
 			name << rows;
 			break;
 
-		case HXSLPrimitiveClass_Matrix:
+		case PrimitiveClass_Matrix:
 			name << rows << "x" << columns;
 			break;
 		}
 
 		std::string nameStr = name.str();
 
-		auto type = std::make_unique<HXSLPrimitive>(kind, primitiveClass, nameStr, rows, columns);
-		auto meta = std::make_shared<SymbolMetadata>(HXSLSymbolType_Primitive, HXSLSymbolScopeType_Global, HXSLAccessModifier_Public, 0, type.get());
+		auto type = std::make_unique<Primitive>(kind, primitiveClass, nameStr, rows, columns);
+		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, type.get());
 		auto index = PrimitiveSymbolTable->Insert(TextSpan(type->GetName()), meta);
 
 		PrimitiveTypesCache[type->GetName()] = std::move(type);
 	}
 
-	void HXSLPrimitiveManager::ResolveInternal(HXSLSymbolRef* ref)
+	void PrimitiveManager::ResolveInternal(SymbolRef* ref)
 	{
 		auto index = PrimitiveSymbolTable->FindNodeIndexPart(ref->GetSpan());
 		if (index == -1)

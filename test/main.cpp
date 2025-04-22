@@ -1,8 +1,8 @@
 #include <iostream>
 #include "lexical/token.h"
 #include "lexical/lexer.h"
-#include "token_stream.h"
-#include "parser.h"
+#include "lexical/token_stream.h"
+#include "parsers/parser.h"
 #include "parsers/expression_parser.hpp"
 #include "parsers/declaration_parser.hpp"
 #include "parsers/statement_parser.hpp"
@@ -34,20 +34,20 @@ void Compile(const std::vector<std::string>& files, const std::string& output, c
 		std::stringstream buffer;
 		buffer << fs.rdbuf();
 
-		std::unique_ptr<std::string> content = std::make_unique<std::string>(move(buffer.str()));
-		sources.push_back(move(content));
+		std::unique_ptr<std::string> content = std::make_unique<std::string>(std::move(buffer.str()));
+		sources.push_back(std::move(content));
 		auto& c = sources.back();
 
 		LexerState state = LexerState(compilation.get(), c->data(), c->length());
 
-		TokenStream stream = TokenStream(state, LexerConfigHXSL::Instance());
+		TokenStream stream = TokenStream(state, HXSLLexerConfig::Instance());
 
-		HXSLParser parser = HXSLParser(stream, compilation.get());
+		Parser parser = Parser(stream, compilation.get());
 
 		parser.Parse();
 	}
 
-	HXSLAnalyzer analyzer = HXSLAnalyzer(compilation.get(), references);
+	Analyzer analyzer = Analyzer(compilation.get(), references);
 
 	analyzer.Analyze();
 
@@ -58,24 +58,24 @@ void Compile(const std::vector<std::string>& files, const std::string& output, c
 
 int main()
 {
-	HXSLSubParserRegistry::Register<HXSLStructParser>();
-	HXSLSubParserRegistry::Register<HXSLDeclarationParser>();
-	HXSLStatementParserRegistry::Register<HXSLMiscKeywordStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLSwitchStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLForStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLWhileStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLIfStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLElseStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLReturnStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLDeclarationStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLAssignmentStatementParser>();
-	HXSLStatementParserRegistry::Register<HXSLFunctionCallStatementParser>();
-	HXSLExpressionParserRegistry::Register<HXSLLiteralExpressionParser>();
-	HXSLExpressionParserRegistry::Register<HXSLMemberAccessExpressionParser>();
-	HXSLExpressionParserRegistry::Register<HXSLSymbolExpressionParser>();
-	HXSLExpressionParserRegistry::Register<HXSLAssignmentExpressionParser>();
+	SubParserRegistry::Register<StructParser>();
+	SubParserRegistry::Register<DeclarationParser>();
+	StatementParserRegistry::Register<MiscKeywordStatementParser>();
+	StatementParserRegistry::Register<SwitchStatementParser>();
+	StatementParserRegistry::Register<ForStatementParser>();
+	StatementParserRegistry::Register<WhileStatementParser>();
+	StatementParserRegistry::Register<IfStatementParser>();
+	StatementParserRegistry::Register<ElseStatementParser>();
+	StatementParserRegistry::Register<ReturnStatementParser>();
+	StatementParserRegistry::Register<DeclarationStatementParser>();
+	StatementParserRegistry::Register<AssignmentStatementParser>();
+	StatementParserRegistry::Register<FunctionCallStatementParser>();
+	ExpressionParserRegistry::Register<LiteralExpressionParser>();
+	ExpressionParserRegistry::Register<MemberAccessExpressionParser>();
+	ExpressionParserRegistry::Register<SymbolExpressionParser>();
+	ExpressionParserRegistry::Register<AssignmentExpressionParser>();
 
-	HXSLSubAnalyzerRegistry::Register<HXSLDeclarationAnalyzer>();
+	SubAnalyzerRegistry::Register<DeclarationAnalyzer>();
 
 	AssemblyCollection collection;
 	//Compile({ "library.txt" }, "library.module", collection);

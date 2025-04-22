@@ -4,41 +4,41 @@
 #include "keyword.h"
 #include "operator.h"
 
-namespace HXSL
+namespace HXSL 
 {
-	enum HXSLAccessModifier
+	enum AccessModifier
 	{
-		HXSLAccessModifier_Private,
-		HXSLAccessModifier_Protected,
-		HXSLAccessModifier_ProtectedInternal,
-		HXSLAccessModifier_Internal,
-		HXSLAccessModifier_Public,
+		AccessModifier_Private,
+		AccessModifier_Protected,
+		AccessModifier_ProtectedInternal,
+		AccessModifier_Internal,
+		AccessModifier_Public,
 	};
 
-	enum HXSLParameterFlags
+	enum ParameterFlags
 	{
-		HXSLParameterFlags_None = 0,
-		HXSLParameterFlags_Out = 1,
-		HXSLParameterFlags_In = 2,
-		HXSLParameterFlags_InOut = HXSLParameterFlags_In | HXSLParameterFlags_Out,
-		HXSLParameterFlags_Uniform = 4
+		ParameterFlags_None = 0,
+		ParameterFlags_Out = 1,
+		ParameterFlags_In = 2,
+		ParameterFlags_InOut = ParameterFlags_In | ParameterFlags_Out,
+		ParameterFlags_Uniform = 4
 	};
 
-	enum HXSLFunctionFlags
+	enum FunctionFlags
 	{
-		HXSLFunctionFlags_None = 0,
-		HXSLFunctionFlags_Inline = 1,
+		FunctionFlags_None = 0,
+		FunctionFlags_Inline = 1,
 	};
 
-	enum HXSLFieldFlags
+	enum FieldFlags
 	{
-		HXSLFieldFlags_None = 0,
-		HXSLFieldFlags_Static = 1,
-		HXSLFieldFlags_Nointerpolation = 2,
-		HXSLFieldFlags_Shared = 4,
-		HXSLFieldFlags_GroupShared = 8,
-		HXSLFieldFlags_Uniform = 16,
-		HXSLFieldFlags_Volatile = 32,
+		FieldFlags_None = 0,
+		FieldFlags_Static = 1,
+		FieldFlags_Nointerpolation = 2,
+		FieldFlags_Shared = 4,
+		FieldFlags_GroupShared = 8,
+		FieldFlags_Uniform = 16,
+		FieldFlags_Volatile = 32,
 	};
 }
 #endif

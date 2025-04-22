@@ -7,7 +7,7 @@
 namespace ParserHelper
 {
 	template <typename T>
-	static void ChainExpression(std::unique_ptr<HXSLExpression>& root, IHXSLChainExpression*& chainExpr, std::unique_ptr<T> newExpr)
+	static void ChainExpression(std::unique_ptr<Expression>& root, IChainExpression*& chainExpr, std::unique_ptr<T> newExpr)
 	{
 		auto next = newExpr.get();
 		if (chainExpr)
@@ -22,7 +22,7 @@ namespace ParserHelper
 	}
 
 	template <typename T>
-	static void ChainExpressionEnd(std::unique_ptr<HXSLExpression>& root, IHXSLChainExpression* chainExpr, std::unique_ptr<T> newExpr)
+	static void ChainExpressionEnd(std::unique_ptr<Expression>& root, IChainExpression* chainExpr, std::unique_ptr<T> newExpr)
 	{
 		if (chainExpr)
 		{
@@ -34,39 +34,39 @@ namespace ParserHelper
 		}
 	}
 
-	bool TryParseMemberAccessPath(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expressionOut)
+	bool TryParseMemberAccessPath(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expressionOut)
 	{
-		std::unique_ptr<HXSLExpression> root = nullptr;
-		IHXSLChainExpression* chainExpr = nullptr;
+		std::unique_ptr<Expression> root = nullptr;
+		IChainExpression* chainExpr = nullptr;
 
 		while (true)
 		{
 			auto start = stream.Current();
 
 			LazySymbol baseSymbol;
-			IF_ERR_RET_FALSE(parser.TryParseSymbol(HXSLSymbolRefType_Variable, baseSymbol));
+			IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_Variable, baseSymbol));
 
-			if (stream.TryGetOperator(HXSLOperator_MemberAccess))
+			if (stream.TryGetOperator(Operator_MemberAccess))
 			{
-				auto memberAccessExpression = std::make_unique<HXSLMemberAccessExpression>(start.Span, parent, std::move(baseSymbol.make(root ? HXSLSymbolRefType_Member : HXSLSymbolRefType_Variable)), nullptr);
+				auto memberAccessExpression = std::make_unique<MemberAccessExpression>(start.Span, parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Variable)), nullptr);
 				memberAccessExpression->SetSpan(stream.MakeFromLast(start));
 				ChainExpression(root, chainExpr, std::move(memberAccessExpression));
 			}
 			else if (stream.TryGetDelimiter('['))
 			{
-				auto indexerAccessExpression = std::make_unique<HXSLIndexerAccessExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? HXSLSymbolRefType_Member : HXSLSymbolRefType_Variable)));
+				auto indexerAccessExpression = std::make_unique<IndexerAccessExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Variable)));
 				do
 				{
-					std::unique_ptr<HXSLExpression> indexExpression;
+					std::unique_ptr<Expression> indexExpression;
 					IF_ERR_RET_FALSE(ParseExpression(parser, stream, indexerAccessExpression.get(), indexExpression));
 					IF_ERR_RET_FALSE(stream.ExpectDelimiter(']'));
 					indexerAccessExpression->AddIndex(std::move(indexExpression));
 				} while (stream.TryGetDelimiter('['));
 				indexerAccessExpression->SetSpan(stream.MakeFromLast(start));
 
-				if (stream.TryGetOperator(HXSLOperator_MemberAccess))
+				if (stream.TryGetOperator(Operator_MemberAccess))
 				{
-					auto memberAccessExpression = std::make_unique<HXSLBinaryExpression>(TextSpan(), parent, HXSLOperator_MemberAccess, nullptr, nullptr);
+					auto memberAccessExpression = std::make_unique<BinaryExpression>(TextSpan(), parent, Operator_MemberAccess, nullptr, nullptr);
 					memberAccessExpression->SetLeft(std::move(indexerAccessExpression));
 					memberAccessExpression->SetSpan(stream.MakeFromLast(start));
 					ChainExpression(root, chainExpr, std::move(memberAccessExpression));
@@ -79,8 +79,8 @@ namespace ParserHelper
 			}
 			else if (stream.TryGetDelimiter('('))
 			{
-				auto functionExpression = std::make_unique<HXSLFunctionCallExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? HXSLSymbolRefType_Function : HXSLSymbolRefType_FunctionOrConstructor)));
-				std::vector<std::unique_ptr<HXSLCallParameter>> parameters;
+				auto functionExpression = std::make_unique<FunctionCallExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? SymbolRefType_Function : SymbolRefType_FunctionOrConstructor)));
+				std::vector<std::unique_ptr<CallParameter>> parameters;
 				IF_ERR_RET_FALSE(ParseFunctionCallInner(parser, stream, functionExpression.get(), parameters));
 				functionExpression->SetParameters(std::move(parameters));
 				functionExpression->SetSpan(stream.MakeFromLast(start));
@@ -89,7 +89,7 @@ namespace ParserHelper
 			}
 			else
 			{
-				auto symbolExpression = std::make_unique<HXSLSymbolRefExpression>(start.Span, parent, std::move(baseSymbol.make(root ? HXSLSymbolRefType_Member : HXSLSymbolRefType_Variable)));
+				auto symbolExpression = std::make_unique<SymbolRefExpression>(start.Span, parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Variable)));
 				ChainExpressionEnd(root, chainExpr, std::move(symbolExpression));
 				break;
 			}
@@ -106,10 +106,10 @@ namespace ParserHelper
 		return true;
 	}
 
-	static bool ParseFunctionCallParameter(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLCallParameter>& parameter)
+	static bool ParseFunctionCallParameter(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<CallParameter>& parameter)
 	{
-		auto callParameter = std::make_unique<HXSLCallParameter>(TextSpan(), parent, nullptr);
-		std::unique_ptr<HXSLExpression> expression;
+		auto callParameter = std::make_unique<CallParameter>(TextSpan(), parent, nullptr);
+		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(ParseExpression(parser, stream, callParameter.get(), expression));
 		callParameter->SetSpan(expression->GetSpan());
 		callParameter->SetExpression(std::move(expression));
@@ -117,7 +117,7 @@ namespace ParserHelper
 		return true;
 	}
 
-	bool ParseFunctionCallInner(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::vector<std::unique_ptr<HXSLCallParameter>>& parameters)
+	bool ParseFunctionCallInner(Parser& parser, TokenStream& stream, ASTNode* parent, std::vector<std::unique_ptr<CallParameter>>& parameters)
 	{
 		bool firstParam = true;
 		while (!stream.TryGetDelimiter(')'))
@@ -127,7 +127,7 @@ namespace ParserHelper
 				IF_ERR_RET_FALSE(stream.ExpectDelimiter(','));
 			}
 			firstParam = false;
-			std::unique_ptr<HXSLCallParameter> parameter;
+			std::unique_ptr<CallParameter> parameter;
 			IF_ERR_RET_FALSE(ParseFunctionCallParameter(parser, stream, parent, parameter));
 			parameters.push_back(std::move(parameter));
 		}
@@ -135,79 +135,79 @@ namespace ParserHelper
 		return true;
 	}
 
-	bool ParseFunctionCallInner(const Token& start, LazySymbol& lazy, HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLFunctionCallExpression>& expression)
+	bool ParseFunctionCallInner(const Token& start, LazySymbol& lazy, Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<FunctionCallExpression>& expression)
 	{
-		std::vector<std::unique_ptr<HXSLCallParameter>> parameters;
+		std::vector<std::unique_ptr<CallParameter>> parameters;
 		IF_ERR_RET_FALSE(ParseFunctionCallInner(parser, stream, parent, parameters));
 
 		auto span = start.Span.merge(stream.LastToken().Span);
 
-		std::unique_ptr<HXSLSymbolRef> symbol;
+		std::unique_ptr<SymbolRef> symbol;
 		if (!symbol.get())
 		{
 			symbol = lazy.make();
 		}
 
-		expression = std::make_unique<HXSLFunctionCallExpression>(span, parent, std::move(symbol), std::move(parameters));
+		expression = std::make_unique<FunctionCallExpression>(span, parent, std::move(symbol), std::move(parameters));
 		return true;
 	}
 
-	bool TryParseFunctionCall(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLFunctionCallExpression>& expression)
+	bool TryParseFunctionCall(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<FunctionCallExpression>& expression)
 	{
 		auto start = stream.Current();
-		std::unique_ptr<HXSLSymbolRef> symbol;
+		std::unique_ptr<SymbolRef> symbol;
 		LazySymbol lazy;
 
-		IF_ERR_RET_FALSE(parser.TryParseSymbol(HXSLSymbolRefType_FunctionOrConstructor, lazy));
+		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_FunctionOrConstructor, lazy));
 		IF_ERR_RET_FALSE(stream.TryGetDelimiter('('));
 		IF_ERR_RET_FALSE(ParseFunctionCallInner(start, lazy, parser, stream, parent, expression));
 
 		return true;
 	}
 
-	bool TryParseSymbol(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut)
+	bool TryParseSymbol(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 	{
 		auto current = stream.Current();
 		LazySymbol symbol;
-		if (parser.TryParseSymbol(HXSLSymbolRefType_Any, symbol))
+		if (parser.TryParseSymbol(SymbolRefType_Any, symbol))
 		{
-			expressionOut = std::make_unique<HXSLSymbolRefExpression>(current.Span, static_cast<ASTNode*>(nullptr), std::move(symbol.make()));
+			expressionOut = std::make_unique<SymbolRefExpression>(current.Span, static_cast<ASTNode*>(nullptr), std::move(symbol.make()));
 			return true;
 		}
 		return false;
 	}
 
-	bool TryParseLiteralExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLLiteralExpression>& expressionOut)
+	bool TryParseLiteralExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<LiteralExpression>& expressionOut)
 	{
 		auto current = stream.Current();
 
 		TextSpan span;
-		HXSLNumber number;
+		Number number;
 		if (stream.TryGetLiteral(span))
 		{
-			expressionOut = std::make_unique<HXSLLiteralExpression>(current.Span, parent, current);
+			expressionOut = std::make_unique<LiteralExpression>(current.Span, parent, current);
 			return true;
 		}
 		else if (stream.TryGetNumber(number))
 		{
-			expressionOut = std::make_unique<HXSLLiteralExpression>(current.Span, parent, current);
+			expressionOut = std::make_unique<LiteralExpression>(current.Span, parent, current);
 			return true;
 		}
-		else if (stream.TryGetKeywords({ HXSLKeyword_True, HXSLKeyword_False, HXSLKeyword_Null }))
+		else if (stream.TryGetKeywords({ Keyword_True, Keyword_False, Keyword_Null }))
 		{
-			expressionOut = std::make_unique<HXSLLiteralExpression>(current.Span, parent, current);
+			expressionOut = std::make_unique<LiteralExpression>(current.Span, parent, current);
 			return true;
 		}
 
 		return false;
 	}
 
-	bool TryParseInitializationExpression(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLInitializationExpression>& expressionOut)
+	bool TryParseInitializationExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<InitializationExpression>& expressionOut)
 	{
-		auto root = std::make_unique<HXSLInitializationExpression>(stream.Current().Span, parent);
+		auto root = std::make_unique<InitializationExpression>(stream.Current().Span, parent);
 		IF_ERR_RET_FALSE(parser.EnterScope(TextSpan(), ScopeType_Initialization, root.get()));
-		std::stack<HXSLInitializationExpression*> stack;
-		HXSLInitializationExpression* current = root.get();
+		std::stack<InitializationExpression*> stack;
+		InitializationExpression* current = root.get();
 
 		while (true)
 		{
@@ -223,7 +223,7 @@ namespace ParserHelper
 				auto token = stream.Current();
 				if (token.isDelimiterOf('{'))
 				{
-					auto node = std::make_unique<HXSLInitializationExpression>(token.Span, current);
+					auto node = std::make_unique<InitializationExpression>(token.Span, current);
 					IF_ERR_RET_FALSE(parser.EnterScope(TextSpan(), ScopeType_Initialization, node.get()));
 					stack.push(current);
 					auto next = node.get();
@@ -233,7 +233,7 @@ namespace ParserHelper
 				}
 				else
 				{
-					std::unique_ptr<HXSLExpression> expression;
+					std::unique_ptr<Expression> expression;
 					IF_ERR_RET_FALSE(ParseExpression(parser, stream, current, expression));
 					current->AddParameter(std::move(expression));
 				}

@@ -4,7 +4,7 @@ namespace HXSL
 {
 	void TokenStream::PushState()
 	{
-		stack.push(StreamState);
+		stack.push(streamState);
 		currentStack++;
 	}
 
@@ -13,15 +13,15 @@ namespace HXSL
 		currentStack--;
 		if (restore)
 		{
-			StreamState = stack.top();
+			streamState = stack.top();
 		}
 		else if (currentStack == 0)
 		{
-			auto& state = StreamState;
-			auto& cache = Cache;
-			if (state.TokenPosition >= cache.Position())
+			auto& state = streamState;
+			auto& cache = this->cache;
+			if (state.tokenPosition >= cache.Position())
 			{
-				cache.Flush(state.TokenPosition);
+				cache.Flush(state.tokenPosition);
 			}
 		}
 		stack.pop();
@@ -33,21 +33,21 @@ namespace HXSL
 		{
 			if (IsEndOfTokens())
 			{
-				StreamState.State.LogError("Unexpected end of stream.");
+				streamState.state.LogError("Unexpected end of stream.");
 			}
 		}
 	}
 
 	bool TokenStream::TryAdvance()
 	{
-		auto& state = StreamState;
-		auto& lexerState = state.State;
-		auto& currentToken = state.CurrentToken;
-		auto& cache = Cache;
+		auto& state = streamState;
+		auto& lexerState = state.state;
+		auto& currentToken = state.currentToken;
+		auto& cache = this->cache;
 
-		state.LastToken = currentToken;
+		state.lastToken = currentToken;
 
-		if (cache.CanAccess(state.TokenPosition))
+		if (cache.CanAccess(state.tokenPosition))
 		{
 			if (currentStack == 0)
 			{
@@ -55,10 +55,10 @@ namespace HXSL
 			}
 			else
 			{
-				currentToken = cache.PeekToken(state.TokenPosition);
+				currentToken = cache.PeekToken(state.tokenPosition);
 			}
 
-			state.TokenPosition++;
+			state.tokenPosition++;
 			return true;
 		}
 
@@ -70,7 +70,7 @@ namespace HXSL
 				return false;
 			}
 
-			currentToken = Lexer::TokenizeStep(lexerState, Config);
+			currentToken = TokenizeStep(lexerState, config);
 			lexerState.Advance();
 		} while (currentToken.Type == TokenType_Comment);
 
@@ -83,7 +83,7 @@ namespace HXSL
 			cache.AddToken(currentToken);
 		}
 
-		state.TokenPosition++;
+		state.tokenPosition++;
 		return true;
 	}
 }

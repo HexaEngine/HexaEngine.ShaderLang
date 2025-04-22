@@ -6,7 +6,7 @@
 #include "numbers.h"
 #include "lang/language.h"
 
-namespace HXSL
+namespace HXSL 
 {
 	enum TokenType
 	{
@@ -47,16 +47,16 @@ namespace HXSL
 		union
 		{
 			int Value;
-			HXSLNumber Numeric;
+			Number Numeric;
 		};
 
-		Token() : Span(TextSpan()), Type(TokenType_Unknown), Numeric(HXSLNumber()) {}
+		Token() : Span(TextSpan()), Type(TokenType_Unknown), Numeric(Number()) {}
 
-		Token(TextSpan span, TokenType type) : Span(span), Type(type), Numeric(HXSLNumber()) {}
+		Token(TextSpan span, TokenType type) : Span(span), Type(type), Numeric(Number()) {}
 
 		Token(TextSpan span, TokenType type, int value) : Span(span), Type(type), Value(value) {}
 
-		Token(TextSpan span, TokenType type, HXSLNumber number) : Span(span), Type(type), Numeric(number) {}
+		Token(TextSpan span, TokenType type, Number number) : Span(span), Type(type), Numeric(number) {}
 
 		bool isKeywordOf(std::initializer_list<int> keywords) const
 		{
@@ -89,7 +89,7 @@ namespace HXSL
 
 		bool isOperator() const noexcept { return Type == TokenType_Operator; }
 
-		bool isOperatorOf(HXSLOperator op) const noexcept { return Type == TokenType_Operator && op == static_cast<HXSLOperator>(Value); }
+		bool isOperatorOf(Operator op) const noexcept { return Type == TokenType_Operator && op == static_cast<Operator>(Value); }
 
 		bool isIdentifier() const noexcept { return Type == TokenType_Identifier; }
 
@@ -97,27 +97,27 @@ namespace HXSL
 
 		bool isNumeric() const noexcept { return Type == TokenType_Numeric; }
 
-		bool isOperator(HXSLOperator& op) const noexcept
+		bool isOperator(Operator& op) const noexcept
 		{
-			op = static_cast<HXSLOperator>(Value);
+			op = static_cast<Operator>(Value);
 			return Type == TokenType_Operator;
 		}
 
-		bool isUnaryOperator(HXSLOperator& op) const noexcept
+		bool isUnaryOperator(Operator& op) const noexcept
 		{
-			op = static_cast<HXSLOperator>(Value);
+			op = static_cast<Operator>(Value);
 			return Type == TokenType_Operator && Operators::isUnaryOperator(op);
 		}
 
-		bool isCompoundAssignment(HXSLOperator& op) const noexcept
+		bool isCompoundAssignment(Operator& op) const noexcept
 		{
-			op = static_cast<HXSLOperator>(Value);
+			op = static_cast<Operator>(Value);
 			return Type == TokenType_Operator && Operators::isCompoundAssignment(op);
 		}
 
 		bool isCompoundAssignment() const noexcept
 		{
-			return Type == TokenType_Operator && Operators::isCompoundAssignment(static_cast<HXSLOperator>(Value));
+			return Type == TokenType_Operator && Operators::isCompoundAssignment(static_cast<Operator>(Value));
 		}
 	};
 }

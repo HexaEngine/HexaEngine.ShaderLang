@@ -1,5 +1,5 @@
-#ifndef SPAN_H
-#define SPAN_H
+#ifndef TEXT_SPAN_H
+#define TEXT_SPAN_H
 
 #include "config.h"
 #include <stdexcept>

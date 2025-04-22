@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	inline bool HXSLSymbolCollector::Push(HXSLSymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, HXSLSymbolScopeType type)
+	inline bool SymbolCollector::Push(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		auto& span = def->GetName();
 		stack.push(current);
@@ -19,7 +19,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool HXSLSymbolCollector::PushScope(const ASTNode* parent, TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, HXSLSymbolScopeType type)
+	bool SymbolCollector::PushScope(const ASTNode* parent, TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		stack.push(current);
 		size_t newIndex = targetAssembly->AddSymbolScope(span, metadata, current.NodeIndex);
@@ -34,7 +34,7 @@ namespace HXSL
 		return true;
 	}
 
-	inline bool HXSLSymbolCollector::PushLeaf(HXSLSymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata)
+	inline bool SymbolCollector::PushLeaf(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata)
 	{
 		auto& span = def->GetName();
 		size_t newIndex = targetAssembly->AddSymbol(def, metadata, current.NodeIndex);
@@ -46,84 +46,84 @@ namespace HXSL
 		return true;
 	}
 
-	void HXSLSymbolCollector::VisitClose(ASTNode* node, size_t depth)
+	void SymbolCollector::VisitClose(ASTNode* node, size_t depth)
 	{
 		if (current.Parent != node) return;
 		current = stack.top();
 		stack.pop();
 	}
 
-	HXSLTraversalBehavior HXSLSymbolCollector::Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context)
+	TraversalBehavior SymbolCollector::Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context)
 	{
 		auto& type = node->GetType();
 		switch (type)
 		{
-		case HXSLNodeType_Namespace:
+		case NodeType_Namespace:
 		{
-			HXSLNamespace* s = dynamic_cast<HXSLNamespace*>(node);
-			auto metadata = std::make_shared<SymbolMetadata>(HXSLSymbolType_Namespace, current.Type, HXSLAccessModifier_Public, 0, s);
-			Push(s, metadata, HXSLSymbolScopeType_Namespace);
+			Namespace* s = dynamic_cast<Namespace*>(node);
+			auto metadata = std::make_shared<SymbolMetadata>(SymbolType_Namespace, current.Type, AccessModifier_Public, 0, s);
+			Push(s, metadata, SymbolScopeType_Namespace);
 		}
 		break;
 
-		case HXSLNodeType_Struct:
+		case NodeType_Struct:
 		{
-			HXSLStruct* s = dynamic_cast<HXSLStruct*>(node);
+			Struct* s = dynamic_cast<Struct*>(node);
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
-			Push(s, metadata, HXSLSymbolScopeType_Struct);
+			Push(s, metadata, SymbolScopeType_Struct);
 		}
 		break;
 
-		case HXSLNodeType_Field:
+		case NodeType_Field:
 		{
-			HXSLField* s = dynamic_cast<HXSLField*>(node);
+			Field* s = dynamic_cast<Field*>(node);
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
 			PushLeaf(s, metadata);
 		}
 		break;
 
-		case HXSLNodeType_Function:
+		case NodeType_Function:
 		{
-			HXSLFunction* s = dynamic_cast<HXSLFunction*>(node);
+			Function* s = dynamic_cast<Function*>(node);
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
-			Push(s, metadata, HXSLSymbolScopeType_Function);
+			Push(s, metadata, SymbolScopeType_Function);
 		}
 		break;
 
-		case HXSLNodeType_Parameter:
+		case NodeType_Parameter:
 		{
-			HXSLParameter* s = dynamic_cast<HXSLParameter*>(node);
+			Parameter* s = dynamic_cast<Parameter*>(node);
 			auto symType = s->GetSymbolType();
-			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, HXSLAccessModifier_Private, 0, s);
+			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, AccessModifier_Private, 0, s);
 			PushLeaf(s, metadata);
 		}
 		break;
 
-		case HXSLNodeType_BlockStatement:
+		case NodeType_BlockStatement:
 		{
-			HXSLBlockStatement* s = dynamic_cast<HXSLBlockStatement*>(node);
-			auto metadata = std::make_shared<SymbolMetadata>(HXSLSymbolType_Scope, current.Type, HXSLAccessModifier_Private, 0);
+			BlockStatement* s = dynamic_cast<BlockStatement*>(node);
+			auto metadata = std::make_shared<SymbolMetadata>(SymbolType_Scope, current.Type, AccessModifier_Private, 0);
 
 			std::string temp = MakeScopeId(current.ScopeCounter++);
 
-			PushScope(node, TextSpan(temp), metadata, HXSLSymbolScopeType_Block);
+			PushScope(node, TextSpan(temp), metadata, SymbolScopeType_Block);
 		}
 		break;
 
-		case HXSLNodeType_DeclarationStatement:
+		case NodeType_DeclarationStatement:
 		{
-			HXSLDeclarationStatement* s = dynamic_cast<HXSLDeclarationStatement*>(node);
+			DeclarationStatement* s = dynamic_cast<DeclarationStatement*>(node);
 			auto& span = s->GetName();
 			auto symType = s->GetSymbolType();
-			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, HXSLAccessModifier_Private, 0, s);
+			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, AccessModifier_Private, 0, s);
 			PushLeaf(s, metadata);
 		}
 		break;
 		}
 
-		return HXSLTraversalBehavior_Keep;
+		return TraversalBehavior_Keep;
 	}
 }

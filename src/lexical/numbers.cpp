@@ -1,6 +1,6 @@
 #include "numbers.h"
 
-namespace HXSL
+namespace HXSL 
 {
 	static const std::unordered_set<char> postfixes = { 'f', 'd', 'u', 'l', 'h', 'F', 'D', 'U', 'L', 'H' };
 
@@ -9,44 +9,44 @@ namespace HXSL
 		return std::isdigit(c) || c == '.' || postfixes.find(c) != postfixes.end() || c == '_';
 	}
 
-	static HXSLNumberType Classify(long long value)
+	static NumberType Classify(long long value)
 	{
 		if (value >= std::numeric_limits<signed char>::min() && value <= std::numeric_limits<signed char>::max())
-			return HXSLNumberType_SByte;
+			return NumberType_SByte;
 		if (value >= std::numeric_limits<short>::min() && value <= std::numeric_limits<short>::max())
-			return HXSLNumberType_Short;
+			return NumberType_Short;
 		if (value >= std::numeric_limits<int>::min() && value <= std::numeric_limits<int>::max())
-			return HXSLNumberType_Int;
-		return HXSLNumberType_LongLong;
+			return NumberType_Int;
+		return NumberType_LongLong;
 	}
 
-	static HXSLNumberType Classify(unsigned long long value)
+	static NumberType Classify(unsigned long long value)
 	{
 		if (value <= std::numeric_limits<unsigned char>::max())
-			return HXSLNumberType_UShort;
+			return NumberType_UShort;
 		if (value <= std::numeric_limits<unsigned int>::max())
-			return HXSLNumberType_UInt;
-		return HXSLNumberType_ULongLong;
+			return NumberType_UInt;
+		return NumberType_ULongLong;
 	}
 
-	static HXSLNumberType MakeUnsigned(HXSLNumberType type)
+	static NumberType MakeUnsigned(NumberType type)
 	{
 		switch (type)
 		{
-		case HXSLNumberType_LongLong:
-			return HXSLNumberType_ULongLong;
-		case HXSLNumberType_Int:
-			return HXSLNumberType_UInt;
-		case HXSLNumberType_Short:
-			return HXSLNumberType_UShort;
-		case HXSLNumberType_SByte:
-			return HXSLNumberType_Char;
+		case NumberType_LongLong:
+			return NumberType_ULongLong;
+		case NumberType_Int:
+			return NumberType_UInt;
+		case NumberType_Short:
+			return NumberType_UShort;
+		case NumberType_SByte:
+			return NumberType_Char;
 		default:
 			return type;
 		}
 	}
 
-	bool ParseNumber(const char* text, size_t length, size_t position, bool isHex, bool isBinary, bool isSigned, HXSLNumber& number, size_t& tokenLength)
+	bool ParseNumber(const char* text, size_t length, size_t position, bool isHex, bool isBinary, bool isSigned, Number& number, size_t& tokenLength)
 	{
 		size_t start = position;
 		if (isHex || isBinary)
@@ -57,7 +57,7 @@ namespace HXSL
 
 		bool isFloat = false;
 		bool isUnsigned = false;
-		HXSLNumberType type = HXSLNumberType_Unknown;
+		NumberType type = NumberType_Unknown;
 		size_t innerEnd = position - 1;
 
 		if (innerEnd >= 0 && postfixes.find(text[innerEnd]) != postfixes.end())
@@ -66,18 +66,18 @@ namespace HXSL
 			switch (current)
 			{
 			case 'L':
-				type = (type == HXSLNumberType_LongLong) ? HXSLNumberType_LongLong : HXSLNumberType_Int;
+				type = (type == NumberType_LongLong) ? NumberType_LongLong : NumberType_Int;
 				break;
 			case 'U':
 				type = MakeUnsigned(type);
 				isUnsigned = true;
 				break;
 			case 'F':
-				type = HXSLNumberType_Float;
+				type = NumberType_Float;
 				isFloat = true;
 				break;
 			case 'D':
-				type = HXSLNumberType_Double;
+				type = NumberType_Double;
 				isFloat = true;
 				break;
 
@@ -92,7 +92,7 @@ namespace HXSL
 			innerEnd--;
 		}
 
-		if (isHex && isBinary || isFloat && (isHex || isBinary || type == HXSLNumberType_LongLong || isUnsigned))
+		if (isHex && isBinary || isFloat && (isHex || isBinary || type == NumberType_LongLong || isUnsigned))
 		{
 			return false;
 		}
@@ -130,7 +130,7 @@ namespace HXSL
 		if (isHex)
 		{
 			unsigned long long value = std::stoull(numberSpan, &converted, 16);
-			number.Kind = HXSLNumberType_ULongLong;
+			number.Kind = NumberType_ULongLong;
 			number.ulongLongValue = value;
 			tokenLength = position - start;
 			return converted == spanLength;
@@ -138,25 +138,25 @@ namespace HXSL
 		else if (isBinary)
 		{
 			unsigned long long value = std::stoull(numberSpan, &converted, 2);
-			number.Kind = HXSLNumberType_ULongLong;
+			number.Kind = NumberType_ULongLong;
 			number.ulongLongValue = value;
 			tokenLength = position - start;
 			return converted == spanLength;
 		}
 		else if (isFloat)
 		{
-			if (type == HXSLNumberType_Float || type == HXSLNumberType_Unknown)
+			if (type == NumberType_Float || type == NumberType_Unknown)
 			{
 				float result = std::stof(numberSpan, &converted);
-				number.Kind = HXSLNumberType_Float;
+				number.Kind = NumberType_Float;
 				number.floatValue = result;
 				tokenLength = position - start;
 				return converted == spanLength;
 			}
-			else if (type == HXSLNumberType_Double)
+			else if (type == NumberType_Double)
 			{
 				double result = std::stod(numberSpan, &converted);
-				number.Kind = HXSLNumberType_Double;
+				number.Kind = NumberType_Double;
 				number.doubleValue = result;
 				tokenLength = position - start;
 				return converted == spanLength;
@@ -165,7 +165,7 @@ namespace HXSL
 		else if (isSigned)
 		{
 			long long result = std::stoll(numberSpan, &converted);
-			type = type == HXSLNumberType_Unknown ? Classify(result) : type;
+			type = type == NumberType_Unknown ? Classify(result) : type;
 			number.Kind = type;
 			number.longLongValue = result;
 			tokenLength = position - start;
@@ -174,7 +174,7 @@ namespace HXSL
 		else
 		{
 			unsigned long long result = std::stoull(numberSpan, &converted);
-			type = type == HXSLNumberType_Unknown ? Classify(result) : type;
+			type = type == NumberType_Unknown ? Classify(result) : type;
 			number.Kind = type;
 			number.longLongValue = result;
 			tokenLength = position - start;

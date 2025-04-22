@@ -3,33 +3,33 @@
 
 namespace HXSL
 {
-	void SymbolMetadata::Write(HXSLStream& stream) const
+	void SymbolMetadata::Write(Stream& stream) const
 	{
-		stream.WriteUInt(SymbolType);
-		stream.WriteUInt(Scope);
-		stream.WriteUInt(AccessModifier);
-		stream.WriteUInt(Size);
-		stream.WriteValue<bool>(Declaration);
-		if (Declaration)
+		stream.WriteUInt((uint)symbolType);
+		stream.WriteUInt((uint)scope);
+		stream.WriteUInt((uint)accessModifier);
+		stream.WriteUInt((uint)size);
+		stream.WriteValue<bool>(declaration);
+		if (declaration)
 		{
-			stream.WriteUInt(Declaration->GetType());
-			Declaration->Write(stream);
+			stream.WriteUInt(declaration->GetType());
+			declaration->Write(stream);
 		}
 	}
 
-	void SymbolMetadata::Read(HXSLStream& stream, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes, StringPool& container)
+	void SymbolMetadata::Read(Stream& stream, std::vector<std::unique_ptr<SymbolDef>>& nodes, StringPool& container)
 	{
-		SymbolType = static_cast<SymbolType>(stream.ReadUInt());
-		Scope = static_cast<HXSLSymbolScopeType>(stream.ReadUInt());
-		AccessModifier = static_cast<HXSLAccessModifier>(stream.ReadUInt());
-		Size = stream.ReadUInt();
+		symbolType = static_cast<SymbolType>(stream.ReadUInt());
+		scope = static_cast<SymbolScopeType>(stream.ReadUInt());
+		accessModifier = static_cast<AccessModifier>(stream.ReadUInt());
+		size = stream.ReadUInt();
 		bool hasDeclaration = stream.ReadValue<bool>();
 		if (hasDeclaration)
 		{
-			auto type = static_cast<HXSLNodeType>(stream.ReadUInt());
+			auto type = static_cast<NodeType>(stream.ReadUInt());
 			auto pt = CreateInstance(type);
-			Declaration = pt.get();
-			Declaration->Read(stream, container);
+			declaration = pt.get();
+			declaration->Read(stream, container);
 			nodes.push_back(std::move(pt));
 		}
 		else
@@ -125,7 +125,7 @@ namespace HXSL
 				walkStack.pop();
 
 				auto& node = nodes[idx];
-				if (node.Metadata && node.Metadata->SymbolType == HXSLSymbolType_Scope)
+				if (node.Metadata && node.Metadata->symbolType == SymbolType_Scope)
 				{
 					RemoveNode(idx);
 					found = true;
@@ -178,17 +178,17 @@ namespace HXSL
 		}
 	}
 
-	static void WriteNode(HXSLStream& stream, const SymbolTableNode& node, const size_t& index)
+	static void WriteNode(Stream& stream, const SymbolTableNode& node, const size_t& index)
 	{
-		stream.WriteUInt(index);
+		stream.WriteUInt((uint)index);
 		stream.WriteString(node.GetName());
-		stream.WriteUInt(node.Children.size());
+		stream.WriteUInt((uint)node.Children.size());
 		for (const auto& [childSpan, childIdx] : node.Children)
 		{
-			stream.WriteUInt(childIdx);
+			stream.WriteUInt((uint)childIdx);
 		}
-		stream.WriteUInt(node.Depth);
-		stream.WriteUInt(node.ParentIndex);
+		stream.WriteUInt((uint)node.Depth);
+		stream.WriteUInt((uint)node.ParentIndex);
 
 		if (node.Metadata)
 		{
@@ -201,7 +201,7 @@ namespace HXSL
 		}
 	}
 
-	void SymbolTable::Write(HXSLStream& stream) const
+	void SymbolTable::Write(Stream& stream) const
 	{
 		std::stack<size_t> walkStack;
 		walkStack.push(0);
@@ -225,7 +225,7 @@ namespace HXSL
 		}
 		size_t end = stream.Position();
 		stream.Position(start);
-		stream.WriteUInt(written);
+		stream.WriteUInt((uint)written);
 		stream.Position(end);
 	}
 
@@ -235,7 +235,7 @@ namespace HXSL
 		std::vector<size_t> Children;
 	};
 
-	static void ReadNode(HXSLStream& stream, DiskSymbolTableNode& diskNode, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes, StringPool& container, size_t& index)
+	static void ReadNode(Stream& stream, DiskSymbolTableNode& diskNode, std::vector<std::unique_ptr<SymbolDef>>& nodes, StringPool& container, size_t& index)
 	{
 		auto& node = diskNode.Node;
 		index = stream.ReadUInt();
@@ -255,7 +255,7 @@ namespace HXSL
 		}
 	}
 
-	void SymbolTable::Read(HXSLStream& stream, Assembly* parentAssembly)
+	void SymbolTable::Read(Stream& stream, Assembly* parentAssembly)
 	{
 		size_t nodeCount = stream.ReadUInt();
 
@@ -264,7 +264,7 @@ namespace HXSL
 		nodes.resize(nodeCount);
 		compilation->Clear();
 
-		std::vector<std::unique_ptr<HXSLSymbolDef>> externalAstNodes;
+		std::vector<std::unique_ptr<SymbolDef>> externalAstNodes;
 		externalAstNodes.emplace_back();
 
 		for (size_t i = 0; i < nodeCount; i++)
@@ -296,15 +296,15 @@ namespace HXSL
 			walkStack.pop();
 
 			auto& node = nodes[idx];
-			if (node.Metadata && node.Metadata->SymbolType == HXSLSymbolType_Scope) continue;
-			if (node.Metadata && node.Metadata->Declaration)
+			if (node.Metadata && node.Metadata->symbolType == SymbolType_Scope) continue;
+			if (node.Metadata && node.Metadata->declaration)
 			{
-				auto decl = node.Metadata->Declaration;
+				auto decl = node.Metadata->declaration;
 
-				if (auto ns = dynamic_cast<HXSLNamespace*>(decl))
+				if (auto ns = dynamic_cast<Namespace*>(decl))
 				{
 					auto actual = std::move(externalAstNodes[idx]).release();
-					compilation->AddNamespace(std::unique_ptr<HXSLNamespace>(dynamic_cast<HXSLNamespace*>(actual)));
+					compilation->AddNamespace(std::unique_ptr<Namespace>(dynamic_cast<Namespace*>(actual)));
 				}
 
 				decl->Build(*this, idx, compilation.get(), externalAstNodes);

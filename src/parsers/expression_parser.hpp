@@ -3,31 +3,31 @@
 
 #include "sub_parser_registry.hpp"
 #include "sub_parser.hpp"
-namespace HXSL
+namespace HXSL 
 {
-	class HXSLSymbolExpressionParser : public HXSLExpressionParser
+	class SymbolExpressionParser : public ExpressionParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut) override;
 	};
 
-	class HXSLLiteralExpressionParser : public HXSLExpressionParser
+	class LiteralExpressionParser : public ExpressionParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut) override;
 	};
 
-	class HXSLFuncCallExpressionParser : public HXSLExpressionParser
+	class FuncCallExpressionParser : public ExpressionParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut) override;
 	};
 
-	class HXSLMemberAccessExpressionParser : public HXSLExpressionParser
+	class MemberAccessExpressionParser : public ExpressionParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut) override;
 	};
 
-	class HXSLAssignmentExpressionParser : public HXSLExpressionParser
+	class AssignmentExpressionParser : public ExpressionParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLExpression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut) override;
 	};
 }
 

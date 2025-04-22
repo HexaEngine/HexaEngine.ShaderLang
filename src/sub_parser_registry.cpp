@@ -1,8 +1,8 @@
 #include "sub_parser_registry.hpp"
 
-namespace HXSL
+namespace HXSL 
 {
-	std::vector<std::unique_ptr<HXSLSubParser>> HXSLSubParserRegistry::parsers;
-	std::vector<std::unique_ptr<HXSLStatementParser>> HXSLStatementParserRegistry::parsers;
-	std::vector<std::unique_ptr<HXSLExpressionParser>> HXSLExpressionParserRegistry::parsers;
+	std::vector<std::unique_ptr<SubParser>> SubParserRegistry::parsers;
+	std::vector<std::unique_ptr<StatementParser>> StatementParserRegistry::parsers;
+	std::vector<std::unique_ptr<ExpressionParser>> ExpressionParserRegistry::parsers;
 }

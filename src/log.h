@@ -11,25 +11,25 @@
 
 namespace HXSL
 {
-	enum HXSLLogLevel
+	enum LogLevel
 	{
-		HXSLLogLevel_Info,
-		HXSLLogLevel_Warn,
-		HXSLLogLevel_Error,
-		HXSLLogLevel_Critical
+		LogLevel_Info,
+		LogLevel_Warn,
+		LogLevel_Error,
+		LogLevel_Critical
 	};
 
-	static std::string ToString(HXSLLogLevel level)
+	static std::string ToString(LogLevel level)
 	{
 		switch (level)
 		{
-		case HXSLLogLevel_Info:
+		case LogLevel_Info:
 			return "Info";
-		case HXSLLogLevel_Warn:
+		case LogLevel_Warn:
 			return "Warn";
-		case HXSLLogLevel_Error:
+		case LogLevel_Error:
 			return "Error";
-		case HXSLLogLevel_Critical:
+		case LogLevel_Critical:
 			return "Critical";
 		default:
 			break;
@@ -37,18 +37,18 @@ namespace HXSL
 		return "";
 	}
 
-	struct HXSLLogMessage
+	struct LogMessage
 	{
-		HXSLLogLevel Level;
+		LogLevel Level;
 		char Message[MAX_LOG_LENGTH];
 
-		HXSLLogMessage(HXSLLogLevel level, const char* message) : Level(level)
+		LogMessage(LogLevel level, const char* message) : Level(level)
 		{
 			strncpy_s(Message, message, MAX_LOG_LENGTH - 1);
 			Message[MAX_LOG_LENGTH - 1] = '\0';
 		}
 
-		HXSLLogMessage(HXSLLogLevel level, const std::string& message) : Level(level)
+		LogMessage(LogLevel level, const std::string& message) : Level(level)
 		{
 			strncpy_s(Message, message.c_str(), MAX_LOG_LENGTH - 1);
 			Message[MAX_LOG_LENGTH - 1] = '\0';
@@ -58,7 +58,7 @@ namespace HXSL
 	class ILogger
 	{
 	private:
-		HXSLVector<HXSLLogMessage> messages;
+		Vector<LogMessage> messages;
 		bool hasCriticalErrors;
 
 	public:
@@ -68,16 +68,16 @@ namespace HXSL
 
 		bool HasCriticalErrors() const noexcept { return hasCriticalErrors; }
 
-		void LogMessage(HXSLLogLevel level, const std::string& message)
+		void Log(LogLevel level, const std::string& message)
 		{
-			messages.push_back(std::move(HXSLLogMessage(level, message)));
+			messages.push_back(std::move(LogMessage(level, message)));
 
 			if (EnableErrorOutput)
 			{
 				std::cerr << "[" << ToString(level) << "]: " << message << std::endl;
 			}
 
-			if (level == HXSLLogLevel_Critical)
+			if (level == LogLevel_Critical)
 			{
 				hasCriticalErrors = true;
 				HXSL_ASSERT(false, message.c_str());
@@ -85,7 +85,7 @@ namespace HXSL
 		}
 
 		template <typename... Args>
-		void LogFormatted(HXSLLogLevel level, const std::string& format, Args&&... args)
+		void LogFormatted(LogLevel level, const std::string& format, Args&&... args)
 		{
 			const auto size_s = std::snprintf(nullptr, 0, format.data(), std::forward<Args>(args)...);
 
@@ -100,14 +100,14 @@ namespace HXSL
 
 			std::snprintf(buf.data(), size_s + 1, format.data(), std::forward<Args>(args)...);
 
-			LogMessage(level, buf);
+			Log(level, buf);
 		}
 
 		~ILogger()
 		{
 			for (auto& message : messages)
 			{
-				message.~HXSLLogMessage();
+				message.~LogMessage();
 			}
 		}
 	};
@@ -122,7 +122,7 @@ namespace HXSL
 		}
 
 		template <typename... Args>
-		void LogFormatted(HXSLLogLevel level, const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
+		void LogFormatted(LogLevel level, const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
 		{
 			std::string format = "[" + stage + "]: " + message + " (Line: %i, Column: %i)";
 			loggerBase->LogFormatted(level, format, std::forward<Args>(args)..., span.Line, span.Column);
@@ -131,25 +131,25 @@ namespace HXSL
 		template <typename... Args>
 		void LogCritical(const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
 		{
-			LogFormatted(HXSLLogLevel_Critical, message, file, span, std::forward<Args>(args)...);
+			LogFormatted(LogLevel_Critical, message, file, span, std::forward<Args>(args)...);
 		}
 
 		template <typename... Args>
 		void LogError(const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
 		{
-			LogFormatted(HXSLLogLevel_Error, message, file, span, std::forward<Args>(args)...);
+			LogFormatted(LogLevel_Error, message, file, span, std::forward<Args>(args)...);
 		}
 
 		template <typename... Args>
 		void LogWarn(const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
 		{
-			LogFormatted(HXSLLogLevel_Warn, message, file, span, std::forward<Args>(args)...);
+			LogFormatted(LogLevel_Warn, message, file, span, std::forward<Args>(args)...);
 		}
 
 		template <typename... Args>
 		void LogInfo(const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
 		{
-			LogFormatted(HXSLLogLevel_Info, message, file, span, std::forward<Args>(args)...);
+			LogFormatted(LogLevel_Info, message, file, span, std::forward<Args>(args)...);
 		}
 	};
 }

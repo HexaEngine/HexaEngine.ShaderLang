@@ -6,18 +6,18 @@
 namespace HXSL
 {
 	template <typename T>
-	struct HXSLVector
+	struct Vector
 	{
 		T* Data;
 		size_t Size;
 		size_t Capacity;
 
-		HXSLVector() : Data(nullptr), Size(0), Capacity(0) {}
-		~HXSLVector()
+		Vector() : Data(nullptr), Size(0), Capacity(0) {}
+		~Vector()
 		{
 			if (Data)
 			{
-				HXSLFree(Data);
+				Free(Data);
 				Data = nullptr;
 				Capacity = 0;
 				Size = 0;
@@ -44,7 +44,7 @@ namespace HXSL
 
 		void setCapacity(size_t value)
 		{
-			Data = HXSLReAllocArray<T>(Data, value);
+			Data = ReAllocArray<T>(Data, value);
 			Capacity = value;
 		}
 

@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace HXSL
+namespace HXSL 
 {
 	class StringPool
 	{

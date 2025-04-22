@@ -6,13 +6,13 @@
 
 namespace HXSL
 {
-	class HXSLSubParserRegistry
+	class SubParserRegistry
 	{
 	private:
-		static std::vector<std::unique_ptr<HXSLSubParser>> parsers;
+		static std::vector<std::unique_ptr<SubParser>> parsers;
 
 	public:
-		static bool TryParse(HXSLParser& parser, TokenStream& stream, ASTNode* parent, Compilation* compilation)
+		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, Compilation* compilation)
 		{
 			parser.pushParentNode(parent);
 			for (auto& subParser : parsers)
@@ -38,20 +38,20 @@ namespace HXSL
 		}
 
 		template <typename SubParserType>
-		static typename std::enable_if<std::is_base_of<HXSLSubParser, SubParserType>::value>::type
+		static typename std::enable_if<std::is_base_of<SubParser, SubParserType>::value>::type
 			Register()
 		{
 			parsers.push_back(std::make_unique<SubParserType>());
 		}
 	};
 
-	class HXSLStatementParserRegistry
+	class StatementParserRegistry
 	{
 	private:
-		static std::vector<std::unique_ptr<HXSLStatementParser>> parsers;
+		static std::vector<std::unique_ptr<StatementParser>> parsers;
 
 	public:
-		static bool TryParse(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLStatement>& statementOut, bool leaveOpen = false)
+		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Statement>& statementOut, bool leaveOpen = false)
 		{
 			parser.pushParentNode(parent);
 			for (auto& subParser : parsers)
@@ -81,21 +81,21 @@ namespace HXSL
 		}
 
 		template <typename SubParserType>
-		static typename std::enable_if<std::is_base_of<HXSLStatementParser, SubParserType>::value>::type
+		static typename std::enable_if<std::is_base_of<StatementParser, SubParserType>::value>::type
 			Register()
 		{
 			parsers.push_back(std::make_unique<SubParserType>());
 		}
 	};
 
-	static bool ParseStatementBodyInner(HXSLParser& parser, TokenStream& stream, ASTNode* parent, HXSLStatementContainer* container, bool leaveOpen = false)
+	static bool ParseStatementBodyInner(Parser& parser, TokenStream& stream, ASTNode* parent, StatementContainer* container, bool leaveOpen = false)
 	{
 		if (stream.TryGetDelimiter(';'))
 		{
 			return true;
 		}
-		std::unique_ptr<HXSLStatement> outStatement;
-		bool success = HXSLStatementParserRegistry::TryParse(parser, stream, parent, outStatement, leaveOpen);
+		std::unique_ptr<Statement> outStatement;
+		bool success = StatementParserRegistry::TryParse(parser, stream, parent, outStatement, leaveOpen);
 
 		if (!success)
 		{
@@ -111,12 +111,12 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseStatementBody(TextSpan name, ScopeType type, ASTNode* parent, HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLBlockStatement>& statement)
+	static bool ParseStatementBody(TextSpan name, ScopeType type, ASTNode* parent, Parser& parser, TokenStream& stream, std::unique_ptr<BlockStatement>& statement)
 	{
 		Token first;
 		IF_ERR_RET_FALSE(parser.EnterScope(name, type, parent, first));
 
-		auto blockStatement = std::make_unique<HXSLBlockStatement>(TextSpan(), parent);
+		auto blockStatement = std::make_unique<BlockStatement>(TextSpan(), parent);
 		while (parser.IterateScope())
 		{
 			ParseStatementBodyInner(parser, stream, blockStatement.get(), blockStatement.get());
@@ -128,13 +128,13 @@ namespace HXSL
 		return true;
 	}
 
-	class HXSLExpressionParserRegistry
+	class ExpressionParserRegistry
 	{
 	private:
-		static std::vector<std::unique_ptr<HXSLExpressionParser>> parsers;
+		static std::vector<std::unique_ptr<ExpressionParser>> parsers;
 
 	public:
-		static bool TryParse(HXSLParser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<HXSLExpression>& expressionOut)
+		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expressionOut)
 		{
 			auto first = stream.Current();
 			parser.pushParentNode(parent);
@@ -160,7 +160,7 @@ namespace HXSL
 
 			if (!expressionOut.get())
 			{
-				expressionOut = std::make_unique<HXSLEmptyExpression>(first.Span.merge(stream.LastToken().Span), static_cast<ASTNode*>(nullptr));
+				expressionOut = std::make_unique<EmptyExpression>(first.Span.merge(stream.LastToken().Span), static_cast<ASTNode*>(nullptr));
 				return true;
 			}
 
@@ -168,7 +168,7 @@ namespace HXSL
 		}
 
 		template <typename SubParserType>
-		static typename std::enable_if<std::is_base_of<HXSLExpressionParser, SubParserType>::value>::type
+		static typename std::enable_if<std::is_base_of<ExpressionParser, SubParserType>::value>::type
 			Register()
 		{
 			parsers.push_back(std::make_unique<SubParserType>());

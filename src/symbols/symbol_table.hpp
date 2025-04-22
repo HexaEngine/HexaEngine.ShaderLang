@@ -1,8 +1,7 @@
 #ifndef SYMBOL_TABLE_HPP
 #define SYMBOL_TABLE_HPP
 
-#include "nodes.hpp"
-#include "compilation.hpp"
+#include "ast.hpp"
 #include "stream.h"
 #include "string_pool.hpp"
 
@@ -18,27 +17,27 @@ namespace HXSL
 	class SymbolMetadata
 	{
 	public:
-		SymbolType SymbolType;
-		HXSLSymbolScopeType Scope;
-		HXSLAccessModifier AccessModifier;
-		size_t Size;
-		HXSLSymbolDef* Declaration;
+		SymbolType symbolType;
+		SymbolScopeType scope;
+		AccessModifier accessModifier;
+		size_t size;
+		SymbolDef* declaration;
 
-		SymbolMetadata() : SymbolType(HXSLSymbolType_Unknown), Scope(HXSLSymbolScopeType_Global), AccessModifier(HXSLAccessModifier_Private), Size(0), Declaration(nullptr)
+		SymbolMetadata() : symbolType(SymbolType_Unknown), scope(SymbolScopeType_Global), accessModifier(AccessModifier_Private), size(0), declaration(nullptr)
 		{
 		}
 
-		SymbolMetadata(const SymbolType& symbolType, const HXSLSymbolScopeType& scope, const HXSLAccessModifier& modifier, const size_t& size) : SymbolType(symbolType), Scope(scope), AccessModifier(modifier), Size(size), Declaration(nullptr)
+		SymbolMetadata(const SymbolType& symbolType, const SymbolScopeType& scope, const AccessModifier& modifier, const size_t& size) : symbolType(symbolType), scope(scope), accessModifier(modifier), size(size), declaration(nullptr)
 		{
 		}
 
-		SymbolMetadata(const SymbolType& symbolType, const HXSLSymbolScopeType& scope, const HXSLAccessModifier& modifier, const size_t& size, HXSLSymbolDef* declaration) : SymbolType(symbolType), Scope(scope), AccessModifier(modifier), Size(size), Declaration(declaration)
+		SymbolMetadata(const SymbolType& symbolType, const SymbolScopeType& scope, const AccessModifier& modifier, const size_t& size, SymbolDef* declaration) : symbolType(symbolType), scope(scope), accessModifier(modifier), size(size), declaration(declaration)
 		{
 		}
 
-		void Write(HXSLStream& stream) const;
+		void Write(Stream& stream) const;
 
-		void Read(HXSLStream& stream, std::vector<std::unique_ptr<HXSLSymbolDef>>& nodes, StringPool& container);
+		void Read(Stream& stream, std::vector<std::unique_ptr<SymbolDef>>& nodes, StringPool& container);
 	};
 
 	struct SymbolTableNode
@@ -232,9 +231,9 @@ namespace HXSL
 
 		void Merge(const SymbolTable& other);
 
-		void Write(HXSLStream& stream) const;
+		void Write(Stream& stream) const;
 
-		void Read(HXSLStream& stream, Assembly* parentAssembly);
+		void Read(Stream& stream, Assembly* parentAssembly);
 	};
 }
 

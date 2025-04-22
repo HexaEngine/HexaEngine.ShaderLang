@@ -10,6 +10,8 @@
 
 namespace HXSL
 {
+	using namespace HXSL::Lexer;
+
 	struct TokenCache
 	{
 		std::deque<Token> tokens;
@@ -87,43 +89,57 @@ namespace HXSL
 
 	struct TokenStream
 	{
+	private:
 		struct TokenStreamState
 		{
-			LexerState State;
-			Token LastToken;
-			Token CurrentToken;
-			size_t TokenPosition;
+			LexerState state;
+			Token lastToken;
+			Token currentToken;
+			size_t tokenPosition;
 
 			TokenStreamState() = default;
 
-			TokenStreamState(LexerState lexerState) : State(lexerState), LastToken({}), CurrentToken({}), TokenPosition(0)
+			TokenStreamState(LexerState lexerState) : state(lexerState), lastToken({}), currentToken({}), tokenPosition(0)
 			{
 			}
 
-			bool IsEndOfTokens() const { return State.IsEOF(); }
+			bool IsEndOfTokens() const { return state.IsEOF(); }
 		};
 
-		TokenStreamState StreamState;
-		LexerConfig* Config;
+		TokenStreamState streamState;
+		LexerConfig* config;
 		std::stack<TokenStreamState> stack;
 		size_t currentStack;
-		TokenCache Cache;
+		TokenCache cache;
 
-		TokenStream(LexerState lexerState, LexerConfig* config) : StreamState(TokenStreamState(lexerState)), Config(config), currentStack(0)
+	public:
+		TokenStream(LexerState lexerState, LexerConfig* config) : streamState(TokenStreamState(lexerState)), config(config), currentStack(0)
 		{
 		}
 
-		bool HasErrors() const noexcept { return StreamState.State.HasCriticalErrors(); }
+		template<typename... Args>
+		void LogFormatted(LogLevel level, const std::string& message, Args&&... args) const
+		{
+			streamState.state.GetLogger()->LogFormatted(level, message, std::forward<Args>(args)...);
+		}
 
-		Token LastToken() const { return StreamState.LastToken; }
+		template<typename... Args>
+		void LogError(const std::string& message, Args&&... args) const
+		{
+			LogFormatted(LogLevel_Error, message, std::forward<Args>(args)...);
+		}
 
-		Token Current() const { return StreamState.CurrentToken; }
+		bool HasErrors() const noexcept { return streamState.state.HasCriticalErrors(); }
 
-		bool IsEndOfTokens() const { return StreamState.IsEndOfTokens(); }
+		Token LastToken() const { return streamState.lastToken; }
+
+		Token Current() const { return streamState.currentToken; }
+
+		bool IsEndOfTokens() const { return streamState.IsEndOfTokens(); }
 
 		TextSpan MakeFromLast(const TextSpan& span) const
 		{
-			return span.merge(StreamState.LastToken.Span);
+			return span.merge(streamState.lastToken.Span);
 		}
 
 		TextSpan MakeFromLast(const Token& token) const
@@ -141,7 +157,7 @@ namespace HXSL
 
 		bool TryGetToken(TokenType type, Token& current) const
 		{
-			current = StreamState.CurrentToken;
+			current = streamState.currentToken;
 			return current.Type == type;
 		}
 
@@ -188,12 +204,12 @@ namespace HXSL
 			return false;
 		}
 
-		bool TryGetKeyword(HXSLKeyword keyword)
+		bool TryGetKeyword(Keyword keyword)
 		{
 			return TryGetTypeValue(TokenType_Keyword, keyword);
 		}
 
-		bool TryGetKeywords(std::unordered_set<HXSLKeyword> keywords)
+		bool TryGetKeywords(std::unordered_set<Keyword> keywords)
 		{
 			Token current;
 			if (!TryGetToken(TokenType_Keyword, current))
@@ -201,7 +217,7 @@ namespace HXSL
 				return false;
 			}
 
-			HXSLKeyword keyword = static_cast<HXSLKeyword>(current.Value);
+			Keyword keyword = static_cast<Keyword>(current.Value);
 			if (keywords.find(keyword) != keywords.end())
 			{
 				TryAdvance();
@@ -210,12 +226,12 @@ namespace HXSL
 			return false;
 		}
 
-		bool TryGetOperator(HXSLOperator op)
+		bool TryGetOperator(Operator op)
 		{
 			return TryGetTypeValue(TokenType_Operator, op);
 		}
 
-		bool TryGetAnyOperator(HXSLOperator& op)
+		bool TryGetAnyOperator(Operator& op)
 		{
 			if (Current().isOperator(op))
 			{
@@ -253,7 +269,7 @@ namespace HXSL
 			return false;
 		}
 
-		bool TryGetNumber(HXSLNumber& number)
+		bool TryGetNumber(Number& number)
 		{
 			Token current;
 			if (TryGetToken(TokenType_Numeric, current))
@@ -272,7 +288,7 @@ namespace HXSL
 			current = Current();
 			if (current.Type != type)
 			{
-				StreamState.State.LogErrorFormatted("Unexpected token, expected an '%s'", ToString(type).c_str());
+				streamState.state.LogErrorFormatted("Unexpected token, expected an '%s'", ToString(type).c_str());
 				return false;
 			}
 			if (advance)
@@ -282,11 +298,11 @@ namespace HXSL
 			return true;
 		}
 
-		bool ExpectOperator(HXSLOperator op)
+		bool ExpectOperator(Operator op)
 		{
 			Token token;
 			auto result = Expect(TokenType_Operator, token);
-			return result && op == static_cast<HXSLOperator>(token.Value);
+			return result && op == static_cast<Operator>(token.Value);
 		}
 
 		bool ExpectLiteral(TextSpan& literal)
@@ -311,12 +327,12 @@ namespace HXSL
 			literal = token.Span;
 		}
 
-		bool ExpectKeywords(const std::unordered_set<HXSLKeyword>& keywords, HXSLKeyword& keyword)
+		bool ExpectKeywords(const std::unordered_set<Keyword>& keywords, Keyword& keyword)
 		{
 			Token token;
 			auto result = Expect(TokenType_Keyword, token, false);
 
-			keyword = static_cast<HXSLKeyword>(token.Value);
+			keyword = static_cast<Keyword>(token.Value);
 			if (result && keywords.find(keyword) != keywords.end())
 			{
 				Advance();
@@ -330,7 +346,7 @@ namespace HXSL
 			auto result = Expect(TokenType_Delimiter, token, false);
 			if (!result || token.Span[0] != delimiter)
 			{
-				StreamState.State.LogErrorFormatted("Unexpected delimiter, expected an '%c'", delimiter);
+				streamState.state.LogErrorFormatted("Unexpected delimiter, expected an '%c'", delimiter);
 				return false;
 			}
 			Advance();
@@ -350,7 +366,7 @@ namespace HXSL
 			char delimiter = current.Span[0];
 			if (delimiters.find(delimiter) != delimiters.end())
 			{
-				StreamState.State.LogErrorFormatted("Unexpected delimiter, found an '%c' when it was not expected.", delimiter);
+				streamState.state.LogErrorFormatted("Unexpected delimiter, found an '%c' when it was not expected.", delimiter);
 				return false;
 			}
 

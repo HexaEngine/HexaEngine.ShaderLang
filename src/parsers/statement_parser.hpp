@@ -2,61 +2,61 @@
 #define STATEMENT_PARSER
 
 #include "sub_parser.hpp"
-namespace HXSL
+namespace HXSL 
 {
-	class HXSLMiscKeywordStatementParser : public HXSLStatementParser
+	class MiscKeywordStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLBlockStatementParser : public HXSLStatementParser
+	class BlockStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLForStatementParser : public HXSLStatementParser
+	class ForStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLSwitchStatementParser : public HXSLStatementParser
+	class SwitchStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLIfStatementParser : public HXSLStatementParser
+	class IfStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLElseStatementParser : public HXSLStatementParser
+	class ElseStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLWhileStatementParser : public HXSLStatementParser
+	class WhileStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLReturnStatementParser : public HXSLStatementParser
+	class ReturnStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLDeclarationStatementParser : public HXSLStatementParser
+	class DeclarationStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLAssignmentStatementParser : public HXSLStatementParser
+	class AssignmentStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class HXSLFunctionCallStatementParser : public HXSLStatementParser
+	class FunctionCallStatementParser : public StatementParser
 	{
-		bool TryParse(HXSLParser& parser, TokenStream& stream, std::unique_ptr<HXSLStatement>& statementOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 }
 

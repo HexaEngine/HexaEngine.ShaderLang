@@ -1,12 +1,12 @@
 #include "assembly.hpp"
-#include "symbol_table.hpp"
+#include "symbols/symbol_table.hpp"
 namespace HXSL
 {
 	inline Assembly::Assembly(const std::string& name) : Name(std::make_unique<std::string>(name)), Table(std::make_unique<SymbolTable>())
 	{
 	}
 
-	size_t Assembly::AddSymbol(HXSLSymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex)
+	size_t Assembly::AddSymbol(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex)
 	{
 		auto& name = def->GetName();
 		auto index = Table->Insert(name, metadata, lookupIndex);
@@ -39,13 +39,13 @@ namespace HXSL
 
 		std::unique_ptr<FILE, decltype(&fclose)> filePtr(file, &fclose);
 
-		HXSLFileStream fs(file);
+		FileStream fs(file);
 
 		auto result = LoadFromStream(path, fs, assemblyOut);
 		return result;
 	}
 
-	AssemblyLoadResult Assembly::LoadFromStream(const std::string& path, HXSLStream& stream, std::unique_ptr<Assembly>& assemblyOut)
+	AssemblyLoadResult Assembly::LoadFromStream(const std::string& path, Stream& stream, std::unique_ptr<Assembly>& assemblyOut)
 	{
 		auto assembly = Create(path);
 
@@ -67,11 +67,11 @@ namespace HXSL
 
 		std::unique_ptr<FILE, decltype(&fclose)> filePtr(file, &fclose);
 
-		HXSLFileStream fs(file);
+		FileStream fs(file);
 		return WriteToStream(fs);
 	}
 
-	int Assembly::WriteToStream(HXSLStream& stream) const
+	int Assembly::WriteToStream(Stream& stream) const
 	{
 		Table->Write(stream);
 		return 0;
