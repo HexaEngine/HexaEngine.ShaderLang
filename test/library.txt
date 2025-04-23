@@ -5,4 +5,16 @@ struct PS_INPUT
     float4 position : SV_POSITION;
     float2 tex : TEXCOORD;
     float4 color : COLOR;
-};
+
+    public static explicit operator float4(PS_INPUT input)
+    {
+         return input.position;
+    }
+
+    public static operator+ PS_INPUT(PS_INPUT a, PS_INPUT b)
+    {
+        PS_INPUT result;
+        result.position = a.position + b.position;
+        return result;
+    } 
+}

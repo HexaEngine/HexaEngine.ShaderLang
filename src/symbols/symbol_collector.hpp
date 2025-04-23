@@ -1,7 +1,7 @@
 #ifndef SYMBOL_COLLECTOR_HPP
 #define SYMBOL_COLLECTOR_HPP
 
-#include "analyzer.hpp"
+#include "analyzers/analyzer.hpp"
 #include "ast.hpp"
 #include <memory>
 #include <stack>
@@ -29,9 +29,9 @@ namespace HXSL
 		ScopeContext current;
 		std::stack<ScopeContext> stack;
 
-		bool Push(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
+		bool Push(const TextSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
 
-		bool PushScope(const ASTNode* parent, TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
+		bool PushScope(const ASTNode* parent, const TextSpan& span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
 
 		bool PushLeaf(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata);
 

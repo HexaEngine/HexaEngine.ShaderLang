@@ -16,7 +16,7 @@ namespace TextHelper
 
 	size_t FindWordBoundary(const char* text, size_t offset, size_t length);
 
-	size_t FindOperatorBoundary(const char* text, size_t offset, size_t length, std::unordered_set<char> delimiter);
+	size_t FindOperatorBoundary(const char* text, size_t offset, size_t length, const std::unordered_set<char>& delimiter);
 
 	size_t FindWhitespaceWordBoundary(const char* text, size_t offset, size_t length);
 

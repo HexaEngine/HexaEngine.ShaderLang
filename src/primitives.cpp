@@ -4,16 +4,6 @@ namespace HXSL
 {
 	std::once_flag PrimitiveManager::initFlag;
 
-	Primitive* PrimitiveManager::GetPrimitiveType(const TextSpan& name) const
-	{
-		auto it = PrimitiveTypesCache.find(name);
-		if (it != PrimitiveTypesCache.end())
-		{
-			return it->second.get();
-		}
-		return nullptr;
-	}
-
 	void PrimitiveManager::Populate()
 	{
 		AddPrim(PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
@@ -38,42 +28,46 @@ namespace HXSL
 			}
 		}
 
+		auto table = GetMutableSymbolTable();
+
 		Class* _class;
-		size_t index;
-		AddPrimClass(TextSpan("Texture2D"), &_class, &index);
-
-		auto func = std::make_unique<Function>();
-		func->SetName(TextSpan(PrimitiveSymbolTable->GetStringPool().add("Sample")));
-
-		auto ret = std::make_unique<SymbolRef>(TextSpan(PrimitiveSymbolTable->GetStringPool().add("float4")), SymbolRefType_AnyType);
-		ResolveInternal(ret.get());
-		func->SetReturnSymbol(std::move(ret));
-
-		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Function, SymbolScopeType_Class, AccessModifier_Public, 0, func.get());
-		PrimitiveSymbolTable->Insert(TextSpan(func->GetName()), meta, index);
-		_class->AddFunction(std::move(func));
 
 		AddPrimClass(TextSpan("SamplerState"));
+
+		AddPrimClass(TextSpan("Texture2D"), &_class);
+
+		FunctionBuilder(assembly.get())
+			.WithName("Sample")
+			.WithParam("state", "SamplerState")
+			.WithParam("uv", "float2")
+			.Returns("float4")
+			.AttachToClass(_class);
 	}
 
 	void PrimitiveManager::AddPrimClass(TextSpan name, Class** outClass, size_t* indexOut)
 	{
+		auto table = GetMutableSymbolTable();
+		auto compilation = table->GetCompilation();
 		auto _class = std::make_unique<Class>();
-		_class->SetAccessModifiers(AccessModifier_Public);
-		_class->SetName(PrimitiveSymbolTable->GetStringPool().add(name.toString()));
 
-		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, _class.get());
-		auto index = PrimitiveSymbolTable->Insert(TextSpan(_class->GetName()), meta);
+		auto classPtr = _class.get();
+		compilation->AddClass(std::move(_class));
+
+		classPtr->SetAccessModifiers(AccessModifier_Public);
+		classPtr->SetName(table->GetStringPool().add(name.toString()));
+
+		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, classPtr);
+		auto index = table->Insert(TextSpan(classPtr->GetName()), meta);
 		if (outClass)
 		{
-			*outClass = _class.get();
+			*outClass = classPtr;
 		}
 		if (indexOut)
 		{
 			*indexOut = index;
 		}
-		auto compilation = PrimitiveSymbolTable->GetCompilation();
-		compilation->AddClass(std::move(_class));
+
+		classPtr->SetAssembly(assembly.get(), index);
 	}
 
 	void PrimitiveManager::AddPrim(PrimitiveKind kind, PrimitiveClass primitiveClass, uint rows, uint columns)
@@ -136,20 +130,28 @@ namespace HXSL
 
 		std::string nameStr = name.str();
 
-		auto type = std::make_unique<Primitive>(kind, primitiveClass, nameStr, rows, columns);
-		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, type.get());
-		auto index = PrimitiveSymbolTable->Insert(TextSpan(type->GetName()), meta);
+		PrimitiveBuilder builder(assembly.get());
+		builder.WithName(nameStr);
+		builder.WithKind(kind, primitiveClass);
+		builder.WithRowsAndColumns(rows, columns);
 
-		PrimitiveTypesCache[type->GetName()] = std::move(type);
+		if (kind != PrimitiveKind_Void)
+		{
+			builder.WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide }, nameStr);
+			builder.WithUnaryOperators({ Operator_LogicalNot, Operator_Increment, Operator_Decrement }, nameStr);
+		}
+
+		builder.Finish();
 	}
 
 	void PrimitiveManager::ResolveInternal(SymbolRef* ref)
 	{
-		auto index = PrimitiveSymbolTable->FindNodeIndexPart(ref->GetSpan());
+		auto table = GetMutableSymbolTable();
+		auto index = table->FindNodeIndexPart(ref->GetName());
 		if (index == -1)
 		{
 			HXSL_ASSERT(false, "Couldn't find primitive.");
 		}
-		ref->SetTable(PrimitiveSymbolTable.get(), index);
+		ref->SetTable(table, index);
 	}
 }

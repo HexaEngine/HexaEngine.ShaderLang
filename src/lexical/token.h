@@ -6,7 +6,7 @@
 #include "numbers.h"
 #include "lang/language.h"
 
-namespace HXSL 
+namespace HXSL
 {
 	enum TokenType
 	{
@@ -23,7 +23,8 @@ namespace HXSL
 		TokenType_Whitespace
 	};
 
-	static std::string ToString(TokenType type) {
+	static std::string ToString(TokenType type)
+	{
 		switch (type) {
 		case TokenType_Unknown: return "Unknown";
 		case TokenType_Keyword: return "Keyword";
@@ -58,49 +59,65 @@ namespace HXSL
 
 		Token(TextSpan span, TokenType type, Number number) : Span(span), Type(type), Numeric(number) {}
 
-		bool isKeywordOf(std::initializer_list<int> keywords) const
+		Keyword asKeyword() const noexcept
 		{
-			if (Type != TokenType_Keyword) return false;
-			for (int keyword : keywords)
-			{
-				if (Value == keyword)
-					return true;
-			}
-			return false;
+			return  static_cast<Keyword>(Value);
 		}
 
-		bool isDelimiterOf(char delimiter) const
+		Operator asOperator() const noexcept
 		{
-			if (Type != TokenType_Delimiter) return false;
+			return  static_cast<Operator>(Value);
+		}
+
+		bool isKeyword() const noexcept { return Type == TokenType_Keyword; }
+
+		bool isKeywordOf(const Keyword& keyword) const
+		{
+			if (!isKeyword()) return false;
+			return static_cast<Keyword>(Value) == keyword;
+		}
+
+		bool isKeywordOf(const std::unordered_set<Keyword>& keywords) const
+		{
+			if (!isKeyword()) return false;
+			auto k = static_cast<Keyword>(Value);
+			return keywords.find(k) != keywords.end();
+		}
+
+		bool isDelimiter() const noexcept { return Type == TokenType_Delimiter; }
+
+		bool isDelimiterOf(const char& delimiter) const
+		{
+			if (!isDelimiter()) return false;
 			return Span[0] == delimiter;
 		}
 
-		bool isDelimiterOf(std::initializer_list<char> delimiters) const
+		bool isDelimiterOf(const std::unordered_set<char>& delimiters) const
 		{
-			if (Type != TokenType_Delimiter) return false;
-			char first = Span[0];
-			for (char d : delimiters)
-			{
-				if (first == d)
-					return true;
-			}
-			return false;
+			if (!isDelimiter()) return false;
+			char k = Span[0];
+			return delimiters.find(k) != delimiters.end();
 		}
 
 		bool isOperator() const noexcept { return Type == TokenType_Operator; }
 
-		bool isOperatorOf(Operator op) const noexcept { return Type == TokenType_Operator && op == static_cast<Operator>(Value); }
-
-		bool isIdentifier() const noexcept { return Type == TokenType_Identifier; }
-
-		bool isLiteral() const noexcept { return Type == TokenType_Literal; }
-
-		bool isNumeric() const noexcept { return Type == TokenType_Numeric; }
-
-		bool isOperator(Operator& op) const noexcept
+		bool isOperator(Operator& opOut) const noexcept
 		{
-			op = static_cast<Operator>(Value);
+			opOut = static_cast<Operator>(Value);
 			return Type == TokenType_Operator;
+		}
+
+		bool isOperatorOf(const Operator& op) const noexcept
+		{
+			if (!isOperator()) return false;
+			return static_cast<Operator>(Value) == op;
+		}
+
+		bool isOperatorOf(const std::unordered_set<Operator>& ops) const noexcept
+		{
+			if (!isOperator()) return false;
+			auto k = static_cast<Operator>(Value);
+			return ops.find(k) != ops.end();
 		}
 
 		bool isUnaryOperator(Operator& op) const noexcept
@@ -119,6 +136,12 @@ namespace HXSL
 		{
 			return Type == TokenType_Operator && Operators::isCompoundAssignment(static_cast<Operator>(Value));
 		}
+
+		bool isIdentifier() const noexcept { return Type == TokenType_Identifier; }
+
+		bool isLiteral() const noexcept { return Type == TokenType_Literal; }
+
+		bool isNumeric() const noexcept { return Type == TokenType_Numeric; }
 	};
 }
 

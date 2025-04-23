@@ -1,5 +1,6 @@
 #include "ast.hpp"
 #include "symbols/symbol_table.hpp"
+#include "symbols/symbol_resolver.hpp"
 #include "string_pool.hpp"
 #include "assembly_collection.hpp"
 
@@ -7,9 +8,15 @@ namespace HXSL
 {
 	inline void ASTNode::AssignId()
 	{
+		if (id != 0) return;
 		auto compilation = GetCompilation();
-		HXSL_ASSERT(compilation != nullptr, "Cannot assign ID compilation was null.");
+		if (!compilation) return;
+		//HXSL_ASSERT(compilation != nullptr, "Cannot assign ID compilation was null.");
 		id = compilation->GetNextID();
+		for (auto child : children)
+		{
+			child->AssignId();
+		}
 	}
 
 	bool UsingDeclaration::Warmup(const AssemblyCollection& references)
@@ -20,9 +27,9 @@ namespace HXSL
 
 	void SymbolDef::SetAssembly(const Assembly* assembly, size_t tableIndex)
 	{
-		assembly = assembly;
+		this->assembly = assembly;
 		auto table = assembly->GetSymbolTable();
-		tableIndex = tableIndex;
+		this->tableIndex = tableIndex;
 		fullyQualifiedName = std::make_unique<std::string>(table->GetFullyQualifiedName(tableIndex).c_str());
 		if (isExtern)
 		{
@@ -36,6 +43,11 @@ namespace HXSL
 			else
 			{
 				name = TextSpan(fqnView.data(), 0, fqnView.size(), 0, 0);
+			}
+			auto end = name.find('(');
+			if (end != std::string::npos)
+			{
+				name = name.slice(0, end);
 			}
 		}
 	}
@@ -70,6 +82,21 @@ namespace HXSL
 		return table->GetNode(tableIndex).Metadata.get()->declaration;
 	}
 
+	SymbolDef* SymbolRef::GetBaseDeclaration() const
+	{
+		std::unordered_set<const SymbolDef*> visited;
+		auto decl = GetDeclaration();
+		while (auto getter = dynamic_cast<IHasSymbolRef*>(decl))
+		{
+			if (!visited.insert(decl).second)
+			{
+				return nullptr;
+			}
+			decl = getter->GetSymbolRef()->GetDeclaration();
+		}
+		return decl;
+	}
+
 	void SymbolRef::Write(Stream& stream) const
 	{
 		stream.WriteUInt(type);
@@ -81,6 +108,12 @@ namespace HXSL
 		type = static_cast<SymbolRefType>(stream.ReadUInt());
 		fullyQualifiedName = std::make_unique<std::string>(stream.ReadString().c_str());
 		span = TextSpan(*fullyQualifiedName.get());
+		auto pos = span.lastIndexOf(QUALIFIER_SEP);
+		if (pos != std::string::npos)
+		{
+			pos++;
+			span = span.slice(pos);
+		}
 	}
 
 #define UNIQUE_PTR_CAST(ptr, type) \
@@ -107,10 +140,16 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 				AddField(UNIQUE_PTR_CAST(nodes[childIdx], Field));
 				break;
 			case SymbolType_Function:
-				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], Function));
+				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], FunctionOverload));
 				break;
 			case SymbolType_Struct:
 				AddStruct(UNIQUE_PTR_CAST(nodes[childIdx], Struct));
+				break;
+			case SymbolType_Class:
+				AddClass(UNIQUE_PTR_CAST(nodes[childIdx], Class));
+				break;
+			case SymbolType_Operator:
+				AddOperator(UNIQUE_PTR_CAST(nodes[childIdx], OperatorOverload));
 				break;
 			}
 		}
@@ -119,6 +158,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 	void Parameter::Write(Stream& stream) const
 	{
 		stream.WriteUInt(flags);
+		stream.WriteUInt(interpolationModifiers);
 		stream.WriteString(semantic);
 		symbol->Write(stream);
 	}
@@ -126,6 +166,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 	void Parameter::Read(Stream& stream, StringPool& container)
 	{
 		flags = static_cast<ParameterFlags>(stream.ReadUInt());
+		interpolationModifiers = static_cast<InterpolationModifier>(stream.ReadUInt());
 		semantic = TextSpan(container.add(stream.ReadString()));
 		symbol = std::make_unique<SymbolRef>();
 		symbol->Read(stream);
@@ -137,14 +178,16 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 
 	void Field::Write(Stream& stream) const
 	{
-		stream.WriteUInt(flags);
+		stream.WriteUInt(storageClass);
+		stream.WriteUInt(interpolationModifiers);
 		stream.WriteString(semantic);
 		symbol->Write(stream);
 	}
 
 	void Field::Read(Stream& stream, StringPool& container)
 	{
-		flags = static_cast<FieldFlags>(stream.ReadUInt());
+		storageClass = static_cast<StorageClass>(stream.ReadUInt());
+		interpolationModifiers = static_cast<InterpolationModifier>(stream.ReadUInt());
 		semantic = TextSpan(container.add(stream.ReadString()));
 		symbol = std::make_unique<SymbolRef>();
 		symbol->Read(stream);
@@ -154,22 +197,22 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 	{
 	}
 
-	void Function::Write(Stream& stream) const
+	void FunctionOverload::Write(Stream& stream) const
 	{
-		stream.WriteUInt(flags);
+		stream.WriteUInt(functionFlags);
 		stream.WriteString(semantic);
 		returnSymbol->Write(stream);
 	}
 
-	void Function::Read(Stream& stream, StringPool& container)
+	void FunctionOverload::Read(Stream& stream, StringPool& container)
 	{
-		flags = static_cast<FunctionFlags>(stream.ReadUInt());
+		functionFlags = static_cast<FunctionFlags>(stream.ReadUInt());
 		semantic = TextSpan(container.add(stream.ReadString()));
 		returnSymbol = std::make_unique<SymbolRef>();
 		returnSymbol->Read(stream);
 	}
 
-	void Function::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void FunctionOverload::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -183,6 +226,28 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 				break;
 			}
 		}
+	}
+
+	void OperatorOverload::Write(Stream& stream) const
+	{
+		stream.WriteUInt(functionFlags);
+		stream.WriteUInt(operatorFlags);
+		stream.WriteUInt(_operator);
+		returnSymbol->Write(stream);
+	}
+
+	void OperatorOverload::Read(Stream& stream, StringPool& container)
+	{
+		functionFlags = static_cast<FunctionFlags>(stream.ReadUInt());
+		operatorFlags = static_cast<OperatorFlags>(stream.ReadUInt());
+		_operator = static_cast<Operator>(stream.ReadUInt());
+		returnSymbol = std::make_unique<SymbolRef>();
+		returnSymbol->Read(stream);
+	}
+
+	void OperatorOverload::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	{
+		FunctionOverload::Build(table, index, compilation, nodes);
 	}
 
 	void DeclarationStatement::Write(Stream& stream) const
@@ -221,10 +286,16 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 				AddField(UNIQUE_PTR_CAST(nodes[childIdx], Field));
 				break;
 			case SymbolType_Function:
-				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], Function));
+				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], FunctionOverload));
 				break;
 			case SymbolType_Struct:
 				AddStruct(UNIQUE_PTR_CAST(nodes[childIdx], Struct));
+				break;
+			case SymbolType_Class:
+				AddClass(UNIQUE_PTR_CAST(nodes[childIdx], Class));
+				break;
+			case SymbolType_Operator:
+				AddOperator(UNIQUE_PTR_CAST(nodes[childIdx], OperatorOverload));
 				break;
 			}
 		}
@@ -251,10 +322,16 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 				AddField(UNIQUE_PTR_CAST(nodes[childIdx], Field));
 				break;
 			case SymbolType_Function:
-				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], Function));
+				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], FunctionOverload));
 				break;
 			case SymbolType_Struct:
 				AddStruct(UNIQUE_PTR_CAST(nodes[childIdx], Struct));
+				break;
+			case SymbolType_Class:
+				AddClass(UNIQUE_PTR_CAST(nodes[childIdx], Class));
+				break;
+			case SymbolType_Operator:
+				AddOperator(UNIQUE_PTR_CAST(nodes[childIdx], OperatorOverload));
 				break;
 			}
 		}
@@ -265,10 +342,16 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 		references.FindAssembliesByNamespace(name, this->references);
 	}
 
-	void Container::AddFunction(std::unique_ptr<Function> function)
+	void Container::AddFunction(std::unique_ptr<FunctionOverload> function)
 	{
 		function->SetParent(this);
 		functions.push_back(std::move(function));
+	}
+
+	void Container::AddOperator(std::unique_ptr<OperatorOverload> _operator)
+	{
+		_operator->SetParent(this);
+		operators.push_back(std::move(_operator));
 	}
 
 	void Container::AddStruct(std::unique_ptr<Struct> _struct)
@@ -287,5 +370,16 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 	{
 		field->SetParent(this);
 		fields.push_back(std::move(field));
+	}
+
+	void ReturnStatement::TypeCheck(SymbolResolver& resolver)
+	{
+		auto func = FindAncestor<FunctionOverload>(NodeType_FunctionOverload);
+		SymbolDef* retType = func->GetReturnSymbolRef()->GetDeclaration();
+		SymbolDef* exprType = GetReturnValueExpression()->GetInferredType();
+		if (!retType->IsEquivalentTo(exprType))
+		{
+			resolver.LogError("Return type mismatch: expected '%s' but got '%s'", GetSpan(), retType->GetFullyQualifiedName().c_str(), exprType->GetFullyQualifiedName().c_str());
+		}
 	}
 }

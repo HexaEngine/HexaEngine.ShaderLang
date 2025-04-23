@@ -43,7 +43,7 @@ namespace HXSL
 		{
 			if (Text != other.Text)
 			{
-				HXSL_ASSERT(false, "Cannot merge TextSpan based of a different string pointer.");
+				//HXSL_ASSERT(false, "Cannot merge TextSpan based of a different string pointer.");
 				return {};
 			}
 
@@ -156,7 +156,20 @@ namespace HXSL
 					return i;
 				}
 			}
-			return -1;
+			return std::string::npos;
+		}
+
+		size_t lastIndexOf(char c) const
+		{
+			if (Length == 0) return std::string::npos;
+			for (size_t i = Length; i-- > 0; )
+			{
+				if (Text[Start + i] == c)
+				{
+					return i;
+				}
+			}
+			return std::string::npos;
 		}
 
 		bool operator==(const TextSpan& other) const

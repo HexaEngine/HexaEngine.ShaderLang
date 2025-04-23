@@ -11,6 +11,7 @@ namespace HXSL
 		TraversalBehavior_Skip,
 		TraversalBehavior_Keep,
 		TraversalBehavior_Defer,
+		TraversalBehavior_DeferSubTree,
 		TraversalBehavior_AnalyzerSkip,
 	};
 
@@ -66,6 +67,11 @@ namespace HXSL
 					else if (result == TraversalBehavior_Defer)
 					{
 						deferredQueue.push_back(std::make_tuple(currentNode, depth, context));
+					}
+					else if (result == TraversalBehavior_DeferSubTree)
+					{
+						deferredQueue.push_back(std::make_tuple(currentNode, depth, std::move(context)));
+						continue;
 					}
 					else
 					{

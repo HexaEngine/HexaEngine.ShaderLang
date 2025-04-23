@@ -18,6 +18,11 @@ namespace HXSL
 	 return false; \
 	}
 
+#define IF_ERR_RET(expr) \
+	if (!expr) { \
+	 return; \
+	}
+
 #define IF_POP_RET_FALSE(stream, expr) \
 	if (expr) { \
 		stream.PopState(); \

@@ -8,7 +8,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace HXSL 
+namespace HXSL
 {
 	class SymbolTable;
 	class SymbolDef;
@@ -26,16 +26,23 @@ namespace HXSL
 	private:
 		Assembly(const std::string& name);
 
-		std::unique_ptr<std::string> Name;
-		std::unique_ptr<SymbolTable> Table;
+		std::unique_ptr<std::string> name;
+		std::unique_ptr<SymbolTable> table;
+		bool sealed;
 	public:
-		const std::string& GetName() const noexcept { return *Name.get(); }
+		const std::string& GetName() const noexcept { return *name.get(); }
 
-		const SymbolTable* GetSymbolTable() const noexcept { return Table.get(); }
+		const SymbolTable* GetSymbolTable() const noexcept { return table.get(); }
 
-		size_t AddSymbol(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex = 0);
+		SymbolTable* GetMutableSymbolTable() const { if (sealed) { throw std::logic_error("Cannot modify symbol table: Assembly is sealed."); } return table.get(); }
 
-		size_t AddSymbolScope(TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex = 0);
+		void Seal() noexcept { sealed = true; };
+
+		bool IsSealed() const noexcept { return sealed; }
+
+		size_t AddSymbol(const TextSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
+
+		size_t AddSymbolScope(const TextSpan& name, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
 
 		static std::unique_ptr<Assembly> Create(const std::string& path);
 

@@ -66,7 +66,7 @@ namespace HXSL
 		Keyword_Min12int,
 		Keyword_Min16uint,
 		Keyword_Namespace,
-		Keyword_Nointerpolation,
+		Keyword_NoInterpolation,
 		Keyword_Noperspective,
 		Keyword_Null,
 		Keyword_Out,
@@ -133,8 +133,12 @@ namespace HXSL
 		Keyword_Void,
 		Keyword_Volatile,
 		Keyword_While,
+		Keyword_Operator,
+		Keyword_Implicit,
+		Keyword_Explicit,
 		Keyword_Using,
 		Keyword_Private,
+		Keyword_Protected,
 		Keyword_Internal,
 		Keyword_Public,
 	};
@@ -201,7 +205,7 @@ namespace HXSL
 		case Keyword_Min12int: return "min12int";
 		case Keyword_Min16uint: return "min16uint";
 		case Keyword_Namespace: return "namespace";
-		case Keyword_Nointerpolation: return "nointerpolation";
+		case Keyword_NoInterpolation: return "nointerpolation";
 		case Keyword_Noperspective: return "noperspective";
 		case Keyword_Null: return "NULL";
 		case Keyword_Out: return "out";
@@ -268,8 +272,12 @@ namespace HXSL
 		case Keyword_Void: return "void";
 		case Keyword_Volatile: return "volatile";
 		case Keyword_While: return "while";
+		case Keyword_Operator: return "operator";
+		case Keyword_Implicit: return "implicit";
+		case Keyword_Explicit: return "explicit";
 		case Keyword_Using: return "using";
 		case Keyword_Private: return "private";
+		case Keyword_Protected: return "protected";
 		case Keyword_Internal: return "internal";
 		case Keyword_Public: return "public";
 		default: return "Unknown";
@@ -335,7 +343,7 @@ namespace HXSL
 		tst->Insert("min12int", Keyword_Min12int);
 		tst->Insert("min16uint", Keyword_Min16uint);
 		tst->Insert("namespace", Keyword_Namespace);
-		tst->Insert("nointerpolation", Keyword_Nointerpolation);
+		tst->Insert("nointerpolation", Keyword_NoInterpolation);
 		tst->Insert("noperspective", Keyword_Noperspective);
 		tst->Insert("NULL", Keyword_Null);
 		tst->Insert("out", Keyword_Out);
@@ -402,8 +410,12 @@ namespace HXSL
 		tst->Insert("void", Keyword_Void);
 		tst->Insert("volatile", Keyword_Volatile);
 		tst->Insert("while", Keyword_While);
+		tst->Insert("operator", Keyword_Operator);
+		tst->Insert("implicit", Keyword_Implicit);
+		tst->Insert("explicit", Keyword_Explicit);
 		tst->Insert("using", Keyword_Using);
 		tst->Insert("private", Keyword_Private);
+		tst->Insert("protected", Keyword_Protected);
 		tst->Insert("internal", Keyword_Internal);
 		tst->Insert("public", Keyword_Public);
 	}

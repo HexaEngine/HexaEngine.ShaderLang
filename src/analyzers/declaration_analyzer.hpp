@@ -11,7 +11,7 @@ namespace HXSL
 	{
 		virtual bool CanAnalyze(ASTNode* node) override
 		{
-			static const std::unordered_set<NodeType> allowedTypes = { NodeType_Struct, NodeType_Function, NodeType_Field };
+			static const std::unordered_set<NodeType> allowedTypes = { NodeType_Struct, NodeType_FunctionOverload, NodeType_Field };
 			return node->IsAnyTypeOf(allowedTypes);
 		}
 

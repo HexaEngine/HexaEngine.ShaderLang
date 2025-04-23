@@ -1,5 +1,3 @@
-#ifndef TEXT_HELPER_H
-#define TEXT_HELPER_H
 #include <cctype>
 #include <string>
 #include "text_helper.h"
@@ -35,18 +33,15 @@ namespace TextHelper
 		while (current != end)
 		{
 			char c = *current;
-			if (c == '\n' || c == '\r')
+			bool cr = c == '\n';
+			if (cr || c == '\r')
 			{
-				if (current + 1 != end)
+				size_t width = 1;
+				if (cr && current + 1 != end && current[1] == '\n')
 				{
-					current++;
-					c = *current;
-					if (c != '\n' && c != '\r')
-					{
-						current--;
-					}
+					width++;
 				}
-				return (size_t)(current - text - offset + 1);
+				return (size_t)(current + width - text - offset);
 			}
 			current++;
 		}
@@ -72,7 +67,7 @@ namespace TextHelper
 		return length - offset;
 	}
 
-	size_t FindOperatorBoundary(const char* text, size_t offset, size_t length, std::unordered_set<char> delimiter)
+	size_t FindOperatorBoundary(const char* text, size_t offset, size_t length, const std::unordered_set<char>& delimiter)
 	{
 		const char* current = text + offset;
 		const char* end = text + length;
@@ -268,4 +263,3 @@ namespace TextHelper
 		return true;
 	}
 }
-#endif

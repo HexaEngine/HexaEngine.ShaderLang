@@ -29,6 +29,8 @@ if (!expr) { \
 		{
 		}
 
+		static void InitializeSubSystems();
+
 		std::unique_ptr<Assembly>& GetOutputAssembly() noexcept { return outputAssembly; }
 
 		Compilation* Compilation() const noexcept { return compilation; }

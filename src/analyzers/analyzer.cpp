@@ -5,6 +5,7 @@
 #include "symbols/symbol_table.hpp"
 #include "symbols/symbol_resolver.hpp"
 #include "symbols/symbol_collector.hpp"
+#include "symbols/type_checker.hpp"
 
 namespace HXSL
 {
@@ -35,6 +36,11 @@ namespace HXSL
 		}
 	};
 
+	void Analyzer::InitializeSubSystems()
+	{
+		SubAnalyzerRegistry::EnsureCreated();
+	}
+
 	bool Analyzer::Analyze()
 	{
 		DebugVisitor debug = DebugVisitor();
@@ -59,6 +65,9 @@ namespace HXSL
 
 		SymbolResolver resolver(*this, references, outputAssembly.get(), swizzleManager.get());
 		resolver.Traverse(compilation);
+
+		TypeChecker checker(*this, resolver);
+		checker.Traverse(compilation);
 
 		AnalyzerVisitor visitor(*this);
 		visitor.Traverse(compilation);

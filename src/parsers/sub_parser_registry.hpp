@@ -2,6 +2,7 @@
 #define SUB_PARSER_REGISTRY_H
 
 #include "sub_parser.hpp"
+#include <mutex>
 #include <memory>
 
 namespace HXSL
@@ -10,29 +11,35 @@ namespace HXSL
 	{
 	private:
 		static std::vector<std::unique_ptr<SubParser>> parsers;
+		static std::once_flag initFlag;
 
 	public:
+		static void EnsureCreated();
+
 		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, Compilation* compilation)
 		{
-			parser.pushParentNode(parent);
-			for (auto& subParser : parsers)
+			do
 			{
-				stream.PushState();
-				if (subParser->TryParse(parser, stream, compilation))
+				parser.pushParentNode(parent);
+				for (auto& subParser : parsers)
 				{
-					parser.popParentNode();
-					stream.PopState(false);
-					return true;
+					stream.PushState();
+					if (subParser->TryParse(parser, stream, compilation))
+					{
+						parser.popParentNode();
+						stream.PopState(false);
+						return true;
+					}
+					stream.PopState();
 				}
-				stream.PopState();
-			}
-			parser.popParentNode();
+				parser.popParentNode();
 
-			auto current = stream.Current();
-			if (!stream.IsEndOfTokens() && current.Type != TokenType_Delimiter && current.Span[0] != '}')
-			{
-				parser.LogError("Unexpected token.");
-			}
+				auto current = stream.Current();
+				if (stream.IsEndOfTokens() || (current.Type == TokenType_Delimiter && current.Span[0] == '}'))
+				{
+					return false;
+				}
+			} while (parser.AttemptErrorRecovery());
 
 			return false;
 		}
@@ -49,8 +56,11 @@ namespace HXSL
 	{
 	private:
 		static std::vector<std::unique_ptr<StatementParser>> parsers;
+		static std::once_flag initFlag;
 
 	public:
+		static void EnsureCreated();
+
 		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Statement>& statementOut, bool leaveOpen = false)
 		{
 			parser.pushParentNode(parent);
@@ -72,7 +82,7 @@ namespace HXSL
 				auto current = stream.Current();
 				if (!stream.IsEndOfTokens() && (current.Type != TokenType_Delimiter || current.Span[0] != '}'))
 				{
-					parser.LogError("Unrecognised token.");
+					parser.LogError("Unrecognised token.", stream.Current());
 					return false;
 				}
 			}
@@ -101,10 +111,15 @@ namespace HXSL
 		{
 			while (!stream.TryGetDelimiter(';') && !stream.IsEndOfTokens())
 			{
+				auto token = stream.Current();
+				if (token.isKeyword() || token.isIdentifier())
+				{
+					break;
+				}
 				stream.Advance();
 			}
 
-			return true;
+			return false;
 		}
 
 		container->AddStatement(std::move(outStatement));
@@ -114,12 +129,25 @@ namespace HXSL
 	static bool ParseStatementBody(TextSpan name, ScopeType type, ASTNode* parent, Parser& parser, TokenStream& stream, std::unique_ptr<BlockStatement>& statement)
 	{
 		Token first;
-		IF_ERR_RET_FALSE(parser.EnterScope(name, type, parent, first));
+		parser.EnterScope(name, type, parent, first, true);
 
 		auto blockStatement = std::make_unique<BlockStatement>(TextSpan(), parent);
 		while (parser.IterateScope())
 		{
-			ParseStatementBodyInner(parser, stream, blockStatement.get(), blockStatement.get());
+			parser.ParseInnerBegin();
+
+			if (ParseStatementBodyInner(parser, stream, blockStatement.get(), blockStatement.get()))
+			{
+				HXSL_ASSERT(parser.modifierList.Empty(), "Modifier list was not empty, forgot to accept/reject it?.");
+				HXSL_ASSERT(!parser.attribute.HasResource(), "Attribute list was not empty, forgot to accept/reject it?.");
+			}
+			else
+			{
+				if (!parser.TryRecoverScope(true))
+				{
+					break;
+				}
+			}
 		}
 
 		auto span = first.Span.merge(stream.LastToken().Span);
@@ -132,8 +160,11 @@ namespace HXSL
 	{
 	private:
 		static std::vector<std::unique_ptr<ExpressionParser>> parsers;
+		static std::once_flag initFlag;
 
 	public:
+		static void EnsureCreated();
+
 		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expressionOut)
 		{
 			auto first = stream.Current();
@@ -154,7 +185,7 @@ namespace HXSL
 			auto current = stream.Current();
 			if (!stream.IsEndOfTokens() && current.Type != TokenType_Delimiter && current.Span[0] != ';')
 			{
-				parser.LogError("Unrecognised token.");
+				parser.LogError("Unrecognised token.", stream.Current());
 				return false;
 			}
 

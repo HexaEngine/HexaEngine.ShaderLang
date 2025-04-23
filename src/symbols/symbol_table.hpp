@@ -37,7 +37,7 @@ namespace HXSL
 
 		void Write(Stream& stream) const;
 
-		void Read(Stream& stream, std::vector<std::unique_ptr<SymbolDef>>& nodes, StringPool& container);
+		void Read(Stream& stream, std::unique_ptr<SymbolDef>& node, StringPool& container);
 	};
 
 	struct SymbolTableNode

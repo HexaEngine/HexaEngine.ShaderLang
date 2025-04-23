@@ -55,7 +55,7 @@ namespace HXSL
 					continue;
 				}
 
-				ERR_RETURN_FALSE(parser, "Unexpected token in expression, expected an operator.");
+				ERR_RETURN_FALSE(parser, "Unexpected token in expression, expected an operator or ';'.");
 			}
 
 			int prec = Operators::GetOperatorPrecedence(op);
@@ -129,7 +129,8 @@ namespace HXSL
 		HXSL_ASSERT(parent, "Parent cannot be null.");
 		auto start = stream.Current();
 		stream.PushState();
-		if (!ParseExpressionInner(parser, stream, parent, expression))
+		ParseExpressionInner(parser, stream, parent, expression);
+		if (!expression.get())
 		{
 			stream.PopState();
 			return false;

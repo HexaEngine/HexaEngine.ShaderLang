@@ -17,7 +17,7 @@ namespace HXSL
 		}
 	}
 
-	void SymbolMetadata::Read(Stream& stream, std::vector<std::unique_ptr<SymbolDef>>& nodes, StringPool& container)
+	void SymbolMetadata::Read(Stream& stream, std::unique_ptr<SymbolDef>& node, StringPool& container)
 	{
 		symbolType = static_cast<SymbolType>(stream.ReadUInt());
 		scope = static_cast<SymbolScopeType>(stream.ReadUInt());
@@ -30,11 +30,11 @@ namespace HXSL
 			auto pt = CreateInstance(type);
 			declaration = pt.get();
 			declaration->Read(stream, container);
-			nodes.push_back(std::move(pt));
+			node = std::move(pt);
 		}
 		else
 		{
-			nodes.push_back(nullptr);
+			node.reset();
 		}
 	}
 
@@ -250,8 +250,10 @@ namespace HXSL
 		auto metadata = stream.ReadValue<bool>();
 		if (metadata)
 		{
+			std::unique_ptr<SymbolDef> astNode;
 			node.Metadata = std::make_shared<SymbolMetadata>();
-			node.Metadata->Read(stream, nodes, container);
+			node.Metadata->Read(stream, astNode, container);
+			nodes[index] = std::move(astNode);
 		}
 	}
 
@@ -265,7 +267,7 @@ namespace HXSL
 		compilation->Clear();
 
 		std::vector<std::unique_ptr<SymbolDef>> externalAstNodes;
-		externalAstNodes.emplace_back();
+		externalAstNodes.resize(nodeCount);
 
 		for (size_t i = 0; i < nodeCount; i++)
 		{

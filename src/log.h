@@ -60,13 +60,16 @@ namespace HXSL
 	private:
 		Vector<LogMessage> messages;
 		bool hasCriticalErrors;
+		int errorCount;
 
 	public:
-		ILogger() : hasCriticalErrors(false)
+		ILogger() : hasCriticalErrors(false), errorCount(0)
 		{
 		}
 
 		bool HasCriticalErrors() const noexcept { return hasCriticalErrors; }
+
+		bool HasErrors() const noexcept { return errorCount > 0 || HasCriticalErrors(); }
 
 		void Log(LogLevel level, const std::string& message)
 		{
@@ -81,6 +84,14 @@ namespace HXSL
 			{
 				hasCriticalErrors = true;
 				HXSL_ASSERT(false, message.c_str());
+			}
+			else if (level == LogLevel_Error)
+			{
+				errorCount++;
+				if (errorCount >= 100)
+				{
+					Log(LogLevel_Critical, "Too many errors encountered, stopping compilation!");
+				}
 			}
 		}
 

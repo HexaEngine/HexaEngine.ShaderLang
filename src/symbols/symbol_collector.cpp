@@ -2,11 +2,10 @@
 
 namespace HXSL
 {
-	inline bool SymbolCollector::Push(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
+	inline bool SymbolCollector::Push(const TextSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
-		auto& span = def->GetName();
 		stack.push(current);
-		size_t newIndex = targetAssembly->AddSymbol(def, metadata, current.NodeIndex);
+		size_t newIndex = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
 		if (newIndex == 0)
 		{
 			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString().c_str());
@@ -19,7 +18,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool SymbolCollector::PushScope(const ASTNode* parent, TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
+	bool SymbolCollector::PushScope(const ASTNode* parent, const TextSpan& span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		stack.push(current);
 		size_t newIndex = targetAssembly->AddSymbolScope(span, metadata, current.NodeIndex);
@@ -37,7 +36,7 @@ namespace HXSL
 	inline bool SymbolCollector::PushLeaf(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata)
 	{
 		auto& span = def->GetName();
-		size_t newIndex = targetAssembly->AddSymbol(def, metadata, current.NodeIndex);
+		size_t newIndex = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
 		if (newIndex == 0)
 		{
 			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString().c_str());
@@ -62,7 +61,7 @@ namespace HXSL
 		{
 			Namespace* s = dynamic_cast<Namespace*>(node);
 			auto metadata = std::make_shared<SymbolMetadata>(SymbolType_Namespace, current.Type, AccessModifier_Public, 0, s);
-			Push(s, metadata, SymbolScopeType_Namespace);
+			Push(s->GetName(), s, metadata, SymbolScopeType_Namespace);
 		}
 		break;
 
@@ -71,7 +70,7 @@ namespace HXSL
 			Struct* s = dynamic_cast<Struct*>(node);
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
-			Push(s, metadata, SymbolScopeType_Struct);
+			Push(s->GetName(), s, metadata, SymbolScopeType_Struct);
 		}
 		break;
 
@@ -84,12 +83,23 @@ namespace HXSL
 		}
 		break;
 
-		case NodeType_Function:
+		case NodeType_FunctionOverload:
 		{
-			Function* s = dynamic_cast<Function*>(node);
+			FunctionOverload* s = dynamic_cast<FunctionOverload*>(node);
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
-			Push(s, metadata, SymbolScopeType_Function);
+			auto signature = s->BuildOverloadSignature();
+			Push(TextSpan(signature), s, metadata, SymbolScopeType_Function);
+		}
+		break;
+
+		case NodeType_OperatorOverload:
+		{
+			OperatorOverload* s = dynamic_cast<OperatorOverload*>(node);
+			auto symType = s->GetSymbolType();
+			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
+			auto signature = s->BuildOverloadSignature();
+			Push(TextSpan(signature), s, metadata, SymbolScopeType_Operator);
 		}
 		break;
 

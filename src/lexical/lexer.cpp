@@ -119,7 +119,7 @@ namespace HXSL
 				return Token(state.AsTextSpan(i, identifierLength), state.TreatIdentiferAsLiteral ? TokenType_Literal : TokenType_Identifier);
 			}
 
-			state.LogError("Unknown token.");
+			state.Log(LogLevel_Critical, "Unknown token.");
 			return {};
 		}
 

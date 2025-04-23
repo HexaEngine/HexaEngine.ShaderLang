@@ -1,10 +1,11 @@
 #ifndef SYMBOL_RESOLVER_HPP
 #define SYMBOL_RESOLVER_HPP
 
-#include "analyzer.hpp"
+#include "analyzers/analyzer.hpp"
 #include "ast.hpp"
 #include <memory>
 #include <stack>
+#include <optional>
 
 namespace HXSL
 {
@@ -178,6 +179,13 @@ namespace HXSL
 		{
 		}
 
+		template <typename... Args>
+		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
+		{
+			std::string format = message + " (Line: %i, Column: %i)";
+			compilation->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+		}
+
 		bool SymbolTypeSanityCheck(SymbolMetadata* metadata, SymbolRef* ref) const;
 
 		bool SymbolVisibilityChecks(SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const;
@@ -195,7 +203,9 @@ namespace HXSL
 			return ResolveSymbol(TextSpan(str), t, i);
 		}
 
-		bool ResolveSymbol(SymbolRef* ref) const;
+		bool ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name = std::nullopt) const;
+
+		bool ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, size_t nodeIndex) const;
 
 		/// <summary>
 		///
@@ -203,7 +213,7 @@ namespace HXSL
 		/// <param name="type"></param>
 		/// <param name="getter"></param>
 		/// <returns>-1 Failed, 0 Success, 1 Defer</returns>
-		int ResolveMemberInner(SymbolRef* type, IHasSymbolRef* getter) const;
+		int ResolveMemberInner(SymbolRef* type, SymbolRef* refInner) const;
 
 		TraversalBehavior ResolveMember(MemberAccessExpression* memberAccessExpr, ASTNode*& next) const;
 
@@ -217,25 +227,18 @@ namespace HXSL
 
 		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context) override;
 
-		SymbolDef* GetNumericType(const NumberType& type) const;
-
-		void TypeCheckExpression(Expression* node);
-
-		void TypeCheckStatement(ASTNode*& node);
-
-		TraversalBehavior TypeChecksExpression(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context);
-
 		void Traverse(ASTNode* node) override
 		{
+			auto assemblyBackup = targetAssembly;
 			for (auto& reference : references.GetAssemblies())
 			{
+				targetAssembly = reference.get();
 				auto table = reference->GetSymbolTable();
 				Visitor::Traverse(table->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 			}
 
+			targetAssembly = assemblyBackup;
 			Visitor::Traverse(node);
-
-			Visitor::Traverse(node, std::bind(&SymbolResolver::TypeChecksExpression, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), nullptr);
 		}
 	};
 }

@@ -5,18 +5,23 @@
 
 namespace HXSL
 {
-	static bool ParseField(const Token& start, AccessModifier access, FieldFlags flags, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, Compilation* compilation)
+	static bool ParseField(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, Compilation* compilation)
 	{
 		parser.RejectAttribute("cannot be applied to fields, found on '%s'", name.toString().c_str());
+
+		ModifierList list;
+		ModifierList allowed = ModifierList(AccessModifier_All, true, FunctionFlags_None, StorageClass_All, InterpolationModifier_All, true);
+		parser.AcceptModifierList(&list, allowed, "is not valid on fields.");
+
 		auto scopeType = parser.scopeType();
-		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct)
+		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
 		{
 			ERR_RETURN_FALSE(parser, "Cannot declare field in this scope");
 		}
 
 		ASTNode* parent = parser.scopeParent();
 		auto span = start.Span.merge(stream.LastToken().Span);
-		auto field = std::make_unique<Field>(span, parent, access, flags, name, std::move(symbol), semantic);
+		auto field = std::make_unique<Field>(span, parent, list.accessModifiers, list.storageClasses, list.interpolationModifiers, name, std::move(symbol), semantic);
 
 		auto parentType = parent->GetType();
 		switch (parentType)
@@ -30,6 +35,9 @@ namespace HXSL
 		case NodeType_Struct:
 			parent->As<Struct>()->AddField(std::move(field));
 			break;
+		case NodeType_Class:
+			parent->As<Class>()->AddField(std::move(field));
+			break;
 		default:
 			return false;
 		}
@@ -41,7 +49,7 @@ namespace HXSL
 	{
 		auto startingToken = stream.Current();
 
-		ParameterFlags flags = parser.ParseParameterFlags();
+		auto flags = parser.ParseParameterFlags();
 
 		LazySymbol symbol;
 		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_AnyType, symbol));
@@ -56,20 +64,27 @@ namespace HXSL
 
 		auto span = startingToken.Span.merge(stream.LastToken().Span);
 
-		parameter = std::make_unique<Parameter>(span, parent, flags, std::move(symbol.make()), name, semantic);
+		parameter = std::make_unique<Parameter>(span, parent, std::get<0>(flags), std::get<1>(flags), std::move(symbol.make()), name, semantic);
 		return true;
 	}
 
-	static bool ParseFunction(const Token& start, AccessModifier access, FunctionFlags flags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, Parser& parser, TokenStream& stream, Compilation* compilation, TakeHandle<AttributeDeclaration>* attribute)
+	static bool ParseFunction(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, Parser& parser, TokenStream& stream, Compilation* compilation)
 	{
+		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		parser.AcceptAttribute(&attribute, "");
+
+		ModifierList list;
+		ModifierList allowed = ModifierList(AccessModifier_All, true, FunctionFlags_All, StorageClass_Static, InterpolationModifier_None, false);
+		parser.AcceptModifierList(&list, allowed, "is not valid on functions.");
+
 		auto scopeType = parser.scopeType();
-		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct)
+		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
 		{
 			return false;
 		}
 
 		auto parent = parser.scopeParent();
-		auto function = std::make_unique<Function>(TextSpan(), parent, access, flags, name, std::move(returnSymbol));
+		auto function = std::make_unique<FunctionOverload>(TextSpan(), parent, list.accessModifiers, list.functionFlags, name, std::move(returnSymbol));
 		if (attribute && attribute->HasResource())
 		{
 			function->AddAttribute(std::move(attribute->Take()));
@@ -123,6 +138,105 @@ namespace HXSL
 		case NodeType_Struct:
 			parent->As<Struct>()->AddFunction(std::move(function));
 			break;
+		case NodeType_Class:
+			parent->As<Class>()->AddFunction(std::move(function));
+			break;
+		default:
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool ParseOperator(const Token& start, OperatorFlags flags, Parser& parser, TokenStream& stream, Compilation* compilation)
+	{
+		auto opKeywordToken = stream.Current();
+		IF_ERR_RET_FALSE(stream.ExpectKeyword(Keyword_Operator));
+
+		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		parser.AcceptAttribute(&attribute, "");
+
+		ModifierList list;
+		ModifierList allowed = ModifierList(AccessModifier_All, true, FunctionFlags_Inline, StorageClass_Static, InterpolationModifier_None, false);
+		parser.AcceptModifierList(&list, allowed, "is not valid on operators.");
+
+		Operator op;
+		auto opToken = stream.Current();
+		if (opToken.isOperator(op))
+		{
+			stream.Advance();
+		}
+		else
+		{
+			opToken = opKeywordToken;
+			op = Operator_Cast;
+		}
+
+		std::unique_ptr<SymbolRef> symbol;
+		IF_ERR_RET_FALSE(parser.ParseSymbol(SymbolRefType_AnyType, symbol));
+
+		auto scopeType = parser.scopeType();
+		if (scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
+		{
+			return false;
+		}
+
+		auto name = opKeywordToken.Span.merge(opToken.Span);
+		auto parent = parser.scopeParent();
+		auto _operator = std::make_unique<OperatorOverload>(TextSpan(), parent, list.accessModifiers, list.functionFlags, flags, name, op, std::move(symbol));
+		if (attribute && attribute->HasResource())
+		{
+			_operator->AddAttribute(std::move(attribute->Take()));
+		}
+
+		std::vector<std::unique_ptr<Parameter>> parameters;
+
+		stream.ExpectDelimiter('(');
+
+		bool firstParameter = true;
+		while (!stream.TryGetDelimiter(')'))
+		{
+			if (!firstParameter)
+			{
+				stream.ExpectDelimiter(',', "Unexpected token in parameter list, expected an ',' or ')'.");
+			}
+			firstParameter = false;
+
+			std::unique_ptr<Parameter> parameter;
+
+			if (ParseParameter(parser, stream, _operator.get(), parameter))
+			{
+				parameters.push_back(std::move(parameter));
+			}
+			else
+			{
+				if (!parser.TryRecoverParameterList())
+				{
+					break;
+				}
+			}
+		}
+
+		_operator->SetParameters(std::move(parameters));
+
+		if (!stream.TryGetDelimiter(';'))
+		{
+			std::unique_ptr<BlockStatement> statement;
+			ParseStatementBody(name, ScopeType_Function, _operator.get(), parser, stream, statement);
+			_operator->SetBody(std::move(statement));
+		}
+
+		_operator->SetSpan(stream.MakeFromLast(start));
+
+		auto parentType = parent->GetType();
+		switch (parentType)
+		{
+		case NodeType_Struct:
+			parent->As<Struct>()->AddOperator(std::move(_operator));
+			break;
+		case NodeType_Class:
+			parent->As<Class>()->AddOperator(std::move(_operator));
+			break;
 		default:
 			return false;
 		}
@@ -134,65 +248,100 @@ namespace HXSL
 	{
 		auto startingToken = stream.Current();
 
-		AccessModifier access = parser.ParseAccessModifier();
-		FunctionFlags functionFlags = parser.ParseFunctionFlags();
-		FieldFlags fieldFlags = parser.ParseFieldFlags();
-
 		LazySymbol symbol;
 		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_AnyType, symbol));
 
 		TextSpan name;
-		IF_ERR_RET_FALSE(stream.TryGetIdentifier(name));
+		if (!stream.TryGetIdentifier(name))
+		{
+			return false;
+		}
 
 		TextSpan fieldSemantic;
 		if (stream.TryGetDelimiter('('))
 		{
-			TakeHandle<AttributeDeclaration>* attribute = nullptr;
-			parser.AcceptAttribute(&attribute, "");
-			IF_ERR_RET_FALSE(ParseFunction(startingToken, access, functionFlags, name, std::move(symbol.make()), parser, stream, compilation, attribute));
+			ParseFunction(startingToken, name, std::move(symbol.make()), parser, stream, compilation);
 			return true;
 		}
-		else if (stream.TryGetDelimiter(';'))
+		else if (stream.TryGetOperator(Operator_Colon) && stream.TryGetIdentifier(fieldSemantic))
 		{
-			ParseField(startingToken, access, fieldFlags, name, std::move(symbol.make()), {}, parser, stream, compilation);
+			stream.ExpectDelimiter(';', "Expected an semicolon after field declaration.");
+			ParseField(startingToken, name, std::move(symbol.make()), fieldSemantic, parser, stream, compilation);
 			return true;
 		}
-		else if (stream.TryGetOperator(Operator_Colon) && stream.TryGetIdentifier(fieldSemantic) && stream.TryGetDelimiter(';'))
+		else
 		{
-			ParseField(startingToken, access, fieldFlags, name, std::move(symbol.make()), fieldSemantic, parser, stream, compilation);
+			stream.ExpectDelimiter(';', "Expected an semicolon after field declaration.");
+			ParseField(startingToken, name, std::move(symbol.make()), {}, parser, stream, compilation);
 			return true;
 		}
 
 		return false;
 	}
 
+	bool OperatorParser::TryParse(Parser& parser, TokenStream& stream, Compilation* compilation)
+	{
+		auto startingToken = stream.Current();
+
+		if (!stream.TryGetKeyword(Keyword_Explicit) && !stream.TryGetKeyword(Keyword_Implicit) && !startingToken.isKeywordOf(Keyword_Operator))
+		{
+			return false;
+		}
+
+		OperatorFlags operatorFlags;
+		switch (startingToken.asKeyword())
+		{
+		case Keyword_Explicit:
+			operatorFlags = OperatorFlags_Explicit;
+			break;
+		case Keyword_Implicit:
+			operatorFlags = OperatorFlags_Implicit;
+			break;
+		default:
+			operatorFlags = OperatorFlags_None;
+			break;
+		}
+
+		IF_ERR_RET_FALSE(ParseOperator(startingToken, operatorFlags, parser, stream, compilation));
+
+		return true;
+	}
+
 	bool StructParser::TryParse(Parser& parser, TokenStream& stream, Compilation* compilation)
 	{
 		auto startingToken = stream.Current();
 
-		auto access = parser.ParseAccessModifier();
-
 		IF_ERR_RET_FALSE(stream.TryGetKeyword(Keyword_Struct));
 
 		TextSpan name;
-		IF_ERR_RET_FALSE(stream.ExpectIdentifier(name));
+		stream.ExpectIdentifier(name);
 
-		IF_ERR_RET_FALSE(parser.AcceptAttribute(nullptr, "is not valid in this context on '%s'", name.toString().c_str()));
+		parser.AcceptAttribute(nullptr, "is not valid in this context on '%s'", name.toString().c_str());
 
 		auto scopeType = parser.scopeType();
-		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct)
+		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
 		{
-			ERR_RETURN_FALSE(parser, "Cannot declare struct here.");
+			parser.LogError("Cannot declare a struct in this scope, allowed scopes are 'namespace', 'struct' or 'class'.", startingToken);
 		}
 
+		ModifierList list;
+		ModifierList allowed = ModifierList(AccessModifier_All, true);
+		parser.AcceptModifierList(&list, allowed, "is not valid on structs.");
+
 		auto parent = parser.scopeParent();
-		auto _struct = std::make_unique<Struct>(TextSpan(), parent, access, name);
+		auto _struct = std::make_unique<Struct>(TextSpan(), parent, list.accessModifiers, name);
 
 		Token t;
-		IF_ERR_RET_FALSE(parser.EnterScope(name, ScopeType_Struct, _struct.get(), t));
+		parser.EnterScope(name, ScopeType_Struct, _struct.get(), t, true, "Expected an '{' after struct declaration.");
 		while (parser.IterateScope())
 		{
-			while (SubParserRegistry::TryParse(parser, stream, _struct.get(), compilation));
+			if (!parser.ParseSubStepInner(_struct.get()))
+			{
+				if (!parser.TryRecoverScope(true))
+				{
+					break;
+				}
+			}
 		}
 
 		stream.TryGetDelimiter(';'); // this is optional
@@ -211,6 +360,9 @@ namespace HXSL
 			break;
 		case NodeType_Struct:
 			parent->As<Struct>()->AddStruct(std::move(_struct));
+			break;
+		case NodeType_Class:
+			parent->As<Class>()->AddStruct(std::move(_struct));
 			break;
 		default:
 			return false;

@@ -4,6 +4,7 @@
 #include "config.h"
 #include "analyzer.hpp"
 #include "sub_analyzer.hpp"
+#include "declaration_analyzer.hpp"
 
 namespace HXSL
 {
@@ -11,8 +12,11 @@ namespace HXSL
 	{
 	private:
 		static std::vector<std::unique_ptr<SubAnalyzer>> analyzers;
+		static std::once_flag initFlag;
 
 	public:
+		static void EnsureCreated();
+
 		static TraversalBehavior TryAnalyze(Analyzer& analyzer, ASTNode* node, Compilation* compilation)
 		{
 			for (auto& subAnalyzer : analyzers)

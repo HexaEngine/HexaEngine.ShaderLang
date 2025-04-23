@@ -3,9 +3,14 @@
 
 #include "sub_parser.hpp"
 
-namespace HXSL 
+namespace HXSL
 {
 	class DeclarationParser : public SubParser
+	{
+		bool TryParse(Parser& parser, TokenStream& stream, Compilation* compilation) override;
+	};
+
+	class OperatorParser : public SubParser
 	{
 		bool TryParse(Parser& parser, TokenStream& stream, Compilation* compilation) override;
 	};

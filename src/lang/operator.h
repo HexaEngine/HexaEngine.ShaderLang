@@ -46,6 +46,7 @@ namespace HXSL
 		Operator_Decrement,
 		Operator_MemberAccess,
 		Operator_LogicalNot,
+		Operator_Cast,
 
 		Operator_Colon = Operator_TernaryElse
 	};
@@ -135,6 +136,70 @@ namespace HXSL
 
 	namespace Operators
 	{
+		static bool IsValidOverloadOperator(Operator op)
+		{
+			switch (op) {
+			case Operator_Increment:
+			case Operator_Decrement:
+			case Operator_LogicalNot:
+			case Operator_BitwiseNot:
+			case Operator_Add:
+			case Operator_Subtract:
+			case Operator_Multiply:
+			case Operator_Divide:
+			case Operator_Modulus:
+			case Operator_BitwiseShiftLeft:
+			case Operator_BitwiseShiftRight:
+			case Operator_BitwiseAnd:
+			case Operator_BitwiseOr:
+			case Operator_BitwiseXor:
+			case Operator_LessThan:
+			case Operator_GreaterThan:
+			case Operator_Equal:
+			case Operator_NotEqual:
+			case Operator_LessThanOrEqual:
+			case Operator_GreaterThanOrEqual:
+			case Operator_AndAnd:
+			case Operator_OrOr:
+				return true;
+			default:
+				return false;
+			}
+		}
+
+		static size_t GetNumOverloadParams(Operator op)
+		{
+			switch (op) {
+			case Operator_Increment:
+			case Operator_Decrement:
+			case Operator_LogicalNot:
+			case Operator_BitwiseNot:
+				return 1;
+
+			case Operator_Add:
+			case Operator_Subtract:
+			case Operator_Multiply:
+			case Operator_Divide:
+			case Operator_Modulus:
+			case Operator_BitwiseShiftLeft:
+			case Operator_BitwiseShiftRight:
+			case Operator_BitwiseAnd:
+			case Operator_BitwiseOr:
+			case Operator_BitwiseXor:
+			case Operator_LessThan:
+			case Operator_GreaterThan:
+			case Operator_Equal:
+			case Operator_NotEqual:
+			case Operator_LessThanOrEqual:
+			case Operator_GreaterThanOrEqual:
+			case Operator_AndAnd:
+			case Operator_OrOr:
+				return 2;
+			default:
+				return 0;
+			}
+		}
+
 		static int GetOperatorPrecedence(Operator op) {
 			switch (op)
 			{

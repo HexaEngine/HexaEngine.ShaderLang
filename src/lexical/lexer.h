@@ -127,7 +127,7 @@ namespace HXSL
 				return TextHelper::FindWordBoundary(Text, start, Length);
 			}
 
-			size_t FindOperatorBoundary(size_t start, std::unordered_set<char> delimiters) const
+			size_t FindOperatorBoundary(size_t start, const std::unordered_set<char>& delimiters) const
 			{
 				return TextHelper::FindOperatorBoundary(Text, start, Length, delimiters);
 			}

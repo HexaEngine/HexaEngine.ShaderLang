@@ -6,7 +6,7 @@ namespace HXSL
 	{
 		auto refType = ref->GetType();
 		auto defType = metadata->symbolType;
-		auto& span = ref->GetSpan();
+		auto& span = ref->GetName();
 
 		switch (refType)
 		{
@@ -25,6 +25,15 @@ namespace HXSL
 
 		case SymbolRefType_Function:
 			if (defType != SymbolType_Function)
+			{
+				analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(),
+					ToString(defType).c_str());
+				return false;
+			}
+			break;
+
+		case SymbolRefType_OperatorOverload:
+			if (defType != SymbolType_Operator)
 			{
 				analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(),
 					ToString(defType).c_str());
@@ -105,6 +114,7 @@ namespace HXSL
 			break;
 
 		case SymbolRefType_Any:
+			HXSL_ASSERT(false, "Any symbol reference type.");
 			return true;
 			break;
 
@@ -224,13 +234,14 @@ namespace HXSL
 		return nullptr;
 	}
 
-	bool SymbolResolver::ResolveSymbol(SymbolRef* ref) const
+	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name) const
 	{
-		auto& name = ref->GetSpan();
+		auto& span = ref->GetName();
+		auto& actualName = name.value_or(span);
 
 		const SymbolTable* table;
 		size_t index;
-		auto def = ResolveSymbol(name, table, index);
+		auto def = ResolveSymbol(actualName, table, index);
 		if (!def)
 		{
 			return false;
@@ -242,6 +253,28 @@ namespace HXSL
 			return false;
 		}
 		ref->SetTable(table, index);
+
+		return true;
+	}
+
+	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, size_t nodeIndex) const
+	{
+		auto& span = ref->GetName();
+		auto& actualName = name.value_or(span);
+
+		SymbolDef* def;
+		if (!TryResolve(table, actualName, nodeIndex, table, nodeIndex, def))
+		{
+			analyzer.LogError("Symbol not found '%s'", span, actualName.toString().c_str());
+			return false;
+		}
+
+		auto metadata = table->GetNode(nodeIndex).Metadata.get();
+		if (!SymbolTypeSanityCheck(metadata, ref))
+		{
+			return false;
+		}
+		ref->SetTable(table, nodeIndex);
 
 		return true;
 	}
@@ -304,12 +337,22 @@ namespace HXSL
 			ResolveSymbol(ref.get());
 		}
 		break;
-		case NodeType_Function:
+		case NodeType_FunctionOverload:
 		{
-			auto function = node->As<Function>();
+			auto function = node->As<FunctionOverload>();
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
-			PushScope(node, function->GetName(), true);
+			auto signature = function->BuildOverloadSignature();
+			PushScope(node, TextSpan(signature), true);
+		}
+		break;
+		case NodeType_OperatorOverload:
+		{
+			auto function = node->As<OperatorOverload>();
+			auto& ref = function->GetReturnSymbolRef();
+			ResolveSymbol(ref.get());
+			auto signature = function->BuildOverloadSignature();
+			PushScope(node, TextSpan(signature), true);
 		}
 		break;
 		case NodeType_Parameter:
@@ -334,9 +377,9 @@ namespace HXSL
 			{
 				auto usageID = parent->GetID();
 				auto declID = declStmt->GetID();
-				if (usageID < declID)
+				if (usageID < declID) // this works because IDs are incremental.
 				{
-					auto refStr = ref->GetSpan().toString();
+					auto refStr = ref->GetName().toString();
 					analyzer.LogError("Use of variable '%s' before its declaration.", parent->GetSpan(), refStr.c_str());
 					return false;
 				}
@@ -367,12 +410,22 @@ namespace HXSL
 			ResolveSymbol(ref.get());
 		}
 		break;
-		case NodeType_Function:
+		case NodeType_FunctionOverload:
 		{
-			auto function = node->As<Function>();
+			auto function = node->As<FunctionOverload>();
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
-			PushScope(node, function->GetName());
+			auto signature = function->BuildOverloadSignature();
+			PushScope(node, TextSpan(signature));
+		}
+		break;
+		case NodeType_OperatorOverload:
+		{
+			auto function = node->As<OperatorOverload>();
+			auto& ref = function->GetReturnSymbolRef();
+			ResolveSymbol(ref.get());
+			auto signature = function->BuildOverloadSignature();
+			PushScope(node, TextSpan(signature));
 		}
 		break;
 		case NodeType_Parameter:
@@ -433,325 +486,6 @@ namespace HXSL
 		return TraversalBehavior_Keep;
 	}
 
-	SymbolDef* SymbolResolver::GetNumericType(const NumberType& type) const
-	{
-		switch (type)
-		{
-		case NumberType_Char:
-		case NumberType_SByte:
-		case NumberType_Short:
-		case NumberType_UShort:
-		case NumberType_Int:
-			return ResolveSymbol("int");
-		case NumberType_UInt:
-			return ResolveSymbol("uint");
-		case NumberType_LongLong:
-			return ResolveSymbol("int64_t");
-		case NumberType_ULongLong:
-			return ResolveSymbol("uint64_t");
-		case NumberType_Half:
-			return ResolveSymbol("half");
-		case NumberType_Float:
-			return ResolveSymbol("float");
-		case NumberType_Double:
-			return ResolveSymbol("double");
-		default:
-			HXSL_ASSERT(false, "Unsupported numeric constant type.");
-			return nullptr;
-		}
-	}
-
-	static bool TypeCheckPrim(Primitive* left, Primitive* right, Primitive*& out)
-	{
-		auto& leftType = left->GetKind();
-		auto& rightType = right->GetKind();
-
-		if (leftType == rightType)
-		{
-			out = left;
-			return true;
-		}
-
-		if (leftType == PrimitiveKind_Float && rightType == PrimitiveKind_Int)
-		{
-			out = left;
-			return true;
-		}
-		if (leftType == PrimitiveKind_Int && rightType == PrimitiveKind_Float)
-		{
-			out = right;
-			return true;
-		}
-
-		return false;
-	}
-
-	static bool BinaryOpTypeCheck(const Operator& op, const Expression* left, const Expression* right, SymbolDef*& result)
-	{
-		auto leftType = left->GetInferredType();
-		auto rightType = right->GetInferredType();
-
-		// currently only primitives are allowed.
-		if (leftType->GetSymbolType() != SymbolType_Primitive || rightType->GetSymbolType() != SymbolType_Primitive)
-		{
-			return false;
-		}
-
-		auto primLeft = dynamic_cast<Primitive*>(leftType);
-		auto primRight = dynamic_cast<Primitive*>(rightType);
-
-		Primitive* primOut;
-		if (!TypeCheckPrim(primLeft, primRight, primOut))
-		{
-			return false;
-		}
-		result = primOut;
-
-		auto& leftClass = primLeft->GetClass();
-		auto& rightClass = primRight->GetClass();
-		if (leftClass != rightClass || leftClass == PrimitiveClass_Matrix)
-		{
-			return false;
-		}
-
-		auto& outKind = primOut->GetKind();
-
-		switch (op)
-		{
-		case Operator_Add:
-		case Operator_Subtract:
-		case Operator_Multiply:
-		case Operator_Divide:
-		case Operator_Modulus:
-			return outKind != PrimitiveKind_Bool && outKind != PrimitiveKind_Void;
-
-		case Operator_PlusAssign:
-			break;
-		case Operator_MinusAssign:
-			break;
-		case Operator_MultiplyAssign:
-			break;
-		case Operator_DivideAssign:
-			break;
-		case Operator_ModulusAssign:
-			break;
-		case Operator_BitwiseNot:
-			break;
-		case Operator_BitwiseShiftLeft:
-			break;
-		case Operator_BitwiseShiftRight:
-			break;
-		case Operator_BitwiseAnd:
-			break;
-		case Operator_BitwiseOr:
-			break;
-		case Operator_BitwiseXor:
-			break;
-		case Operator_BitwiseShiftLeftAssign:
-			break;
-		case Operator_BitwiseShiftRightAssign:
-			break;
-		case Operator_BitwiseAndAssign:
-			break;
-		case Operator_BitwiseOrAssign:
-			break;
-		case Operator_BitwiseXorAssign:
-			break;
-		case Operator_AndAnd:
-			break;
-		case Operator_OrOr:
-			break;
-		case Operator_LessThan:
-			break;
-		case Operator_GreaterThan:
-			break;
-		case Operator_Equal:
-			break;
-		case Operator_NotEqual:
-			break;
-		case Operator_LessThanOrEqual:
-			break;
-		case Operator_GreaterThanOrEqual:
-			break;
-		case Operator_Increment:
-			break;
-		case Operator_Decrement:
-			break;
-		case Operator_LogicalNot:
-			break;
-
-		default:
-			break;
-		}
-
-		return false;
-	}
-
-	void SymbolResolver::TypeCheckExpression(Expression* node)
-	{
-		std::stack<Expression*> stack;
-		stack.push(node);
-
-		while (!stack.empty())
-		{
-			Expression* current = stack.top();
-			stack.pop();
-
-			auto& type = current->GetType();
-			switch (type)
-			{
-			case NodeType_BinaryExpression:
-			{
-				auto expression = dynamic_cast<BinaryExpression*>(current);
-
-				auto left = expression->GetLeft().get();
-				auto right = expression->GetRight().get();
-
-				if (expression->GetLazyEval())
-				{
-					auto& op = expression->GetOperator();
-					SymbolDef* result;
-					if (!BinaryOpTypeCheck(op, left, right, result))
-					{
-						analyzer.LogError("Couldn't find operator '%s' for '%s' and '%s'", expression->GetSpan(), ToString(op).c_str(), left->GetInferredType()->GetName().toString().c_str(), right->GetInferredType()->GetName().toString().c_str());
-						break;
-					}
-
-					expression->SetInferredType(result);
-				}
-				else
-				{
-					expression->SetLazyEval(true);
-					stack.push(expression);
-					stack.push(right);
-					stack.push(left);
-				}
-			}
-			break;
-			case NodeType_UnaryExpression:
-			{
-				auto expression = dynamic_cast<UnaryExpression*>(current);
-
-				if (expression->GetLazyEval())
-				{
-					// TODO: Add type checking here.
-					expression->SetInferredType(expression->GetOperand()->GetInferredType());
-				}
-				else
-				{
-					expression->SetLazyEval(true);
-					stack.push(expression);
-					stack.push(expression->GetOperand().get());
-				}
-			}
-			break;
-			case NodeType_MemberAccessExpression:
-			{
-				auto expression = dynamic_cast<MemberAccessExpression*>(current);
-
-				if (expression->GetLazyEval())
-				{
-					expression->SetInferredType(expression->GetExpression()->GetInferredType());
-				}
-				else
-				{
-					expression->SetLazyEval(true);
-					stack.push(expression);
-					stack.push(expression->GetExpression().get());
-				}
-			}
-			break;
-			case NodeType_SymbolRefExpression:
-			{
-				auto expression = dynamic_cast<SymbolRefExpression*>(current);
-				auto decl = expression->GetSymbolRef()->GetDeclaration();
-				if (auto field = dynamic_cast<Field*>(decl))
-				{
-					decl = field->GetSymbolRef()->GetDeclaration();
-				}
-				expression->SetInferredType(decl);
-			}
-			break;
-			case NodeType_FunctionCallExpression:
-			{
-				auto expression = dynamic_cast<FunctionCallExpression*>(current);
-
-				if (expression->GetLazyEval())
-				{
-					auto function = dynamic_cast<Function*>(expression->GetSymbolRef().get()->GetDeclaration());
-					// TODO: Add parameter checking and overloads.
-					expression->SetInferredType(function->GetReturnSymbolRef().get()->GetDeclaration());
-				}
-				else
-				{
-					expression->SetLazyEval(true);
-					stack.push(expression);
-					auto& parameters = expression->GetParameters();
-					for (auto it = parameters.rbegin(); it != parameters.rend(); ++it)
-					{
-						stack.push(it->get()->GetExpression().get());
-					}
-				}
-			}
-			break;
-			case NodeType_LiteralExpression:
-			{
-				auto expression = dynamic_cast<LiteralExpression*>(current);
-				auto& token = expression->GetLiteral();
-
-				SymbolDef* def = nullptr;
-				if (token.isLiteral())
-				{
-					def = ResolveSymbol("string");
-				}
-				else if (token.isNumeric())
-				{
-					auto& numeric = token.Numeric;
-					def = GetNumericType(numeric.Kind);
-				}
-				else
-				{
-					HXSL_ASSERT(false, "Invalid token as constant expression."); // the parser handles this already normally just add it as safe guard.
-				}
-
-				expression->SetInferredType(def);
-			}
-			break;
-			default:
-				break;
-			}
-		}
-	}
-
-	void SymbolResolver::TypeCheckStatement(ASTNode*& node)
-	{
-		auto& type = node->GetType();
-		switch (type)
-		{
-		case NodeType_DeclarationStatement:
-		{
-			auto statement = dynamic_cast<DeclarationStatement*>(node);
-			auto varType = statement->GetSymbolRef().get()->GetDeclaration();
-			auto expr = statement->GetInitializer().get();
-			TypeCheckExpression(expr);
-			auto type = expr->GetInferredType();
-		}
-		break;
-		default:
-			break;
-		}
-	}
-
-	TraversalBehavior SymbolResolver::TypeChecksExpression(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
-	{
-		auto& type = node->GetType();
-		if (!IsStatementType(type)) return TraversalBehavior_Keep;
-
-		TypeCheckStatement(node);
-
-		return TraversalBehavior_Keep;
-	}
-
 	static SymbolRef* GetResolvedTypeFromDecl(SymbolRef* ref)
 	{
 		auto decl = ref->GetDeclaration();
@@ -762,19 +496,26 @@ namespace HXSL
 		return nullptr;
 	}
 
-	int SymbolResolver::ResolveMemberInner(SymbolRef* type, IHasSymbolRef* getter) const
+	int SymbolResolver::ResolveMemberInner(SymbolRef* type, SymbolRef* refInner) const
 	{
-		auto refInner = getter->GetSymbolRef().get();
-
 		auto table = type->GetTable();
 		auto index = type->GetTableIndex();
 
 		if (table == nullptr)
 		{
+			refInner->SetDeferred(true);
 			return 1;
 		}
 
-		auto indexNext = table->FindNodeIndexPart(refInner->GetSpan(), index);
+		refInner->SetDeferred(false);
+
+		auto& refType = refInner->GetType();
+		if (refType == SymbolRefType_Function || refType == SymbolRefType_Constructor || refType == SymbolRefType_FunctionOrConstructor)
+		{
+			return 0; // do not resolve function calls.
+		}
+
+		auto indexNext = table->FindNodeIndexPart(refInner->GetName(), index);
 		if (indexNext == -1)
 		{
 			auto metadata = type->GetMetadata();
@@ -801,7 +542,7 @@ namespace HXSL
 		auto& refRoot = memberAccessExpr->GetSymbolRef();
 		if (!ResolveSymbol(refRoot.get()))
 		{
-			return TraversalBehavior_Keep;
+			return TraversalBehavior_Skip;
 		}
 
 		UseBeforeDeclarationCheck(refRoot.get(), memberAccessExpr);
@@ -813,8 +554,8 @@ namespace HXSL
 			SymbolRef* type = GetResolvedTypeFromDecl(ref);
 			if (!type)
 			{
-				analyzer.LogError("Couldn't resolve type of member '%s'", ref->GetSpan(), ref->GetSpan().toString().c_str());
-				return TraversalBehavior_Keep;
+				analyzer.LogError("Couldn't resolve type of member '%s'", ref->GetName(), ref->GetName().toString().c_str());
+				return TraversalBehavior_Skip;
 			}
 
 			next = chain->chainNext().get();
@@ -822,15 +563,16 @@ namespace HXSL
 			getter = dynamic_cast<IHasSymbolRef*>(next);
 			if (getter == nullptr)
 			{
-				analyzer.LogError("Couldn't resolve member '%s'", ref->GetSpan(), ref->GetSpan().toString().c_str());
-				return TraversalBehavior_Keep;
+				analyzer.LogError("Couldn't resolve member '%s'", ref->GetName(), ref->GetName().toString().c_str());
+				return TraversalBehavior_Skip;
 			}
 
-			auto result = ResolveMemberInner(type, getter);
+			auto refInner = getter->GetSymbolRef().get();
+			auto result = ResolveMemberInner(type, refInner);
 			if (result == -1)
 			{
-				analyzer.LogError("Couldn't resolve member '%s'", ref->GetSpan(), ref->GetSpan().toString().c_str());
-				return TraversalBehavior_Keep;
+				analyzer.LogError("Couldn't resolve member '%s'", refInner->GetName(), refInner->GetName().toString().c_str());
+				return TraversalBehavior_Skip;
 			}
 			else if (result == 1)
 			{
@@ -839,6 +581,6 @@ namespace HXSL
 			}
 		}
 
-		return TraversalBehavior_Keep;
+		return TraversalBehavior_Skip;
 	}
 }

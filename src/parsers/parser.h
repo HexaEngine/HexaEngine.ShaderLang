@@ -12,7 +12,7 @@ namespace HXSL
 {
 #define ERR_RETURN_FALSE(state, message) \
 	do { \
-		state.LogError(message); \
+		state.LogError(message, state.GetStream().Current()); \
 		return false; \
 	} while (0)
 
@@ -37,6 +37,7 @@ namespace HXSL
 		ScopeType_Global,
 		ScopeType_Namespace,
 		ScopeType_Struct,
+		ScopeType_Class,
 		ScopeType_Function,
 		ScopeType_If,
 		ScopeType_Else,
@@ -53,15 +54,16 @@ namespace HXSL
 		ScopeFlags_None = 0,
 		ScopeFlags_InsideNamespace = 1 << 0,
 		ScopeFlags_InsideStruct = 1 << 1,
-		ScopeFlags_InsideSwitch = 1 << 2,
-		ScopeFlags_InsideFunction = 1 << 3,
-		ScopeFlags_InsideIf = 1 << 4,
-		ScopeFlags_InsideElse = 1 << 5,
-		ScopeFlags_InsideElseIf = 1 << 6,
-		ScopeFlags_InsideGlobal = 1 << 7,
-		ScopeFlags_InsideWhile = 1 << 8,
-		ScopeFlags_InsideFor = 1 << 9,
-		ScopeFlags_InsideInitialization = 1 << 10,
+		ScopeFlags_InsideClass = 1 << 2,
+		ScopeFlags_InsideSwitch = 1 << 3,
+		ScopeFlags_InsideFunction = 1 << 4,
+		ScopeFlags_InsideIf = 1 << 5,
+		ScopeFlags_InsideElse = 1 << 6,
+		ScopeFlags_InsideElseIf = 1 << 7,
+		ScopeFlags_InsideGlobal = 1 << 8,
+		ScopeFlags_InsideWhile = 1 << 9,
+		ScopeFlags_InsideFor = 1 << 10,
+		ScopeFlags_InsideInitialization = 1 << 11,
 		ScopeFlags_InsideLoop = ScopeFlags_InsideWhile | ScopeFlags_InsideFor,
 	};
 
@@ -156,10 +158,31 @@ namespace HXSL
 		}
 	};
 
+	struct ModifierList
+	{
+		AccessModifier accessModifiers = AccessModifier_Private;
+		bool anyAccessModifiersSpecified = false;
+		FunctionFlags functionFlags = FunctionFlags_None;
+		StorageClass storageClasses = StorageClass_None;
+		InterpolationModifier interpolationModifiers = InterpolationModifier_Linear;
+		bool anyInterpolationModifiersSpecified = false;
+		TextSpan span;
+
+		bool Empty() const noexcept
+		{
+			return !anyAccessModifiersSpecified && functionFlags == FunctionFlags_None && storageClasses == StorageClass_None && !anyInterpolationModifiersSpecified;
+		}
+
+		ModifierList(const AccessModifier& accessModifiers = AccessModifier_Private, bool anyAccessModifiersSpecified = false, const FunctionFlags& functionFlags = FunctionFlags_None, const StorageClass& storageClasses = StorageClass_None, const InterpolationModifier& interpolationModifiers = InterpolationModifier_Linear, bool anyInterpolationModifiersSpecified = false)
+			: accessModifiers(accessModifiers), anyAccessModifiersSpecified(anyAccessModifiersSpecified), functionFlags(functionFlags), storageClasses(storageClasses), interpolationModifiers(interpolationModifiers), anyInterpolationModifiersSpecified(anyInterpolationModifiersSpecified)
+		{
+		}
+	};
+
 	class Parser
 	{
 	public:
-		TokenStream& Stream;
+		TokenStream& stream;
 		int ScopeLevel;
 		int NamespaceScope;
 		Compilation* m_compilation;
@@ -169,14 +192,17 @@ namespace HXSL
 		std::stack<ResolverScopeContext> ScopeStack;
 		std::stack<ASTNode*> ParentStack;
 		TakeHandle<AttributeDeclaration> attribute;
+		ModifierList modifierList;
 
-		Parser(TokenStream& stream, Compilation* compilation) : Stream(stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ResolverScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None))
+		Parser(TokenStream& stream, Compilation* compilation) : stream(stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ResolverScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None)), modifierList({})
 		{
 		}
 
+		void static InitializeSubSystems();
+
 		Compilation* Compilation() const noexcept { return m_compilation; }
 
-		TokenStream& stream() noexcept { return Stream; }
+		TokenStream& GetStream() noexcept { return stream; }
 
 		int scopeLevel() const noexcept { return ScopeLevel; }
 
@@ -191,10 +217,20 @@ namespace HXSL
 		ASTNode* parentNode() const noexcept { return ParentNode; }
 
 		template<typename... Args>
-		void LogError(const std::string& message, TextSpan span, Args&&... args) const
+		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
 		{
 			std::string format = message + " (Line: %i, Column: %i)";
-			Stream.LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+			stream.LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+		}
+
+		template<typename... Args>
+		void LogErrorIf(bool condition, const std::string& message, const TextSpan& span, Args&&... args) const
+		{
+			if (condition)
+			{
+				std::string format = message + " (Line: %i, Column: %i)";
+				stream.LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+			}
 		}
 
 		template<typename... Args>
@@ -203,17 +239,11 @@ namespace HXSL
 			LogError(message, token.Span, std::forward<Args>(args)...);
 		}
 
-		template<typename... Args>
-		void LogError(const std::string& message, Args&&... args) const
-		{
-			LogError(message, Stream.Current().Span, std::forward<Args>(args)...);
-		}
-
 		bool inScope(ScopeFlags flags, const std::string& message) const noexcept
 		{
 			if (!(scopeFlags() & flags))
 			{
-				LogError(message, Stream.LastToken());
+				LogError(message, stream.LastToken());
 				return false;
 			}
 
@@ -253,20 +283,37 @@ namespace HXSL
 			return ScopeLevel == NamespaceScope || ScopeLevel == 0;
 		}
 
-		FieldFlags ParseFieldFlags();
-		bool TryParseAttribute(std::unique_ptr<AttributeDeclaration>& attribute);
 		void EnterScopeInternal(TextSpan name, ScopeType type, ASTNode* userdata);
 		void ExitScopeInternal();
 		bool TryEnterScope(TextSpan name, ScopeType type, ASTNode* parent);
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token);
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent);
+
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretentOnError);
+
+		template<typename... Args>
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretentOnError, const std::string& message, Args&&... args)
+		{
+			if (!stream.ExpectDelimiter('{', token, message, std::forward<Args>(args)...) && !pretentOnError)
+			{
+				return false;
+			}
+			EnterScopeInternal(name, type, parent);
+			return true;
+		}
+
+		void RestoreFromPoint();
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, bool pretendOnError);
 		bool SkipScope(Token& token);
 		bool IterateScope();
+		bool TryRecoverScope(bool exitScope);
+		bool TryRecoverParameterList();
 		UsingDeclaration ParseUsingDeclaration();
 		NamespaceDeclaration ParseNamespaceDeclaration(bool& scoped);
 		bool TryAdvance();
 		bool Parse();
-		bool ParseSubStep();
+		bool ParseSubStep(ASTNode* parent);
+		void ParseInnerBegin();
+		bool ParseSubStepInner(ASTNode* parent);
+		bool AttemptErrorRecovery(bool restorePoint = false);
 
 		/// <summary>
 		/// This method checks if an attribute is available and allows the subparser to decide whether to accept it.
@@ -322,10 +369,106 @@ namespace HXSL
 			return AcceptAttribute(nullptr, message, std::forward<Args>(args)...);
 		}
 
-		AccessModifier ParseAccessModifier();
+		template<typename... Args>
+		bool AcceptModifierList(ModifierList* modifierListOut, const ModifierList& allowed, const std::string& message, bool replaceMessage = false, Args&&... args)
+		{
+			bool isValid = true;
+
+			std::string format;
+			auto& span = modifierList.span;
+			if (modifierListOut == nullptr)
+			{
+				if (modifierList.anyAccessModifiersSpecified)
+				{
+					format = replaceMessage ? message : "Access modifier " + message;
+					LogError(format, span, std::forward<Args>(args)...);
+					isValid = false;
+				}
+				if (modifierList.functionFlags != FunctionFlags_None)
+				{
+					format = replaceMessage ? message : "Function modifier " + message;
+					LogError(format, span, std::forward<Args>(args)...);
+					isValid = false;
+				}
+				if (modifierList.storageClasses != StorageClass_None)
+				{
+					format = replaceMessage ? message : "Storage class modifier " + message;
+					LogError(format, span, std::forward<Args>(args)...);
+					isValid = false;
+				}
+				if (modifierList.anyInterpolationModifiersSpecified)
+				{
+					format = replaceMessage ? message : "Interpolation modifier " + message;
+					LogError(format, span, std::forward<Args>(args)...);
+					isValid = false;
+				}
+
+				modifierList = {};
+				return false;
+			}
+
+			if (!allowed.anyAccessModifiersSpecified && modifierList.anyAccessModifiersSpecified)
+			{
+				format = replaceMessage ? message : "Access modifier " + message;
+				LogError(format, span, std::forward<Args>(args)...);
+				isValid = false;
+			}
+			else if (modifierList.anyAccessModifiersSpecified && (modifierList.accessModifiers & ~allowed.accessModifiers) != 0)
+			{
+				format = replaceMessage ? message : "Access modifier " + message;
+				LogError(format, span, std::forward<Args>(args)...);
+				isValid = false;
+			}
+			if ((modifierList.functionFlags & ~allowed.functionFlags) != 0)
+			{
+				format = replaceMessage ? message : "Function modifier " + message;
+				LogError(format, span, std::forward<Args>(args)...);
+				isValid = false;
+			}
+			if ((modifierList.storageClasses & ~allowed.storageClasses) != 0)
+			{
+				format = replaceMessage ? message : "Storage class modifier " + message;
+				LogError(format, span, std::forward<Args>(args)...);
+				isValid = false;
+			}
+			if (!allowed.anyInterpolationModifiersSpecified && modifierList.anyInterpolationModifiersSpecified)
+			{
+				format = replaceMessage ? message : "Interpolation modifier " + message;
+				LogError(format, span, std::forward<Args>(args)...);
+				isValid = false;
+			}
+			else if (modifierList.anyInterpolationModifiersSpecified && (modifierList.interpolationModifiers & ~allowed.interpolationModifiers) != 0)
+			{
+				format = replaceMessage ? message : "Interpolation modifier " + message;
+				LogError(format, span, std::forward<Args>(args)...);
+				isValid = false;
+			}
+
+			if (isValid)
+			{
+				*modifierListOut = modifierList;
+			}
+
+			modifierList = {};
+
+			return isValid;
+		}
+
+		template<typename... Args>
+		bool RejectModifierList(const std::string& message, bool replaceMessage = false, Args&&... args)
+		{
+			return AcceptModifierList(nullptr, {}, message, replaceMessage, std::forward<Args>(args)...);
+		}
+
 		bool TryParseSymbol(SymbolRefType expectedType, LazySymbol& type);
 		bool ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type);
-		ParameterFlags ParseParameterFlags();
+		std::tuple<ParameterFlags, InterpolationModifier> ParseParameterFlags();
+	private:
+		void ParseAttribute();
+		void ParseModifierList();
+		AccessModifier ParseAccessModifiers(bool& anySpecified);
+		StorageClass ParseStorageClasses();
+		InterpolationModifier Parser::ParseInterpolationModifiers(bool& anySpecified);
 		FunctionFlags ParseFunctionFlags();
 	};
 }

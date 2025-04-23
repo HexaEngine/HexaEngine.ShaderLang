@@ -33,19 +33,24 @@ file(GLOB SOURCES
     src/parsers/declaration_parser.cpp
     src/parsers/statement_parser.cpp
     src/parsers/expression_parser.cpp
-    src/analyzer.cpp
+    src/parsers/sub_parser_registry.cpp
+    src/symbols/symbol_table.cpp
+    src/symbols/symbol_resolver.cpp
+    src/symbols/symbol_collector.cpp
+    src/symbols/type_checker.cpp
+    src/analyzers/analyzer.cpp
+    src/analyzers/sub_analyzer_registry.cpp
+    src/analyzers/declaration_analyzer.cpp
+
     src/assembly.cpp
     src/stream.cpp
     src/text_helper.cpp
     src/allocator.cpp
-    src/symbols/symbol_table.cpp
-    src/symbols/symbol_resolver.cpp
-    src/symbols/symbol_collector.cpp
+
     src/ast.cpp
     src/primitives.cpp
-    src/sub_parser_registry.cpp
-    src/sub_analyzer_registry.cpp
-    src/analyzers/declaration_analyzer.cpp
+   
+    
 
 )
 

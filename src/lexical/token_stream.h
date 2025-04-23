@@ -107,6 +107,7 @@ namespace HXSL
 		};
 
 		TokenStreamState streamState;
+		TokenStreamState restorePoint;
 		LexerConfig* config;
 		std::stack<TokenStreamState> stack;
 		size_t currentStack;
@@ -129,7 +130,7 @@ namespace HXSL
 			LogFormatted(LogLevel_Error, message, std::forward<Args>(args)...);
 		}
 
-		bool HasErrors() const noexcept { return streamState.state.HasCriticalErrors(); }
+		bool HasCriticalErrors() const noexcept { return streamState.state.HasCriticalErrors(); }
 
 		Token LastToken() const { return streamState.lastToken; }
 
@@ -145,6 +146,16 @@ namespace HXSL
 		TextSpan MakeFromLast(const Token& token) const
 		{
 			return MakeFromLast(token.Span);
+		}
+
+		void MakeRestorePoint()
+		{
+			restorePoint = streamState;
+		}
+
+		void RestoreFromPoint()
+		{
+			streamState = restorePoint;
 		}
 
 		void PushState();
@@ -209,7 +220,7 @@ namespace HXSL
 			return TryGetTypeValue(TokenType_Keyword, keyword);
 		}
 
-		bool TryGetKeywords(std::unordered_set<Keyword> keywords)
+		bool TryGetKeywords(const std::unordered_set<Keyword>& keywords)
 		{
 			Token current;
 			if (!TryGetToken(TokenType_Keyword, current))
@@ -288,7 +299,6 @@ namespace HXSL
 			current = Current();
 			if (current.Type != type)
 			{
-				streamState.state.LogErrorFormatted("Unexpected token, expected an '%s'", ToString(type).c_str());
 				return false;
 			}
 			if (advance)
@@ -303,6 +313,14 @@ namespace HXSL
 			Token token;
 			auto result = Expect(TokenType_Operator, token);
 			return result && op == static_cast<Operator>(token.Value);
+		}
+
+		bool ExpectAnyOperator(Operator& op)
+		{
+			Token token;
+			auto result = Expect(TokenType_Operator, token);
+			op = static_cast<Operator>(token.Value);
+			return result;
 		}
 
 		bool ExpectLiteral(TextSpan& literal)
@@ -327,6 +345,18 @@ namespace HXSL
 			literal = token.Span;
 		}
 
+		bool ExpectKeyword(const Keyword& keyword)
+		{
+			Token token;
+			auto result = Expect(TokenType_Keyword, token, false);
+			if (result && keyword == static_cast<Keyword>(token.Value))
+			{
+				Advance();
+				return true;
+			}
+			return false;
+		}
+
 		bool ExpectKeywords(const std::unordered_set<Keyword>& keywords, Keyword& keyword)
 		{
 			Token token;
@@ -349,7 +379,7 @@ namespace HXSL
 				streamState.state.LogErrorFormatted("Unexpected delimiter, expected an '%c'", delimiter);
 				return false;
 			}
-			Advance();
+			TryAdvance();
 			return result;
 		}
 
@@ -359,7 +389,27 @@ namespace HXSL
 			return ExpectDelimiter(delimiter, token);
 		}
 
-		bool ExpectNoDelimiters(std::unordered_set<char> delimiters)
+		template <typename... Args>
+		bool ExpectDelimiter(char delimiter, Token& token, const std::string& message, Args&&... args)
+		{
+			auto result = Expect(TokenType_Delimiter, token, false);
+			if (!result || token.Span[0] != delimiter)
+			{
+				streamState.state.LogErrorFormatted(message, std::forward<Args>(args)...);
+				return false;
+			}
+			TryAdvance();
+			return result;
+		}
+
+		template <typename... Args>
+		bool ExpectDelimiter(char delimiter, const std::string& message, Args&&... args)
+		{
+			Token token;
+			return ExpectDelimiter(delimiter, token, message, std::forward<Args>(args)...);
+		}
+
+		bool ExpectNoDelimiters(const std::unordered_set<char>& delimiters)
 		{
 			Token current = Current();
 			if (current.Type != TokenType_Delimiter) return true;

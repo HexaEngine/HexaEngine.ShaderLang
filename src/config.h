@@ -42,18 +42,6 @@ static bool EnableErrorOutput = true;
 
 #define MAX_LOG_LENGTH 512
 
-#define DEFINE_GETTER_SETTER(type, name, field)    \
-    const type& Get##name() const noexcept { return field; } \
-    void Set##name(const type &value) noexcept { field = value; }
-
-#define DEFINE_GETTER_SETTER_PTR(type, name, field)    \
-    type Get##name() const noexcept { return field; } \
-    void Set##name(type value) noexcept { field = value; }
-
-#define DEFINE_GETTER_SETTER_MOVE(type, name, field)    \
-    const type& Get##name() const noexcept { return field; } \
-    void Set##name(type&& value) noexcept { field = std::move(value); }
-
 #define ILVersionString "1.0.0.0"
 
 #define ILVersion ((1 << 24) | (0 << 16) | (0 << 8) | 0);

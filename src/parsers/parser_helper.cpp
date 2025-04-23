@@ -205,7 +205,7 @@ namespace ParserHelper
 	bool TryParseInitializationExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<InitializationExpression>& expressionOut)
 	{
 		auto root = std::make_unique<InitializationExpression>(stream.Current().Span, parent);
-		IF_ERR_RET_FALSE(parser.EnterScope(TextSpan(), ScopeType_Initialization, root.get()));
+		parser.EnterScope(TextSpan(), ScopeType_Initialization, root.get(), true);
 		std::stack<InitializationExpression*> stack;
 		InitializationExpression* current = root.get();
 
@@ -224,7 +224,7 @@ namespace ParserHelper
 				if (token.isDelimiterOf('{'))
 				{
 					auto node = std::make_unique<InitializationExpression>(token.Span, current);
-					IF_ERR_RET_FALSE(parser.EnterScope(TextSpan(), ScopeType_Initialization, node.get()));
+					parser.EnterScope(TextSpan(), ScopeType_Initialization, node.get(), true);
 					stack.push(current);
 					auto next = node.get();
 					current->AddParameter(std::move(node));

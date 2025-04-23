@@ -5,14 +5,14 @@
 
 int main()
 {
-	ifstream file("def.txt");
+	std::ifstream file("def.txt");
 
 	if (!file) {
-		cerr << "Error opening file." << endl;
+		std::cerr << "Error opening file." << std::endl;
 		return 1;
 	}
 
-	stringstream buffer;
+	std::stringstream buffer;
 	buffer << file.rdbuf();
 
 	return 0;

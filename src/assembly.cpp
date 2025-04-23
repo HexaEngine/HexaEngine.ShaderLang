@@ -2,14 +2,17 @@
 #include "symbols/symbol_table.hpp"
 namespace HXSL
 {
-	inline Assembly::Assembly(const std::string& name) : Name(std::make_unique<std::string>(name)), Table(std::make_unique<SymbolTable>())
+	inline Assembly::Assembly(const std::string& name) : name(std::make_unique<std::string>(name)), table(std::make_unique<SymbolTable>()), sealed(false)
 	{
 	}
 
-	size_t Assembly::AddSymbol(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex)
+	size_t Assembly::AddSymbol(const TextSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex)
 	{
-		auto& name = def->GetName();
-		auto index = Table->Insert(name, metadata, lookupIndex);
+		if (sealed)
+		{
+			throw std::logic_error("Cannot modify symbol table: Assembly is sealed.");
+		}
+		auto index = table->Insert(name, metadata, lookupIndex);
 		if (index != 0)
 		{
 			def->SetAssembly(this, index);
@@ -17,9 +20,13 @@ namespace HXSL
 		return index;
 	}
 
-	size_t Assembly::AddSymbolScope(TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, size_t lookupIndex)
+	size_t Assembly::AddSymbolScope(const TextSpan& span, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex)
 	{
-		return Table->Insert(span, metadata, lookupIndex);
+		if (sealed)
+		{
+			throw std::logic_error("Cannot modify symbol table: Assembly is sealed.");
+		}
+		return table->Insert(span, metadata, lookupIndex);
 	}
 
 	std::unique_ptr<Assembly> Assembly::Create(const std::string& path)
@@ -49,8 +56,9 @@ namespace HXSL
 	{
 		auto assembly = Create(path);
 
-		assembly->Table->Read(stream, assembly.get());
+		assembly->table->Read(stream, assembly.get());
 
+		assembly->Seal();
 		assemblyOut = std::move(assembly);
 		return AssemblyLoadResult_Success;
 	}
@@ -73,7 +81,7 @@ namespace HXSL
 
 	int Assembly::WriteToStream(Stream& stream) const
 	{
-		Table->Write(stream);
+		table->Write(stream);
 		return 0;
 	}
 }

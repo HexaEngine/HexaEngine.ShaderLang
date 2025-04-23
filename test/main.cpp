@@ -6,19 +6,22 @@
 #include "parsers/expression_parser.hpp"
 #include "parsers/declaration_parser.hpp"
 #include "parsers/statement_parser.hpp"
-#include <sub_parser_registry.hpp>
+#include "parsers/sub_parser_registry.hpp"
+
+#include "analyzers/analyzer.hpp"
 #include "analyzers/declaration_analyzer.hpp"
-#include "sub_analyzer_registry.hpp"
+#include "analyzers/sub_analyzer_registry.hpp"
 
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <analyzer.hpp>
 
 using namespace HXSL;
 
 void Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
 {
+	Parser::InitializeSubSystems();
+
 	std::unique_ptr<Compilation> compilation = std::make_unique<Compilation>();
 
 	std::vector<std::unique_ptr<std::string>> sources;
@@ -34,8 +37,7 @@ void Compile(const std::vector<std::string>& files, const std::string& output, c
 		std::stringstream buffer;
 		buffer << fs.rdbuf();
 
-		std::unique_ptr<std::string> content = std::make_unique<std::string>(std::move(buffer.str()));
-		sources.push_back(std::move(content));
+		sources.push_back(std::make_unique<std::string>(std::move(buffer.str())));
 		auto& c = sources.back();
 
 		LexerState state = LexerState(compilation.get(), c->data(), c->length());
@@ -47,38 +49,22 @@ void Compile(const std::vector<std::string>& files, const std::string& output, c
 		parser.Parse();
 	}
 
+	Analyzer::InitializeSubSystems();
 	Analyzer analyzer = Analyzer(compilation.get(), references);
 
 	analyzer.Analyze();
+	if (!compilation->HasErrors())
+	{
+		auto assembly = analyzer.GetOutputAssembly().get();
 
-	auto assembly = analyzer.GetOutputAssembly().get();
-
-	assembly->WriteToFile(output);
+		assembly->WriteToFile(output);
+	}
 }
 
 int main()
 {
-	SubParserRegistry::Register<StructParser>();
-	SubParserRegistry::Register<DeclarationParser>();
-	StatementParserRegistry::Register<MiscKeywordStatementParser>();
-	StatementParserRegistry::Register<SwitchStatementParser>();
-	StatementParserRegistry::Register<ForStatementParser>();
-	StatementParserRegistry::Register<WhileStatementParser>();
-	StatementParserRegistry::Register<IfStatementParser>();
-	StatementParserRegistry::Register<ElseStatementParser>();
-	StatementParserRegistry::Register<ReturnStatementParser>();
-	StatementParserRegistry::Register<DeclarationStatementParser>();
-	StatementParserRegistry::Register<AssignmentStatementParser>();
-	StatementParserRegistry::Register<FunctionCallStatementParser>();
-	ExpressionParserRegistry::Register<LiteralExpressionParser>();
-	ExpressionParserRegistry::Register<MemberAccessExpressionParser>();
-	ExpressionParserRegistry::Register<SymbolExpressionParser>();
-	ExpressionParserRegistry::Register<AssignmentExpressionParser>();
-
-	SubAnalyzerRegistry::Register<DeclarationAnalyzer>();
-
 	AssemblyCollection collection;
-	//Compile({ "library.txt" }, "library.module", collection);
+	Compile({ "library.txt" }, "library.module", collection);
 
 	collection.LoadAssemblyFromFile("library.module");
 
