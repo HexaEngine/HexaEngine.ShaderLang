@@ -2,8 +2,8 @@
 #define ASSEMLBY_HPP
 
 #include "symbols/symbol_handle.hpp"
-#include "text_span.h"
-#include "stream.h"
+#include "utils/text_span.h"
+#include "io/stream.h"
 #include <string>
 #include <memory>
 #include <fstream>

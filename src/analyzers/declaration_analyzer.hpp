@@ -2,8 +2,6 @@
 #define DECLARATION_ANALYZER_HPP
 
 #include "sub_analyzer.hpp"
-#include <unordered_set>
-#include <memory>
 
 namespace HXSL
 {

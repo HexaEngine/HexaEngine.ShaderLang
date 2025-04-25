@@ -1,5 +1,6 @@
 #include "assembly.hpp"
 #include "symbols/symbol_table.hpp"
+
 namespace HXSL
 {
 	inline Assembly::Assembly(const std::string& name) : name(std::make_unique<std::string>(name)), table(std::make_unique<SymbolTable>()), sealed(false)

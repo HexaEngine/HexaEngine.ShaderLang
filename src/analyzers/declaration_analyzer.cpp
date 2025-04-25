@@ -1,4 +1,5 @@
 #include "declaration_analyzer.hpp"
+#include <stack>
 
 namespace HXSL
 {

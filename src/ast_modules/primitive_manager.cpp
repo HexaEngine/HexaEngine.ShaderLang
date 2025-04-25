@@ -1,5 +1,6 @@
-#include "primitives.hpp"
-#include "ast.hpp"
+#include "primitive_manager.hpp"
+#include "node_builder.hpp"
+
 namespace HXSL
 {
 	std::once_flag PrimitiveManager::initFlag;

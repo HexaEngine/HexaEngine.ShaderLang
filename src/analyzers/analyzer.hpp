@@ -1,10 +1,7 @@
 #ifndef ANALYZER_HPP
 #define ANALYZER_HPP
 
-#include "node_visitor.hpp"
-#include "symbols/symbol_table.hpp"
-#include "primitives.hpp"
-#include "assembly_collection.hpp"
+#include "ast_analyzers.hpp"
 #include <string>
 
 namespace HXSL

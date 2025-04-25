@@ -1,5 +1,8 @@
 #include "symbol_table.hpp"
+#include "ast_modules/instantiator.hpp"
+
 #include <stack>
+#include <algorithm>
 
 namespace HXSL
 {
@@ -155,6 +158,14 @@ namespace HXSL
 				}
 			}
 		}
+	}
+
+	void SymbolTable::Clear()
+	{
+		nodes.clear();
+		stringPool.clear();
+		nodes.emplace_back();
+		compilation->Clear();
 	}
 
 	void SymbolTable::Strip()

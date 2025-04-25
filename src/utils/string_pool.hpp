@@ -1,8 +1,12 @@
 #ifndef STRING_POOL_H
 #define STRING_POOL_H
 
-#include <string>
 #include "span.h"
+
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace HXSL
 {

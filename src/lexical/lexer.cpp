@@ -1,7 +1,7 @@
 #include "lexer.h"
-#include "text_helper.h"
-#include "tst.hpp"
-#include "log.h"
+#include "utils/text_helper.h"
+#include "utils/tst.hpp"
+#include "io/log.h"
 #include "numbers.h"
 
 #include <stdexcept>

@@ -1,7 +1,6 @@
 #ifndef ASSEMBLY_COLLECTION_HPP
 #define ASSEMBLY_COLLECTION_HPP
 
-#include "text_span.h"
 #include "assembly.hpp"
 #include "ast.hpp"
 

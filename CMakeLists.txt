@@ -43,17 +43,20 @@ file(GLOB SOURCES
     src/analyzers/sub_analyzer_registry.cpp
     src/analyzers/declaration_analyzer.cpp
 
-    src/object_pool.cpp
-    src/assembly.cpp
-    src/stream.cpp
-    src/text_helper.cpp
-    src/allocator.cpp
+    src/utils/object_pool.cpp
+    src/utils/text_helper.cpp
+    src/utils/allocator.cpp
+    src/io/stream.cpp
 
-    src/ast.cpp
-    src/primitives.cpp
-   
-    
+    src/il/assembly.cpp
 
+    src/ast_modules/ast_base.cpp
+    src/ast_modules/symbol_base.cpp
+    src/ast_modules/declarations.cpp
+    src/ast_modules/statements.cpp
+    src/ast_modules/namespace.cpp
+    src/ast_modules/primitive_manager.cpp
+    src/ast_modules/swizzle_manager.cpp
 )
 
 add_library(Compiler SHARED ${SOURCES})

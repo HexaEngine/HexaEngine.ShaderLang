@@ -2,6 +2,7 @@
 #define NODE_VISITOR_HPP
 
 #include "ast.hpp"
+#include <functional>
 
 namespace HXSL
 {

@@ -1,7 +1,7 @@
 #ifndef STREAM_H
 #define STREAM_H
 
-#include "text_span.h"
+#include "utils/text_span.h"
 #include "config.h"
 
 #include <fstream>

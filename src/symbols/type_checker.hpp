@@ -1,7 +1,6 @@
 #ifndef TYPE_CHECKER_HPP
 #define TYPE_CHECKER_HPP
 
-#include "node_visitor.hpp"
 #include "symbol_resolver.hpp"
 
 namespace HXSL

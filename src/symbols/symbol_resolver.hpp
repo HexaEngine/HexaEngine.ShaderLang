@@ -2,7 +2,6 @@
 #define SYMBOL_RESOLVER_HPP
 
 #include "analyzers/analyzer.hpp"
-#include "ast.hpp"
 #include <memory>
 #include <stack>
 #include <optional>

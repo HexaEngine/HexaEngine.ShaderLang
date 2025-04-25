@@ -1,13 +1,13 @@
 #ifndef NUMBERS_H
 #define NUMBERS_H
 
-#include "text_helper.h"
+#include "utils/text_helper.h"
 #include <limits>
 #include <cctype>
 #include <cstdlib>
 #include <sstream>
 
-namespace HXSL 
+namespace HXSL
 {
 	enum NumberType
 	{

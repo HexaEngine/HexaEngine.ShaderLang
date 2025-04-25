@@ -1,5 +1,4 @@
 #include "analyzer.hpp"
-#include "primitives.hpp"
 #include "ast.hpp"
 #include "sub_analyzer_registry.hpp"
 #include "symbols/symbol_table.hpp"

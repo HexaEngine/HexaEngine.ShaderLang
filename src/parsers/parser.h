@@ -2,10 +2,10 @@
 #define PARSER_H
 
 #include "lexical/token_stream.h"
-#include "text_span.h"
+#include "utils/text_span.h"
 #include "ast.hpp"
-#include "lang/language.h"
-#include "object_pool.hpp"
+#include "lazy.hpp"
+#include "utils/object_pool.hpp"
 
 #include <stack>
 #include <string>

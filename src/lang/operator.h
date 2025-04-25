@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "tst.hpp"
+#include "utils/tst.hpp"
 
 namespace HXSL
 {

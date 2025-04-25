@@ -3,9 +3,9 @@
 
 #include <stdexcept>
 #include <unordered_set>
-#include "text_helper.h"
-#include "tst.hpp"
-#include "log.h"
+#include "utils/text_helper.h"
+#include "utils/tst.hpp"
+#include "io/log.h"
 #include "token.h"
 #include "numbers.h"
 #include "lang/language.h"

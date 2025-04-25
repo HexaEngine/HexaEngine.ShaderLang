@@ -2,10 +2,11 @@
 #define SYMBOL_TABLE_HPP
 
 #include "ast.hpp"
-#include "stream.h"
-#include "string_pool.hpp"
 #include "symbol_handle.hpp"
-#include "span.h"
+
+#include "io/stream.h"
+#include "utils/string_pool.hpp"
+#include "utils/span.h"
 
 #include <vector>
 #include <memory>
@@ -131,13 +132,7 @@ namespace HXSL
 			return stringPool;
 		}
 
-		void Clear()
-		{
-			nodes.clear();
-			stringPool.clear();
-			nodes.emplace_back();
-			compilation->Clear();
-		}
+		void Clear();
 
 		Compilation* GetCompilation() const
 		{

@@ -2,8 +2,8 @@
 #define LOG_H
 
 #include "config.h"
-#include "vector.h"
-#include "text_span.h"
+#include "utils/vector.h"
+#include "utils/text_span.h"
 
 #include <stdexcept>
 #include <string>
