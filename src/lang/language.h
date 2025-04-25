@@ -77,6 +77,9 @@ namespace HXSL
 		return lhs;
 	}
 
+#pragma warning(push)
+#pragma warning(disable : 26827) // FunctionFlags_All will be extended in the future.
+
 	enum FunctionFlags
 	{
 		FunctionFlags_None = 0,
@@ -88,6 +91,8 @@ namespace HXSL
 	{
 		return static_cast<FunctionFlags>(static_cast<int>(lhs) | static_cast<int>(rhs));
 	}
+
+#pragma warning(pop)
 
 	static FunctionFlags& operator|=(FunctionFlags& lhs, FunctionFlags rhs)
 	{

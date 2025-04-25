@@ -22,7 +22,7 @@ void Compile(const std::vector<std::string>& files, const std::string& output, c
 {
 	Parser::InitializeSubSystems();
 
-	std::unique_ptr<Compilation> compilation = std::make_unique<Compilation>();
+	pool_ptr<Compilation> compilation = make_pool_ptr<NodeType_Compilation>();
 
 	std::vector<std::unique_ptr<std::string>> sources;
 	for (auto& file : files)

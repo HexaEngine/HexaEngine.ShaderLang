@@ -19,7 +19,7 @@ namespace HXSL
 			IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, parent, operand, hadBrackets));
 			if (unaryOp == Operator_Increment || unaryOp == Operator_Decrement)
 			{
-				if (operand->GetType() != NodeType_SymbolRefExpression)
+				if (operand->GetType() != NodeType_MemberReferenceExpression)
 				{
 					parser.LogError("Prefix increment/decrement must target a variable.", operand->GetSpan());
 					return false;
@@ -46,7 +46,7 @@ namespace HXSL
 					return true;
 				}
 
-				if (hadBrackets && expression->GetType() == NodeType_SymbolRefExpression)
+				if (hadBrackets && expression->GetType() == NodeType_MemberReferenceExpression)
 				{
 					std::unique_ptr<Expression> rightCast;
 					IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, parent, rightCast, hadBrackets));
@@ -75,7 +75,7 @@ namespace HXSL
 					return false;
 				}
 
-				if (expression->GetType() != NodeType_SymbolRefExpression)
+				if (expression->GetType() != NodeType_MemberReferenceExpression)
 				{
 					parser.LogError("Postfix increment/decrement must target a variable.", expression->GetSpan());
 					return false;

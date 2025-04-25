@@ -44,30 +44,30 @@ namespace HXSL
 			.AttachToClass(_class);
 	}
 
-	void PrimitiveManager::AddPrimClass(TextSpan name, Class** outClass, size_t* indexOut)
+	void PrimitiveManager::AddPrimClass(TextSpan name, Class** outClass, SymbolHandle* handleOut)
 	{
 		auto table = GetMutableSymbolTable();
 		auto compilation = table->GetCompilation();
 		auto _class = std::make_unique<Class>();
 
 		auto classPtr = _class.get();
-		compilation->AddClass(std::move(_class));
+		compilation->primitiveClasses.push_back(std::move(_class));
 
 		classPtr->SetAccessModifiers(AccessModifier_Public);
 		classPtr->SetName(table->GetStringPool().add(name.toString()));
 
 		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, classPtr);
-		auto index = table->Insert(TextSpan(classPtr->GetName()), meta);
+		auto handle = table->Insert(TextSpan(classPtr->GetName()), meta);
 		if (outClass)
 		{
 			*outClass = classPtr;
 		}
-		if (indexOut)
+		if (handleOut)
 		{
-			*indexOut = index;
+			*handleOut = handle;
 		}
 
-		classPtr->SetAssembly(assembly.get(), index);
+		classPtr->SetAssembly(assembly.get(), handle);
 	}
 
 	void PrimitiveManager::AddPrim(PrimitiveKind kind, PrimitiveClass primitiveClass, uint rows, uint columns)
@@ -147,11 +147,11 @@ namespace HXSL
 	void PrimitiveManager::ResolveInternal(SymbolRef* ref)
 	{
 		auto table = GetMutableSymbolTable();
-		auto index = table->FindNodeIndexPart(ref->GetName());
-		if (index == -1)
+		auto handle = table->FindNodeIndexPart(ref->GetName());
+		if (handle.invalid())
 		{
 			HXSL_ASSERT(false, "Couldn't find primitive.");
 		}
-		ref->SetTable(table, index);
+		ref->SetTable(handle);
 	}
 }

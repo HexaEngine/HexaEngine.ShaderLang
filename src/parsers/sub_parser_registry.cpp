@@ -34,9 +34,7 @@ namespace HXSL
 				Register<IfStatementParser>();
 				Register<ElseStatementParser>();
 				Register<ReturnStatementParser>();
-				Register<DeclarationStatementParser>();
-				Register<AssignmentStatementParser>();
-				Register<FunctionCallStatementParser>();
+				Register<MemberAccessStatementParser>();
 			});
 	}
 

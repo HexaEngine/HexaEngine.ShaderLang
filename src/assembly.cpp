@@ -6,21 +6,21 @@ namespace HXSL
 	{
 	}
 
-	size_t Assembly::AddSymbol(const TextSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex)
+	SymbolHandle Assembly::AddSymbol(const TextSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex)
 	{
 		if (sealed)
 		{
 			throw std::logic_error("Cannot modify symbol table: Assembly is sealed.");
 		}
-		auto index = table->Insert(name, metadata, lookupIndex);
-		if (index != 0)
+		auto handle = table->Insert(name, metadata, lookupIndex);
+		if (handle.valid())
 		{
-			def->SetAssembly(this, index);
+			def->SetAssembly(this, handle);
 		}
-		return index;
+		return handle;
 	}
 
-	size_t Assembly::AddSymbolScope(const TextSpan& span, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex)
+	SymbolHandle Assembly::AddSymbolScope(const TextSpan& span, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex)
 	{
 		if (sealed)
 		{

@@ -1,6 +1,7 @@
 #ifndef ASSEMLBY_HPP
 #define ASSEMLBY_HPP
 
+#include "symbols/symbol_handle.hpp"
 #include "text_span.h"
 #include "stream.h"
 #include <string>
@@ -40,9 +41,9 @@ namespace HXSL
 
 		bool IsSealed() const noexcept { return sealed; }
 
-		size_t AddSymbol(const TextSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
+		SymbolHandle AddSymbol(const TextSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
 
-		size_t AddSymbolScope(const TextSpan& name, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
+		SymbolHandle AddSymbolScope(const TextSpan& name, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
 
 		static std::unique_ptr<Assembly> Create(const std::string& path);
 

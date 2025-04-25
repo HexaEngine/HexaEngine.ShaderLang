@@ -20,12 +20,12 @@ namespace HXSL
 
 		void ResolveInternal(SymbolRef* ref)
 		{
-			auto index = table->FindNodeIndexPart(ref->GetName());
-			if (index == -1)
+			auto handle = table->FindNodeIndexPart(ref->GetName());
+			if (handle.invalid())
 			{
 				HXSL_ASSERT(false, "Couldn't find type.");
 			}
-			ref->SetTable(table, index);
+			ref->SetTable(handle);
 		}
 
 		ASTNodeBuilder(Assembly* assembly) : assembly(assembly), table(assembly->GetMutableSymbolTable())
@@ -53,7 +53,7 @@ namespace HXSL
 			auto param = std::make_unique<Parameter>();
 			param->SetName(TextSpan(table->GetStringPool().add(paramName)));
 
-			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(paramType)), SymbolRefType_AnyType);
+			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(paramType)), SymbolRefType_Type, false);
 			ResolveInternal(paramRef.get());
 			param->SetSymbolRef(std::move(paramRef));
 
@@ -63,7 +63,7 @@ namespace HXSL
 
 		FunctionBuilder& Returns(const std::string& returnType)
 		{
-			auto returnRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(returnType)), SymbolRefType_AnyType);
+			auto returnRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(returnType)), SymbolRefType_Type, false);
 			ResolveInternal(returnRef.get());
 			func->SetReturnSymbol(std::move(returnRef));
 			return *this;
@@ -71,15 +71,15 @@ namespace HXSL
 
 		void AttachToClass(Class* _class)
 		{
-			AttachToContainer(_class, _class->GetTableIndex());
+			AttachToContainer(_class, _class->GetSymbolHandle());
 		}
 
 		void AttachToStruct(Struct* _struct)
 		{
-			AttachToContainer(_struct, _struct->GetTableIndex());
+			AttachToContainer(_struct, _struct->GetSymbolHandle());
 		}
 
-		void AttachToContainer(Container* container, size_t index)
+		void AttachToContainer(Container* container, SymbolHandle handle)
 		{
 			auto funcPtr = func.get();
 			container->AddFunction(std::move(func));
@@ -91,7 +91,7 @@ namespace HXSL
 
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Function, SymbolScopeType_Class, AccessModifier_Public, 0, funcPtr);
 			auto signature = funcPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(TextSpan(signature), meta, index);
+			auto funcIndex = table->Insert(TextSpan(signature), meta, handle.GetIndex());
 			funcPtr->SetAssembly(assembly, funcIndex);
 		}
 	};
@@ -117,7 +117,7 @@ namespace HXSL
 			auto param = std::make_unique<Parameter>();
 			param->SetName(TextSpan(table->GetStringPool().add(paramName)));
 
-			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(paramType)), SymbolRefType_AnyType);
+			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(paramType)), SymbolRefType_Type, false);
 			param->SetSymbolRef(std::move(paramRef));
 
 			parameters.push_back(std::move(param));
@@ -126,22 +126,22 @@ namespace HXSL
 
 		OperatorBuilder& Returns(const std::string& returnType)
 		{
-			auto returnRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(returnType)), SymbolRefType_AnyType);
+			auto returnRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(returnType)), SymbolRefType_Type, false);
 			_operator->SetReturnSymbol(std::move(returnRef));
 			return *this;
 		}
 
 		void AttachToClass(Class* _class)
 		{
-			AttachToContainer(_class, _class->GetTableIndex());
+			AttachToContainer(_class, _class->GetSymbolHandle());
 		}
 
 		void AttachToStruct(Struct* _struct)
 		{
-			AttachToContainer(_struct, _struct->GetTableIndex());
+			AttachToContainer(_struct, _struct->GetSymbolHandle());
 		}
 
-		void AttachToContainer(Container* container, size_t index)
+		void AttachToContainer(Container* container, SymbolHandle handle)
 		{
 			auto operatorPtr = _operator.get();
 			auto& op = _operator->GetOperator();
@@ -156,13 +156,16 @@ namespace HXSL
 
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Class, AccessModifier_Public, 0, operatorPtr);
 			auto signature = operatorPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(TextSpan(signature), meta, index);
+			auto funcIndex = table->Insert(TextSpan(signature), meta, handle.GetIndex());
 			operatorPtr->SetAssembly(assembly, funcIndex);
 		}
 
 		void AttachToPrimitive(Primitive* container)
 		{
 			auto operatorPtr = _operator.get();
+			auto& op = _operator->GetOperator();
+			auto& name = _operator->GetOperator() == Operator_Cast ? table->GetStringPool().add("operator") : table->GetStringPool().add("operator" + ToString(op));
+			operatorPtr->SetName(TextSpan(name));
 			container->AddOperator(std::move(_operator));
 
 			for (size_t i = 0; i < parameters.size(); i++)
@@ -173,7 +176,7 @@ namespace HXSL
 			ResolveInternal(operatorPtr->GetReturnSymbolRef().get());
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Struct, AccessModifier_Public, 0, operatorPtr);
 			auto signature = operatorPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(TextSpan(signature), meta, container->GetTableIndex());
+			auto funcIndex = table->Insert(TextSpan(signature), meta, container->GetSymbolHandle().GetIndex());
 			operatorPtr->SetAssembly(assembly, funcIndex);
 		}
 	};
@@ -208,7 +211,7 @@ namespace HXSL
 			auto param = std::make_unique<Field>();
 			param->SetName(TextSpan(table->GetStringPool().add(name)));
 
-			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(type)), SymbolRefType_AnyType);
+			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(type)), SymbolRefType_Type, false);
 			ResolveInternal(paramRef.get());
 			param->SetSymbolRef(std::move(paramRef));
 
@@ -449,7 +452,7 @@ namespace HXSL
 
 		std::unique_ptr<Assembly> assembly;
 
-		void AddPrimClass(TextSpan name, Class** outClass = nullptr, size_t* indexOut = nullptr);
+		void AddPrimClass(TextSpan name, Class** outClass = nullptr, SymbolHandle* symbolOut = nullptr);
 		void AddPrim(PrimitiveKind kind, PrimitiveClass primitiveClass, uint rows, uint columns);
 		void ResolveInternal(SymbolRef* ref);
 	};
@@ -499,11 +502,11 @@ namespace HXSL
 			if (pattern.Length < 1 || pattern.Length > 4)
 				return false;
 
-			auto index = swizzleTable->FindNodeIndexPart(pattern);
+			auto handle = swizzleTable->FindNodeIndexPart(pattern);
 
-			if (index != -1)
+			if (handle.valid())
 			{
-				ref->SetTable(swizzleTable.get(), index);
+				ref->SetTable(handle);
 				return true;
 			}
 
@@ -522,16 +525,16 @@ namespace HXSL
 			std::string typeName = toString(prim->GetKind()) + std::to_string(pattern.Length);
 
 			auto primitivesTable = primitives.GetSymbolTable();
-			auto primitiveIndex = primitivesTable->FindNodeIndexPart(typeName);
-			auto& resultingType = primitivesTable->GetNode(primitiveIndex).Metadata->declaration;
+			auto primitiveHandle = primitivesTable->FindNodeIndexPart(typeName);
+			auto& resultingType = primitiveHandle.GetMetadata()->declaration;
 
-			auto symbolRef = std::make_unique<SymbolRef>(Token(), SymbolRefType_Member);
-			symbolRef->SetTable(primitivesTable, primitiveIndex);
+			auto symbolRef = std::make_unique<SymbolRef>(TextSpan(), SymbolRefType_Member, false);
+			symbolRef->SetTable(primitiveHandle);
 			auto swizzleDef = std::make_unique<SwizzleDefinition>(resultingType->GetSpan(), std::move(symbolRef));
 			auto metaField = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, AccessModifier_Public, 0, swizzleDef.get());
 
-			index = swizzleTable->Insert(pattern, metaField, 0);
-			ref->SetTable(swizzleTable.get(), index);
+			handle = swizzleTable->Insert(pattern, metaField, 0);
+			ref->SetTable(handle);
 
 			definitions.push_back(std::move(swizzleDef));
 

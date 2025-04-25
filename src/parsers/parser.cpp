@@ -62,7 +62,7 @@ namespace HXSL
 		}
 
 		ScopeStack.push(CurrentScope);
-		CurrentScope = ResolverScopeContext(name, type, userdata, newFlags);
+		CurrentScope = ParserScopeContext(name, type, userdata, newFlags);
 		ScopeLevel++;
 	}
 
@@ -359,7 +359,7 @@ namespace HXSL
 				CurrentNamespace = m_compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
 				if (!scoped)
 				{
-					CurrentScope = ResolverScopeContext(CurrentNamespace->GetName(), ScopeType_Namespace, CurrentNamespace, ScopeFlags_None);
+					CurrentScope = ParserScopeContext(CurrentNamespace->GetName(), ScopeType_Namespace, CurrentNamespace, ScopeFlags_None);
 				}
 				NamespaceScope = ScopeLevel;
 			}
@@ -480,34 +480,19 @@ namespace HXSL
 		return false;
 	}
 
-	bool Parser::TryParseSymbol(SymbolRefType expectedType, LazySymbol& type)
+	bool Parser::TryParseSymbolInternal(const SymbolRefType& type, TextSpan& span)
 	{
-		TextSpan span;
-		if (expectedType != SymbolRefType_Variable && expectedType != SymbolRefType_Attribute && stream.TryGetKeywords(BuiltInTypes))
+		if (type != SymbolRefType_Attribute && stream.TryGetKeywords(BuiltInTypes))
 		{
-			type = LazySymbol(stream.LastToken(), expectedType);
+			span = stream.LastToken().Span;
 			return true;
 		}
 		else if (stream.TryGetIdentifier(span))
 		{
-			type = LazySymbol(stream.LastToken(), expectedType);
 			return true;
 		}
 
 		return false;
-	}
-
-	bool Parser::ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type)
-	{
-		LazySymbol symbol;
-		if (!TryParseSymbol(expectedType, symbol))
-		{
-			ERR_RETURN_FALSE_INTERNAL("Expected an symbol.");
-		}
-
-		type = symbol.make();
-
-		return true;
 	}
 
 	void Parser::ParseModifierList()

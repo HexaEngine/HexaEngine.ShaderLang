@@ -95,7 +95,7 @@ namespace HXSL
 			LexerState state;
 			Token lastToken;
 			Token currentToken;
-			size_t tokenPosition;
+			size_t tokenPosition = 0;
 
 			TokenStreamState() = default;
 

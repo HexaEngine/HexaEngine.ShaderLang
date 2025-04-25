@@ -25,45 +25,50 @@ namespace HXSL
 		return AssemblyReferences.size() > 0;
 	}
 
-	void SymbolDef::SetAssembly(const Assembly* assembly, size_t tableIndex)
+	void SymbolDef::SetAssembly(const Assembly* assembly, const SymbolHandle& handle)
 	{
 		this->assembly = assembly;
-		auto table = assembly->GetSymbolTable();
-		this->tableIndex = tableIndex;
-		fullyQualifiedName = std::make_unique<std::string>(table->GetFullyQualifiedName(tableIndex).c_str());
+		this->symbolHandle = handle;
+		fullyQualifiedName = std::make_unique<std::string>(symbolHandle.GetFullyQualifiedName());
 		if (isExtern)
 		{
-			std::string_view fqnView = *fullyQualifiedName.get();
-			auto pos = fqnView.rfind(QUALIFIER_SEP);
+			TextSpan fqnView = *fullyQualifiedName.get();
+			auto end = fqnView.indexOf('(');
+			if (end != std::string::npos)
+			{
+				fqnView = fqnView.slice(0, end);
+			}
+
+			auto pos = fqnView.lastIndexOf(QUALIFIER_SEP);
 			if (pos != std::string::npos)
 			{
 				pos++;
-				name = TextSpan(fqnView.data(), pos, fqnView.size() - pos, 0, 0);
+				name = fqnView.slice(pos);
 			}
 			else
 			{
-				name = TextSpan(fqnView.data(), 0, fqnView.size(), 0, 0);
-			}
-			auto end = name.find('(');
-			if (end != std::string::npos)
-			{
-				name = name.slice(0, end);
+				name = fqnView;
 			}
 		}
 	}
 
 	const SymbolMetadata* SymbolDef::GetMetadata() const
 	{
-		return GetTable()->GetNode(tableIndex).Metadata.get();
+		auto& node = symbolHandle.GetNode();
+		return node.Metadata.get();
 	}
 
-	void SymbolRef::SetTable(const SymbolTable* table, size_t tableIndex)
+	void SymbolRef::SetTable(const SymbolHandle& handle)
 	{
-		this->table = table;
-		this->tableIndex = tableIndex;
+		this->symbolHandle = handle;
 		auto meta = GetMetadata();
 		GetDeclaration()->AddRef(this);
-		fullyQualifiedName = std::make_unique<std::string>(table->GetFullyQualifiedName(tableIndex).c_str());
+		fullyQualifiedName = std::make_unique<std::string>(handle.GetFullyQualifiedName().c_str());
+	}
+
+	void SymbolRef::SetDeclaration(const SymbolDef* node)
+	{
+		SetTable(node->GetSymbolHandle());
 	}
 
 	const std::string& SymbolRef::GetFullyQualifiedName() const
@@ -73,13 +78,12 @@ namespace HXSL
 
 	const SymbolMetadata* SymbolRef::GetMetadata() const
 	{
-		return table->GetNode(tableIndex).Metadata.get();
+		return symbolHandle.GetNode().Metadata.get();
 	}
 
 	SymbolDef* SymbolRef::GetDeclaration() const
 	{
-		if (table == nullptr) return nullptr;
-		return table->GetNode(tableIndex).Metadata.get()->declaration;
+		return symbolHandle.GetNode().Metadata.get()->declaration;
 	}
 
 	SymbolDef* SymbolRef::GetBaseDeclaration() const
@@ -221,7 +225,7 @@ std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 			auto& meta = child.Metadata;
 			switch (meta->symbolType)
 			{
-			case NodeType_Parameter:
+			case SymbolType_Parameter:
 				AddParameter(UNIQUE_PTR_CAST(nodes[childIdx], Parameter));
 				break;
 			}

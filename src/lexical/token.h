@@ -126,6 +126,17 @@ namespace HXSL
 			return Type == TokenType_Operator && Operators::isUnaryOperator(op);
 		}
 
+		bool isAssignment(Operator& op) const noexcept
+		{
+			op = static_cast<Operator>(Value);
+			return Type == TokenType_Operator && Operators::isAssignment(op);
+		}
+
+		bool isAssignment() const noexcept
+		{
+			return Type == TokenType_Operator && Operators::isAssignment(static_cast<Operator>(Value));
+		}
+
 		bool isCompoundAssignment(Operator& op) const noexcept
 		{
 			op = static_cast<Operator>(Value);

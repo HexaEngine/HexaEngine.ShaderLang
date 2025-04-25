@@ -34,6 +34,7 @@ file(GLOB SOURCES
     src/parsers/statement_parser.cpp
     src/parsers/expression_parser.cpp
     src/parsers/sub_parser_registry.cpp
+    src/symbols/symbol_handle.cpp
     src/symbols/symbol_table.cpp
     src/symbols/symbol_resolver.cpp
     src/symbols/symbol_collector.cpp
@@ -42,6 +43,7 @@ file(GLOB SOURCES
     src/analyzers/sub_analyzer_registry.cpp
     src/analyzers/declaration_analyzer.cpp
 
+    src/object_pool.cpp
     src/assembly.cpp
     src/stream.cpp
     src/text_helper.cpp

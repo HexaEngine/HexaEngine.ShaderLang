@@ -1,6 +1,8 @@
 #ifndef SPAN_H
 #define SPAN_H
 
+#include "text_span.h"
+
 #include <stdexcept>
 #include <sstream>
 
@@ -24,21 +26,21 @@ namespace HXSL
 
 		const char& operator[](size_t index) const
 		{
-			if (index < 0 || index >= length) {
+			if (index >= length) {
 				throw std::out_of_range("Index out of range in TextSpan");
 			}
-			return Text[Start + index];
+			return data[start + index];
 		}
 
-		Span<T> slice(size_t start)
+		Span<T> slice(size_t start) const
 		{
-			if (index >= len) throw std::out_of_range("Index out of range in Span");
+			if (start >= length) throw std::out_of_range("Index out of range in Span");
 			return Span<T>(data, this->start + start, length - start);
 		}
 
-		Span<T> slice(size_t start, size_t length)
+		Span<T> slice(size_t start, size_t length) const
 		{
-			if (start + length > len) throw std::out_of_range("Slice exceeds span bounds");
+			if (start + length > this->length) throw std::out_of_range("Slice exceeds span bounds");
 			return Span<T>(data, this->start + start, length);
 		}
 
@@ -46,7 +48,7 @@ namespace HXSL
 		{
 			for (int i = 0; i < length; i++)
 			{
-				if (Text[start + i] == c)
+				if (data[start + i] == c)
 				{
 					return i;
 				}
@@ -160,6 +162,33 @@ namespace HXSL
 		{
 			if (a.length != b.length) return false;
 			return std::memcmp(a.begin(), b.begin(), a.length * sizeof(T)) == 0;
+		}
+	};
+
+	using StringSpanHash = SpanHash<char>;
+	using StringSpanEqual = SpanEqual<char>;
+
+	struct StringSpan : public Span<char>
+	{
+		StringSpan(const std::string& str) : Span(str.c_str(), 0, str.length())
+		{
+		}
+
+		StringSpan(const char* str) : Span(str, 0, strlen(str))
+		{
+		}
+
+		StringSpan(const Span<char>& span) : Span(span.data, span.start, span.length)
+		{
+		}
+
+		StringSpan(const TextSpan& span) : Span(span.Text, span.Start, span.Length)
+		{
+		}
+
+		std::string str() const
+		{
+			return std::string(data + start, length);
 		}
 	};
 }

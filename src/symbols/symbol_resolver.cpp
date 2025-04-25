@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	bool SymbolResolver::SymbolTypeSanityCheck(SymbolMetadata* metadata, SymbolRef* ref) const
+	bool SymbolResolver::SymbolTypeSanityCheck(const SymbolMetadata* metadata, SymbolRef* ref, bool silent) const
 	{
 		auto refType = ref->GetType();
 		auto defType = metadata->symbolType;
@@ -11,23 +11,32 @@ namespace HXSL
 		switch (refType)
 		{
 		case SymbolRefType_Unknown:
-			analyzer.LogError("Symbol '%s' has an unknown reference type", span, span.toString().c_str());
+			if (!silent)
+			{
+				analyzer.LogError("Symbol '%s' has an unknown reference type", span, span.toString().c_str());
+			}
 			return false;
 
 		case SymbolRefType_Namespace:
 			if (defType != SymbolType_Namespace)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(),
-					ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(), ToString(defType).c_str());
+				}
+
 				return false;
 			}
 			break;
 
-		case SymbolRefType_Function:
+		case SymbolRefType_FunctionOverload:
 			if (defType != SymbolType_Function)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(),
-					ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(), ToString(defType).c_str());
+				}
+
 				return false;
 			}
 			break;
@@ -35,8 +44,11 @@ namespace HXSL
 		case SymbolRefType_OperatorOverload:
 			if (defType != SymbolType_Operator)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(),
-					ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(), ToString(defType).c_str());
+				}
+
 				return false;
 			}
 			break;
@@ -44,8 +56,11 @@ namespace HXSL
 		case SymbolRefType_Constructor:
 			if (defType != SymbolType_Constructor)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(),
-					ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(), ToString(defType).c_str());
+				}
+
 				return false;
 			}
 			break;
@@ -53,8 +68,11 @@ namespace HXSL
 		case SymbolRefType_FunctionOrConstructor:
 			if (defType != SymbolType_Function && defType != SymbolType_Constructor)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Function' or 'Constructor' definition (got '%s')",
-					span, span.toString().c_str(), ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Function' or 'Constructor' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+				}
+
 				return false;
 			}
 			break;
@@ -62,8 +80,10 @@ namespace HXSL
 		case SymbolRefType_Struct:
 			if (defType != SymbolType_Struct && defType != SymbolType_Primitive)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct' or 'Primitive' definition (got '%s')",
-					span, span.toString().c_str(), ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct' or 'Primitive' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+				}
 				return false;
 			}
 			break;
@@ -71,17 +91,21 @@ namespace HXSL
 		case SymbolRefType_Enum:
 			if (defType != SymbolType_Enum)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected an 'Enum' definition (got '%s')",
-					span, span.toString().c_str(), ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected an 'Enum' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+				}
 				return false;
 			}
 			break;
 
-		case SymbolRefType_Variable:
-			if (defType != SymbolType_Field && defType != SymbolType_Parameter && defType != SymbolType_Variable)
+		case SymbolRefType_Identifier:
+			if (defType != SymbolType_Field && defType != SymbolType_Parameter && defType != SymbolType_Variable && defType != SymbolType_Struct && defType != SymbolType_Primitive && defType != SymbolType_Class)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Field', 'Parameter', or 'Variable' definition (got '%s')",
-					span, span.toString().c_str(), ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Field', 'Parameter', or 'Variable' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+				}
 				return false;
 			}
 			break;
@@ -89,8 +113,10 @@ namespace HXSL
 		case SymbolRefType_Attribute:
 			if (defType != SymbolType_Attribute)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected an 'AttributeDeclaration' definition (got '%s')",
-					span, span.toString().c_str(), ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected an 'AttributeDeclaration' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+				}
 				return false;
 			}
 			break;
@@ -98,17 +124,21 @@ namespace HXSL
 		case SymbolRefType_Member:
 			if (defType != SymbolType_Field)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Field' definition (got '%s')",
-					span, span.toString().c_str(), ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Field' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+				}
 				return false;
 			}
 			break;
 
-		case SymbolRefType_AnyType:
+		case SymbolRefType_Type:
 			if (defType != SymbolType_Struct && defType != SymbolType_Primitive && defType != SymbolType_Class)
 			{
-				analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct', 'Primitive', or 'Class' definition (got '%s')",
-					span, span.toString().c_str(), ToString(defType).c_str());
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct', 'Primitive', or 'Class' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+				}
 				return false;
 			}
 			break;
@@ -126,7 +156,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool SymbolResolver::SymbolVisibilityChecks(SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const
+	bool SymbolResolver::SymbolVisibilityChecks(const SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const
 	{
 		auto& access = metadata->accessModifier;
 		if (access == AccessModifier_Public) return true;
@@ -152,29 +182,39 @@ namespace HXSL
 		return true;
 	}
 
-	bool SymbolResolver::TryResolve(const SymbolTable* table, const TextSpan& name, size_t nodeIndex, const SymbolTable*& outTable, size_t& outNodeIndex, SymbolDef*& outDefinition) const
+	bool SymbolResolver::TryResolve(const SymbolTable* table, const TextSpan& name, const SymbolHandle& lookup, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
 	{
-		auto index = table->FindNodeIndexFullPath(name, nodeIndex);
-		if (index != -1)
+		auto handle = lookup.FindFullPath(name, table);
+		if (handle.valid())
 		{
-			outTable = table;
-			outNodeIndex = index;
-			outDefinition = table->GetNode(index).Metadata->declaration;
+			outHandle = handle;
+			outDefinition = handle.GetMetadata()->declaration;
 			return true;
 		}
-		outTable = nullptr;
-		outNodeIndex = 0;
 		outDefinition = nullptr;
 		return false;
 	}
 
-	bool SymbolResolver::TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const TextSpan& name, const SymbolTable*& outTable, size_t& nodeIndexOut, SymbolDef*& outDefinition) const
+	bool SymbolResolver::TryResolveFromRoot(const SymbolTable* table, const TextSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
+	{
+		auto handle = table->FindNodeIndexFullPath(name);
+		if (handle.valid())
+		{
+			outHandle = handle;
+			outDefinition = handle.GetMetadata()->declaration;
+			return true;
+		}
+		outDefinition = nullptr;
+		return false;
+	}
+
+	bool SymbolResolver::TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const TextSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
 	{
 		for (auto& ref : references)
 		{
 			auto table = ref.TargetAssembly->GetSymbolTable();
-			auto& index = ref.LookupIndex;
-			if (TryResolve(table, name, index, outTable, nodeIndexOut, outDefinition))
+			auto& lookup = ref.LookupHandle;
+			if (TryResolve(table, name, ref.LookupHandle, outHandle, outDefinition))
 			{
 				return true;
 			}
@@ -183,16 +223,54 @@ namespace HXSL
 		return false;
 	}
 
-	SymbolDef* SymbolResolver::ResolveSymbol(const TextSpan& name, const SymbolTable*& outTable, size_t& nodeIndexOut) const
+	SymbolDef* SymbolResolver::ResolveSymbol(const TextSpan& name, bool isFullyQualified, SymbolHandle& outHandle, bool silent) const
 	{
 		SymbolDef* def;
-		if (TryResolve(primitives.GetSymbolTable(), name, 0, outTable, nodeIndexOut, def))
+		if (isFullyQualified)
+		{
+			if (TryResolveFromRoot(primitives.GetSymbolTable(), name, outHandle, def))
+			{
+				return def;
+			}
+
+			auto currentNamespace = current.CurrentNamespace;
+			if (TryResolveFromRoot(currentNamespace->GetTable(), name, outHandle, def))
+			{
+				return def;
+			}
+
+			for (auto& ref : currentNamespace->GetAssemblyReferences())
+			{
+				auto table = ref.TargetAssembly->GetSymbolTable();
+				if (TryResolveFromRoot(table, name, outHandle, def))
+				{
+					return def;
+				}
+			}
+
+			for (auto& assembly : references.GetAssemblies())
+			{
+				auto table = assembly->GetSymbolTable();
+				if (TryResolveFromRoot(table, name, outHandle, def))
+				{
+					return def;
+				}
+			}
+
+			if (!silent)
+			{
+				analyzer.LogError("Symbol not found '%s'", name, name.toString().c_str());
+			}
+			return nullptr;
+		}
+
+		if (TryResolveFromRoot(primitives.GetSymbolTable(), name, outHandle, def))
 		{
 			return def;
 		}
 
 		auto local = targetAssembly->GetSymbolTable();
-		if (TryResolve(local, name, current.SymbolTableIndex, outTable, nodeIndexOut, def))
+		if (TryResolve(local, name, current.SymbolHandle, outHandle, def))
 		{
 			return def;
 		}
@@ -200,14 +278,14 @@ namespace HXSL
 		for (auto& it = stack.rbegin(); it != stack.rend(); ++it)
 		{
 			auto& scope = *it;
-			if (TryResolve(local, name, scope.SymbolTableIndex, outTable, nodeIndexOut, def))
+			if (TryResolve(local, name, scope.SymbolHandle, outHandle, def))
 			{
 				return def;
 			}
 		}
 
 		auto currentNamespace = current.CurrentNamespace;
-		if (TryResolveInAssemblies(currentNamespace->GetAssemblyReferences(), name, outTable, nodeIndexOut, def))
+		if (TryResolveInAssemblies(currentNamespace->GetAssemblyReferences(), name, outHandle, def))
 		{
 			return def;
 		}
@@ -215,7 +293,7 @@ namespace HXSL
 		for (auto& us : currentNamespace->GetUsings())
 		{
 			if (us.IsAlias) continue;
-			if (TryResolveInAssemblies(us.AssemblyReferences, name, outTable, nodeIndexOut, def))
+			if (TryResolveInAssemblies(us.AssemblyReferences, name, outHandle, def))
 			{
 				return def;
 			}
@@ -224,57 +302,88 @@ namespace HXSL
 		for (auto& us : compilation->GetUsings())
 		{
 			if (us.IsAlias) continue;
-			if (TryResolveInAssemblies(us.AssemblyReferences, name, outTable, nodeIndexOut, def))
+			if (TryResolveInAssemblies(us.AssemblyReferences, name, outHandle, def))
 			{
 				return def;
 			}
 		}
 
-		analyzer.LogError("Symbol not found '%s'", name, name.toString().c_str());
+		if (!silent)
+		{
+			analyzer.LogError("Symbol not found '%s'", name, name.toString().c_str());
+		}
+
 		return nullptr;
 	}
 
-	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name) const
+	SymbolDef* SymbolResolver::ResolvePrimitiveSymbol(const std::string& str) const
 	{
-		auto& span = ref->GetName();
-		auto& actualName = name.value_or(span);
+		SymbolHandle handle;
+		SymbolDef* def;
+		if (TryResolveFromRoot(primitives.GetSymbolTable(), str, handle, def))
+		{
+			return def;
+		}
 
-		const SymbolTable* table;
-		size_t index;
-		auto def = ResolveSymbol(actualName, table, index);
+		HXSL_ASSERT(false, "Couldn't find primitive.");
+		return nullptr;
+	}
+
+	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, bool silent) const
+	{
+		if (ref->IsResolved()) return true;
+		bool isFQN;
+		TextSpan span;
+		if (name.has_value())
+		{
+			isFQN = false;
+			span = name.value();
+		}
+		else
+		{
+			isFQN = ref->HasFullyQualifiedName();
+			span = isFQN ? ref->GetFullyQualifiedName() : ref->GetName();
+		}
+
+		SymbolHandle handle;
+		auto def = ResolveSymbol(span, isFQN, handle, silent);
 		if (!def)
 		{
 			return false;
 		}
 
-		auto metadata = table->GetNode(index).Metadata.get();
-		if (!SymbolTypeSanityCheck(metadata, ref))
+		auto metadata = handle.GetMetadata();
+		if (!SymbolTypeSanityCheck(metadata, ref, silent))
 		{
 			return false;
 		}
-		ref->SetTable(table, index);
+		ref->SetTable(handle);
 
 		return true;
 	}
 
-	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, size_t nodeIndex) const
+	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent) const
 	{
 		auto& span = ref->GetName();
 		auto& actualName = name.value_or(span);
 
+		SymbolHandle handle;
 		SymbolDef* def;
-		if (!TryResolve(table, actualName, nodeIndex, table, nodeIndex, def))
+		if (!TryResolve(table, actualName, lookup, handle, def))
 		{
-			analyzer.LogError("Symbol not found '%s'", span, actualName.toString().c_str());
+			if (!silent)
+			{
+				analyzer.LogError("Symbol not found '%s'", span, actualName.toString().c_str());
+			}
 			return false;
 		}
 
-		auto metadata = table->GetNode(nodeIndex).Metadata.get();
-		if (!SymbolTypeSanityCheck(metadata, ref))
+		auto metadata = lookup.GetMetadata();
+		if (!SymbolTypeSanityCheck(metadata, ref, silent))
 		{
 			return false;
 		}
-		ref->SetTable(table, nodeIndex);
+		ref->SetTable(handle);
 
 		return true;
 	}
@@ -289,10 +398,10 @@ namespace HXSL
 			for (auto& assembly : references.GetAssemblies())
 			{
 				auto table = assembly->GetSymbolTable();
-				auto index = table->FindNodeIndexFullPath(span, current.SymbolTableIndex);
-				if (index != -1)
+				auto index = current.SymbolHandle.FindFullPath(span, table);
+				if (index.valid())
 				{
-					current.SymbolTableIndex = index;
+					current.SymbolHandle = index;
 					found = true;
 					break;
 				}
@@ -303,9 +412,9 @@ namespace HXSL
 		else
 		{
 			auto local = targetAssembly->GetSymbolTable();
-			current.SymbolTableIndex = local->FindNodeIndexFullPath(span, current.SymbolTableIndex);
+			current.SymbolHandle = current.SymbolHandle.FindFullPath(span, local);
 		}
-		HXSL_ASSERT(current.SymbolTableIndex != -1, "Invalid index");
+		HXSL_ASSERT(current.SymbolHandle.valid(), "Invalid index");
 	}
 
 	void SymbolResolver::VisitClose(ASTNode* node, size_t depth)
@@ -328,8 +437,10 @@ namespace HXSL
 		}
 		break;
 		case NodeType_Struct:
+		{
 			PushScope(node, node->As<Struct>()->GetName(), true);
-			break;
+		}
+		break;
 		case NodeType_Field:
 		{
 			auto field = node->As<Field>();
@@ -415,7 +526,7 @@ namespace HXSL
 			auto function = node->As<FunctionOverload>();
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
-			auto signature = function->BuildOverloadSignature();
+			auto signature = function->BuildTemporaryOverloadSignature();
 			PushScope(node, TextSpan(signature));
 		}
 		break;
@@ -424,7 +535,7 @@ namespace HXSL
 			auto function = node->As<OperatorOverload>();
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
-			auto signature = function->BuildOverloadSignature();
+			auto signature = function->BuildTemporaryOverloadSignature();
 			PushScope(node, TextSpan(signature));
 		}
 		break;
@@ -441,16 +552,9 @@ namespace HXSL
 			PushScope(node, TextSpan(temp));
 		}
 		break;
-		case NodeType_DeclarationStatement:
+		case NodeType_MemberReferenceExpression:
 		{
-			auto declStatement = node->As<DeclarationStatement>();
-			auto& ref = declStatement->GetSymbolRef();
-			ResolveSymbol(ref.get());
-		}
-		break;
-		case NodeType_SymbolRefExpression:
-		{
-			auto symbolRefExpression = node->As<SymbolRefExpression>();
+			auto symbolRefExpression = node->As<MemberReferenceExpression>();
 			auto& ref = symbolRefExpression->GetSymbolRef();
 			ResolveSymbol(ref.get());
 			UseBeforeDeclarationCheck(ref.get(), node);
@@ -460,6 +564,13 @@ namespace HXSL
 		{
 			auto attr = node->As<AttributeDeclaration>();
 			auto& ref = attr->GetSymbolRef();
+			ResolveSymbol(ref.get());
+		}
+		break;
+		case NodeType_DeclarationStatement:
+		{
+			auto declStatement = node->As<DeclarationStatement>();
+			auto& ref = declStatement->GetSymbolRef();
 			ResolveSymbol(ref.get());
 		}
 		break;
@@ -498,10 +609,14 @@ namespace HXSL
 
 	int SymbolResolver::ResolveMemberInner(SymbolRef* type, SymbolRef* refInner) const
 	{
-		auto table = type->GetTable();
-		auto index = type->GetTableIndex();
+		auto& handle = type->GetSymbolHandle();
 
-		if (table == nullptr)
+		if (type->IsNotFound())
+		{
+			return -1;
+		}
+
+		if (handle.invalid())
 		{
 			refInner->SetDeferred(true);
 			return 1;
@@ -510,13 +625,13 @@ namespace HXSL
 		refInner->SetDeferred(false);
 
 		auto& refType = refInner->GetType();
-		if (refType == SymbolRefType_Function || refType == SymbolRefType_Constructor || refType == SymbolRefType_FunctionOrConstructor)
+		if (refType == SymbolRefType_FunctionOverload || refType == SymbolRefType_Constructor || refType == SymbolRefType_FunctionOrConstructor || refType == SymbolRefType_Unknown)
 		{
-			return 0; // do not resolve function calls.
+			return 0; // do not resolve function calls or complex members (SymbolRefType_Unknown).
 		}
 
-		auto indexNext = table->FindNodeIndexPart(refInner->GetName(), index);
-		if (indexNext == -1)
+		auto indexNext = handle.FindPart(refInner->GetName()); //table->FindNodeIndexPart(refInner->GetName(), index);
+		if (indexNext.invalid())
 		{
 			auto metadata = type->GetMetadata();
 			if (metadata && metadata->declaration->GetType() == NodeType_Primitive)
@@ -525,12 +640,12 @@ namespace HXSL
 			}
 			return -1;
 		}
-		auto metaInner = table->GetNode(indexNext).Metadata.get();
+		auto metaInner = indexNext.GetMetadata();
 		if (!SymbolTypeSanityCheck(metaInner, refInner))
 		{
 			return -1;
 		}
-		refInner->SetTable(table, indexNext);
+		refInner->SetTable(indexNext);
 
 		return 0;
 	}
@@ -582,5 +697,45 @@ namespace HXSL
 		}
 
 		return TraversalBehavior_Skip;
+	}
+
+	bool SymbolResolver::ResolveComplexMember(ComplexMemberAccessExpression* memberAccessExpr) const
+	{
+		IHasSymbolRef* getter = memberAccessExpr;
+		IChainExpression* chain = memberAccessExpr;
+		while (chain)
+		{
+			auto ref = getter->GetSymbolRef().get();
+
+			SymbolRef* type = GetResolvedTypeFromDecl(ref);
+			if (!type)
+			{
+				analyzer.LogError("Couldn't resolve type of member '%s'", ref->GetName(), ref->GetName().toString().c_str());
+				return false;
+			}
+
+			ASTNode* next = chain->chainNext().get();
+			chain = dynamic_cast<IChainExpression*>(next);
+			getter = dynamic_cast<IHasSymbolRef*>(next);
+			if (getter == nullptr)
+			{
+				analyzer.LogError("Couldn't resolve member '%s'", ref->GetName(), ref->GetName().toString().c_str());
+				return false;
+			}
+
+			auto refInner = getter->GetSymbolRef().get();
+			auto result = ResolveMemberInner(type, refInner);
+			if (result == -1)
+			{
+				analyzer.LogError("Couldn't resolve member '%s'", refInner->GetName(), refInner->GetName().toString().c_str());
+				return false;
+			}
+			else if (result == 1)
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

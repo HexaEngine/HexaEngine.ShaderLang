@@ -2,7 +2,7 @@
 #define STATEMENT_PARSER
 
 #include "sub_parser.hpp"
-namespace HXSL 
+namespace HXSL
 {
 	class MiscKeywordStatementParser : public StatementParser
 	{
@@ -44,17 +44,7 @@ namespace HXSL
 		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class DeclarationStatementParser : public StatementParser
-	{
-		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
-	};
-
-	class AssignmentStatementParser : public StatementParser
-	{
-		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
-	};
-
-	class FunctionCallStatementParser : public StatementParser
+	class MemberAccessStatementParser : public StatementParser
 	{
 		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};

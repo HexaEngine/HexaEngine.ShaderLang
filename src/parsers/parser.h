@@ -5,6 +5,7 @@
 #include "text_span.h"
 #include "ast.hpp"
 #include "lang/language.h"
+#include "object_pool.hpp"
 
 #include <stack>
 #include <string>
@@ -89,15 +90,15 @@ namespace HXSL
 		return lhs;
 	}
 
-	struct ResolverScopeContext
+	struct ParserScopeContext
 	{
 		TextSpan Name;
 		ScopeType Type;
 		ASTNode* Parent;
 		ScopeFlags Flags;
 
-		ResolverScopeContext() : Name({ }), Type(ScopeType_Global), Parent(nullptr), Flags(ScopeFlags_None) {}
-		ResolverScopeContext(TextSpan name, ScopeType type, ASTNode* parent, ScopeFlags flags) : Name(name), Type(type), Parent(parent), Flags(flags) {}
+		ParserScopeContext() : Name({ }), Type(ScopeType_Global), Parent(nullptr), Flags(ScopeFlags_None) {}
+		ParserScopeContext(TextSpan name, ScopeType type, ASTNode* parent, ScopeFlags flags) : Name(name), Type(type), Parent(parent), Flags(flags) {}
 	};
 
 	static TextSpan ParseQualifiedName(TokenStream& stream, bool& hasDot)
@@ -188,13 +189,13 @@ namespace HXSL
 		Compilation* m_compilation;
 		Namespace* CurrentNamespace;
 		ASTNode* ParentNode;
-		ResolverScopeContext CurrentScope;
-		std::stack<ResolverScopeContext> ScopeStack;
+		ParserScopeContext CurrentScope;
+		std::stack<ParserScopeContext> ScopeStack;
 		std::stack<ASTNode*> ParentStack;
 		TakeHandle<AttributeDeclaration> attribute;
 		ModifierList modifierList;
 
-		Parser(TokenStream& stream, Compilation* compilation) : stream(stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ResolverScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None)), modifierList({})
+		Parser(TokenStream& stream, Compilation* compilation) : stream(stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None)), modifierList({})
 		{
 		}
 
@@ -460,10 +461,12 @@ namespace HXSL
 			return AcceptModifierList(nullptr, {}, message, replaceMessage, std::forward<Args>(args)...);
 		}
 
-		bool TryParseSymbol(SymbolRefType expectedType, LazySymbol& type);
-		bool ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type);
 		std::tuple<ParameterFlags, InterpolationModifier> ParseParameterFlags();
+		bool TryParseSymbol(const SymbolRefType& type, LazySymbol& symbol);
+		bool ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type);
 	private:
+		friend class ParserHelper;
+		bool TryParseSymbolInternal(const SymbolRefType& type, TextSpan& span);
 		void ParseAttribute();
 		void ParseModifierList();
 		AccessModifier ParseAccessModifiers(bool& anySpecified);

@@ -26,9 +26,6 @@ namespace HXSL
 		auto parentType = parent->GetType();
 		switch (parentType)
 		{
-		case NodeType_Compilation:
-			compilation->AddField(std::move(field));
-			break;
 		case NodeType_Namespace:
 			parent->As<Namespace>()->AddField(std::move(field));
 			break;
@@ -52,7 +49,7 @@ namespace HXSL
 		auto flags = parser.ParseParameterFlags();
 
 		LazySymbol symbol;
-		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_AnyType, symbol));
+		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_Type, symbol));
 		TextSpan name;
 		IF_ERR_RET_FALSE(stream.ExpectIdentifier(name));
 
@@ -129,9 +126,6 @@ namespace HXSL
 		auto parentType = parent->GetType();
 		switch (parentType)
 		{
-		case NodeType_Compilation:
-			compilation->AddFunction(std::move(function));
-			break;
 		case NodeType_Namespace:
 			parent->As<Namespace>()->AddFunction(std::move(function));
 			break;
@@ -173,7 +167,7 @@ namespace HXSL
 		}
 
 		std::unique_ptr<SymbolRef> symbol;
-		IF_ERR_RET_FALSE(parser.ParseSymbol(SymbolRefType_AnyType, symbol));
+		IF_ERR_RET_FALSE(parser.ParseSymbol(SymbolRefType_Type, symbol));
 
 		auto scopeType = parser.scopeType();
 		if (scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
@@ -249,7 +243,7 @@ namespace HXSL
 		auto startingToken = stream.Current();
 
 		LazySymbol symbol;
-		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_AnyType, symbol));
+		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_Type, symbol));
 
 		TextSpan name;
 		if (!stream.TryGetIdentifier(name))
@@ -352,9 +346,6 @@ namespace HXSL
 		auto parentType = parent->GetType();
 		switch (parentType)
 		{
-		case NodeType_Compilation:
-			compilation->AddStruct(std::move(_struct));
-			break;
 		case NodeType_Namespace:
 			parent->As<Namespace>()->AddStruct(std::move(_struct));
 			break;

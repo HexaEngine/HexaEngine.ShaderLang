@@ -135,10 +135,10 @@ namespace HXSL
 	{
 		Namespace* CurrentNamespace;
 		ASTNode* Parent;
-		size_t SymbolTableIndex;
+		SymbolHandle SymbolHandle;
 		uint ScopeCounter;
 
-		ResolverScopeContext() : CurrentNamespace(nullptr), Parent(nullptr), SymbolTableIndex(0), ScopeCounter(0)
+		ResolverScopeContext() : CurrentNamespace(nullptr), Parent(nullptr), SymbolHandle({}), ScopeCounter(0)
 		{
 		}
 	};
@@ -186,26 +186,23 @@ namespace HXSL
 			compilation->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
 		}
 
-		bool SymbolTypeSanityCheck(SymbolMetadata* metadata, SymbolRef* ref) const;
+		bool SymbolTypeSanityCheck(const SymbolMetadata* metadata, SymbolRef* ref, bool silent = false) const;
 
-		bool SymbolVisibilityChecks(SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const;
+		bool SymbolVisibilityChecks(const SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const;
 
-		bool TryResolve(const SymbolTable* table, const TextSpan& name, size_t nodeIndex, const SymbolTable*& outTable, size_t& outNodeIndex, SymbolDef*& outDefinition) const;
+		bool TryResolve(const SymbolTable* table, const TextSpan& name, const SymbolHandle& lookup, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
-		bool TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const TextSpan& name, const SymbolTable*& outTable, size_t& nodeIndexOut, SymbolDef*& outDefinition) const;
+		bool TryResolveFromRoot(const SymbolTable* table, const TextSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
-		SymbolDef* ResolveSymbol(const TextSpan& name, const SymbolTable*& outTable, size_t& nodeIndexOut) const;
+		bool TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const TextSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
-		SymbolDef* ResolveSymbol(const std::string& str) const
-		{
-			const SymbolTable* t;
-			size_t i;
-			return ResolveSymbol(TextSpan(str), t, i);
-		}
+		SymbolDef* ResolveSymbol(const TextSpan& name, bool isFullyQualified, SymbolHandle& outHandle, bool silent = false) const;
 
-		bool ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name = std::nullopt) const;
+		SymbolDef* ResolvePrimitiveSymbol(const std::string& str) const;
 
-		bool ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, size_t nodeIndex) const;
+		bool ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name = std::nullopt, bool silent = false) const;
+
+		bool ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent = false) const;
 
 		/// <summary>
 		///
@@ -216,6 +213,8 @@ namespace HXSL
 		int ResolveMemberInner(SymbolRef* type, SymbolRef* refInner) const;
 
 		TraversalBehavior ResolveMember(MemberAccessExpression* memberAccessExpr, ASTNode*& next) const;
+
+		bool ResolveComplexMember(ComplexMemberAccessExpression* memberAccessExpr) const;
 
 		void PushScope(ASTNode* parent, const TextSpan& span, bool external = false);
 

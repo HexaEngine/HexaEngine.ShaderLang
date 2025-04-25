@@ -8,26 +8,33 @@
 
 namespace HXSL
 {
+	struct CollectorScopeContext
+	{
+		const ASTNode* Parent;
+		size_t NodeIndex;
+		uint ScopeCounter;
+		SymbolScopeType Type;
+
+		CollectorScopeContext() : Parent(nullptr), NodeIndex(0), ScopeCounter(0), Type(SymbolScopeType_Global)
+		{
+		}
+	};
+
+	struct CollectorDeferralContext
+	{
+		CollectorScopeContext current;
+		std::stack<CollectorScopeContext> stack;
+	};
+
 	class SymbolCollector : public Visitor<EmptyDeferralContext>
 	{
 	private:
 
-		struct ScopeContext
-		{
-			const ASTNode* Parent;
-			size_t NodeIndex;
-			uint ScopeCounter;
-			SymbolScopeType Type;
-
-			ScopeContext() : Parent(nullptr), NodeIndex(0), ScopeCounter(0), Type(SymbolScopeType_Global)
-			{
-			}
-		};
-
 		Analyzer& analyzer;
 		Assembly* targetAssembly;
-		ScopeContext current;
-		std::stack<ScopeContext> stack;
+		CollectorScopeContext current;
+		std::stack<CollectorScopeContext> stack;
+		std::vector<ASTNode*> lateNodes;
 
 		bool Push(const TextSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
 
@@ -35,14 +42,21 @@ namespace HXSL
 
 		bool PushLeaf(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata);
 
-	public:
-		SymbolCollector(Analyzer& analyzer, Assembly* assembly) : analyzer(analyzer), targetAssembly(assembly), current({})
+		void RegisterForLatePass(ASTNode* node)
 		{
+			lateNodes.push_back(node);
 		}
 
 		void VisitClose(ASTNode* node, size_t depth) override;
 
 		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override;
+
+	public:
+		SymbolCollector(Analyzer& analyzer, Assembly* assembly) : analyzer(analyzer), targetAssembly(assembly), current({})
+		{
+		}
+
+		void LateTraverse();
 	};
 }
 #endif

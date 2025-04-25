@@ -200,6 +200,25 @@ namespace HXSL
 			}
 		}
 
+		static bool IsLogicOperator(Operator op)
+		{
+			switch (op)
+			{
+			case Operator_LessThan:
+			case Operator_GreaterThan:
+			case Operator_Equal:
+			case Operator_NotEqual:
+			case Operator_LessThanOrEqual:
+			case Operator_GreaterThanOrEqual:
+			case Operator_OrOr:
+			case Operator_AndAnd:
+			case Operator_LogicalNot:
+				return true;
+			default:
+				return false;
+			}
+		}
+
 		static int GetOperatorPrecedence(Operator op) {
 			switch (op)
 			{
@@ -286,6 +305,27 @@ namespace HXSL
 		static bool isMemberAccessOperator(Operator op)
 		{
 			return op == Operator_MemberAccess;
+		}
+
+		static bool isAssignment(Operator op)
+		{
+			switch (op)
+			{
+			case Operator_Assign:
+			case Operator_PlusAssign:
+			case Operator_MinusAssign:
+			case Operator_MultiplyAssign:
+			case Operator_DivideAssign:
+			case Operator_ModulusAssign:
+			case Operator_BitwiseShiftLeftAssign:
+			case Operator_BitwiseShiftRightAssign:
+			case Operator_BitwiseAndAssign:
+			case Operator_BitwiseOrAssign:
+			case Operator_BitwiseXorAssign:
+				return true;
+			default:
+				return false;
+			}
 		}
 
 		static bool isCompoundAssignment(Operator op)

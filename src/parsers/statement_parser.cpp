@@ -297,67 +297,16 @@ namespace HXSL
 		return true;
 	}
 
-	bool DeclarationStatementParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
+	static bool ParseAssignment(const Token& start, std::unique_ptr<Expression> target, Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
 	{
-		auto start = stream.Current();
-
-		LazySymbol symbol;
-		TextSpan identifer;
-		if (!parser.TryParseSymbol(SymbolRefType_AnyType, symbol) || !stream.TryGetIdentifier(identifer))
-		{
-			return false;
-		}
-
-		auto token = stream.Current();
-		if (!token.isOperatorOf(Operator_Assign) && !token.isDelimiterOf(';'))
-		{
-			return false;
-		}
-
-		if (token.isOperatorOf(Operator_Assign))
-		{
-			stream.Advance();
-		}
-
+		parser.RejectModifierList("No modifiers are allowed in this context", true);
 		parser.RejectAttribute("is not allowed in this context.");
-		ModifierList list;
-		ModifierList allowed = ModifierList(AccessModifier_None, false, FunctionFlags_None, StorageClass_Const | StorageClass_Precise, InterpolationModifier_None, false);
-		parser.AcceptModifierList(&list, allowed, "Invalid StorageClass flags. Only 'const' and 'precise' are allowed on local variables.", true);
 
-		auto declarationStatement = std::make_unique<DeclarationStatement>(TextSpan(), parser.parentNode(), std::move(symbol.make()), list.storageClasses, identifer, nullptr);
-		if (stream.Current().isDelimiterOf('{'))
-		{
-			std::unique_ptr<InitializationExpression> initExpression;
-			IF_ERR_RET_FALSE(ParserHelper::TryParseInitializationExpression(parser, stream, declarationStatement.get(), initExpression));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
-			declarationStatement->SetInitializer(std::move(initExpression));
-		}
-		else if (!stream.TryGetDelimiter(';'))
-		{
-			std::unique_ptr<Expression> expression;
-			IF_ERR_RET_FALSE(ParseExpression(parser, stream, declarationStatement.get(), expression));
-			stream.ExpectDelimiter(';');
-			declarationStatement->SetInitializer(std::move(expression));
-		}
-
-		declarationStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-		statementOut = std::move(declarationStatement);
-		return true;
-	}
-
-	bool AssignmentStatementParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
-	{
-		auto start = stream.Current();
-		std::unique_ptr<Expression> target;
-		if (!ParserHelper::TryParseMemberAccessPath(parser, stream, nullptr, target))
-		{
-			return false;
-		}
-
+		auto current = stream.Current();
 		Operator op;
-		if (!stream.Current().isOperator(op))
+		if (!current.isAssignment(op))
 		{
-			return false;
+			parser.LogError("Expected an assignment operator.", current);
 		}
 
 		std::unique_ptr<AssignmentStatement> assignmentStatement;
@@ -366,17 +315,11 @@ namespace HXSL
 			stream.TryAdvance();
 			assignmentStatement = std::make_unique<AssignmentStatement>(TextSpan(), parser.parentNode(), std::move(target), nullptr);
 		}
-		else if (Operators::isCompoundAssignment(op))
+		else
 		{
 			stream.TryAdvance();
 			assignmentStatement = std::make_unique<CompoundAssignmentStatement>(TextSpan(), parser.parentNode(), op, std::move(target), nullptr);
 		}
-		else
-		{
-			return false;
-		}
-
-		parser.RejectAttribute("is not allowed in this context.");
 
 		std::unique_ptr<Expression> expression;
 
@@ -399,24 +342,107 @@ namespace HXSL
 		return true;
 	}
 
-	bool FunctionCallStatementParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
+	static bool ParseDeclaration(const Token& start, std::unique_ptr<Expression> target, Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
+	{
+		std::unique_ptr<SymbolRef> symbol;
+		if (!ParserHelper::MakeConcreteSymbolRef(target.get(), SymbolRefType_Type, symbol))
+		{
+			parser.LogError("Expected type expression.", target->GetSpan());
+		}
+		ModifierList list;
+		ModifierList allowed = ModifierList(AccessModifier_None, false, FunctionFlags_None, StorageClass_Const | StorageClass_Precise, InterpolationModifier_None, false);
+		parser.AcceptModifierList(&list, allowed, "Invalid StorageClass flags. Only 'const' and 'precise' are allowed on local variables.", true);
+		parser.RejectAttribute("is not allowed in this context.");
+
+		TextSpan identifer;
+		stream.ExpectIdentifier(identifer);
+
+		auto token = stream.Current();
+		if (!token.isOperatorOf(Operator_Assign) && !token.isDelimiterOf(';'))
+		{
+			parser.LogError("Expected a '=' or ';' in a declaration expression.", token);
+			return false;
+		}
+
+		if (token.isOperatorOf(Operator_Assign))
+		{
+			stream.Advance();
+		}
+
+		auto declarationStatement = std::make_unique<DeclarationStatement>(TextSpan(), parser.parentNode(), std::move(symbol), list.storageClasses, identifer, nullptr);
+		if (stream.Current().isDelimiterOf('{'))
+		{
+			std::unique_ptr<InitializationExpression> initExpression;
+			IF_ERR_RET_FALSE(ParserHelper::TryParseInitializationExpression(parser, stream, declarationStatement.get(), initExpression));
+			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
+			declarationStatement->SetInitializer(std::move(initExpression));
+		}
+		else if (!stream.TryGetDelimiter(';'))
+		{
+			std::unique_ptr<Expression> expression;
+			IF_ERR_RET_FALSE(ParseExpression(parser, stream, declarationStatement.get(), expression));
+			stream.ExpectDelimiter(';');
+			declarationStatement->SetInitializer(std::move(expression));
+		}
+
+		declarationStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
+		statementOut = std::move(declarationStatement);
+		return true;
+	}
+
+	static bool ParseFunctionCall(const Token& start, std::unique_ptr<Expression> target, Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
+	{
+		parser.RejectModifierList("No modifiers are allowed in this context", true);
+		parser.RejectAttribute("is not allowed in this context.");
+
+		Expression* end = target.get();
+		while (auto getter = dynamic_cast<IChainExpression*>(end))
+		{
+			end = getter->chainNext().get();
+		}
+
+		if (end == nullptr || end->GetType() != NodeType_FunctionCallExpression)
+		{
+			if (end == nullptr)
+			{
+				parser.LogError("Expected a function call expression, but found an invalid expression.", target->GetSpan());
+			}
+			else
+			{
+				parser.LogError("Expected a function call expression, but got '%s' instead.", end->GetSpan(), ToString(end->GetType()));
+			}
+			return false;
+		}
+
+		auto functionCallStatement = std::make_unique<FunctionCallStatement>(TextSpan(), parser.parentNode(), std::move(target));
+		stream.ExpectDelimiter(';');
+		functionCallStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
+		statementOut = std::move(functionCallStatement);
+		return true;
+	}
+
+	bool MemberAccessStatementParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
 	{
 		auto start = stream.Current();
-		LazySymbol symbol;
-		if (!parser.TryParseSymbol(SymbolRefType_Function, symbol) || !stream.TryGetDelimiter('('))
+		std::unique_ptr<Expression> target;
+		if (!ParserHelper::TryParseMemberAccessPath(parser, stream, nullptr, target))
 		{
 			return false;
 		}
 
-		parser.RejectAttribute("is not allowed in this context.");
+		auto current = stream.Current();
 
-		auto functionCallStatement = std::make_unique<FunctionCallStatement>(TextSpan(), parser.parentNode(), nullptr);
-		std::unique_ptr<FunctionCallExpression> expression;
-		IF_ERR_RET_FALSE(ParserHelper::ParseFunctionCallInner(start, symbol, parser, stream, nullptr, expression));
-		stream.ExpectDelimiter(';');
-		functionCallStatement->SetExpression(std::move(expression));
-		functionCallStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-		statementOut = std::move(functionCallStatement);
-		return true;
+		if (current.isOperator())
+		{
+			return ParseAssignment(start, std::move(target), parser, stream, statementOut);
+		}
+		else if (current.isIdentifier())
+		{
+			return ParseDeclaration(start, std::move(target), parser, stream, statementOut);
+		}
+		else
+		{
+			return ParseFunctionCall(start, std::move(target), parser, stream, statementOut);
+		}
 	}
 }

@@ -8,6 +8,7 @@
 #include "lang/language.h"
 #include "stream.h"
 #include "assembly.hpp"
+#include "symbols/symbol_handle.hpp"
 
 #include <memory>
 #include <vector>
@@ -16,6 +17,7 @@
 #include <functional>
 #include <algorithm>
 #include <limits>
+#include <shared_mutex>
 
 #define DEFINE_GETTER_SETTER(type, name, field)    \
     const type& Get##name() const noexcept { return field; } \
@@ -47,16 +49,25 @@ namespace HXSL
 	class StringPool;
 	struct SymbolRef;
 
+	/// <summary>
+	/// Parsing: All Done.
+	/// Symbol Collection: All Done.
+	/// Symbol Resolve: All Done.
+	/// Type Check: WIP.
+	/// </summary>
 	enum NodeType
 	{
+		/// <summary>
+		/// Special node and does not exist as class.
+		/// </summary>
 		NodeType_Unknown,
-		NodeType_Symbol,
 		NodeType_Compilation,
 		NodeType_Namespace,
 		NodeType_Enum, // Placeholder (Will be added in the future.)
 		NodeType_Primitive,
 		NodeType_Struct,
-		NodeType_Class, // Placeholder (Will be added in the future.)
+		NodeType_Class, // Needs parsing logic
+		NodeType_Array, // Not implemented yet. (but array accessor is.)
 		NodeType_Field,
 		NodeType_IntrinsicFunction, // Placeholder (Will be added in the future.)
 		NodeType_FunctionOverload,
@@ -64,21 +75,12 @@ namespace HXSL
 		NodeType_Constructor, // Placeholder (Will be added in the future.)
 		NodeType_Parameter,
 		NodeType_AttributeDeclaration,
-		NodeType_Expression,
-		NodeType_BinaryExpression,
-		NodeType_EmptyExpression,
-		NodeType_LiteralExpression,
-		NodeType_SymbolRefExpression,
-		NodeType_FunctionCallExpression,
-		NodeType_FunctionCallParameter,
-		NodeType_MemberAccessExpression,
-		NodeType_IndexerAccessExpression,
 		NodeType_BlockStatement,
 		NodeType_DeclarationStatement,
 		NodeType_AssignmentStatement,
 		NodeType_CompoundAssignmentStatement,
 		NodeType_FunctionCallStatement,
-		NodeType_ReturnStatement,
+		NodeType_ReturnStatement, // type-check: yes
 		NodeType_IfStatement,
 		NodeType_ElseStatement,
 		NodeType_ElseIfStatement,
@@ -90,16 +92,26 @@ namespace HXSL
 		NodeType_SwitchStatement,
 		NodeType_CaseStatement,
 		NodeType_DefaultCaseStatement,
+		NodeType_SwizzleDefinition,
+		NodeType_Expression,
+		NodeType_BinaryExpression, // type-check: yes
+		NodeType_EmptyExpression,
+		NodeType_LiteralExpression, // type-check: yes
+		NodeType_MemberReferenceExpression, // type-check: yes
+		NodeType_FunctionCallExpression, // type-check: yes
+		NodeType_FunctionCallParameter, // type-check: yes
+		NodeType_MemberAccessExpression, // type-check: yes
+		NodeType_ComplexMemberAccessExpression, // type-check: yes
+		NodeType_IndexerAccessExpression,
 		NodeType_CastExpression,
 		NodeType_TernaryExpression,
-		NodeType_UnaryExpression,
+		NodeType_UnaryExpression, // type-check: yes
 		NodeType_PrefixExpression,
 		NodeType_PostfixExpression,
 		NodeType_AssignmentExpression,
 		NodeType_CompoundAssignmentExpression,
 		NodeType_InitializationExpression,
-		NodeType_SwizzleDefinition,
-		NodeType_Array,
+		NodeType_Count,
 	};
 
 	static bool IsDataType(NodeType nodeType)
@@ -121,7 +133,7 @@ namespace HXSL
 		case NodeType_BinaryExpression:
 		case NodeType_EmptyExpression:
 		case NodeType_LiteralExpression:
-		case NodeType_SymbolRefExpression:
+		case NodeType_MemberReferenceExpression:
 		case NodeType_FunctionCallExpression:
 		case NodeType_FunctionCallParameter:
 		case NodeType_MemberAccessExpression:
@@ -167,12 +179,11 @@ namespace HXSL
 		}
 	}
 
-	static std::string toString(NodeType nodeType)
+	static std::string ToString(NodeType nodeType)
 	{
 		switch (nodeType)
 		{
 		case NodeType_Unknown: return "NodeType_Unknown";
-		case NodeType_Symbol: return "NodeType_Symbol";
 		case NodeType_Compilation: return "NodeType_Compilation";
 		case NodeType_Namespace: return "NodeType_Namespace";
 		case NodeType_Enum: return "NodeType_Enum";
@@ -190,7 +201,7 @@ namespace HXSL
 		case NodeType_BinaryExpression: return "NodeType_BinaryExpression";
 		case NodeType_EmptyExpression: return "NodeType_EmptyExpression";
 		case NodeType_LiteralExpression: return "NodeType_ConstantExpression";
-		case NodeType_SymbolRefExpression: return "NodeType_SymbolRefExpression";
+		case NodeType_MemberReferenceExpression: return "NodeType_SymbolRefExpression";
 		case NodeType_FunctionCallExpression: return "NodeType_FunctionCallExpression";
 		case NodeType_FunctionCallParameter: return "NodeType_FunctionCallParameter";
 		case NodeType_MemberAccessExpression: return "NodeType_MemberAccessExpression";
@@ -229,7 +240,9 @@ namespace HXSL
 	private:
 		Compilation* compilation = nullptr;
 		size_t id = 0;
-
+#ifdef DEBUG
+		bool parentMissing = false;
+#endif
 		void AddChild(ASTNode* node)
 		{
 			HXSL_ASSERT(node, "Child node was null");
@@ -269,7 +282,8 @@ namespace HXSL
 			{
 				if (!MustHaveParent()) return;
 #ifdef DEBUG
-				std::cout << "[Warn]: (AST) Parent of node is null: " << toString(type) << " Span: " << span.toString() << std::endl;
+				parentMissing = true;
+				std::cout << "[Warn]: (AST) Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
 #endif
 			}
 		}
@@ -304,10 +318,11 @@ namespace HXSL
 			{
 				parent->RemoveChild(this);
 			}
-			else if (MustHaveParent())
+			else if (parentMissing)
 			{
 #ifdef DEBUG
-				std::cout << "[Info]: (AST) Recovered from Parent of node is null: " << toString(type) << " Span: " << span.toString() << std::endl;
+				std::cout << "[Info]: (AST) Recovered from Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
+				parentMissing = false;
 #endif
 			}
 			parent = newParent;
@@ -380,7 +395,7 @@ namespace HXSL
 		virtual	std::string DebugName() const
 		{
 			std::ostringstream oss;
-			oss << "[" << toString(type) << "] ID: " << id << " Span: " + span.toString();
+			oss << "[" << ToString(type) << "] ID: " << id << " Span: " + span.toString();
 			return oss.str();
 		}
 
@@ -393,6 +408,12 @@ namespace HXSL
 				parent->RemoveChild(this);
 				parent = nullptr;
 			}
+#ifdef DEBUG
+			else if (parentMissing)
+			{
+				std::cout << "[Info]: (AST) Recovered from Parent is null (Destroyed): " << ToString(type) << " Span: " << span.toString() << std::endl;
+			}
+#endif
 		}
 	};
 
@@ -495,12 +516,11 @@ namespace HXSL
 		TextSpan name;
 		std::vector<SymbolRef*> references;
 		const Assembly* assembly;
-		size_t tableIndex;
+		SymbolHandle symbolHandle;
 
 		SymbolDef(TextSpan span, ASTNode* parent, NodeType type, TextSpan name, bool isExtern = false)
 			: ASTNode(span, parent, type, isExtern),
 			name(name),
-			tableIndex(0),
 			assembly(nullptr)
 		{
 		}
@@ -515,13 +535,13 @@ namespace HXSL
 			references.erase(std::remove(references.begin(), references.end(), ref), references.end());
 		}
 
-		void SetAssembly(const Assembly* assembly, size_t tableIndex);
+		void SetAssembly(const Assembly* assembly, const SymbolHandle& handle);
 
 		const Assembly* GetAssembly() const noexcept { return assembly; }
 
 		const SymbolTable* GetTable() const noexcept { return assembly->GetSymbolTable(); }
 
-		const size_t& GetTableIndex() const noexcept { return tableIndex; }
+		const SymbolHandle& GetSymbolHandle() const noexcept { return symbolHandle; }
 
 		const std::string& GetFullyQualifiedName() const noexcept { return *fullyQualifiedName.get(); }
 
@@ -585,6 +605,11 @@ namespace HXSL
 			return functions;
 		}
 
+		const std::vector<std::unique_ptr<OperatorOverload>>& GetOperators() const noexcept
+		{
+			return operators;
+		}
+
 		const std::vector<std::unique_ptr<Struct>>& GetStructs() const noexcept
 		{
 			return structs;
@@ -605,16 +630,16 @@ namespace HXSL
 	{
 		SymbolRefType_Unknown,
 		SymbolRefType_Namespace,
-		SymbolRefType_Function,
+		SymbolRefType_FunctionOverload,
 		SymbolRefType_OperatorOverload,
 		SymbolRefType_Constructor,
 		SymbolRefType_FunctionOrConstructor,
 		SymbolRefType_Struct,
 		SymbolRefType_Enum,
-		SymbolRefType_Variable,
+		SymbolRefType_Identifier,
 		SymbolRefType_Attribute,
 		SymbolRefType_Member,
-		SymbolRefType_AnyType,
+		SymbolRefType_Type,
 		SymbolRefType_Any,
 	};
 
@@ -662,7 +687,8 @@ namespace HXSL
 		PrimitiveKind_Uint64,
 	};
 
-	static PrimitiveKind& operator++(PrimitiveKind& kind) {
+	static PrimitiveKind& operator++(PrimitiveKind& kind)
+	{
 		kind = static_cast<PrimitiveKind>(static_cast<int>(kind) + 1);
 		return kind;
 	}
@@ -795,25 +821,28 @@ namespace HXSL
 		std::unique_ptr<std::string> fullyQualifiedName;
 		TextSpan span;
 		SymbolRefType type;
-		const SymbolTable* table;
-		size_t tableIndex;
+		SymbolHandle symbolHandle;
 		std::vector<size_t> arrayDims;
 		bool isDeferred;
+		bool notFound;
 
 	public:
-		SymbolRef(Token token, SymbolRefType type) : span(token.Span), type(type), table(nullptr), tableIndex(0)
+		SymbolRef(TextSpan span, SymbolRefType type, bool isFullyQualified) : span(span), type(type), symbolHandle({}), isDeferred(false), notFound(false)
 		{
+			if (isFullyQualified)
+			{
+				fullyQualifiedName = std::make_unique<std::string>(span.toString());
+			}
 		}
-		SymbolRef(TextSpan span, SymbolRefType type) : span(span), type(type), table(nullptr), tableIndex(0)
-		{
-		}
-		SymbolRef() : span({}), type(SymbolRefType_Unknown), table(nullptr), tableIndex(0)
+		SymbolRef() : span({}), type(SymbolRefType_Unknown), symbolHandle({}), isDeferred(false), notFound(false)
 		{
 		}
 
 		bool HasFullyQualifiedName() const noexcept { return fullyQualifiedName.get() != nullptr; }
 
 		const SymbolRefType& GetType() const noexcept { return type; }
+
+		void OverwriteType(const SymbolRefType& value) noexcept { type = value; }
 
 		const TextSpan& GetName() const noexcept
 		{
@@ -824,13 +853,17 @@ namespace HXSL
 
 		const std::vector<size_t>& GetArrayDims() const noexcept { return arrayDims; }
 
-		bool IsResolved() const noexcept { return table != nullptr; }
+		bool IsResolved() const noexcept { return !symbolHandle.invalid(); }
 
-		void SetTable(const SymbolTable* table, size_t tableIndex);
+		void SetTable(const SymbolHandle& handle);
 
-		const SymbolTable* GetTable() const { return table; }
+		void SetDeclaration(const SymbolDef* node);
 
-		const size_t& GetTableIndex() const { return tableIndex; }
+		void SetNotFound(bool value) noexcept { notFound = value; }
+
+		const bool& IsNotFound() const noexcept { return notFound; }
+
+		const SymbolHandle& GetSymbolHandle() const { return symbolHandle; }
 
 		const std::string& GetFullyQualifiedName() const;
 
@@ -858,19 +891,20 @@ namespace HXSL
 
 	struct LazySymbol
 	{
-		Token token;
+		TextSpan span;
 		SymbolRefType type;
+		bool fqn;
 		std::unique_ptr<SymbolRef> ptr;
 
-		LazySymbol() : token({}), type(SymbolRefType_Unknown)
+		LazySymbol() : span({}), type(SymbolRefType_Unknown), fqn(false)
 		{
 		}
 
-		LazySymbol(std::unique_ptr<SymbolRef> ptr) : token({}), type(SymbolRefType_Unknown), ptr(std::move(ptr))
+		LazySymbol(std::unique_ptr<SymbolRef> ptr) : span({}), type(SymbolRefType_Unknown), ptr(std::move(ptr)), fqn(false)
 		{
 		}
 
-		LazySymbol(Token token, SymbolRefType type) : token(token), type(type)
+		LazySymbol(TextSpan span, SymbolRefType type, bool fqn) : span(span), type(type), fqn(fqn)
 		{
 		}
 
@@ -881,13 +915,13 @@ namespace HXSL
 				return std::move(ptr);
 			}
 
-			if (token.Type == TokenType_Unknown)
+			if (span.Text == nullptr)
 			{
 				HXSL_ASSERT(false, "Attempted to double create a LazySymbol");
 				return {};
 			}
-			auto result = std::make_unique<SymbolRef>(token, overwrite);
-			token = {};
+			auto result = std::make_unique<SymbolRef>(span, overwrite, fqn);
+			span = {};
 			type = {};
 			return std::move(result);
 		};
@@ -997,7 +1031,7 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
 
-			const std::vector<std::unique_ptr<Expression>>& GetParameters() const noexcept
+		const std::vector<std::unique_ptr<Expression>>& GetParameters() const noexcept
 		{
 			return parameters;
 		}
@@ -1127,7 +1161,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << toString(type) << "] ID: " << GetID();
+			oss << "[" << ToString(type) << "] ID: " << GetID();
 			return oss.str();
 		}
 	};
@@ -1149,12 +1183,12 @@ namespace HXSL
 	{
 	private:
 		SymbolDef* inferredType;
-		bool lazyEval;
+		size_t lazyEvalState;
 		ExpressionTraits traits;
 	protected:
 		Expression(TextSpan span, ASTNode* parent, NodeType type)
 			: ASTNode(span, parent, type),
-			lazyEval(false),
+			lazyEvalState(0),
 			inferredType(nullptr)
 		{
 		}
@@ -1179,10 +1213,16 @@ namespace HXSL
 		void SetInferredType(SymbolDef* def) noexcept
 		{
 			inferredType = def;
-			lazyEval = false;
+			ResetLazyEvalState();
 		}
 
-		DEFINE_GETTER_SETTER(bool, LazyEval, lazyEval)
+		const size_t& GetLazyEvalState() const noexcept { return lazyEvalState; }
+
+		void SetLazyEvalState(const size_t& value) noexcept { lazyEvalState = value; }
+
+		void IncrementLazyEvalState() noexcept { lazyEvalState++; }
+
+		void ResetLazyEvalState() noexcept { lazyEvalState = 0; }
 	};
 
 	class IChainExpression
@@ -1190,21 +1230,15 @@ namespace HXSL
 	public:
 		virtual ~IChainExpression() = default;
 
-		virtual	void chain(std::unique_ptr<Expression> expression)
-		{
-			HXSL_ASSERT(false, "Chain method not implemented");
-		}
+		virtual	void chain(std::unique_ptr<Expression> expression) = 0;
 
-		virtual const std::unique_ptr<Expression>& chainNext()
-		{
-			HXSL_ASSERT(false, "Get Chain method not implemented");
-			return nullptr;
-		}
+		virtual const std::unique_ptr<Expression>& chainNext() = 0;
 	};
 
 	class UnaryExpression : public Expression
 	{
 	private:
+		std::unique_ptr<SymbolRef> operatorSymbol;
 		Operator _operator;
 		std::unique_ptr<Expression> operand;
 	protected:
@@ -1217,6 +1251,18 @@ namespace HXSL
 		}
 
 	public:
+
+		std::string BuildOverloadSignature() const
+		{
+			std::ostringstream oss;
+			oss << "operator" << ToString(_operator) << "(" << operand->GetInferredType()->GetFullyQualifiedName() << ")";
+			return oss.str();
+		}
+
+		std::unique_ptr<SymbolRef>& GetOperatorSymbolRef()
+		{
+			return operatorSymbol;
+		}
 
 		DEFINE_GETTER_SETTER(Operator, Operator, _operator)
 
@@ -1245,6 +1291,7 @@ namespace HXSL
 	{
 	private:
 		Operator _operator;
+		std::unique_ptr<SymbolRef> operatorSymbol;
 		std::unique_ptr<Expression> left;
 		std::unique_ptr<Expression> right;
 	public:
@@ -1252,10 +1299,23 @@ namespace HXSL
 			: Expression(span, parent, NodeType_BinaryExpression),
 			_operator(op),
 			left(std::move(left)),
-			right(std::move(right))
+			right(std::move(right)),
+			operatorSymbol(std::make_unique<SymbolRef>(TextSpan(), SymbolRefType_OperatorOverload, false))
 		{
 			if (this->left) this->left->SetParent(this);
 			if (this->right) this->right->SetParent(this);
+		}
+
+		std::string BuildOverloadSignature() const
+		{
+			std::ostringstream oss;
+			oss << "operator" << ToString(_operator) << "(" << left->GetInferredType()->GetFullyQualifiedName() << "," << right->GetInferredType()->GetFullyQualifiedName() << ")";
+			return oss.str();
+		}
+
+		std::unique_ptr<SymbolRef>& GetOperatorSymbolRef()
+		{
+			return operatorSymbol;
 		}
 
 		void chain(std::unique_ptr<Expression> expression) override
@@ -1279,21 +1339,34 @@ namespace HXSL
 	class CastExpression : public Expression
 	{
 	private:
-		std::unique_ptr<Expression> left;
-		std::unique_ptr<Expression> right;
+		std::unique_ptr<SymbolRef> operatorSymbol;
+		std::unique_ptr<Expression> typeExpression;
+		std::unique_ptr<Expression> operand;
 	public:
-		CastExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+		CastExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> typeExpression, std::unique_ptr<Expression> operand)
 			: Expression(span, parent, NodeType_CastExpression),
-			left(std::move(left)),
-			right(std::move(right))
+			typeExpression(std::move(typeExpression)),
+			operand(std::move(operand))
 		{
-			if (this->left) this->left->SetParent(this);
-			if (this->right) this->right->SetParent(this);
+			if (this->typeExpression) this->typeExpression->SetParent(this);
+			if (this->operand) this->operand->SetParent(this);
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Left, left)
+		std::string BuildOverloadSignature() const
+		{
+			std::ostringstream oss;
+			oss << "operator" << "#" << typeExpression->GetInferredType()->GetFullyQualifiedName() << "(" << operand->GetInferredType()->GetFullyQualifiedName() << ")";
+			return oss.str();
+		}
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Right, right)
+		std::unique_ptr<SymbolRef>& GetOperatorSymbolRef()
+		{
+			return operatorSymbol;
+		}
+
+		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, TypeExpression, typeExpression)
+
+			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Operand, operand)
 	};
 
 	class TernaryExpression : public Expression
@@ -1343,13 +1416,13 @@ namespace HXSL
 		DEFINE_GETTER_SETTER(Token, Literal, literal)
 	};
 
-	class SymbolRefExpression : public Expression, public IHasSymbolRef
+	class MemberReferenceExpression : public Expression, public IHasSymbolRef
 	{
 	private:
 		std::unique_ptr<SymbolRef> symbol;
 	public:
-		SymbolRefExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol)
-			: Expression(span, parent, NodeType_SymbolRefExpression),
+		MemberReferenceExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol)
+			: Expression(span, parent, NodeType_MemberReferenceExpression),
 			symbol(std::move(symbol))
 		{
 		}
@@ -1362,12 +1435,12 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
 	};
 
-	class CallParameter : public ASTNode
+	class FunctionCallParameter : public ASTNode
 	{
 	private:
 		std::unique_ptr<Expression> expression;
 	public:
-		CallParameter(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression)
+		FunctionCallParameter(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression)
 			: ASTNode(span, parent, NodeType_FunctionCallParameter),
 			expression(std::move(expression))
 		{
@@ -1381,9 +1454,9 @@ namespace HXSL
 	{
 	private:
 		std::unique_ptr<SymbolRef> symbol;
-		std::vector<std::unique_ptr<CallParameter>> parameters;
+		std::vector<std::unique_ptr<FunctionCallParameter>> parameters;
 	public:
-		FunctionCallExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::vector<std::unique_ptr<CallParameter>> parameters)
+		FunctionCallExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::vector<std::unique_ptr<FunctionCallParameter>> parameters)
 			: Expression(span, parent, NodeType_FunctionCallExpression),
 			symbol(std::move(symbol)),
 			parameters(std::move(parameters))
@@ -1394,6 +1467,18 @@ namespace HXSL
 			: Expression(span, parent, NodeType_FunctionCallExpression),
 			symbol(std::move(symbol))
 		{
+		}
+
+		bool CanBuildOverloadSignature()
+		{
+			for (auto& param : parameters)
+			{
+				if (!param->GetExpression()->GetInferredType())
+				{
+					return false;
+				}
+			}
+			return false;
 		}
 
 		std::string BuildOverloadSignature()
@@ -1408,7 +1493,7 @@ namespace HXSL
 					oss << ",";
 				}
 				first = false;
-				oss << param->GetExpression()->GetInferredType()->GetName().toString();
+				oss << param->GetExpression()->GetInferredType()->GetFullyQualifiedName();
 			}
 			oss << ")";
 			return oss.str();
@@ -1421,7 +1506,7 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
 
-			DEFINE_GET_SET_MOVE(std::vector<std::unique_ptr<CallParameter>>, Parameters, parameters)
+			DEFINE_GET_SET_MOVE(std::vector<std::unique_ptr<FunctionCallParameter>>, Parameters, parameters)
 	};
 
 	class MemberAccessExpression : public Expression, public IChainExpression, public IHasSymbolRef
@@ -1456,6 +1541,48 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
 
 			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Expression, expression)
+	};
+
+	class ComplexMemberAccessExpression : public Expression, public IChainExpression, public IHasSymbolRef
+	{
+	private:
+		std::unique_ptr<SymbolRef> symbol;
+		std::unique_ptr<Expression> left;
+		std::unique_ptr<Expression> right;
+	public:
+		ComplexMemberAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+			: Expression(span, parent, NodeType_ComplexMemberAccessExpression),
+			symbol(std::make_unique<SymbolRef>()),
+			left(std::move(left)),
+			right(std::move(right))
+		{
+		}
+
+		std::unique_ptr<SymbolRef>& GetSymbolRef() override
+		{
+			return symbol;
+		}
+
+		void chain(std::unique_ptr<Expression> expression) override
+		{
+			this->right = std::move(expression);
+			this->right->SetParent(this);
+			if (left && right)
+			{
+				span = left->GetSpan().merge(right->GetSpan());
+			}
+		}
+
+		virtual const std::unique_ptr<Expression>& chainNext() override
+		{
+			return right;
+		}
+
+		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
+
+			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Left, left)
+
+			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Right, right)
 	};
 
 	class IndexerAccessExpression : public Expression
@@ -1614,7 +1741,9 @@ namespace HXSL
 
 		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Initializer, initializer)
+		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
+
+			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Initializer, initializer)
 	};
 
 	class AssignmentStatement : public Statement, IHasExpressions
@@ -1686,10 +1815,10 @@ namespace HXSL
 	class FunctionCallStatement : public Statement, public IHasExpressions
 	{
 	private:
-		std::unique_ptr<FunctionCallExpression> expression;
+		std::unique_ptr<Expression> expression;
 
 	public:
-		FunctionCallStatement(TextSpan span, ASTNode* parent, std::unique_ptr<FunctionCallExpression> expression)
+		FunctionCallStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression)
 			: Statement(span, parent, NodeType_FunctionCallStatement),
 			ASTNode(span, parent, NodeType_FunctionCallStatement),
 			expression(std::move(expression))
@@ -1701,7 +1830,7 @@ namespace HXSL
 			}
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<FunctionCallExpression>, Expression, expression)
+		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
 	};
 
 	class ReturnStatement : public Statement, public IHasExpressions, public ITypeCheckable
@@ -1967,6 +2096,7 @@ namespace HXSL
 	class FunctionOverload : public SymbolDef, public AttributeContainer
 	{
 	protected:
+		std::string cachedSignature;
 		AccessModifier accessModifiers;
 		FunctionFlags functionFlags;
 		std::unique_ptr<SymbolRef> returnSymbol;
@@ -2045,8 +2175,13 @@ namespace HXSL
 			return SymbolType_Function;
 		}
 
-		virtual std::string BuildOverloadSignature() const noexcept
+		virtual std::string BuildOverloadSignature(bool placeholder) noexcept
 		{
+			if (!placeholder && !cachedSignature.empty())
+			{
+				return cachedSignature;
+			}
+
 			std::ostringstream oss;
 			oss << name.toString() << "(";
 			bool first = true;
@@ -2057,11 +2192,36 @@ namespace HXSL
 					oss << ",";
 				}
 				first = false;
-				auto str = param->GetSymbolRef()->GetName().toString();
-				oss << str;
+				if (placeholder)
+				{
+					oss << param->GetID();
+				}
+				else
+				{
+					oss << param->GetSymbolRef()->GetFullyQualifiedName();
+				}
 			}
 			oss << ")";
-			return oss.str();
+
+			if (placeholder)
+			{
+				return oss.str();
+			}
+			else
+			{
+				cachedSignature = oss.str();
+				return cachedSignature;
+			}
+		}
+
+		std::string BuildOverloadSignature() noexcept
+		{
+			return BuildOverloadSignature(false);
+		}
+
+		std::string BuildTemporaryOverloadSignature() noexcept
+		{
+			return BuildOverloadSignature(true);
 		}
 
 		void Write(Stream& stream) const override;
@@ -2073,7 +2233,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << toString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
 			return oss.str();
 		}
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
@@ -2119,6 +2279,74 @@ namespace HXSL
 			_operator(_operator),
 			operatorFlags(operatorFlags)
 		{
+		}
+
+		std::string BuildOverloadSignature(bool placeholder) noexcept override
+		{
+			if (!placeholder && !cachedSignature.empty())
+			{
+				return cachedSignature;
+			}
+
+			std::ostringstream oss;
+			oss << "operator";
+
+			if (_operator != Operator_Cast)
+			{
+				oss << ToString(_operator);
+			}
+			else
+			{
+				if (placeholder)
+				{
+					oss << "#" << GetID();
+				}
+				else
+				{
+					oss << "#" << returnSymbol->GetFullyQualifiedName();
+				}
+			}
+
+			oss << "(";
+			bool first = true;
+			for (auto& param : parameters)
+			{
+				if (!first)
+				{
+					oss << ",";
+				}
+				first = false;
+
+				if (placeholder)
+				{
+					oss << param->GetID();
+				}
+				else
+				{
+					oss << param->GetSymbolRef()->GetFullyQualifiedName();
+				}
+			}
+			oss << ")";
+
+			if (placeholder)
+			{
+				return oss.str();
+			}
+			else
+			{
+				cachedSignature = oss.str();
+				return cachedSignature;
+			}
+		}
+
+		std::string BuildOverloadSignature() noexcept
+		{
+			return BuildOverloadSignature(false);
+		}
+
+		std::string BuildTemporaryOverloadSignature() noexcept
+		{
+			return BuildOverloadSignature(true);
 		}
 
 		SymbolType GetSymbolType() const override
@@ -2227,7 +2455,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << toString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
 			return oss.str();
 		}
 
@@ -2268,7 +2496,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << toString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
 			return oss.str();
 		}
 
@@ -2304,12 +2532,12 @@ namespace HXSL
 	struct AssemblySymbolRef
 	{
 		Assembly* TargetAssembly;
-		size_t LookupIndex;
+		SymbolHandle LookupHandle;
 
 		AssemblySymbolRef() = default;
 
-		AssemblySymbolRef(Assembly* TargetAssembly, const size_t& LookupIndex)
-			: TargetAssembly(TargetAssembly), LookupIndex(LookupIndex)
+		AssemblySymbolRef(Assembly* TargetAssembly, const SymbolHandle& lookupHandle)
+			: TargetAssembly(TargetAssembly), LookupHandle(lookupHandle)
 		{
 		}
 	};
@@ -2377,7 +2605,7 @@ namespace HXSL
 		void Warmup(const AssemblyCollection& references);
 	};
 
-	class Compilation : virtual public ASTNode, public Container, public ILogger
+	class Compilation : virtual public ASTNode, public ILogger
 	{
 	private:
 		std::atomic<size_t> currentID = 0;
@@ -2385,13 +2613,16 @@ namespace HXSL
 		std::vector<UsingDeclaration> usings;
 
 		std::vector<std::unique_ptr<Primitive>> primitives;
+		std::vector<std::unique_ptr<Class>> primitiveClasses;
+
+		std::shared_mutex _mutex;
 
 		friend class PrimitiveManager;
 		friend class PrimitiveBuilder;
 
 	public:
 		Compilation(bool isExtern = false)
-			: ASTNode({ }, nullptr, NodeType_Compilation, isExtern), Container({ }, nullptr, NodeType_Compilation, isExtern), ILogger()
+			: ASTNode({ }, nullptr, NodeType_Compilation, isExtern), ILogger()
 		{
 			AssignId();
 		}
@@ -2408,6 +2639,8 @@ namespace HXSL
 
 		Namespace* AddNamespace(const NamespaceDeclaration& declaration)
 		{
+			std::shared_lock<std::shared_mutex> lock(_mutex);
+
 			for (auto& ns : namespaces)
 			{
 				if (ns->GetName() == declaration.Name)
@@ -2415,6 +2648,10 @@ namespace HXSL
 					return ns.get();
 				}
 			}
+
+			lock.unlock();
+			std::unique_lock<std::shared_mutex> uniqueLock(_mutex);
+
 			auto ns = std::make_unique<Namespace>(this, declaration);
 			auto pNs = ns.get();
 			namespaces.push_back(std::move(ns));
@@ -2442,10 +2679,6 @@ namespace HXSL
 		{
 			usings.clear();
 			namespaces.clear();
-			functions.clear();
-			classes.clear();
-			structs.clear();
-			fields.clear();
 		}
 
 		std::vector<UsingDeclaration>& GetUsings() noexcept { return usings; }

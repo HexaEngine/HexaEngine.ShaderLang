@@ -5,14 +5,14 @@ namespace HXSL
 	inline bool SymbolCollector::Push(const TextSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		stack.push(current);
-		size_t newIndex = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
-		if (newIndex == 0)
+		SymbolHandle handle = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
+		if (handle.invalid())
 		{
 			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString().c_str());
 			return false;
 		}
 
-		current.NodeIndex = newIndex;
+		current.NodeIndex = handle.GetIndex();
 		current.Type = type;
 		current.Parent = def;
 		return true;
@@ -21,13 +21,13 @@ namespace HXSL
 	bool SymbolCollector::PushScope(const ASTNode* parent, const TextSpan& span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		stack.push(current);
-		size_t newIndex = targetAssembly->AddSymbolScope(span, metadata, current.NodeIndex);
-		if (newIndex == 0)
+		SymbolHandle handle = targetAssembly->AddSymbolScope(span, metadata, current.NodeIndex);
+		if (handle.invalid())
 		{
 			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString().c_str());
 			return false;
 		}
-		current.NodeIndex = newIndex;
+		current.NodeIndex = handle.GetIndex();
 		current.Type = type;
 		current.Parent = parent;
 		return true;
@@ -36,8 +36,8 @@ namespace HXSL
 	inline bool SymbolCollector::PushLeaf(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata)
 	{
 		auto& span = def->GetName();
-		size_t newIndex = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
-		if (newIndex == 0)
+		SymbolHandle handle = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
+		if (handle.invalid())
 		{
 			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString().c_str());
 			return false;
@@ -88,8 +88,9 @@ namespace HXSL
 			FunctionOverload* s = dynamic_cast<FunctionOverload*>(node);
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
-			auto signature = s->BuildOverloadSignature();
+			auto signature = s->BuildTemporaryOverloadSignature();
 			Push(TextSpan(signature), s, metadata, SymbolScopeType_Function);
+			RegisterForLatePass(node);
 		}
 		break;
 
@@ -98,8 +99,9 @@ namespace HXSL
 			OperatorOverload* s = dynamic_cast<OperatorOverload*>(node);
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
-			auto signature = s->BuildOverloadSignature();
+			auto signature = s->BuildTemporaryOverloadSignature();
 			Push(TextSpan(signature), s, metadata, SymbolScopeType_Operator);
+			RegisterForLatePass(node);
 		}
 		break;
 
@@ -116,9 +118,7 @@ namespace HXSL
 		{
 			BlockStatement* s = dynamic_cast<BlockStatement*>(node);
 			auto metadata = std::make_shared<SymbolMetadata>(SymbolType_Scope, current.Type, AccessModifier_Private, 0);
-
 			std::string temp = MakeScopeId(current.ScopeCounter++);
-
 			PushScope(node, TextSpan(temp), metadata, SymbolScopeType_Block);
 		}
 		break;
@@ -135,5 +135,42 @@ namespace HXSL
 		}
 
 		return TraversalBehavior_Keep;
+	}
+
+	void SymbolCollector::LateTraverse()
+	{
+		auto table = targetAssembly->GetMutableSymbolTable();
+		for (auto node : lateNodes)
+		{
+			auto& type = node->GetType();
+			switch (type)
+			{
+			case NodeType_FunctionOverload:
+			{
+				FunctionOverload* s = dynamic_cast<FunctionOverload*>(node);
+				auto signature = s->BuildOverloadSignature();
+				auto& index = s->GetSymbolHandle();
+				if (!table->RenameNode(signature, index))
+				{
+					analyzer.LogError("Redefinition of symbol '%s'", s->GetName(), signature.c_str());
+				}
+			}
+			break;
+
+			case NodeType_OperatorOverload:
+			{
+				OperatorOverload* s = dynamic_cast<OperatorOverload*>(node);
+				auto signature = s->BuildOverloadSignature();
+				auto& index = s->GetSymbolHandle();
+				if (!table->RenameNode(signature, index))
+				{
+					analyzer.LogError("Redefinition of symbol '%s'", s->GetName(), signature.c_str());
+				}
+			}
+			break;
+			}
+		}
+
+		lateNodes.clear();
 	}
 }

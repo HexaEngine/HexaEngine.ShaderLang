@@ -35,6 +35,8 @@ if (!expr) { \
 
 		Compilation* Compilation() const noexcept { return compilation; }
 
+		void WarmupCache();
+
 		bool Analyze();
 
 		template <typename... Args>

@@ -6,25 +6,6 @@
 
 namespace HXSL
 {
-	using StringSpanHash = SpanHash<char>;
-	using StringSpanEqual = SpanEqual<char>;
-
-	struct StringSpan : public Span<char>
-	{
-		StringSpan(const std::string& str) : Span(str.c_str(), 0, str.length())
-		{
-		}
-
-		StringSpan(const char* str) : Span(str, 0, strlen(str))
-		{
-		}
-
-		std::string str() const
-		{
-			return std::string(data + start, length);
-		}
-	};
-
 	class StringPool
 	{
 	private:

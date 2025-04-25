@@ -35,71 +35,77 @@ namespace HXSL
 
 		void Traverse(ASTNode* node, VisitFnType visit, VisitCloseFnType visitClose)
 		{
-			std::deque<std::tuple<ASTNode*, size_t, DeferralContext>> deferredQueue;
-			std::stack<std::tuple<ASTNode*, size_t, bool>> nodeStack;
-			nodeStack.push(std::make_tuple(node, 0, false));
-
-			while (!nodeStack.empty())
+			std::deque<std::tuple<ASTNode*, size_t, DeferralContext, bool>> deferredQueue;
+			std::stack<std::tuple<ASTNode*, size_t, DeferralContext, bool, bool>> nodeStack;
+			nodeStack.push(std::make_tuple(node, 0, DeferralContext(), false, false));
+			do
 			{
-				auto [currentNode, depth, closing] = nodeStack.top();
-				nodeStack.pop();
-
-				if (closing)
+				while (!nodeStack.empty())
 				{
-					if (visitClose)
+					auto [currentNode, depth, context, deferred, closing] = nodeStack.top();
+					nodeStack.pop();
+
+					if (closing)
 					{
-						visitClose(currentNode, depth);
+						if (visitClose)
+						{
+							visitClose(currentNode, depth);
+						}
+					}
+					else
+					{
+						TraversalBehavior result = visit(currentNode, depth, deferred, context);
+
+						if (result == TraversalBehavior_Break)
+						{
+							break;
+						}
+						else if (result == TraversalBehavior_Skip)
+						{
+							continue;
+						}
+						else if (result == TraversalBehavior_Defer)
+						{
+							deferredQueue.push_back(std::make_tuple(currentNode, depth, context, false));
+						}
+						else if (result == TraversalBehavior_DeferSubTree)
+						{
+							deferredQueue.push_back(std::make_tuple(currentNode, depth, std::move(context), true));
+							continue;
+						}
+						else
+						{
+							nodeStack.push(std::make_tuple(currentNode, depth, context, deferred, true));
+						}
+
+						auto& children = currentNode->GetChildren();
+						for (size_t i = children.size() - 1; i != static_cast<size_t>(-1); --i)
+						{
+							nodeStack.push(std::make_tuple(children[i], depth + 1, context, deferred, false));
+						}
 					}
 				}
-				else
-				{
-					DeferralContext context;
-					TraversalBehavior result = visit(currentNode, depth, false, context);
 
+				while (!deferredQueue.empty())
+				{
+					auto [currentNode, depth, context, subTree] = deferredQueue.front();
+					deferredQueue.pop_front();
+					if (subTree)
+					{
+						nodeStack.push(std::make_tuple(currentNode, depth, std::move(context), true, false));
+						continue;
+					}
+					TraversalBehavior result = visit(currentNode, depth, true, context);
 					if (result == TraversalBehavior_Break)
 					{
 						break;
 					}
-					else if (result == TraversalBehavior_Skip)
-					{
-						continue;
-					}
 					else if (result == TraversalBehavior_Defer)
 					{
-						deferredQueue.push_back(std::make_tuple(currentNode, depth, context));
-					}
-					else if (result == TraversalBehavior_DeferSubTree)
-					{
-						deferredQueue.push_back(std::make_tuple(currentNode, depth, std::move(context)));
-						continue;
-					}
-					else
-					{
-						nodeStack.push(std::make_tuple(currentNode, depth, true));
-					}
-
-					auto& children = currentNode->GetChildren();
-					for (size_t i = children.size() - 1; i != static_cast<size_t>(-1); --i)
-					{
-						nodeStack.push(std::make_tuple(children[i], depth + 1, false));
+						deferredQueue.push_back(std::make_tuple(currentNode, depth, std::move(context), false));
 					}
 				}
-			}
-
-			while (!deferredQueue.empty())
-			{
-				auto [currentNode, depth, context] = deferredQueue.front();
-				deferredQueue.pop_front();
-				TraversalBehavior result = visit(currentNode, depth, true, context);
-				if (result == TraversalBehavior_Break)
-				{
-					break;
-				}
-				else if (result == TraversalBehavior_Defer)
-				{
-					deferredQueue.push_back(std::make_tuple(currentNode, depth, context));
-				}
-			}
+			} while (!nodeStack.empty());
 		}
 
 		virtual void Traverse(ASTNode* node)

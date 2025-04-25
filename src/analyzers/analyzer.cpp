@@ -41,6 +41,29 @@ namespace HXSL
 		SubAnalyzerRegistry::EnsureCreated();
 	}
 
+	void Analyzer::WarmupCache()
+	{
+		for (auto& us : compilation->GetUsings())
+		{
+			if (!us.Warmup(references))
+			{
+				LogError("Namespace couldn't be found with the name '%s'.", us.Span, us.Target.toString().c_str());
+			}
+		}
+
+		for (auto& ns : compilation->GetNamespaces())
+		{
+			for (auto& us : ns->GetUsings())
+			{
+				if (!us.Warmup(references))
+				{
+					LogError("Namespace couldn't be found with the name '%s'.", us.Span, us.Target.toString().c_str());
+				}
+			}
+			ns->Warmup(references);
+		}
+	}
+
 	bool Analyzer::Analyze()
 	{
 		DebugVisitor debug = DebugVisitor();
@@ -49,22 +72,12 @@ namespace HXSL
 		SymbolCollector collector(*this, outputAssembly.get());
 		collector.Traverse(compilation);
 
-		for (auto& us : compilation->GetUsings())
-		{
-			HXSL_ASSERT(us.Warmup(references), "Needs better error handling lol");
-		}
-
-		for (auto& ns : compilation->GetNamespaces())
-		{
-			for (auto& us : ns->GetUsings())
-			{
-				HXSL_ASSERT(us.Warmup(references), "Needs better error handling lol");
-			}
-			ns->Warmup(references);
-		}
+		WarmupCache();
 
 		SymbolResolver resolver(*this, references, outputAssembly.get(), swizzleManager.get());
 		resolver.Traverse(compilation);
+
+		collector.LateTraverse();
 
 		TypeChecker checker(*this, resolver);
 		checker.Traverse(compilation);

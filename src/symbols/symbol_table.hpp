@@ -4,6 +4,8 @@
 #include "ast.hpp"
 #include "stream.h"
 #include "string_pool.hpp"
+#include "symbol_handle.hpp"
+#include "span.h"
 
 #include <vector>
 #include <memory>
@@ -11,6 +13,8 @@
 #include <string>
 #include <stack>
 #include <deque>
+#include <mutex>
+#include <shared_mutex>
 
 namespace HXSL
 {
@@ -43,15 +47,17 @@ namespace HXSL
 	struct SymbolTableNode
 	{
 		std::unique_ptr<std::string> Name;
-		std::unordered_map<TextSpan, size_t, TextSpanHash, TextSpanEqual> Children;
-		std::shared_ptr<SymbolMetadata> Metadata;
+		std::unordered_map<StringSpan, size_t, StringSpanHash, StringSpanEqual> Children;
+		std::shared_ptr<SymbolMetadata> Metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
+		std::shared_ptr<size_t> handle; // pointer to own index used for propagating the correct index if moved.
 		size_t Depth;
 		size_t ParentIndex;
 
 		SymbolTableNode() : Depth(0), Metadata({}), ParentIndex(0)
 		{
 		}
-		SymbolTableNode(std::unique_ptr<std::string> name, std::shared_ptr<SymbolMetadata> metadata, size_t depth, size_t parentIndex) : Name(std::move(name)), Metadata(std::move(metadata)), Depth(depth), ParentIndex(parentIndex)
+
+		SymbolTableNode(std::unique_ptr<std::string> name, std::shared_ptr<SymbolMetadata> metadata, std::shared_ptr<size_t> handle, size_t depth, size_t parentIndex) : Name(std::move(name)), Metadata(std::move(metadata)), handle(std::move(handle)), Depth(depth), ParentIndex(parentIndex)
 		{
 		}
 
@@ -65,14 +71,59 @@ namespace HXSL
 	class SymbolTable
 	{
 	private:
+		static constexpr size_t rootIndex = 0;
+		std::atomic<size_t> counter{ 0 };
+		size_t capacity = 1024;
 		std::vector<SymbolTableNode> nodes;
+		std::shared_mutex nodeMutex;
 		StringPool stringPool;
 		std::unique_ptr<Compilation> compilation = std::make_unique<Compilation>(true);
+
+		void RemoveRange(const size_t& start, const size_t& end);
+
+		size_t AddNode(StringSpan name, std::shared_ptr<SymbolMetadata> metadata, size_t parentIndex)
+		{
+			size_t index = counter.fetch_add(1, std::memory_order_relaxed);
+
+			if (index >= capacity)
+			{
+				std::unique_lock<std::shared_mutex> writeLock(nodeMutex);
+				if (index >= capacity)
+				{
+					capacity *= 2;
+					nodes.resize(capacity);
+				}
+			}
+
+			std::shared_lock<std::shared_mutex> readLock(nodeMutex);
+
+			std::unique_ptr<std::string> str = std::make_unique<std::string>(name.str());
+			nodes[index] = SymbolTableNode(std::move(str), std::move(metadata), std::make_shared<size_t>(index), nodes[parentIndex].Depth + 1, parentIndex);
+
+			auto span = TextSpan(nodes[index].GetName());
+			nodes[parentIndex].Children[span] = index;
+
+			return index;
+		}
+
+		size_t FindNodeIndexPartInternal(StringSpan path, size_t startingIndex = 0) const
+		{
+			auto& node = nodes[startingIndex];
+			auto it = node.Children.find(path);
+			if (it != node.Children.end())
+			{
+				return it->second;
+			}
+			return -1;
+		}
+
 	public:
 		SymbolTable()
 		{
+			nodes.resize(capacity);
 			std::unique_ptr<std::string> str = std::make_unique<std::string>("");
-			nodes.push_back(SymbolTableNode(std::move(str), nullptr, 0, 0));
+			nodes[0] = (SymbolTableNode(std::move(str), nullptr, std::make_shared<size_t>(0), 0, 0));
+			counter.store(1);
 		}
 
 		StringPool& GetStringPool()
@@ -93,16 +144,32 @@ namespace HXSL
 			return compilation.get();
 		}
 
-		size_t AddNode(TextSpan name, std::shared_ptr<SymbolMetadata> metadata, size_t parentIndex)
+		bool RenameNode(const TextSpan& newName, const SymbolHandle& handle)
 		{
-			std::unique_ptr<std::string> str = std::make_unique<std::string>(name.toString());
-			size_t newIndex = nodes.size();
+			auto index = handle.GetIndex();
+			if (index == 0 || index >= nodes.size())
+			{
+				return false;
+			}
 
-			nodes.push_back(SymbolTableNode(std::move(str), std::move(metadata), nodes[parentIndex].Depth + 1, parentIndex));
+			auto& node = nodes[index];
+			TextSpan oldName = *node.Name.get();
+			auto& parent = nodes[node.ParentIndex];
 
-			auto span = TextSpan(nodes[newIndex].GetName());
-			nodes[parentIndex].Children[span] = newIndex;
-			return newIndex;
+			if (parent.Children.find(newName) != parent.Children.end())
+			{
+				return false;
+			}
+
+			std::unique_ptr<std::string> str = std::make_unique<std::string>(newName.toString());
+
+			parent.Children.erase(oldName);
+			node.Name = std::move(str);
+
+			auto span = TextSpan(node.GetName());
+			parent.Children[span] = index;
+
+			return true;
 		}
 
 		void SwapRemoveNode(size_t nodeIndex)
@@ -202,34 +269,28 @@ namespace HXSL
 			return nodes[index];
 		}
 
-		size_t Insert(TextSpan span, std::shared_ptr<SymbolMetadata>& metadata, size_t start = 0);
-
-		size_t FindNodeIndexPart(TextSpan path, size_t startingIndex = 0) const
+		SymbolHandle MakeHandle(size_t index) const
 		{
-			auto& node = nodes[startingIndex];
-			auto it = node.Children.find(path);
-			if (it != node.Children.end())
-			{
-				return it->second;
-			}
-			return -1;
+			return SymbolHandle(this, nodes[index].handle);
 		}
 
-		size_t FindNodeIndexFullPath(TextSpan span, size_t startingIndex = 0) const;
+		SymbolHandle Insert(StringSpan span, std::shared_ptr<SymbolMetadata>& metadata, size_t start = 0);
 
-		const std::shared_ptr<SymbolMetadata>& Find(TextSpan span, size_t start = 0) const
+		SymbolHandle FindNodeIndexPart(StringSpan path, size_t startingIndex = 0) const
 		{
-			size_t index = FindNodeIndexFullPath(span, start);
-			if (index == -1)
+			auto index = FindNodeIndexPartInternal(path, startingIndex);
+			if (index != SymbolHandle::Invalid)
 			{
-				return {};
+				return MakeHandle(index);
 			}
-			return nodes[index].Metadata;
+			return {};
 		}
+
+		SymbolHandle FindNodeIndexFullPath(StringSpan span, size_t startingIndex = 0) const;
 
 		void Strip();
 
-		void Merge(const SymbolTable& other);
+		void Sort();
 
 		void Write(Stream& stream) const;
 

@@ -23,6 +23,12 @@ namespace HXSL
 
 		SymbolDef* GetNumericType(const NumberType& type) const;
 
+		bool BinaryOperatorCheck(BinaryExpression* binary, const Expression* left, const Expression* right, SymbolDef*& result);
+
+		bool UnaryOperatorCheck(UnaryExpression* binary, const Expression* operand, SymbolDef*& result);
+
+		bool CastOperatorCheck(CastExpression* unary, const Expression* typeExpr, const Expression* operand, SymbolDef*& result, bool explicitCast);
+
 		void TypeCheckExpression(Expression* node);
 
 		void TypeCheckStatement(ASTNode*& node);

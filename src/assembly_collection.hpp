@@ -40,12 +40,12 @@ namespace HXSL
 			return assemblies;
 		}
 
-		void FindAssembliesByNamespace(TextSpan target, std::vector<AssemblySymbolRef>& assemblyRefs, size_t lookupIndex = 0) const
+		void FindAssembliesByNamespace(const TextSpan& target, std::vector<AssemblySymbolRef>& assemblyRefs, size_t lookupIndex = 0) const
 		{
 			for (auto& assembly : assemblies)
 			{
 				auto index = assembly->GetSymbolTable()->FindNodeIndexFullPath(target, lookupIndex);
-				if (index != -1)
+				if (index.valid())
 				{
 					assemblyRefs.push_back(AssemblySymbolRef(assembly.get(), index));
 				}
