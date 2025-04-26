@@ -26,8 +26,8 @@ namespace HXSL
 
 	void BinaryExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, BinaryExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto left = expression->GetLeft().get();
-		auto right = expression->GetRight().get();
+		auto& left = expression->GetLeftMut();
+		auto& right = expression->GetRightMut();
 
 		if (expression->GetLazyEvalState())
 		{
@@ -51,8 +51,8 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(right);
-			stack.push(left);
+			stack.push(right.get());
+			stack.push(left.get());
 		}
 	}
 
@@ -87,11 +87,10 @@ namespace HXSL
 
 	void CastExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CastExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto typeExpr = expression->GetTypeExpression().get();
 		auto operand = expression->GetOperand().get();
 		if (expression->GetLazyEvalState())
 		{
-			auto targetType = typeExpr->GetInferredType();
+			auto targetType = expression->GetTypeSymbol()->GetDeclaration();
 			auto operandType = operand->GetInferredType();
 
 			if (targetType == nullptr || operandType == nullptr)
@@ -100,7 +99,7 @@ namespace HXSL
 			}
 
 			SymbolDef* result;
-			if (!checker.CastOperatorCheck(expression, typeExpr, operand, result, true))
+			if (!checker.CastOperatorCheck(expression, targetType, operand, result, true))
 			{
 				analyzer.LogError("Cannot cast from '%s' to '%s' no cast operator defined.", expression->GetSpan(), targetType->GetName().toString().c_str(), operandType->GetName().toString().c_str());
 				return;
@@ -112,7 +111,6 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(typeExpr);
 			stack.push(operand);
 		}
 	}
@@ -135,7 +133,9 @@ namespace HXSL
 
 	void MemberReferenceExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, MemberReferenceExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto decl = expression->GetSymbolRef()->GetBaseDeclaration();
+		auto& ref = expression->GetSymbolRef();
+		HXSL_ASSERT(ref->IsResolved(), "");
+		auto decl = ref->GetBaseDeclaration();
 		expression->SetInferredType(decl);
 		expression->SetTraits(ExpressionTraits(ExpressionTraitFlags_Mutable));
 	}
@@ -213,9 +213,9 @@ namespace HXSL
 
 	void TernaryExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, TernaryExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto condition = expression->GetCondition().get();
-		auto trueBranch = expression->GetTrueBranch().get();
-		auto falseBranch = expression->GetFalseBranch().get();
+		auto& condition = expression->GetConditionMut();
+		auto& trueBranch = expression->GetTrueBranchMut();
+		auto& falseBranch = expression->GetFalseBranchMut();
 
 		if (expression->GetLazyEvalState())
 		{
@@ -225,7 +225,7 @@ namespace HXSL
 				return;
 			}
 
-			if (!checker.IsBooleanType(conditionType))
+			if (!checker.IsBooleanType(condition, conditionType))
 			{
 				analyzer.LogError("Condition in ternary expression must be of type boolean.", expression->GetSpan());
 				return;
@@ -239,7 +239,7 @@ namespace HXSL
 				return;
 			}
 
-			if (!checker.AreTypesCompatible(trueBranchType, falseBranchType))
+			if (!checker.AreTypesCompatible(trueBranch, trueBranchType, falseBranch, falseBranchType))
 			{
 				analyzer.LogError("Branches of ternary expression must have compatible types, found: %s and %s", expression->GetSpan(), trueBranchType->GetName().toString().c_str(), falseBranchType->GetName().toString().c_str());
 				return;
@@ -251,9 +251,9 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(falseBranch);
-			stack.push(trueBranch);
-			stack.push(condition);
+			stack.push(falseBranch.get());
+			stack.push(trueBranch.get());
+			stack.push(condition.get());
 		}
 	}
 
@@ -320,13 +320,22 @@ namespace HXSL
 
 	void IndexerExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, IndexerAccessExpression* expression, std::stack<Expression*>& stack)
 	{
+		auto& index = expression->GetIndexExpressionMut();
+
 		auto state = expression->GetLazyEvalState();
 		if (state == 1)
 		{
 			auto type = expression->GetSymbolRef()->GetAncestorDeclaration(SymbolType_Array);
+			auto indexType = index->GetInferredType();
 
-			if (type == nullptr)
+			if (type == nullptr || indexType == nullptr)
 			{
+				return;
+			}
+
+			if (!checker.IsIndexerType(index, indexType))
+			{
+				analyzer.LogError("Cannot convert '%s' to an indexer type. Only integer types are allowed for indexing.", expression->GetSpan(), indexType->GetName().toString().c_str());
 				return;
 			}
 
@@ -363,10 +372,9 @@ namespace HXSL
 		}
 		else
 		{
-			auto index = expression->GetIndexExpression().get();
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(index);
+			stack.push(index.get());
 		}
 	}
 }

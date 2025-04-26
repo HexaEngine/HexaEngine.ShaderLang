@@ -88,6 +88,9 @@ namespace HXSL
 		AnalyzerVisitor visitor(*this);
 		visitor.Traverse(compilation);
 
+		compilation->LogFormatted(LogLevel_Verbose, "Post Analysis AST");
+		debug.Traverse(compilation);
+
 		return true;
 	}
 }

@@ -5,73 +5,7 @@ namespace HXSL
 {
 	std::once_flag PrimitiveManager::initFlag;
 
-	void PrimitiveManager::Populate()
-	{
-		AddPrim(PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
-
-		for (int i = PrimitiveKind_Bool; i <= PrimitiveKind_Min16Uint; i++)
-		{
-			auto kind = static_cast<PrimitiveKind>(i);
-
-			AddPrim(kind, PrimitiveClass_Scalar, 1, 1);
-
-			for (uint n = 2; n <= 4; ++n)
-			{
-				AddPrim(kind, PrimitiveClass_Vector, n, 1);
-			}
-
-			for (uint r = 1; r <= 4; ++r)
-			{
-				for (uint c = 1; c <= 4; ++c)
-				{
-					AddPrim(kind, PrimitiveClass_Matrix, r, c);
-				}
-			}
-		}
-
-		auto table = GetMutableSymbolTable();
-
-		Class* _class;
-
-		AddPrimClass(TextSpan("SamplerState"));
-
-		AddPrimClass(TextSpan("Texture2D"), &_class);
-
-		FunctionBuilder(assembly.get())
-			.WithName("Sample")
-			.WithParam("state", "SamplerState")
-			.WithParam("uv", "float2")
-			.Returns("float4")
-			.AttachToClass(_class);
-	}
-
-	void PrimitiveManager::AddPrimClass(TextSpan name, Class** outClass, SymbolHandle* handleOut)
-	{
-		auto table = GetMutableSymbolTable();
-		auto compilation = table->GetCompilation();
-		auto _class = std::make_unique<Class>();
-
-		auto classPtr = _class.get();
-		compilation->primitiveClasses.push_back(std::move(_class));
-
-		classPtr->SetAccessModifiers(AccessModifier_Public);
-		classPtr->SetName(table->GetStringPool().add(name.toString()));
-
-		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, classPtr);
-		auto handle = table->Insert(TextSpan(classPtr->GetName()), meta);
-		if (outClass)
-		{
-			*outClass = classPtr;
-		}
-		if (handleOut)
-		{
-			*handleOut = handle;
-		}
-
-		classPtr->SetAssembly(assembly.get(), handle);
-	}
-
-	void PrimitiveManager::AddPrim(PrimitiveKind kind, PrimitiveClass primitiveClass, uint rows, uint columns)
+	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint rows, uint columns)
 	{
 		std::ostringstream name;
 
@@ -131,19 +65,100 @@ namespace HXSL
 
 		std::string nameStr = name.str();
 
-		PrimitiveBuilder builder(assembly.get());
-		builder.WithName(nameStr);
-		builder.WithKind(kind, primitiveClass);
-		builder.WithRowsAndColumns(rows, columns);
+		auto builder = std::make_unique<PrimitiveBuilder>(assembly);
+		builder->WithName(nameStr);
+		builder->WithKind(kind, primitiveClass);
+		builder->WithRowsAndColumns(rows, columns);
 
 		if (kind != PrimitiveKind_Void)
 		{
-			builder.WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide,
+			builder->WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide,
 				Operator_Equal, Operator_NotEqual, Operator_GreaterThan, Operator_LessThan, Operator_GreaterThanOrEqual, Operator_LessThanOrEqual }, nameStr);
-			builder.WithUnaryOperators({ Operator_LogicalNot, Operator_Increment, Operator_Decrement }, nameStr);
+			builder->WithUnaryOperators({ Operator_LogicalNot, Operator_Increment, Operator_Decrement }, nameStr);
+			if (kind == PrimitiveKind_Int && primitiveClass == PrimitiveClass_Scalar)
+			{
+				builder->WithImplicitCast(nameStr, "float");
+			}
 		}
 
-		builder.Finish();
+		primBuilders.push_back(std::move(builder));
+	}
+
+	void PrimitiveManager::Populate()
+	{
+		std::vector<std::unique_ptr<PrimitiveBuilder>> primBuilders;
+
+		AddPrim(primBuilders, assembly.get(), PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
+
+		for (int i = PrimitiveKind_Bool; i <= PrimitiveKind_Min16Uint; i++)
+		{
+			auto kind = static_cast<PrimitiveKind>(i);
+
+			AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Scalar, 1, 1);
+
+			for (uint n = 2; n <= 4; ++n)
+			{
+				AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Vector, n, 1);
+			}
+
+			for (uint r = 1; r <= 4; ++r)
+			{
+				for (uint c = 1; c <= 4; ++c)
+				{
+					AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Matrix, r, c);
+				}
+			}
+		}
+
+		for (size_t phase = 0; phase < 2; phase++)
+		{
+			for (auto& builder : primBuilders)
+			{
+				builder->FinishPhased();
+			}
+		}
+		primBuilders.clear();
+
+		auto table = GetMutableSymbolTable();
+
+		Class* _class;
+
+		AddPrimClass(TextSpan("SamplerState"));
+
+		AddPrimClass(TextSpan("Texture2D"), &_class);
+
+		FunctionBuilder(assembly.get())
+			.WithName("Sample")
+			.WithParam("state", "SamplerState")
+			.WithParam("uv", "float2")
+			.Returns("float4")
+			.AttachToClass(_class);
+	}
+
+	void PrimitiveManager::AddPrimClass(TextSpan name, Class** outClass, SymbolHandle* handleOut)
+	{
+		auto table = GetMutableSymbolTable();
+		auto compilation = table->GetCompilation();
+		auto _class = std::make_unique<Class>();
+
+		auto classPtr = _class.get();
+		compilation->primitiveClasses.push_back(std::move(_class));
+
+		classPtr->SetAccessModifiers(AccessModifier_Public);
+		classPtr->SetName(table->GetStringPool().add(name.toString()));
+
+		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, classPtr);
+		auto handle = table->Insert(TextSpan(classPtr->GetName()), meta);
+		if (outClass)
+		{
+			*outClass = classPtr;
+		}
+		if (handleOut)
+		{
+			*handleOut = handle;
+		}
+
+		classPtr->SetAssembly(assembly.get(), handle);
 	}
 
 	void PrimitiveManager::ResolveInternal(SymbolRef* ref)

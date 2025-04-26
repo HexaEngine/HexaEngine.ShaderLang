@@ -227,8 +227,9 @@ namespace HXSL
 	{
 		std::unique_ptr<Primitive> primitive;
 		std::vector<std::unique_ptr<OperatorBuilder>> operators;
+		Primitive* prim;
 	public:
-		PrimitiveBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), primitive(std::make_unique<Primitive>())
+		PrimitiveBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), primitive(std::make_unique<Primitive>()), prim(nullptr)
 		{
 		}
 
@@ -359,6 +360,30 @@ namespace HXSL
 			for (size_t i = 0; i < operators.size(); i++)
 			{
 				operators[i]->AttachToPrimitive(primitivePtr);
+			}
+		}
+
+		bool FinishPhased()
+		{
+			if (prim == nullptr)
+			{
+				auto compilation = assembly->GetMutableSymbolTable()->GetCompilation();
+				prim = primitive.get();
+				compilation->primitives.push_back(std::move(primitive));
+
+				auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, prim);
+				auto index = table->Insert(prim->GetName(), meta, 0);
+				prim->SetAssembly(assembly, index);
+				return false;
+			}
+			else
+			{
+				for (size_t i = 0; i < operators.size(); i++)
+				{
+					operators[i]->AttachToPrimitive(prim);
+				}
+				operators.clear();
+				return true;
 			}
 		}
 	};

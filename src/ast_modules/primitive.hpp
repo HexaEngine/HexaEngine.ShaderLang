@@ -3,6 +3,7 @@
 
 #include "ast_base.hpp"
 #include "symbol_base.hpp"
+#include "interfaces.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -93,7 +94,7 @@ namespace HXSL
 		PrimitiveClass_Matrix = 2,
 	};
 
-	class Primitive : public Type
+	class Primitive : public Type, public IHasOperators
 	{
 	private:
 		std::vector<std::unique_ptr<OperatorOverload>> operators;

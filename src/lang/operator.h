@@ -7,7 +7,7 @@
 
 namespace HXSL
 {
-	enum Operator : int
+	enum Operator : char
 	{
 		Operator_Unknown,
 		Operator_Add,
@@ -92,6 +92,37 @@ namespace HXSL
 		case Operator_MemberAccess: return ".";
 		case Operator_LogicalNot: return "!";
 		default: return "Unknown";
+		}
+	}
+
+	static char ToLookupChar(Operator op)
+	{
+		switch (op) {
+		case Operator_Increment: return '\x1';
+		case Operator_Decrement: return '\x2';
+		case Operator_LogicalNot: return '\x3';
+		case Operator_BitwiseNot: return '\x4';
+		case Operator_Add: return '\x5';
+		case Operator_Subtract:  return '\x6';
+		case Operator_Multiply: return '\x7';
+		case Operator_Divide: return '\x8';
+		case Operator_Modulus: return '\x9';
+		case Operator_BitwiseShiftLeft: return '\xA';
+		case Operator_BitwiseShiftRight: return '\xB';
+		case Operator_BitwiseAnd: return '\xC';
+		case Operator_BitwiseOr: return '\xD';
+		case Operator_BitwiseXor: return '\xF';
+		case Operator_LessThan: return '\x10';
+		case Operator_GreaterThan: return '\x11';
+		case Operator_Equal: return '\x12';
+		case Operator_NotEqual: return '\x13';
+		case Operator_LessThanOrEqual: return '\x14';
+		case Operator_GreaterThanOrEqual: return '\x15';
+		case Operator_AndAnd: return '\x16';
+		case Operator_OrOr: return '\x17';
+		case Operator_Cast: return '\x18';
+		default:
+			return '\x1F';
 		}
 	}
 

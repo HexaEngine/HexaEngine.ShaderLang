@@ -2,6 +2,7 @@
 #define AST_HPP
 
 #include "ast_modules/ast_base.hpp"
+#include "ast_modules/container.hpp"
 #include "ast_modules/symbol_base.hpp"
 #include "ast_modules/declarations.hpp"
 #include "ast_modules/statements.hpp"

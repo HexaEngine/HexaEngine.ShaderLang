@@ -595,6 +595,15 @@ namespace HXSL
 		}
 		break;
 		case NodeType_IndexerAccessExpression:
+		{
+			auto idxAccessExpression = node->As<IndexerAccessExpression>();
+			if (idxAccessExpression->GetParent()->GetType() != NodeType_IndexerAccessExpression)
+			{
+				auto& ref = idxAccessExpression->GetSymbolRef();
+				ResolveSymbol(ref.get());
+			}
+		}
+		break;
 		case NodeType_MemberAccessExpression:
 		{
 			if (deferred)
@@ -681,7 +690,7 @@ namespace HXSL
 			auto& refRoot = chainExprRoot->GetSymbolRef();
 			if (!ResolveSymbol(refRoot.get()))
 			{
-				return TraversalBehavior_Skip;
+				return TraversalBehavior_Keep;
 			}
 
 			UseBeforeDeclarationCheck(refRoot.get(), chainExprRoot);
@@ -695,14 +704,14 @@ namespace HXSL
 			if (!type)
 			{
 				analyzer.LogError("Couldn't resolve type of member '%s'", ref->GetName(), ref->GetName().toString().c_str());
-				return TraversalBehavior_Skip;
+				return TraversalBehavior_Keep;
 			}
 
 			chain = chain->GetNextExpression().get();
 
 			if (chain == nullptr)
 			{
-				return TraversalBehavior_Skip; // terminal node here.
+				return TraversalBehavior_Keep; // terminal node here.
 			}
 
 			next = chain;
@@ -712,7 +721,7 @@ namespace HXSL
 			{
 				auto refInner = chain->GetSymbolRef().get();
 				analyzer.LogError("Couldn't resolve member '%s'", refInner->GetName(), refInner->GetName().toString().c_str());
-				return TraversalBehavior_Skip;
+				return TraversalBehavior_Keep;
 			}
 			else if (result == 1)
 			{
@@ -721,10 +730,10 @@ namespace HXSL
 			}
 			else if (result == 2)
 			{
-				return TraversalBehavior_Skip;
+				return TraversalBehavior_Keep;
 			}
 		}
 
-		return TraversalBehavior_Skip;
+		return TraversalBehavior_Keep;
 	}
 }

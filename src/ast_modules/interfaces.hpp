@@ -41,6 +41,13 @@ namespace HXSL
 
 		virtual ~IHasExpressions() = default;
 	};
+
+	class IHasOperators
+	{
+	public:
+		virtual const std::vector<std::unique_ptr<OperatorOverload>>& GetOperators() const = 0;
+		virtual ~IHasOperators() = default;
+	};
 }
 
 #endif

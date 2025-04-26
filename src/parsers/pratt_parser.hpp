@@ -48,9 +48,11 @@ namespace HXSL
 
 				if (hadBrackets && expression->GetType() == NodeType_MemberReferenceExpression)
 				{
+					std::unique_ptr<SymbolRef> type;
+					ParserHelper::MakeConcreteSymbolRef(expression.get(), SymbolRefType_Type, type);
 					std::unique_ptr<Expression> rightCast;
 					IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, parent, rightCast, hadBrackets));
-					expression = std::make_unique<CastExpression>(TextSpan(), parent, std::move(expression), std::move(rightCast));
+					expression = std::make_unique<CastExpression>(TextSpan(), parent, std::move(type), std::move(rightCast));
 					expression->SetSpan(stream.MakeFromLast(start));
 					continue;
 				}

@@ -53,6 +53,7 @@ file(GLOB SOURCES
     src/il/assembly.cpp
 
     src/ast_modules/ast_base.cpp
+    src/ast_modules/container.cpp
     src/ast_modules/symbol_base.cpp
     src/ast_modules/declarations.cpp
     src/ast_modules/statements.cpp

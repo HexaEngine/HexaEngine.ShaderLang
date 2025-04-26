@@ -133,9 +133,18 @@ namespace HXSL
 
 		std::string BuildOverloadSignature() const
 		{
-			std::ostringstream oss;
-			oss << "operator" << ToString(_operator) << "(" << operand->GetInferredType()->GetFullyQualifiedName() << ")";
-			return oss.str();
+			auto& fqn = operand->GetInferredType()->GetFullyQualifiedName();
+
+			std::string str;
+			str.resize(2 + fqn.size() + 1);
+
+			auto data = str.data();
+			data[0] = ToLookupChar(_operator);
+			data[1] = '(';
+			std::copy(fqn.begin(), fqn.end(), data + 2);
+			data[2 + fqn.size()] = ')';
+
+			return str;
 		}
 
 		std::unique_ptr<SymbolRef>& GetOperatorSymbolRef()
@@ -185,11 +194,34 @@ namespace HXSL
 			if (this->right) this->right->SetParent(this);
 		}
 
+		static void PrepareOverloadSignature(std::string& str, Operator _operator)
+		{
+			str.resize(2);
+			auto data = str.data();
+			data[0] = ToLookupChar(_operator);
+			data[1] = '(';
+		}
+
+		static void BuildOverloadSignature(std::string& str, SymbolDef* left, SymbolDef* right)
+		{
+			auto& fqnLeft = left->GetFullyQualifiedName();
+			auto& fqnRight = right->GetFullyQualifiedName();
+
+			size_t requiredSize = 2 + fqnLeft.size() + 1 + fqnRight.size() + 1;
+			str.resize(2);
+			str.reserve(requiredSize);
+			str.append(fqnLeft);
+			str.push_back(',');
+			str.append(fqnRight);
+			str.push_back(')');
+		}
+
 		std::string BuildOverloadSignature() const
 		{
-			std::ostringstream oss;
-			oss << "operator" << ToString(_operator) << "(" << left->GetInferredType()->GetFullyQualifiedName() << "," << right->GetInferredType()->GetFullyQualifiedName() << ")";
-			return oss.str();
+			std::string str;
+			PrepareOverloadSignature(str, _operator);
+			BuildOverloadSignature(str, left->GetInferredType(), right->GetInferredType());
+			return str;
 		}
 
 		std::unique_ptr<SymbolRef>& GetOperatorSymbolRef()
@@ -208,23 +240,48 @@ namespace HXSL
 	{
 	private:
 		std::unique_ptr<SymbolRef> operatorSymbol;
-		std::unique_ptr<Expression> typeExpression;
+		std::unique_ptr<SymbolRef> typeSymbol;
 		std::unique_ptr<Expression> operand;
 	public:
-		CastExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> typeExpression, std::unique_ptr<Expression> operand)
+		CastExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> typeSymbol, std::unique_ptr<Expression> operand)
 			: Expression(span, parent, NodeType_CastExpression),
-			typeExpression(std::move(typeExpression)),
+			typeSymbol(std::move(typeSymbol)),
 			operand(std::move(operand))
 		{
-			if (this->typeExpression) this->typeExpression->SetParent(this);
 			if (this->operand) this->operand->SetParent(this);
+		}
+
+		CastExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> operatorSymbol, std::unique_ptr<SymbolRef> typeSymbol, std::unique_ptr<Expression> operand)
+			: Expression(span, parent, NodeType_CastExpression),
+			operatorSymbol(std::move(operatorSymbol)),
+			typeSymbol(std::move(typeSymbol)),
+			operand(std::move(operand))
+		{
+			if (this->operand) this->operand->SetParent(this);
+		}
+
+		static std::string BuildOverloadSignature(const SymbolDef* targetType, const SymbolDef* sourceType)
+		{
+			auto& retFqn = targetType->GetFullyQualifiedName();
+			auto& fqn = sourceType->GetFullyQualifiedName();
+
+			std::string str;
+			str.reserve(2 + retFqn.size() + 1 + fqn.size() + 1);
+			str.resize(2);
+			auto data = str.data();
+			data[0] = ToLookupChar(Operator_Cast);
+			data[1] = '#';
+			str.append(retFqn);
+			str.push_back('(');
+			str.append(fqn);
+			str.push_back(')');
+
+			return str;
 		}
 
 		std::string BuildOverloadSignature() const
 		{
-			std::ostringstream oss;
-			oss << "operator" << "#" << typeExpression->GetInferredType()->GetFullyQualifiedName() << "(" << operand->GetInferredType()->GetFullyQualifiedName() << ")";
-			return oss.str();
+			return BuildOverloadSignature(typeSymbol->GetDeclaration(), operand->GetInferredType());
 		}
 
 		std::unique_ptr<SymbolRef>& GetOperatorSymbolRef()
@@ -232,7 +289,7 @@ namespace HXSL
 			return operatorSymbol;
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, TypeExpression, typeExpression)
+		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, TypeSymbol, typeSymbol)
 
 			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Operand, operand)
 	};

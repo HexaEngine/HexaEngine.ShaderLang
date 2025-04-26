@@ -24,15 +24,23 @@ namespace HXSL
 
 		SymbolDef* GetNumericType(const NumberType& type) const;
 
-		bool BinaryOperatorCheck(BinaryExpression* binary, const Expression* left, const Expression* right, SymbolDef*& result);
+		bool ImplicitBinaryOperatorCheck(SymbolRef* opRef, SymbolDef* a, SymbolDef* b, Operator op, OperatorOverload*& castMatchOut);
+
+		bool BinaryOperatorCheck(BinaryExpression* binary, std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result);
 
 		bool UnaryOperatorCheck(UnaryExpression* binary, const Expression* operand, SymbolDef*& result);
 
-		bool CastOperatorCheck(CastExpression* unary, const Expression* typeExpr, const Expression* operand, SymbolDef*& result, bool explicitCast);
+		bool CastOperatorCheck(CastExpression* cast, const SymbolDef* type, const Expression* operand, SymbolDef*& result, bool explicitCast);
 
-		bool AreTypesCompatible(SymbolDef* a, SymbolDef* b);
+		bool CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, std::unique_ptr<SymbolRef>& result);
 
-		bool IsBooleanType(SymbolDef* a);
+		bool AreTypesCompatible(std::unique_ptr<Expression>& insertPoint, SymbolDef* a, SymbolDef* b);
+
+		bool AreTypesCompatible(std::unique_ptr<Expression>& insertPointA, SymbolDef* a, std::unique_ptr<Expression>& insertPointB, SymbolDef* b);
+
+		bool IsBooleanType(std::unique_ptr<Expression>& insertPoint, SymbolDef* a);
+
+		bool IsIndexerType(std::unique_ptr<Expression>& insertPoint, SymbolDef* a);
 
 		void TypeCheckExpression(Expression* node);
 

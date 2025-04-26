@@ -5,6 +5,7 @@
 #include "symbol_base.hpp"
 #include "interfaces.hpp"
 #include "attributes.hpp"
+#include "container.hpp"
 
 namespace HXSL
 {
@@ -138,6 +139,11 @@ namespace HXSL
 			return returnSymbol;
 		}
 
+		SymbolDef* GetReturnType() const noexcept
+		{
+			return returnSymbol->GetDeclaration();
+		}
+
 		SymbolType GetSymbolType() const override
 		{
 			return SymbolType_Function;
@@ -256,53 +262,58 @@ namespace HXSL
 				return cachedSignature;
 			}
 
-			std::ostringstream oss;
-			oss << "operator";
+			std::string str;
 
-			if (_operator != Operator_Cast)
+			size_t size = 0;
+
+			str.resize(2);
+			str[0] = ToLookupChar(_operator);
+
+			if (_operator == Operator_Cast)
 			{
-				oss << ToString(_operator);
-			}
-			else
-			{
+				str[1] = '#';
 				if (placeholder)
 				{
-					oss << "#" << GetID();
+					str.append(std::to_string(GetID()));
 				}
 				else
 				{
-					oss << "#" << returnSymbol->GetFullyQualifiedName();
+					str.append(returnSymbol->GetFullyQualifiedName());
 				}
+				str.push_back('(');
+			}
+			else
+			{
+				str[1] = '(';
 			}
 
-			oss << "(";
 			bool first = true;
 			for (auto& param : parameters)
 			{
 				if (!first)
 				{
-					oss << ",";
+					str.push_back(',');
 				}
 				first = false;
 
 				if (placeholder)
 				{
-					oss << param->GetID();
+					str.append(std::to_string(param->GetID()));
 				}
 				else
 				{
-					oss << param->GetSymbolRef()->GetFullyQualifiedName();
+					str.append(param->GetSymbolRef()->GetFullyQualifiedName());
 				}
 			}
-			oss << ")";
+			str.push_back(')');
 
 			if (placeholder)
 			{
-				return oss.str();
+				return str;
 			}
 			else
 			{
-				cachedSignature = oss.str();
+				cachedSignature = str;
 				return cachedSignature;
 			}
 		}

@@ -3,6 +3,7 @@
 
 #include "ast_base.hpp"
 #include "symbol_base.hpp"
+#include "container.hpp"
 
 namespace HXSL
 {

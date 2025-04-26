@@ -37,6 +37,13 @@ namespace HXSL
 		return node.Metadata.get();
 	}
 
+	std::unique_ptr<SymbolRef> SymbolDef::MakeSymbolRef() const
+	{
+		auto ref = std::make_unique<SymbolRef>(GetName(), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
+		ref->SetTable(GetSymbolHandle());
+		return ref;
+	}
+
 	void SymbolRef::SetTable(const SymbolHandle& handle)
 	{
 		this->symbolHandle = handle;

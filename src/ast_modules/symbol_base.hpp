@@ -157,6 +157,8 @@ namespace HXSL
 		virtual void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) = 0;
 
 		virtual ~SymbolDef() = default;
+
+		std::unique_ptr<SymbolRef> MakeSymbolRef() const;
 	};
 
 	enum SymbolRefType
@@ -168,6 +170,7 @@ namespace HXSL
 		SymbolRefType_Constructor,
 		SymbolRefType_FunctionOrConstructor,
 		SymbolRefType_Struct,
+		SymbolRefType_Class,
 		SymbolRefType_Enum,
 		SymbolRefType_Identifier,
 		SymbolRefType_Attribute,
@@ -299,6 +302,49 @@ namespace HXSL
 		}
 		virtual ~Type() {}
 	};
+
+	static SymbolRefType ConvertSymbolTypeToSymbolRefType(SymbolType type)
+	{
+		switch (type)
+		{
+		case SymbolType_Unknown:
+			return SymbolRefType_Unknown;
+		case SymbolType_Namespace:
+			return SymbolRefType_Namespace;
+		case SymbolType_Struct:
+			return SymbolRefType_Struct;
+		case SymbolType_Class:
+			return SymbolRefType_Class;
+		case SymbolType_Array:
+			return SymbolRefType_ArrayType;
+		case SymbolType_Enum:
+			return SymbolRefType_Enum;
+		case SymbolType_Attribute:
+			return SymbolRefType_Attribute;
+		case SymbolType_Primitive:
+			return SymbolRefType_Type;
+		case SymbolType_Field:
+			return SymbolRefType_Member;
+		case SymbolType_IntrinsicFunction:
+			return SymbolRefType_FunctionOverload;
+		case SymbolType_Function:
+			return SymbolRefType_FunctionOverload;
+		case SymbolType_Operator:
+			return SymbolRefType_OperatorOverload;
+		case SymbolType_Constructor:
+			return SymbolRefType_Constructor;
+		case SymbolType_Parameter:
+			return SymbolRefType_Identifier;
+		case SymbolType_Variable:
+			return SymbolRefType_Identifier;
+		case SymbolType_Constant:
+			return SymbolRefType_Identifier;
+		case SymbolType_Alias:
+			return SymbolRefType_Identifier;
+		default:
+			return SymbolRefType_Unknown;
+		}
+	}
 }
 
 #endif

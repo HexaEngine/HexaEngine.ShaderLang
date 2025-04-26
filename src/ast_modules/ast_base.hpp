@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <functional>
 
 namespace HXSL
 {
@@ -268,7 +269,7 @@ namespace HXSL
 				if (!MustHaveParent()) return;
 #ifdef DEBUG
 				parentMissing = true;
-				std::cout << "[Warn]: (AST) Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
+				std::cout << "[Verbose]: (AST) Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
 #endif
 			}
 		}
@@ -306,7 +307,7 @@ namespace HXSL
 			else if (parentMissing)
 			{
 #ifdef DEBUG
-				std::cout << "[Info]: (AST) Recovered from Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
+				std::cout << "[Verbose]: (AST) Recovered from Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
 				parentMissing = false;
 #endif
 			}
@@ -396,62 +397,26 @@ namespace HXSL
 #ifdef DEBUG
 			else if (parentMissing)
 			{
-				std::cout << "[Info]: (AST) Recovered from Parent is null (Destroyed): " << ToString(type) << " Span: " << span.toString() << std::endl;
+				std::cout << "[Verbose]: (AST) Recovered from Parent is null (Destroyed): " << ToString(type) << " Span: " << span.toString() << std::endl;
 			}
 #endif
 		}
 	};
 
-	class Container : virtual public ASTNode
+	template <class Target, class Injector, class InsertFunc>
+	static void	InjectNode(std::unique_ptr<Target>& target, std::unique_ptr<Injector> inject, InsertFunc func)
 	{
-	protected:
-		std::vector<std::unique_ptr<FunctionOverload>> functions;
-		std::vector<std::unique_ptr<OperatorOverload>> operators;
-		std::vector<std::unique_ptr<Struct>> structs;
-		std::vector<std::unique_ptr<Class>> classes;
-		std::vector<std::unique_ptr<Field>> fields;
+		static_assert(std::is_base_of<ASTNode, Target>::value, "Target must derive from ASTNode");
+		static_assert(std::is_base_of<Target, Injector>::value, "Injector must derive from Target");
 
-	public:
-		Container(TextSpan span, ASTNode* parent, NodeType type, bool isExtern = false)
-			:ASTNode(span, parent, type, isExtern)
-		{
-		}
-		virtual ~Container() {}
-		void AddFunction(std::unique_ptr<FunctionOverload> function);
+		auto parent = target->GetParent();
+		inject->SetParent(parent);
+		target->SetParent(inject.get());
 
-		void AddOperator(std::unique_ptr<OperatorOverload> _operator);
+		(inject.get()->*func)(std::move(target));
 
-		void AddStruct(std::unique_ptr<Struct> _struct);
-
-		void AddClass(std::unique_ptr<Class> _class);
-
-		void AddField(std::unique_ptr<Field> field);
-
-		const std::vector<std::unique_ptr<FunctionOverload>>& GetFunctions() const noexcept
-		{
-			return functions;
-		}
-
-		const std::vector<std::unique_ptr<OperatorOverload>>& GetOperators() const noexcept
-		{
-			return operators;
-		}
-
-		const std::vector<std::unique_ptr<Struct>>& GetStructs() const noexcept
-		{
-			return structs;
-		}
-
-		const std::vector<std::unique_ptr<Class>>& GetClasses() const noexcept
-		{
-			return classes;
-		}
-
-		const std::vector<std::unique_ptr<Field>>& GetFields() const noexcept
-		{
-			return fields;
-		}
-	};
+		target = std::move(inject);
+	}
 }
 
 #endif

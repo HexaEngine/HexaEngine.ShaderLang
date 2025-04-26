@@ -60,7 +60,50 @@ namespace HXSL
 		}
 	}
 
-	bool TypeChecker::BinaryOperatorCheck(BinaryExpression* binary, const Expression* left, const Expression* right, SymbolDef*& result)
+	bool TypeChecker::ImplicitBinaryOperatorCheck(SymbolRef* opRef, SymbolDef* a, SymbolDef* b, Operator op, OperatorOverload*& castMatchOut)
+	{
+		auto getter = dynamic_cast<IHasOperators*>(a);
+		if (!getter)
+		{
+			HXSL_ASSERT(false, "IHasOperators was null, this should never happen.");
+			return false;
+		}
+
+		auto& handleB = b->GetSymbolHandle();
+		auto lookup = ToLookupChar(Operator_Cast);
+
+		std::string signature;
+		BinaryExpression::PrepareOverloadSignature(signature, op);
+		for (auto& _operator : getter->GetOperators())
+		{
+			if (_operator->GetName()[0] != lookup || (_operator->GetOperatorFlags() & OperatorFlags_Implicit) == 0)
+			{
+				continue;
+			}
+
+			auto decl = _operator->GetReturnType();
+			BinaryExpression::BuildOverloadSignature(signature, decl, b);
+
+			auto match = handleB.FindPart(signature);
+			if (match.valid())
+			{
+				castMatchOut = _operator.get();
+				opRef->SetTable(match);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	static void InjectCast(std::unique_ptr<Expression>& target, OperatorOverload* cast, SymbolDef* targetType)
+	{
+		auto castExpr = std::make_unique<CastExpression>(TextSpan(), nullptr, cast->MakeSymbolRef(), targetType->MakeSymbolRef(), nullptr);
+		castExpr->SetInferredType(targetType);
+		InjectNode(target, std::move(castExpr), &CastExpression::SetOperand);
+	}
+
+	bool TypeChecker::BinaryOperatorCheck(BinaryExpression* binary, std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result)
 	{
 		const Operator& op = binary->GetOperator();
 		if (!Operators::IsValidOverloadOperator(op))
@@ -93,6 +136,22 @@ namespace HXSL
 					analyzer.LogError("Ambiguous operator overload for '%s'.", binary->GetSpan(), signature.c_str());
 					return false;
 				}
+				found = true;
+			}
+		}
+
+		if (!found)
+		{
+			OperatorOverload* castMatch;
+			if (ImplicitBinaryOperatorCheck(ref.get(), leftType, rightType, op, castMatch))
+			{
+				InjectCast(left, castMatch, rightType);
+				found = true;
+			}
+
+			if (!found && ImplicitBinaryOperatorCheck(ref.get(), rightType, leftType, op, castMatch))
+			{
+				InjectCast(right, castMatch, leftType);
 				found = true;
 			}
 		}
@@ -150,7 +209,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool TypeChecker::CastOperatorCheck(CastExpression* cast, const Expression* typeExpr, const Expression* operand, SymbolDef*& result, bool explicitCast)
+	bool TypeChecker::CastOperatorCheck(CastExpression* cast, const SymbolDef* type, const Expression* operand, SymbolDef*& result, bool explicitCast)
 	{
 		auto operandType = operand->GetInferredType();
 		auto signature = cast->BuildOverloadSignature();
@@ -175,14 +234,72 @@ namespace HXSL
 		return true;
 	}
 
-	bool TypeChecker::AreTypesCompatible(SymbolDef* a, SymbolDef* b)
+	bool TypeChecker::CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, std::unique_ptr<SymbolRef>& result)
 	{
-		return a->IsEquivalentTo(b);
+		auto signature = CastExpression::BuildOverloadSignature(target, source);
+
+		auto ref = std::make_unique<SymbolRef>(signature, SymbolRefType_OperatorOverload, false);
+
+		auto table = source->GetTable();
+		auto& index = source->GetSymbolHandle();
+		auto found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
+		if (!found)
+		{
+			return false;
+		}
+
+		auto operatorDecl = static_cast<OperatorOverload*>(ref->GetDeclaration());
+
+		if ((operatorDecl->GetOperatorFlags() & OperatorFlags_Implicit) == 0)
+		{
+			return false;
+		}
+
+		result = std::move(ref);
+
+		return true;
 	}
 
-	bool TypeChecker::IsBooleanType(SymbolDef* a)
+	// for unary-like operations.
+	bool TypeChecker::AreTypesCompatible(std::unique_ptr<Expression>& insertPoint, SymbolDef* a, SymbolDef* b)
 	{
-		return AreTypesCompatible(a, resolver.ResolvePrimitiveSymbol("bool"));
+		if (a->IsEquivalentTo(b))
+		{
+			return true;
+		}
+
+		// implicit cast handling.
+		std::unique_ptr<SymbolRef> opRef;
+		if (!CastOperatorCheck(b, a, opRef))
+		{
+			return false;
+		}
+
+		auto castExpr = std::make_unique<CastExpression>(TextSpan(), nullptr, std::move(opRef), b->MakeSymbolRef(), nullptr);
+		InjectNode(insertPoint, std::move(castExpr), &CastExpression::SetOperand);
+
+		return true;
+	}
+
+	// for binary-like operations.
+	bool TypeChecker::AreTypesCompatible(std::unique_ptr<Expression>& insertPointA, SymbolDef* a, std::unique_ptr<Expression>& insertPointB, SymbolDef* b)
+	{
+		if (a->IsEquivalentTo(b))
+		{
+			return true;
+		}
+
+		return false; // TODO: set me true later.
+	}
+
+	bool TypeChecker::IsBooleanType(std::unique_ptr<Expression>& insertPoint, SymbolDef* a)
+	{
+		return AreTypesCompatible(insertPoint, a, resolver.ResolvePrimitiveSymbol("bool"));
+	}
+
+	bool TypeChecker::IsIndexerType(std::unique_ptr<Expression>& insertPoint, SymbolDef* a)
+	{
+		return AreTypesCompatible(insertPoint, a, resolver.ResolvePrimitiveSymbol("int")) || AreTypesCompatible(insertPoint, a, resolver.ResolvePrimitiveSymbol("uint"));
 	}
 
 	void TypeChecker::TypeCheckExpression(Expression* node)

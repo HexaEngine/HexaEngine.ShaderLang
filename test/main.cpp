@@ -5,7 +5,7 @@ using namespace HXSL;
 int main()
 {
 	AssemblyCollection collection;
-	HXSLCompiler::Compile({ "library.txt" }, "library.module", collection);
+	//HXSLCompiler::Compile({ "library.txt" }, "library.module", collection);
 
 	collection.LoadAssemblyFromFile("library.module");
 
