@@ -24,6 +24,7 @@ Currently, HXSL is in the **Semantic Analyzer** stage of development and is acti
 - **Code Generation**: The next milestone will be to implement the code generation phase, producing optimized machine code or an intermediate representation for execution on the GPU.
 - **Cross-compilation**: HXSL will eventually be compiled back to HLSL, and there are plans to extend support for generating GLSL and SPIR-V as well, enabling wider compatibility across different platforms and graphics APIs.
 - **Extended Language Features**: More language features and optimizations will be added as development progresses.
+- **C-Headers**: C-Headers for interop with other languages like C#.
 
 ### Prerequisites
 
