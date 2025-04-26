@@ -2,6 +2,7 @@
 #include "sub_parser_registry.hpp"
 #include "pratt_parser.hpp"
 #include "parser.h"
+#include "member_path_parser.hpp"
 
 #include <memory>
 
@@ -13,110 +14,16 @@ namespace HXSL
 		return false; \
 	} while (0)
 
-	template <typename T>
-	static void ChainExpression(std::unique_ptr<Expression>& root, ASTNode*& parent, IChainExpression*& chainExpr, std::unique_ptr<T> newExpr)
-	{
-		auto next = newExpr.get();
-		if (chainExpr)
-		{
-			chainExpr->chain(std::move(newExpr));
-		}
-		else
-		{
-			root = std::move(newExpr);
-		}
-		chainExpr = next;
-		parent = next;
-	}
-
-	template <typename T>
-	static void ChainExpressionEnd(std::unique_ptr<Expression>& root, IChainExpression* chainExpr, std::unique_ptr<T> newExpr)
-	{
-		if (chainExpr)
-		{
-			chainExpr->chain(std::move(newExpr));
-		}
-		else
-		{
-			root = std::move(newExpr);
-		}
-	}
-
 	bool ParserHelper::TryParseMemberAccessPath(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expressionOut)
 	{
-		std::unique_ptr<Expression> root = nullptr;
-		IChainExpression* chainExpr = nullptr;
+		MemberPathParser context = MemberPathParser(parser, stream, parent);
 
-		while (true)
-		{
-			auto start = stream.Current();
-
-			TextSpan span;
-			IF_ERR_RET_FALSE(parser.TryParseSymbolInternal(SymbolRefType_Identifier, span));
-			LazySymbol baseSymbol = LazySymbol(span, SymbolRefType_Identifier, false);
-
-			if (stream.TryGetOperator(Operator_MemberAccess))
-			{
-				auto memberAccessExpression = std::make_unique<MemberAccessExpression>(start.Span, parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)), nullptr);
-				memberAccessExpression->SetSpan(stream.MakeFromLast(start));
-				ChainExpression(root, parent, chainExpr, std::move(memberAccessExpression));
-			}
-			else if (stream.TryGetDelimiter('['))
-			{
-				auto indexerAccessExpression = std::make_unique<IndexerAccessExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)));
-				std::unique_ptr<Expression> indexExpression;
-				IF_ERR_RET_FALSE(ParseExpression(parser, stream, indexerAccessExpression.get(), indexExpression));
-				IF_ERR_RET_FALSE(stream.ExpectDelimiter(']'));
-				indexerAccessExpression->SetIndexExpression(std::move(indexExpression));
-				indexerAccessExpression->SetSpan(stream.MakeFromLast(start));
-
-				if (stream.TryGetOperator(Operator_MemberAccess))
-				{
-					auto memberAccessExpression = std::make_unique<ComplexMemberAccessExpression>(TextSpan(), parent, nullptr, nullptr);
-					memberAccessExpression->SetLeft(std::move(indexerAccessExpression));
-					memberAccessExpression->SetSpan(stream.MakeFromLast(start));
-					ChainExpression(root, parent, chainExpr, std::move(memberAccessExpression));
-				}
-				else
-				{
-					ChainExpressionEnd(root, chainExpr, std::move(indexerAccessExpression));
-					break;
-				}
-			}
-			else if (stream.TryGetDelimiter('('))
-			{
-				auto functionExpression = std::make_unique<FunctionCallExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? SymbolRefType_FunctionOverload : SymbolRefType_FunctionOrConstructor)));
-				std::vector<std::unique_ptr<FunctionCallParameter>> parameters;
-				IF_ERR_RET_FALSE(ParseFunctionCallInner(parser, stream, functionExpression.get(), parameters));
-				functionExpression->SetParameters(std::move(parameters));
-				functionExpression->SetSpan(stream.MakeFromLast(start));
-				if (stream.TryGetOperator(Operator_MemberAccess))
-				{
-					auto memberAccessExpression = std::make_unique<ComplexMemberAccessExpression>(TextSpan(), parent, nullptr, nullptr);
-					memberAccessExpression->SetLeft(std::move(functionExpression));
-					memberAccessExpression->SetSpan(stream.MakeFromLast(start));
-					ChainExpression(root, parent, chainExpr, std::move(memberAccessExpression));
-				}
-				else
-				{
-					ChainExpressionEnd(root, chainExpr, std::move(functionExpression));
-					break;
-				}
-			}
-			else
-			{
-				auto symbolExpression = std::make_unique<MemberReferenceExpression>(start.Span, parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)));
-				ChainExpressionEnd(root, chainExpr, std::move(symbolExpression));
-				break;
-			}
-		}
-
-		if (!root)
+		if (!context.TryParse())
 		{
 			return false;
 		}
 
-		expressionOut = std::move(root);
+		expressionOut = context.TakeRoot();
 
 		return true;
 	}
@@ -283,9 +190,9 @@ namespace HXSL
 			auto refGetter = dynamic_cast<IHasSymbolRef*>(current);
 			span = span.merge(current->GetSpan());
 
-			if (auto chainGetter = dynamic_cast<IChainExpression*>(current))
+			if (auto chainGetter = dynamic_cast<ChainExpression*>(current))
 			{
-				current = chainGetter->chainNext().get();
+				current = chainGetter->GetNextExpression().get();
 				continue;
 			}
 

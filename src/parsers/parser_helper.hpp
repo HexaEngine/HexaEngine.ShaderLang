@@ -1,5 +1,6 @@
 #ifndef PARSER_HELPER_HPP
 #define PARSER_HELPER_HPP
+
 #include "sub_parser.hpp"
 
 namespace HXSL
@@ -22,8 +23,6 @@ namespace HXSL
 		static bool TryParseInitializationExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<InitializationExpression>& expressionOut);
 
 		static bool MakeConcreteSymbolRef(Expression* expression, SymbolRefType type, std::unique_ptr<SymbolRef>& symbolOut);
-
-		static void ParseArraySizes(TokenStream& stream, std::vector<size_t>& arraySize);
 	};
 }
 

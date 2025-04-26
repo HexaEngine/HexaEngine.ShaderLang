@@ -5,5 +5,9 @@ float4 main(PS_INPUT pixel) : SV_TARGET
 {
     float array[10];
     float4 color = pixel.color * fontTex.Sample(samplerState, pixel.tex);
+    for (int i = 0; i < 10; i++)
+    {
+        array[i][i] = i;
+    }
     return color;
 }

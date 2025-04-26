@@ -7,19 +7,19 @@
 
 namespace HXSL
 {
-	class Array : public Type
+	class Array : public Type, public IHasSymbolRef
 	{
 	private:
 		std::unique_ptr<SymbolRef> elementType;
 		std::string backingName;
-		std::vector<size_t> arrayDims;
+		size_t arraySize;
 	public:
-		Array(std::string& name, std::unique_ptr<SymbolRef>& elementType, const std::vector<size_t>& arrayDims)
+		Array(std::string& name, std::unique_ptr<SymbolRef>& elementType, size_t arraySize)
 			: Type(TextSpan(), nullptr, NodeType_Array, TextSpan()),
 			ASTNode(TextSpan(), nullptr, NodeType_Array),
 			elementType(std::move(elementType)),
 			backingName(std::move(name)),
-			arrayDims(arrayDims)
+			arraySize(arraySize)
 		{
 			this->name = TextSpan(backingName);
 		}
@@ -39,7 +39,7 @@ namespace HXSL
 			return SymbolType_Array;
 		}
 
-		DEFINE_GETTER_SETTER(std::vector<size_t>, ArrayDims, arrayDims)
+		DEFINE_GETTER_SETTER(size_t, ArraySize, arraySize)
 
 			void Write(Stream& stream) const override
 		{

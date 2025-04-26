@@ -580,14 +580,6 @@ namespace HXSL
 			UseBeforeDeclarationCheck(ref.get(), node);
 		}
 		break;
-		case NodeType_IndexerAccessExpression:
-		{
-			auto indexerAccessExpression = node->As<IndexerAccessExpression>();
-			auto& ref = indexerAccessExpression->GetSymbolRef();
-			ResolveSymbol(ref.get());
-			UseBeforeDeclarationCheck(ref.get(), node);
-		}
-		break;
 		case NodeType_AttributeDeclaration:
 		{
 			auto attr = node->As<AttributeDeclaration>();
@@ -602,6 +594,7 @@ namespace HXSL
 			ResolveSymbol(ref.get());
 		}
 		break;
+		case NodeType_IndexerAccessExpression:
 		case NodeType_MemberAccessExpression:
 		{
 			if (deferred)
@@ -609,9 +602,9 @@ namespace HXSL
 				current = context.current;
 				stack = context.stack;
 			}
-			auto memberAccessExpr = node->As<MemberAccessExpression>();
+			auto chainExpr = node->As<ChainExpression>();
 			auto next = node;
-			auto result = ResolveMember(memberAccessExpr, next);
+			auto result = ResolveMember(chainExpr, next);
 			if (!deferred && result == TraversalBehavior_Defer)
 			{
 				context = ResolverDeferralContext(current, stack);
@@ -635,9 +628,16 @@ namespace HXSL
 		return nullptr;
 	}
 
-	int SymbolResolver::ResolveMemberInner(SymbolRef* type, SymbolRef* refInner) const
+	int SymbolResolver::ResolveMemberInner(ChainExpression* expr, SymbolRef* type) const
 	{
+		auto refInner = expr->GetSymbolRef().get();
 		auto& handle = type->GetSymbolHandle();
+
+		auto exprType = expr->GetType();
+		if (exprType == NodeType_FunctionCallExpression || exprType == NodeType_IndexerAccessExpression)
+		{
+			return 2;
+		}
 
 		if (type->IsNotFound())
 		{
@@ -652,13 +652,7 @@ namespace HXSL
 
 		refInner->SetDeferred(false);
 
-		auto& refType = refInner->GetType();
-		if (refType == SymbolRefType_FunctionOverload || refType == SymbolRefType_Constructor || refType == SymbolRefType_FunctionOrConstructor || refType == SymbolRefType_Unknown)
-		{
-			return 0; // do not resolve function calls or complex members (SymbolRefType_Unknown).
-		}
-
-		auto indexNext = handle.FindPart(refInner->GetName()); //table->FindNodeIndexPart(refInner->GetName(), index);
+		auto indexNext = handle.FindPart(refInner->GetName());
 		if (indexNext.invalid())
 		{
 			auto metadata = type->GetMetadata();
@@ -678,21 +672,24 @@ namespace HXSL
 		return 0;
 	}
 
-	TraversalBehavior SymbolResolver::ResolveMember(MemberAccessExpression* memberAccessExpr, ASTNode*& next) const
+	TraversalBehavior SymbolResolver::ResolveMember(ChainExpression* chainExprRoot, ASTNode*& next, bool skipInitialResolve) const
 	{
-		auto getter = dynamic_cast<IHasSymbolRef*>(memberAccessExpr);
-		auto chain = dynamic_cast<IChainExpression*>(memberAccessExpr);
-		auto& refRoot = memberAccessExpr->GetSymbolRef();
-		if (!ResolveSymbol(refRoot.get()))
-		{
-			return TraversalBehavior_Skip;
-		}
+		ChainExpression* chain = chainExprRoot;
 
-		UseBeforeDeclarationCheck(refRoot.get(), memberAccessExpr);
+		if (!skipInitialResolve)
+		{
+			auto& refRoot = chainExprRoot->GetSymbolRef();
+			if (!ResolveSymbol(refRoot.get()))
+			{
+				return TraversalBehavior_Skip;
+			}
+
+			UseBeforeDeclarationCheck(refRoot.get(), chainExprRoot);
+		}
 
 		while (chain)
 		{
-			auto ref = getter->GetSymbolRef().get();
+			auto ref = chain->GetSymbolRef().get();
 
 			SymbolRef* type = GetResolvedTypeFromDecl(ref);
 			if (!type)
@@ -701,69 +698,33 @@ namespace HXSL
 				return TraversalBehavior_Skip;
 			}
 
-			next = chain->chainNext().get();
-			chain = dynamic_cast<IChainExpression*>(next);
-			getter = dynamic_cast<IHasSymbolRef*>(next);
-			if (getter == nullptr)
+			chain = chain->GetNextExpression().get();
+
+			if (chain == nullptr)
 			{
-				analyzer.LogError("Couldn't resolve member '%s'", ref->GetName(), ref->GetName().toString().c_str());
-				return TraversalBehavior_Skip;
+				return TraversalBehavior_Skip; // terminal node here.
 			}
 
-			auto refInner = getter->GetSymbolRef().get();
-			auto result = ResolveMemberInner(type, refInner);
+			next = chain;
+
+			auto result = ResolveMemberInner(chain, type);
 			if (result == -1)
 			{
+				auto refInner = chain->GetSymbolRef().get();
 				analyzer.LogError("Couldn't resolve member '%s'", refInner->GetName(), refInner->GetName().toString().c_str());
 				return TraversalBehavior_Skip;
 			}
 			else if (result == 1)
 			{
-				next = memberAccessExpr;
+				next = chainExprRoot;
 				return TraversalBehavior_Defer;
+			}
+			else if (result == 2)
+			{
+				return TraversalBehavior_Skip;
 			}
 		}
 
 		return TraversalBehavior_Skip;
-	}
-
-	bool SymbolResolver::ResolveComplexMember(ComplexMemberAccessExpression* memberAccessExpr) const
-	{
-		IHasSymbolRef* getter = memberAccessExpr;
-		IChainExpression* chain = memberAccessExpr;
-		while (chain)
-		{
-			auto ref = getter->GetSymbolRef().get();
-
-			SymbolRef* type = GetResolvedTypeFromDecl(ref);
-			if (!type)
-			{
-				analyzer.LogError("Couldn't resolve type of member '%s'", ref->GetName(), ref->GetName().toString().c_str());
-				return false;
-			}
-
-			ASTNode* next = chain->chainNext().get();
-			chain = dynamic_cast<IChainExpression*>(next);
-			getter = dynamic_cast<IHasSymbolRef*>(next);
-			if (getter == nullptr)
-			{
-				analyzer.LogError("Couldn't resolve member '%s'", ref->GetName(), ref->GetName().toString().c_str());
-				return false;
-			}
-
-			auto refInner = getter->GetSymbolRef().get();
-			auto result = ResolveMemberInner(type, refInner);
-			if (result == -1)
-			{
-				analyzer.LogError("Couldn't resolve member '%s'", refInner->GetName(), refInner->GetName().toString().c_str());
-				return false;
-			}
-			else if (result == 1)
-			{
-				return false;
-			}
-		}
-
-		return true;
 	}
 }

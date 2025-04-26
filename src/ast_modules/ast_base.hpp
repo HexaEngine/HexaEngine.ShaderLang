@@ -86,7 +86,6 @@ namespace HXSL
 		NodeType_FunctionCallExpression, // type-check: yes
 		NodeType_FunctionCallParameter, // type-check: yes
 		NodeType_MemberAccessExpression, // type-check: yes
-		NodeType_ComplexMemberAccessExpression, // type-check: yes
 		NodeType_IndexerAccessExpression, // type-check: yes
 		NodeType_CastExpression, // type-check: yes
 		NodeType_TernaryExpression, // type-check: yes

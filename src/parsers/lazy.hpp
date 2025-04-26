@@ -24,14 +24,14 @@ namespace HXSL
 		{
 		}
 
-		std::unique_ptr<SymbolRef> make(SymbolRefType overwrite)
+		std::unique_ptr<SymbolRef> make(SymbolRefType overwrite, bool force = false)
 		{
 			if (ptr.get())
 			{
 				return std::move(ptr);
 			}
 
-			if (span.Text == nullptr)
+			if (span.Text == nullptr && !force)
 			{
 				HXSL_ASSERT(false, "Attempted to double create a LazySymbol");
 				return {};
@@ -42,9 +42,9 @@ namespace HXSL
 			return std::move(result);
 		};
 
-		std::unique_ptr<SymbolRef> make()
+		std::unique_ptr<SymbolRef> make(bool force = false)
 		{
-			return std::move(make(type));
+			return std::move(make(type, force));
 		};
 	};
 }

@@ -10,28 +10,43 @@ namespace HXSL
 			return false;
 		}
 
-		std::string arrayKey = ref->MakeArrayTypeName(0, elementType);
+		auto dimsCount = ref->GetArrayDimCount();
+		std::string arrayHeadKey = ref->MakeArrayTypeName(dimsCount - 1, elementType); // full name
 
-		auto handle = arrayTable->FindNodeIndexFullPath(arrayKey);
+		auto arrayTable = arrayAssembly->GetMutableSymbolTable();
+
+		auto handle = arrayTable->FindNodeIndexFullPath(arrayHeadKey);
 		if (handle.valid())
 		{
 			ref->SetTable(handle);
 			return true;
 		}
 
-		auto symbolRef = ref->Clone();
-		symbolRef->OverwriteType(SymbolRefType_Type);
-		symbolRef->SetDeclaration(elementType);
-
 		auto& dims = ref->GetArrayDims();
-		auto array = std::make_unique<Array>(arrayKey, symbolRef, dims);
+		SymbolDef* currentType = elementType;
+		for (size_t i = 0; i < dimsCount; i++)
+		{
+			std::string arrayKey = ref->MakeArrayTypeName(i, currentType);
 
-		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Array, SymbolScopeType_Global, AccessModifier_Public, 0, array.get());
-		handle = arrayTable->Insert(array->GetName(), meta);
+			auto symbolRef = ref->Clone();
+			symbolRef->OverwriteType(SymbolRefType_Type);
+			symbolRef->SetDeclaration(currentType);
+			symbolRef->GetArrayDims().pop_back();
+
+			auto array = std::make_unique<Array>(arrayKey, symbolRef, dims[i]);
+
+			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Array, SymbolScopeType_Global, AccessModifier_Public, 0, array.get());
+			handle = arrayTable->Insert(array->GetName(), meta);
+			array->SetAssembly(arrayAssembly.get(), handle);
+
+			currentType = array.get();
+
+			definitions.push_back(std::move(array));
+		}
 
 		handleOut = handle;
-		arrayOut = array.get();
-		definitions.push_back(std::move(array));
+		arrayOut = currentType;
+
 		return true;
 	}
 }

@@ -41,16 +41,6 @@ namespace HXSL
 
 		virtual ~IHasExpressions() = default;
 	};
-
-	class IChainExpression
-	{
-	public:
-		virtual ~IChainExpression() = default;
-
-		virtual	void chain(std::unique_ptr<Expression> expression) = 0;
-
-		virtual const std::unique_ptr<Expression>& chainNext() = 0;
-	};
 }
 
 #endif

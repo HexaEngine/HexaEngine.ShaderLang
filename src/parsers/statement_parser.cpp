@@ -403,9 +403,9 @@ namespace HXSL
 		parser.RejectAttribute("is not allowed in this context.");
 
 		Expression* end = target.get();
-		while (auto getter = dynamic_cast<IChainExpression*>(end))
+		while (auto getter = dynamic_cast<ChainExpression*>(end))
 		{
-			end = getter->chainNext().get();
+			end = getter->GetNextExpression().get();
 		}
 
 		if (end == nullptr || end->GetType() != NodeType_FunctionCallExpression)

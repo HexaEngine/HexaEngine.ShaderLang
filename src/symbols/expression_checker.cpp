@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	std::unique_ptr<ExpressionChecker> ExpressionCheckerRegistry::handlers[NodeType_ExpressionCount];
+	std::unique_ptr<ExpressionCheckerBase> ExpressionCheckerRegistry::handlers[NodeType_ExpressionCount];
 	std::once_flag ExpressionCheckerRegistry::initFlag;
 
 	void ExpressionCheckerRegistry::EnsureCreated()
@@ -13,7 +13,6 @@ namespace HXSL
 				Register<BinaryExpressionChecker, NodeType_BinaryExpression>();
 				Register<UnaryExpressionChecker, NodeType_UnaryExpression>();
 				Register<CastExpressionChecker, NodeType_CastExpression>();
-				Register<ComplexMemberAccessExpressionChecker, NodeType_ComplexMemberAccessExpression>();
 				Register<MemberAccessExpressionChecker, NodeType_MemberAccessExpression>();
 				Register<MemberReferenceExpressionChecker, NodeType_MemberReferenceExpression>();
 				Register<FunctionCallExpressionChecker, NodeType_FunctionCallExpression>();
@@ -25,10 +24,8 @@ namespace HXSL
 			});
 	}
 
-	void BinaryExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void BinaryExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, BinaryExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<BinaryExpression*>(node);
-
 		auto left = expression->GetLeft().get();
 		auto right = expression->GetRight().get();
 
@@ -59,10 +56,8 @@ namespace HXSL
 		}
 	}
 
-	void UnaryExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void UnaryExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, UnaryExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<UnaryExpression*>(node);
-
 		auto operand = expression->GetOperand().get();
 
 		if (expression->GetLazyEvalState())
@@ -90,10 +85,8 @@ namespace HXSL
 		}
 	}
 
-	void CastExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void CastExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CastExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<CastExpression*>(node);
-
 		auto typeExpr = expression->GetTypeExpression().get();
 		auto operand = expression->GetOperand().get();
 		if (expression->GetLazyEvalState())
@@ -124,53 +117,11 @@ namespace HXSL
 		}
 	}
 
-	void ComplexMemberAccessExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void MemberAccessExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, MemberAccessExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<ComplexMemberAccessExpression*>(node);
-
-		auto left = expression->GetLeft().get();
-		auto right = expression->GetRight().get();
-
-		auto& state = expression->GetLazyEvalState();
-		if (state == 1)
-		{
-			auto leftType = left->GetInferredType();
-
-			if (!leftType)
-			{
-				return;
-			}
-
-			if (right->GetType() != NodeType_ComplexMemberAccessExpression)
-			{
-				expression->GetSymbolRef()->SetDeclaration(leftType);
-				resolver.ResolveComplexMember(expression);
-			}
-
-			expression->IncrementLazyEvalState();
-			stack.push(expression);
-			stack.push(right);
-		}
-		else if (state == 2)
-		{
-			expression->SetInferredType(right->GetInferredType());
-			expression->SetTraits(right->GetTraits());
-		}
-		else
-		{
-			expression->IncrementLazyEvalState();
-			stack.push(expression);
-			stack.push(left);
-		}
-	}
-
-	void MemberAccessExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
-	{
-		auto expression = dynamic_cast<MemberAccessExpression*>(node);
-
 		if (expression->GetLazyEvalState())
 		{
-			auto& nextExpr = expression->GetExpression();
+			auto& nextExpr = expression->GetNextExpression();
 			expression->SetInferredType(nextExpr->GetInferredType());
 			expression->SetTraits(nextExpr->GetTraits());
 		}
@@ -178,23 +129,21 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(expression->GetExpression().get());
+			stack.push(expression->GetNextExpression().get());
 		}
 	}
 
-	void MemberReferenceExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void MemberReferenceExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, MemberReferenceExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<MemberReferenceExpression*>(node);
 		auto decl = expression->GetSymbolRef()->GetBaseDeclaration();
 		expression->SetInferredType(decl);
 		expression->SetTraits(ExpressionTraits(ExpressionTraitFlags_Mutable));
 	}
 
-	void FunctionCallExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void FunctionCallExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, FunctionCallExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<FunctionCallExpression*>(node);
-
-		if (expression->GetLazyEvalState())
+		auto state = expression->GetLazyEvalState();
+		if (state == 1)
 		{
 			if (!expression->CanBuildOverloadSignature())
 			{
@@ -218,16 +167,37 @@ namespace HXSL
 				success = resolver.ResolveSymbol(ref.get(), TextSpan(signature));
 			}
 
-			if (success)
+			if (!success)
 			{
-				auto function = dynamic_cast<FunctionOverload*>(ref->GetDeclaration());
-				HXSL_ASSERT(function, "Declaration in function call expression was not a function, this should never happen.");
-				expression->SetInferredType(function->GetReturnSymbolRef().get()->GetDeclaration());
+				analyzer.LogError("Couldn't find an matching overload for '%s'.", expression->GetSpan(), signature.c_str());
+				return;
+			}
+
+			auto function = dynamic_cast<FunctionOverload*>(ref->GetDeclaration());
+			HXSL_ASSERT(function, "Declaration in function call expression was not a function, this should never happen.");
+
+			auto type = function->GetReturnSymbolRef()->GetDeclaration();
+			auto next = expression->GetNextExpression().get();
+			if (next)
+			{
+				next->GetSymbolRef()->SetDeclaration(type);
+				resolver.ResolveMember(next);
+
+				expression->IncrementLazyEvalState();
+				stack.push(expression);
+				stack.push(next);
 			}
 			else
 			{
-				analyzer.LogError("Couldn't find an matching overload for '%s'.", expression->GetSpan(), signature.c_str());
+				expression->SetInferredType(type);
+				expression->SetTraits(ExpressionTraits(ExpressionTraitFlags_None));
 			}
+		}
+		else if (state == 2)
+		{
+			auto next = expression->GetNextExpression().get();
+			expression->SetInferredType(next->GetInferredType());
+			expression->SetTraits(next->GetTraits());
 		}
 		else
 		{
@@ -241,10 +211,8 @@ namespace HXSL
 		}
 	}
 
-	void TernaryExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void TernaryExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, TernaryExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<TernaryExpression*>(node);
-
 		auto condition = expression->GetCondition().get();
 		auto trueBranch = expression->GetTrueBranch().get();
 		auto falseBranch = expression->GetFalseBranch().get();
@@ -289,9 +257,8 @@ namespace HXSL
 		}
 	}
 
-	void LiteralExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void LiteralExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, LiteralExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<LiteralExpression*>(node);
 		auto& token = expression->GetLiteral();
 
 		SymbolDef* def = nullptr;
@@ -313,10 +280,8 @@ namespace HXSL
 		expression->SetTraits(ExpressionTraits(ExpressionTraitFlags_Constant));
 	}
 
-	void PrefixPostfixExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void PrefixPostfixExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, UnaryExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<UnaryExpression*>(node);
-
 		auto operand = expression->GetOperand().get();
 
 		if (expression->GetLazyEvalState())
@@ -353,15 +318,12 @@ namespace HXSL
 		}
 	}
 
-	void IndexerExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack)
+	void IndexerExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, IndexerAccessExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto expression = dynamic_cast<IndexerAccessExpression*>(node);
-
-		auto& indices = expression->GetIndices();
-
-		if (expression->GetLazyEvalState())
+		auto state = expression->GetLazyEvalState();
+		if (state == 1)
 		{
-			auto type = expression->GetSymbolRef()->GetBaseDeclaration();
+			auto type = expression->GetSymbolRef()->GetAncestorDeclaration(SymbolType_Array);
 
 			if (type == nullptr)
 			{
@@ -370,32 +332,41 @@ namespace HXSL
 
 			if (type->GetType() != NodeType_Array)
 			{
-				analyzer.LogError("Type must be an array type to apply an indexer operator", expression->GetSpan());
+				analyzer.LogError("Tried to index into type '%s', which is not an array.", expression->GetSpan(), type->GetName().toString().c_str());
 				return;
 			}
 
 			auto array = dynamic_cast<Array*>(type);
 			HXSL_ASSERT(array, "Array was null, this should never happen.");
 
-			auto arrayDims = array->GetArrayDims().size();
-			auto accessedDims = indices.size();
-
-			if (arrayDims < accessedDims)
+			auto next = expression->GetNextExpression().get();
+			if (next)
 			{
-				analyzer.LogError("Type must be an array type to apply an indexer operator", expression->GetSpan());
-				return;
-			}
+				next->GetSymbolRef()->SetDeclaration(array);
+				resolver.ResolveMember(next);
 
-			expression->SetInferredType(array->GetElementType());
+				expression->IncrementLazyEvalState();
+				stack.push(expression);
+				stack.push(next);
+			}
+			else
+			{
+				expression->SetInferredType(array->GetElementType());
+				expression->SetTraits(ExpressionTraits(ExpressionTraitFlags_Mutable));
+			}
+		}
+		else if (state == 2)
+		{
+			auto next = expression->GetNextExpression().get();
+			expression->SetInferredType(next->GetInferredType());
+			expression->SetTraits(next->GetTraits());
 		}
 		else
 		{
+			auto index = expression->GetIndexExpression().get();
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			for (auto it = indices.rbegin(); it != indices.rend(); ++it)
-			{
-				stack.push(it->get());
-			}
+			stack.push(index);
 		}
 	}
 }

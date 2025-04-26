@@ -87,6 +87,32 @@ namespace HXSL
 		void ResetLazyEvalState() noexcept { lazyEvalState = 0; }
 	};
 
+	class ChainExpression : public Expression, public IHasSymbolRef
+	{
+	protected:
+		std::unique_ptr<ChainExpression> next;
+
+		ChainExpression(TextSpan span, ASTNode* parent, NodeType type, std::unique_ptr<ChainExpression> next = {})
+			: Expression(span, parent, type),
+			next(std::move(next))
+		{
+		}
+
+	public:
+		virtual ~ChainExpression() = default;
+
+		const std::unique_ptr<ChainExpression>& GetNextExpression() const noexcept
+		{
+			return next;
+		}
+
+		void SetNextExpression(std::unique_ptr<ChainExpression> value) noexcept
+		{
+			value->SetParent(this);
+			next = std::move(value);
+		}
+	};
+
 	class UnaryExpression : public Expression
 	{
 	private:
@@ -140,7 +166,7 @@ namespace HXSL
 		}
 	};
 
-	class BinaryExpression : public Expression, public IChainExpression
+	class BinaryExpression : public Expression
 	{
 	private:
 		Operator _operator;
@@ -169,17 +195,6 @@ namespace HXSL
 		std::unique_ptr<SymbolRef>& GetOperatorSymbolRef()
 		{
 			return operatorSymbol;
-		}
-
-		void chain(std::unique_ptr<Expression> expression) override
-		{
-			right = std::move(expression);
-			right->SetParent(this);
-		}
-
-		virtual const std::unique_ptr<Expression>& chainNext() override
-		{
-			return right;
 		}
 
 		DEFINE_GETTER_SETTER(Operator, Operator, _operator)
@@ -269,13 +284,13 @@ namespace HXSL
 		DEFINE_GETTER_SETTER(Token, Literal, literal)
 	};
 
-	class MemberReferenceExpression : public Expression, public IHasSymbolRef
+	class MemberReferenceExpression : public ChainExpression
 	{
 	private:
 		std::unique_ptr<SymbolRef> symbol;
 	public:
 		MemberReferenceExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol)
-			: Expression(span, parent, NodeType_MemberReferenceExpression),
+			: ChainExpression(span, parent, NodeType_MemberReferenceExpression),
 			symbol(std::move(symbol))
 		{
 		}
@@ -303,21 +318,21 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Expression, expression)
 	};
 
-	class FunctionCallExpression : public Expression, public IHasSymbolRef
+	class FunctionCallExpression : public ChainExpression
 	{
 	private:
 		std::unique_ptr<SymbolRef> symbol;
 		std::vector<std::unique_ptr<FunctionCallParameter>> parameters;
 	public:
 		FunctionCallExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::vector<std::unique_ptr<FunctionCallParameter>> parameters)
-			: Expression(span, parent, NodeType_FunctionCallExpression),
+			: ChainExpression(span, parent, NodeType_FunctionCallExpression),
 			symbol(std::move(symbol)),
 			parameters(std::move(parameters))
 		{
 		}
 
 		FunctionCallExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol)
-			: Expression(span, parent, NodeType_FunctionCallExpression),
+			: ChainExpression(span, parent, NodeType_FunctionCallExpression),
 			symbol(std::move(symbol))
 		{
 		}
@@ -331,7 +346,7 @@ namespace HXSL
 					return false;
 				}
 			}
-			return false;
+			return true;
 		}
 
 		std::string BuildOverloadSignature()
@@ -362,16 +377,14 @@ namespace HXSL
 			DEFINE_GET_SET_MOVE(std::vector<std::unique_ptr<FunctionCallParameter>>, Parameters, parameters)
 	};
 
-	class MemberAccessExpression : public Expression, public IChainExpression, public IHasSymbolRef
+	class MemberAccessExpression : public ChainExpression
 	{
 	private:
 		std::unique_ptr<SymbolRef> symbol;
-		std::unique_ptr<Expression> expression;
 	public:
-		MemberAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<Expression> expression)
-			: Expression(span, parent, NodeType_MemberAccessExpression),
-			symbol(std::move(symbol)),
-			expression(std::move(expression))
+		MemberAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<ChainExpression> expression)
+			: ChainExpression(span, parent, NodeType_MemberAccessExpression, std::move(expression)),
+			symbol(std::move(symbol))
 		{
 		}
 
@@ -380,65 +393,10 @@ namespace HXSL
 			return symbol;
 		}
 
-		void chain(std::unique_ptr<Expression> expression) override
-		{
-			this->expression = std::move(expression);
-			this->expression->SetParent(this);
-		}
-
-		virtual const std::unique_ptr<Expression>& chainNext() override
-		{
-			return expression;
-		}
-
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
-
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Expression, expression)
 	};
 
-	class ComplexMemberAccessExpression : public Expression, public IChainExpression, public IHasSymbolRef
-	{
-	private:
-		std::unique_ptr<SymbolRef> symbol;
-		std::unique_ptr<Expression> left;
-		std::unique_ptr<Expression> right;
-	public:
-		ComplexMemberAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
-			: Expression(span, parent, NodeType_ComplexMemberAccessExpression),
-			symbol(std::make_unique<SymbolRef>()),
-			left(std::move(left)),
-			right(std::move(right))
-		{
-		}
-
-		std::unique_ptr<SymbolRef>& GetSymbolRef() override
-		{
-			return symbol;
-		}
-
-		void chain(std::unique_ptr<Expression> expression) override
-		{
-			this->right = std::move(expression);
-			this->right->SetParent(this);
-			if (left && right)
-			{
-				span = left->GetSpan().merge(right->GetSpan());
-			}
-		}
-
-		virtual const std::unique_ptr<Expression>& chainNext() override
-		{
-			return right;
-		}
-
-		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
-
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Left, left)
-
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Right, right)
-	};
-
-	class IndexerAccessExpression : public Expression, public IHasSymbolRef
+	class IndexerAccessExpression : public ChainExpression
 	{
 	private:
 		std::unique_ptr<SymbolRef> symbol;
@@ -446,14 +404,14 @@ namespace HXSL
 
 	public:
 		IndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<Expression> indexExpression)
-			: Expression(span, parent, NodeType_IndexerAccessExpression),
+			: ChainExpression(span, parent, NodeType_IndexerAccessExpression),
 			symbol(std::move(symbol)),
 			indexExpression(std::move(indexExpression))
 		{
 		}
 
 		IndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol)
-			: Expression(span, parent, NodeType_IndexerAccessExpression),
+			: ChainExpression(span, parent, NodeType_IndexerAccessExpression),
 			symbol(std::move(symbol))
 		{
 		}

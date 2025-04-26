@@ -30,6 +30,7 @@ file(GLOB SOURCES
     src/lexical/token_stream.cpp
     src/parsers/parser.cpp
     src/parsers/parser_helper.cpp
+    src/parsers/member_path_parser.cpp
     src/parsers/declaration_parser.cpp
     src/parsers/statement_parser.cpp
     src/parsers/expression_parser.cpp

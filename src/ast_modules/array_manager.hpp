@@ -9,10 +9,10 @@ namespace HXSL
 	class ArrayManager
 	{
 	private:
-		std::unique_ptr<SymbolTable> arrayTable;
 		std::vector<std::unique_ptr<Array>> definitions;
+		std::unique_ptr<Assembly> arrayAssembly = Assembly::Create("");
 	public:
-		ArrayManager() : arrayTable(std::make_unique<SymbolTable>())
+		ArrayManager()
 		{
 		}
 

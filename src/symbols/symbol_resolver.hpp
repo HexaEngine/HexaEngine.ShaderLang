@@ -89,12 +89,16 @@ namespace HXSL
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="getter"></param>
-		/// <returns>-1 Failed, 0 Success, 1 Defer</returns>
-		int ResolveMemberInner(SymbolRef* type, SymbolRef* refInner) const;
+		/// <returns>-1 Failed, 0 Success, 1 Defer, 2 Skip/Terminal</returns>
+		int ResolveMemberInner(ChainExpression* expr, SymbolRef* type) const;
 
-		TraversalBehavior ResolveMember(MemberAccessExpression* memberAccessExpr, ASTNode*& next) const;
+		TraversalBehavior ResolveMember(ChainExpression* chainExprRoot, ASTNode*& next, bool skipInitialResolve = false) const;
 
-		bool ResolveComplexMember(ComplexMemberAccessExpression* memberAccessExpr) const;
+		TraversalBehavior ResolveMember(ChainExpression* chainExprRoot) const
+		{
+			ASTNode* next = chainExprRoot;
+			return ResolveMember(chainExprRoot, next, true);
+		}
 
 		void PushScope(ASTNode* parent, const TextSpan& span, bool external = false);
 

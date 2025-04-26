@@ -469,6 +469,7 @@ namespace HXSL
 		void ParseArraySizes(std::vector<size_t>& arraySizes);
 	private:
 		friend class ParserHelper;
+		friend class MemberPathParser;
 		bool TryParseSymbolInternal(const SymbolRefType& type, TextSpan& span);
 		void ParseAttribute();
 		void ParseModifierList();

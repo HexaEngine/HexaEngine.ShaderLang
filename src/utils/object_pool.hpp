@@ -136,7 +136,6 @@ namespace HXSL
 	DEFINE_POOL_KEY(NodeType_FunctionCallExpression, FunctionCallExpression);
 	DEFINE_POOL_KEY(NodeType_FunctionCallParameter, FunctionCallParameter);
 	DEFINE_POOL_KEY(NodeType_MemberAccessExpression, MemberAccessExpression);
-	DEFINE_POOL_KEY(NodeType_ComplexMemberAccessExpression, ComplexMemberAccessExpression);
 	DEFINE_POOL_KEY(NodeType_IndexerAccessExpression, IndexerAccessExpression);
 	DEFINE_POOL_KEY(NodeType_CastExpression, CastExpression);
 	DEFINE_POOL_KEY(NodeType_TernaryExpression, TernaryExpression);

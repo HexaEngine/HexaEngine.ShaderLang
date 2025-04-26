@@ -85,6 +85,25 @@ namespace HXSL
 		return decl;
 	}
 
+	SymbolDef* SymbolRef::GetAncestorDeclaration(SymbolType type) const
+	{
+		std::unordered_set<const SymbolDef*> visited;
+		auto decl = GetDeclaration();
+		while (auto getter = dynamic_cast<IHasSymbolRef*>(decl))
+		{
+			if (!visited.insert(decl).second)
+			{
+				return nullptr;
+			}
+			decl = getter->GetSymbolRef()->GetDeclaration();
+			if (decl->GetSymbolType() == type)
+			{
+				return decl;
+			}
+		}
+		return decl;
+	}
+
 	void SymbolRef::Write(Stream& stream) const
 	{
 		stream.WriteUInt(type);

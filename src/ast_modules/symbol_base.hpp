@@ -216,15 +216,15 @@ namespace HXSL
 
 		void OverwriteType(const SymbolRefType& value) noexcept { type = value; }
 
-		std::string MakeArrayTypeName(SymbolDef* elementType = nullptr)
+		std::string MakeArrayTypeName(size_t dimIndex, SymbolDef* elementType = nullptr)
 		{
 			elementType = elementType ? elementType : GetBaseDeclaration();
 			std::ostringstream oss;
 			oss << elementType->GetFullyQualifiedName();
-			for (auto& dim : arrayDims)
+			for (size_t i = 0; i < dimIndex + 1; i++)
 			{
 				oss << "[";
-				oss << arrayDims[dim];
+				oss << arrayDims[i];
 				oss << "]";
 			}
 
@@ -240,9 +240,9 @@ namespace HXSL
 
 		void SetArrayDims(std::vector<size_t> dims) noexcept { arrayDims = std::move(dims); if (type == SymbolRefType_Type) type = SymbolRefType_ArrayType; }
 
-		const std::vector<size_t>& GetArrayDims() const noexcept { return arrayDims; }
+		std::vector<size_t>& GetArrayDims() noexcept { return arrayDims; }
 
-		size_t ArrayDimCount() const noexcept { return arrayDims.size(); }
+		size_t GetArrayDimCount() const noexcept { return arrayDims.size(); }
 
 		bool IsResolved() const noexcept { return !symbolHandle.invalid(); }
 
@@ -263,6 +263,8 @@ namespace HXSL
 		SymbolDef* GetDeclaration() const;
 
 		SymbolDef* GetBaseDeclaration() const;
+
+		SymbolDef* GetAncestorDeclaration(SymbolType type) const;
 
 		void Write(Stream& stream) const;
 
