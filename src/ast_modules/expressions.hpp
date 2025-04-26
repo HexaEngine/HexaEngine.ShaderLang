@@ -6,15 +6,37 @@
 
 namespace HXSL
 {
+	enum ExpressionTraitFlags
+	{
+		ExpressionTraitFlags_None,
+		ExpressionTraitFlags_Constant,
+		ExpressionTraitFlags_Mutable,
+	};
+
 	struct ExpressionTraits
 	{
-		bool IsConstant = false;
+		ExpressionTraitFlags flags = ExpressionTraitFlags_None;
+
+		bool HasFlag(ExpressionTraitFlags wanted) const noexcept
+		{
+			return (flags & wanted) != 0;
+		}
+
+		bool IsConstant() const noexcept
+		{
+			return HasFlag(ExpressionTraitFlags_Constant);
+		}
+
+		bool IsMutable() const noexcept
+		{
+			return HasFlag(ExpressionTraitFlags_Mutable);
+		}
 
 		ExpressionTraits()
 		{
 		}
 
-		ExpressionTraits(bool isConstant) : IsConstant(isConstant)
+		ExpressionTraits(ExpressionTraitFlags flags) : flags(flags)
 		{
 		}
 	};
@@ -65,16 +87,6 @@ namespace HXSL
 		void ResetLazyEvalState() noexcept { lazyEvalState = 0; }
 	};
 
-	class IChainExpression
-	{
-	public:
-		virtual ~IChainExpression() = default;
-
-		virtual	void chain(std::unique_ptr<Expression> expression) = 0;
-
-		virtual const std::unique_ptr<Expression>& chainNext() = 0;
-	};
-
 	class UnaryExpression : public Expression
 	{
 	private:
@@ -84,6 +96,7 @@ namespace HXSL
 	protected:
 		UnaryExpression(TextSpan span, ASTNode* parent, NodeType type, Operator op, std::unique_ptr<Expression> operand)
 			: Expression(span, parent, type),
+			operatorSymbol(std::make_unique<SymbolRef>(TextSpan(), SymbolRefType_OperatorOverload, false)),
 			_operator(op),
 			operand(std::move(operand))
 		{
@@ -213,24 +226,24 @@ namespace HXSL
 	{
 	private:
 		std::unique_ptr<Expression> condition;
-		std::unique_ptr<Expression> left;
-		std::unique_ptr<Expression> right;
+		std::unique_ptr<Expression> trueBranch;
+		std::unique_ptr<Expression> falseBranch;
 	public:
-		TernaryExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+		TernaryExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> trueBranch, std::unique_ptr<Expression> falseBranch)
 			: Expression(span, parent, NodeType_TernaryExpression),
 			condition(std::move(condition)),
-			left(std::move(left)),
-			right(std::move(right))
+			trueBranch(std::move(trueBranch)),
+			falseBranch(std::move(falseBranch))
 		{
-			if (this->left) this->left->SetParent(this);
-			if (this->right) this->right->SetParent(this);
+			if (this->trueBranch) this->trueBranch->SetParent(this);
+			if (this->falseBranch) this->falseBranch->SetParent(this);
 		}
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Condition, condition)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Left, left)
+			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, TrueBranch, trueBranch)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Right, right)
+			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, FalseBranch, falseBranch)
 	};
 
 	class EmptyExpression : public Expression
@@ -425,17 +438,17 @@ namespace HXSL
 			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Right, right)
 	};
 
-	class IndexerAccessExpression : public Expression
+	class IndexerAccessExpression : public Expression, public IHasSymbolRef
 	{
 	private:
 		std::unique_ptr<SymbolRef> symbol;
-		std::vector<std::unique_ptr<Expression>> indices;
+		std::unique_ptr<Expression> indexExpression;
 
 	public:
-		IndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::vector<std::unique_ptr<Expression>> indices)
+		IndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<Expression> indexExpression)
 			: Expression(span, parent, NodeType_IndexerAccessExpression),
 			symbol(std::move(symbol)),
-			indices(std::move(indices))
+			indexExpression(std::move(indexExpression))
 		{
 		}
 
@@ -445,13 +458,12 @@ namespace HXSL
 		{
 		}
 
-		void AddIndex(std::unique_ptr<Expression> expression)
+		std::unique_ptr<SymbolRef>& GetSymbolRef() override
 		{
-			expression->SetParent(this);
-			indices.push_back(std::move(expression));
+			return symbol;
 		}
 
-		DEFINE_GET_SET_MOVE(std::vector<std::unique_ptr<Expression>>, Indices, indices)
+		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, IndexExpression, indexExpression)
 
 			DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
 	};

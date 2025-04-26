@@ -100,7 +100,7 @@ namespace HXSL
 			break;
 
 		case SymbolRefType_Identifier:
-			if (defType != SymbolType_Field && defType != SymbolType_Parameter && defType != SymbolType_Variable && defType != SymbolType_Struct && defType != SymbolType_Primitive && defType != SymbolType_Class)
+			if (defType != SymbolType_Field && defType != SymbolType_Parameter && defType != SymbolType_Variable && defType != SymbolType_Struct && defType != SymbolType_Primitive && defType != SymbolType_Class && defType != SymbolType_Enum)
 			{
 				if (!silent)
 				{
@@ -133,11 +133,22 @@ namespace HXSL
 			break;
 
 		case SymbolRefType_Type:
-			if (defType != SymbolType_Struct && defType != SymbolType_Primitive && defType != SymbolType_Class)
+			if (defType != SymbolType_Struct && defType != SymbolType_Primitive && defType != SymbolType_Class && defType != SymbolType_Enum)
 			{
 				if (!silent)
 				{
 					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct', 'Primitive', or 'Class' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+				}
+				return false;
+			}
+			break;
+
+		case SymbolRefType_ArrayType:
+			if (defType != SymbolType_Array)
+			{
+				if (!silent)
+				{
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Array' definition.", span, span.toString().c_str(), ToString(defType).c_str());
 				}
 				return false;
 			}
@@ -352,6 +363,15 @@ namespace HXSL
 			return false;
 		}
 
+		if (ref->IsArray())
+		{
+			if (!arrayManager->TryGetOrCreateArrayType(ref, def, handle, def))
+			{
+				analyzer.LogError("Cannot create an array out of '%s', only arrays, structs, classes and enums are allowed", ref->GetName(), def->GetName().toString().c_str());
+				return false;
+			}
+		}
+
 		auto metadata = handle.GetMetadata();
 		if (!SymbolTypeSanityCheck(metadata, ref, silent))
 		{
@@ -378,7 +398,7 @@ namespace HXSL
 			return false;
 		}
 
-		auto metadata = lookup.GetMetadata();
+		auto metadata = handle.GetMetadata();
 		if (!SymbolTypeSanityCheck(metadata, ref, silent))
 		{
 			return false;
@@ -556,6 +576,14 @@ namespace HXSL
 		{
 			auto symbolRefExpression = node->As<MemberReferenceExpression>();
 			auto& ref = symbolRefExpression->GetSymbolRef();
+			ResolveSymbol(ref.get());
+			UseBeforeDeclarationCheck(ref.get(), node);
+		}
+		break;
+		case NodeType_IndexerAccessExpression:
+		{
+			auto indexerAccessExpression = node->As<IndexerAccessExpression>();
+			auto& ref = indexerAccessExpression->GetSymbolRef();
 			ResolveSymbol(ref.get());
 			UseBeforeDeclarationCheck(ref.get(), node);
 		}

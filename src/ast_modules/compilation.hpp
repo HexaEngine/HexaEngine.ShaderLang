@@ -19,10 +19,18 @@ namespace HXSL
 		std::vector<std::unique_ptr<Primitive>> primitives;
 		std::vector<std::unique_ptr<Class>> primitiveClasses;
 
+		std::vector<std::unique_ptr<Array>> arrays;
+
 		std::shared_mutex _mutex;
 
 		friend class PrimitiveManager;
 		friend class PrimitiveBuilder;
+		friend class SymbolResolver;
+
+		void AddArray(std::unique_ptr<Array> array)
+		{
+			arrays.push_back(std::move(array));
+		}
 
 	public:
 		Compilation(bool isExtern = false)

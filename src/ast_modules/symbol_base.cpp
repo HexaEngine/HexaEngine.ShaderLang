@@ -57,12 +57,17 @@ namespace HXSL
 
 	const SymbolMetadata* SymbolRef::GetMetadata() const
 	{
-		return symbolHandle.GetNode().Metadata.get();
+		return symbolHandle.GetMetadata();
 	}
 
 	SymbolDef* SymbolRef::GetDeclaration() const
 	{
-		return symbolHandle.GetNode().Metadata.get()->declaration;
+		auto metadata = GetMetadata();
+		if (metadata)
+		{
+			return metadata->declaration;
+		}
+		return nullptr;
 	}
 
 	SymbolDef* SymbolRef::GetBaseDeclaration() const

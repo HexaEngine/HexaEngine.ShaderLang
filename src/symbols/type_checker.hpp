@@ -2,6 +2,7 @@
 #define TYPE_CHECKER_HPP
 
 #include "symbol_resolver.hpp"
+#include "expression_checker.hpp"
 
 namespace HXSL
 {
@@ -14,6 +15,7 @@ namespace HXSL
 	public:
 		TypeChecker(Analyzer& analyzer, SymbolResolver& resolver) : analyzer(analyzer), resolver(resolver)
 		{
+			ExpressionCheckerRegistry::EnsureCreated();
 		}
 
 		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override;
@@ -27,6 +29,10 @@ namespace HXSL
 		bool UnaryOperatorCheck(UnaryExpression* binary, const Expression* operand, SymbolDef*& result);
 
 		bool CastOperatorCheck(CastExpression* unary, const Expression* typeExpr, const Expression* operand, SymbolDef*& result, bool explicitCast);
+
+		bool AreTypesCompatible(SymbolDef* a, SymbolDef* b);
+
+		bool IsBooleanType(SymbolDef* a);
 
 		void TypeCheckExpression(Expression* node);
 

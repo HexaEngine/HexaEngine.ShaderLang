@@ -64,13 +64,10 @@ namespace HXSL
 			else if (stream.TryGetDelimiter('['))
 			{
 				auto indexerAccessExpression = std::make_unique<IndexerAccessExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)));
-				do
-				{
-					std::unique_ptr<Expression> indexExpression;
-					IF_ERR_RET_FALSE(ParseExpression(parser, stream, indexerAccessExpression.get(), indexExpression));
-					IF_ERR_RET_FALSE(stream.ExpectDelimiter(']'));
-					indexerAccessExpression->AddIndex(std::move(indexExpression));
-				} while (stream.TryGetDelimiter('['));
+				std::unique_ptr<Expression> indexExpression;
+				IF_ERR_RET_FALSE(ParseExpression(parser, stream, indexerAccessExpression.get(), indexExpression));
+				IF_ERR_RET_FALSE(stream.ExpectDelimiter(']'));
+				indexerAccessExpression->SetIndexExpression(std::move(indexExpression));
 				indexerAccessExpression->SetSpan(stream.MakeFromLast(start));
 
 				if (stream.TryGetOperator(Operator_MemberAccess))
@@ -338,5 +335,34 @@ namespace HXSL
 		type = symbol.make();
 
 		return true;
+	}
+
+	bool Parser::TryParseArraySizes(std::vector<size_t>& arraySizes)
+	{
+		if (stream.Current().isDelimiterOf('['))
+		{
+			ParseArraySizes(arraySizes);
+			return true;
+		}
+		return false;
+	}
+
+	void Parser::ParseArraySizes(std::vector<size_t>& arraySizes)
+	{
+		while (stream.TryGetDelimiter('['))
+		{
+			Number num;
+			stream.ExpectNumeric(num, "Expected a number in a array definition.");
+			if (!num.IsIntegral())
+			{
+				stream.LogError("Array size must be an integral number.");
+			}
+			if (num.IsSigned() && num.IsNegative())
+			{
+				stream.LogError("Array size cannot be negative.");
+			}
+			arraySizes.push_back(num.ToSizeT());
+			stream.ExpectDelimiter(']', "Expected an ']' after number.");
+		}
 	}
 }

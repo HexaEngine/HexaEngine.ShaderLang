@@ -129,7 +129,6 @@ namespace HXSL
 	DEFINE_POOL_KEY(NodeType_CaseStatement, CaseStatement);
 	DEFINE_POOL_KEY(NodeType_DefaultCaseStatement, DefaultCaseStatement);
 	DEFINE_POOL_KEY(NodeType_SwizzleDefinition, SwizzleDefinition);
-	DEFINE_POOL_KEY(NodeType_Expression, Expression);
 	DEFINE_POOL_KEY(NodeType_BinaryExpression, BinaryExpression);
 	DEFINE_POOL_KEY(NodeType_EmptyExpression, EmptyExpression);
 	DEFINE_POOL_KEY(NodeType_LiteralExpression, LiteralExpression);

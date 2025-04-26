@@ -481,10 +481,6 @@ namespace HXSL
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
-
-	class Array : public Type
-	{
-	};
 }
 
 #endif

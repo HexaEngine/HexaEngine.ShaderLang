@@ -116,7 +116,7 @@ namespace HXSL
 			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Initializer, initializer)
 	};
 
-	class AssignmentStatement : public Statement, IHasExpressions
+	class AssignmentStatement : public Statement, public IHasExpressions
 	{
 	private:
 		std::unique_ptr<Expression> target;
@@ -394,6 +394,13 @@ namespace HXSL
 			: Statement(span, parent, NodeType_ForStatement),
 			ASTNode(span, parent, NodeType_ForStatement)
 		{
+		}
+
+		std::string DebugName() const override
+		{
+			std::ostringstream oss;
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Header: " + init->GetSpan().merge(condition->GetSpan()).merge(iteration->GetSpan()).toString();
+			return oss.str();
 		}
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<Statement>, Init, init)

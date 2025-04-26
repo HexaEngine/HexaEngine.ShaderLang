@@ -251,6 +251,7 @@ namespace HXSL
 			return false;
 		}
 
+		std::vector<size_t> arraySizes;
 		TextSpan fieldSemantic;
 		if (stream.TryGetDelimiter('('))
 		{
@@ -262,6 +263,13 @@ namespace HXSL
 			stream.ExpectDelimiter(';', "Expected an semicolon after field declaration.");
 			ParseField(startingToken, name, std::move(symbol.make()), fieldSemantic, parser, stream, compilation);
 			return true;
+		}
+		else if (parser.TryParseArraySizes(arraySizes))
+		{
+			auto hSymbol = symbol.make(SymbolRefType_ArrayType);
+			hSymbol->SetArrayDims(std::move(arraySizes));
+			stream.ExpectDelimiter(';', "Expected an semicolon after field declaration.");
+			ParseField(startingToken, name, std::move(hSymbol), {}, parser, stream, compilation);
 		}
 		else
 		{

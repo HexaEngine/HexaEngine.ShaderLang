@@ -73,13 +73,17 @@ namespace HXSL
 
 		WarmupCache();
 
-		SymbolResolver resolver(*this, references, outputAssembly.get(), swizzleManager.get());
+		SymbolResolver resolver(*this, references, outputAssembly.get(), arrayManager.get(), swizzleManager.get());
 		resolver.Traverse(compilation);
+
+		compilation->LogFormatted(LogLevel_Verbose, "Symbol resolve initial phase done! %d errors.", compilation->GetErrorCount());
 
 		collector.LateTraverse();
 
 		TypeChecker checker(*this, resolver);
 		checker.Traverse(compilation);
+
+		compilation->LogFormatted(LogLevel_Verbose, "Type checks done! %d errors.", compilation->GetErrorCount());
 
 		AnalyzerVisitor visitor(*this);
 		visitor.Traverse(compilation);

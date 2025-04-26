@@ -138,7 +138,8 @@ namespace HXSL
 
 		if (kind != PrimitiveKind_Void)
 		{
-			builder.WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide }, nameStr);
+			builder.WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide,
+				Operator_Equal, Operator_NotEqual, Operator_GreaterThan, Operator_LessThan, Operator_GreaterThanOrEqual, Operator_LessThanOrEqual }, nameStr);
 			builder.WithUnaryOperators({ Operator_LogicalNot, Operator_Increment, Operator_Decrement }, nameStr);
 		}
 

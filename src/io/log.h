@@ -13,6 +13,7 @@ namespace HXSL
 {
 	enum LogLevel
 	{
+		LogLevel_Verbose,
 		LogLevel_Info,
 		LogLevel_Warn,
 		LogLevel_Error,
@@ -23,6 +24,8 @@ namespace HXSL
 	{
 		switch (level)
 		{
+		case LogLevel_Verbose:
+			return "Verbose";
 		case LogLevel_Info:
 			return "Info";
 		case LogLevel_Warn:
@@ -70,6 +73,8 @@ namespace HXSL
 		bool HasCriticalErrors() const noexcept { return hasCriticalErrors; }
 
 		bool HasErrors() const noexcept { return errorCount > 0 || HasCriticalErrors(); }
+
+		int GetErrorCount()  const noexcept { return errorCount; };
 
 		void Log(LogLevel level, const std::string& message)
 		{

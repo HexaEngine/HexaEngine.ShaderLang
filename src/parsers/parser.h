@@ -464,6 +464,9 @@ namespace HXSL
 		std::tuple<ParameterFlags, InterpolationModifier> ParseParameterFlags();
 		bool TryParseSymbol(const SymbolRefType& type, LazySymbol& symbol);
 		bool ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type);
+
+		bool TryParseArraySizes(std::vector<size_t>& arraySizes);
+		void ParseArraySizes(std::vector<size_t>& arraySizes);
 	private:
 		friend class ParserHelper;
 		bool TryParseSymbolInternal(const SymbolRefType& type, TextSpan& span);

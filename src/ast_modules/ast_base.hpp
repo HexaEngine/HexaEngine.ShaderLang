@@ -21,6 +21,7 @@ namespace HXSL
 	class Struct;
 	class Class;
 	class Field;
+	class Array;
 	class Primitive;
 	class Expression;
 	class Statement;
@@ -51,7 +52,7 @@ namespace HXSL
 		NodeType_Primitive,
 		NodeType_Struct,
 		NodeType_Class, // Needs parsing logic
-		NodeType_Array, // Not implemented yet. (but array accessor is.)
+		NodeType_Array,
 		NodeType_Field,
 		NodeType_IntrinsicFunction, // Placeholder (Will be added in the future.)
 		NodeType_FunctionOverload,
@@ -77,24 +78,26 @@ namespace HXSL
 		NodeType_CaseStatement,
 		NodeType_DefaultCaseStatement,
 		NodeType_SwizzleDefinition,
-		NodeType_Expression,
-		NodeType_BinaryExpression, // type-check: yes
 		NodeType_EmptyExpression,
+		NodeType_ExpressionFirst = NodeType_EmptyExpression,
+		NodeType_BinaryExpression, // type-check: yes
 		NodeType_LiteralExpression, // type-check: yes
 		NodeType_MemberReferenceExpression, // type-check: yes
 		NodeType_FunctionCallExpression, // type-check: yes
 		NodeType_FunctionCallParameter, // type-check: yes
 		NodeType_MemberAccessExpression, // type-check: yes
 		NodeType_ComplexMemberAccessExpression, // type-check: yes
-		NodeType_IndexerAccessExpression,
-		NodeType_CastExpression,
-		NodeType_TernaryExpression,
+		NodeType_IndexerAccessExpression, // type-check: yes
+		NodeType_CastExpression, // type-check: yes
+		NodeType_TernaryExpression, // type-check: yes
 		NodeType_UnaryExpression, // type-check: yes
-		NodeType_PrefixExpression,
-		NodeType_PostfixExpression,
+		NodeType_PrefixExpression, // type-check: yes
+		NodeType_PostfixExpression, // type-check: yes
 		NodeType_AssignmentExpression,
 		NodeType_CompoundAssignmentExpression,
 		NodeType_InitializationExpression,
+		NodeType_ExpressionLast = NodeType_InitializationExpression,
+		NodeType_ExpressionCount = NodeType_ExpressionLast - NodeType_ExpressionFirst,
 		NodeType_Count,
 	};
 
@@ -113,7 +116,6 @@ namespace HXSL
 	static bool IsExpressionType(NodeType nodeType)
 	{
 		switch (nodeType) {
-		case NodeType_Expression:
 		case NodeType_BinaryExpression:
 		case NodeType_EmptyExpression:
 		case NodeType_LiteralExpression:
@@ -174,6 +176,7 @@ namespace HXSL
 		case NodeType_Primitive: return "NodeType_Primitive";
 		case NodeType_Struct: return "NodeType_Struct";
 		case NodeType_Class: return "NodeType_Class";
+		case NodeType_Array: return "NodeType_Array";
 		case NodeType_Field: return "NodeType_Field";
 		case NodeType_IntrinsicFunction: return "NodeType_IntrinsicFunction";
 		case NodeType_FunctionOverload: return "NodeType_Function";
@@ -181,11 +184,10 @@ namespace HXSL
 		case NodeType_Constructor: return "NodeType_Constructor";
 		case NodeType_Parameter: return "NodeType_Parameter";
 		case NodeType_AttributeDeclaration: return "NodeType_AttributeDeclaration";
-		case NodeType_Expression: return "NodeType_Expression";
 		case NodeType_BinaryExpression: return "NodeType_BinaryExpression";
 		case NodeType_EmptyExpression: return "NodeType_EmptyExpression";
 		case NodeType_LiteralExpression: return "NodeType_ConstantExpression";
-		case NodeType_MemberReferenceExpression: return "NodeType_SymbolRefExpression";
+		case NodeType_MemberReferenceExpression: return "NodeType_MemberReferenceExpression";
 		case NodeType_FunctionCallExpression: return "NodeType_FunctionCallExpression";
 		case NodeType_FunctionCallParameter: return "NodeType_FunctionCallParameter";
 		case NodeType_MemberAccessExpression: return "NodeType_MemberAccessExpression";
@@ -241,7 +243,7 @@ namespace HXSL
 
 		bool MustHaveParent() const
 		{
-			return type != NodeType_Compilation && type != NodeType_Primitive && type != NodeType_IntrinsicFunction && type != NodeType_AttributeDeclaration && type != NodeType_SwizzleDefinition && !isExtern;
+			return type != NodeType_Compilation && type != NodeType_Primitive && type != NodeType_IntrinsicFunction && type != NodeType_AttributeDeclaration && type != NodeType_SwizzleDefinition && type != NodeType_Array && !isExtern;
 		}
 
 	protected:

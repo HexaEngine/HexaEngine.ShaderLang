@@ -20,9 +20,16 @@ if (!expr) { \
 		const AssemblyCollection& references;
 		std::unique_ptr<Assembly> outputAssembly;
 		std::unique_ptr<SwizzleManager> swizzleManager;
+		std::unique_ptr<ArrayManager> arrayManager;
 
 	public:
-		Analyzer(Compilation* compilation, const AssemblyCollection& references) : compilation(compilation), references(references), outputAssembly(Assembly::Create("")), swizzleManager(std::make_unique<SwizzleManager>()), primitives(PrimitiveManager::GetInstance())
+		Analyzer(Compilation* compilation, const AssemblyCollection& references) :
+			compilation(compilation),
+			references(references),
+			outputAssembly(Assembly::Create("")),
+			swizzleManager(std::make_unique<SwizzleManager>()),
+			arrayManager(std::make_unique<ArrayManager>()),
+			primitives(PrimitiveManager::GetInstance())
 		{
 		}
 

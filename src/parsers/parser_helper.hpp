@@ -22,6 +22,8 @@ namespace HXSL
 		static bool TryParseInitializationExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<InitializationExpression>& expressionOut);
 
 		static bool MakeConcreteSymbolRef(Expression* expression, SymbolRefType type, std::unique_ptr<SymbolRef>& symbolOut);
+
+		static void ParseArraySizes(TokenStream& stream, std::vector<size_t>& arraySize);
 	};
 }
 

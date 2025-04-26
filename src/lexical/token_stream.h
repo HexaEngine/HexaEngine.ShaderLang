@@ -409,6 +409,27 @@ namespace HXSL
 			return ExpectDelimiter(delimiter, token, message, std::forward<Args>(args)...);
 		}
 
+		template <typename... Args>
+		bool ExpectNumeric(Number& numberOut, Token& token, const std::string& message, Args&&... args)
+		{
+			auto result = Expect(TokenType_Numeric, token, false);
+			if (!result)
+			{
+				streamState.state.LogErrorFormatted(message, std::forward<Args>(args)...);
+				return false;
+			}
+			numberOut = token.Numeric;
+			TryAdvance();
+			return result;
+		}
+
+		template <typename... Args>
+		bool ExpectNumeric(Number& numberOut, const std::string& message, Args&&... args)
+		{
+			Token token;
+			return ExpectNumeric(numberOut, token, message, std::forward<Args>(args)...);
+		}
+
 		bool ExpectNoDelimiters(const std::unordered_set<char>& delimiters)
 		{
 			Token current = Current();

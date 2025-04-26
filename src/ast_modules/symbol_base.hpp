@@ -17,6 +17,7 @@ namespace HXSL
 		SymbolType_Namespace,
 		SymbolType_Struct,
 		SymbolType_Class,
+		SymbolType_Array,
 		SymbolType_Enum,
 		SymbolType_Attribute,
 		SymbolType_Primitive,
@@ -172,6 +173,7 @@ namespace HXSL
 		SymbolRefType_Attribute,
 		SymbolRefType_Member,
 		SymbolRefType_Type,
+		SymbolRefType_ArrayType,
 		SymbolRefType_Any,
 	};
 
@@ -214,6 +216,21 @@ namespace HXSL
 
 		void OverwriteType(const SymbolRefType& value) noexcept { type = value; }
 
+		std::string MakeArrayTypeName(SymbolDef* elementType = nullptr)
+		{
+			elementType = elementType ? elementType : GetBaseDeclaration();
+			std::ostringstream oss;
+			oss << elementType->GetFullyQualifiedName();
+			for (auto& dim : arrayDims)
+			{
+				oss << "[";
+				oss << arrayDims[dim];
+				oss << "]";
+			}
+
+			return oss.str();
+		}
+
 		const TextSpan& GetName() const noexcept
 		{
 			return span;
@@ -221,7 +238,11 @@ namespace HXSL
 
 		bool IsArray() const noexcept { return !arrayDims.empty(); }
 
+		void SetArrayDims(std::vector<size_t> dims) noexcept { arrayDims = std::move(dims); if (type == SymbolRefType_Type) type = SymbolRefType_ArrayType; }
+
 		const std::vector<size_t>& GetArrayDims() const noexcept { return arrayDims; }
+
+		size_t ArrayDimCount() const noexcept { return arrayDims.size(); }
 
 		bool IsResolved() const noexcept { return !symbolHandle.invalid(); }
 
@@ -250,6 +271,20 @@ namespace HXSL
 		void SetDeferred(bool value) noexcept { isDeferred = value; }
 
 		const bool& IsDeferred() const noexcept { return isDeferred; }
+
+		std::unique_ptr<SymbolRef> Clone() const
+		{
+			auto cloned = std::make_unique<SymbolRef>();
+			if (fullyQualifiedName)
+				cloned->fullyQualifiedName = std::make_unique<std::string>(*fullyQualifiedName);
+			cloned->span = span;
+			cloned->type = type;
+			cloned->symbolHandle = symbolHandle;
+			cloned->arrayDims = arrayDims;
+			cloned->isDeferred = isDeferred;
+			cloned->notFound = notFound;
+			return cloned;
+		}
 	};
 
 	class Type : public SymbolDef

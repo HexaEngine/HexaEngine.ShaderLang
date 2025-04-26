@@ -5,6 +5,7 @@
 #include "pratt_parser.hpp"
 
 #include <memory>
+#include <optional>
 namespace HXSL
 {
 	bool MiscKeywordStatementParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
@@ -60,14 +61,14 @@ namespace HXSL
 			return false;
 		}
 
-		TakeHandle<AttributeDeclaration>* attribute;
+		TakeHandle<AttributeDeclaration>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, "");
 
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter('('));
 
 		auto forStatement = std::make_unique<ForStatement>(TextSpan(), parser.parentNode());
 
-		if (attribute->HasResource())
+		if (attribute && attribute->HasResource())
 		{
 			forStatement->AddAttribute(std::move(attribute->Take()));
 		}
@@ -356,6 +357,12 @@ namespace HXSL
 
 		TextSpan identifer;
 		stream.ExpectIdentifier(identifer);
+
+		std::vector<size_t> arraySizes;
+		if (parser.TryParseArraySizes(arraySizes))
+		{
+			symbol->SetArrayDims(arraySizes);
+		}
 
 		auto token = stream.Current();
 		if (!token.isOperatorOf(Operator_Assign) && !token.isDelimiterOf(';'))

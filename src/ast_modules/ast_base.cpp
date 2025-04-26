@@ -2,6 +2,7 @@
 #include "declarations.hpp"
 #include "statements.hpp"
 #include "primitive.hpp"
+#include "array.hpp"
 #include "compilation.hpp"
 
 namespace HXSL

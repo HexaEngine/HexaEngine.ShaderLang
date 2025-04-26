@@ -1,5 +1,6 @@
 #include "type_checker.hpp"
 #include "symbol_resolver.hpp"
+#include "expression_checker.hpp"
 
 namespace HXSL
 {
@@ -97,9 +98,13 @@ namespace HXSL
 		}
 
 		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
-		if (!operatorDecl || !found)
+		if (!found || !operatorDecl)
 		{
-			analyzer.LogError("No matching operator overload for '%s' found.", binary->GetSpan(), signature.c_str());
+			analyzer.LogError("Cannot apply operator '%s', no operation defined between types '%s' and '%s'.",
+				binary->GetSpan(),
+				ToString(op).c_str(),
+				leftType->GetName().toString().c_str(),
+				rightType->GetName().toString().c_str());
 			return false;
 		}
 
@@ -132,7 +137,10 @@ namespace HXSL
 		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
 		if (!operatorDecl || !found)
 		{
-			analyzer.LogError("No matching operator overload for '%s' found.", unary->GetSpan(), signature.c_str());
+			analyzer.LogError("Cannot apply operator '%s', no operation defined for type '%s'.",
+				unary->GetSpan(),
+				ToString(op).c_str(),
+				leftType->GetName().toString().c_str());
 			return false;
 		}
 
@@ -158,7 +166,6 @@ namespace HXSL
 		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
 		if (!operatorDecl || !found)
 		{
-			analyzer.LogError("No matching operator overload for '%s' found.", cast->GetSpan(), signature.c_str());
 			return false;
 		}
 
@@ -166,6 +173,16 @@ namespace HXSL
 
 		HXSL_ASSERT(result, "Operator return type declaration was nullptr, this should never happen.");
 		return true;
+	}
+
+	bool TypeChecker::AreTypesCompatible(SymbolDef* a, SymbolDef* b)
+	{
+		return a->IsEquivalentTo(b);
+	}
+
+	bool TypeChecker::IsBooleanType(SymbolDef* a)
+	{
+		return AreTypesCompatible(a, resolver.ResolvePrimitiveSymbol("bool"));
 	}
 
 	void TypeChecker::TypeCheckExpression(Expression* node)
@@ -179,242 +196,8 @@ namespace HXSL
 			stack.pop();
 
 			auto& type = current->GetType();
-			switch (type)
-			{
-			case NodeType_BinaryExpression:
-			{
-				auto expression = dynamic_cast<BinaryExpression*>(current);
-
-				auto left = expression->GetLeft().get();
-				auto right = expression->GetRight().get();
-
-				if (expression->GetLazyEvalState())
-				{
-					auto leftType = left->GetInferredType();
-					auto rightType = right->GetInferredType();
-
-					if (leftType == nullptr || rightType == nullptr)
-					{
-						break;
-					}
-
-					SymbolDef* result;
-					if (!BinaryOperatorCheck(expression, left, right, result))
-					{
-						break;
-					}
-
-					expression->SetInferredType(result);
-				}
-				else
-				{
-					expression->IncrementLazyEvalState();
-					stack.push(expression);
-					stack.push(right);
-					stack.push(left);
-				}
-			}
-			break;
-			case NodeType_UnaryExpression:
-			{
-				auto expression = dynamic_cast<UnaryExpression*>(current);
-
-				auto operand = expression->GetOperand().get();
-
-				if (expression->GetLazyEvalState())
-				{
-					auto operandType = operand->GetInferredType();
-
-					if (operandType == nullptr)
-					{
-						break;
-					}
-
-					SymbolDef* result;
-					if (!UnaryOperatorCheck(expression, operand, result))
-					{
-						break;
-					}
-
-					expression->SetInferredType(result);
-				}
-				else
-				{
-					expression->IncrementLazyEvalState();
-					stack.push(expression);
-					stack.push(operand);
-				}
-			}
-			break;
-			case NodeType_CastExpression:
-			{
-				auto expression = dynamic_cast<CastExpression*>(current);
-
-				auto typeExpr = expression->GetTypeExpression().get();
-				auto operand = expression->GetOperand().get();
-				if (expression->GetLazyEvalState())
-				{
-					auto targetType = typeExpr->GetInferredType();
-					auto operandType = operand->GetInferredType();
-
-					if (targetType == nullptr || operandType == nullptr)
-					{
-						break;
-					}
-				}
-				else
-				{
-					expression->IncrementLazyEvalState();
-					stack.push(expression);
-					stack.push(typeExpr);
-					stack.push(operand);
-				}
-			}
-			break;
-			case NodeType_ComplexMemberAccessExpression:
-			{
-				auto expression = dynamic_cast<ComplexMemberAccessExpression*>(current);
-
-				auto left = expression->GetLeft().get();
-				auto right = expression->GetRight().get();
-
-				auto& state = expression->GetLazyEvalState();
-				if (state == 1)
-				{
-					auto leftType = left->GetInferredType();
-
-					if (!leftType)
-					{
-						break;
-					}
-
-					if (right->GetType() != NodeType_ComplexMemberAccessExpression)
-					{
-						expression->GetSymbolRef()->SetDeclaration(leftType);
-						resolver.ResolveComplexMember(expression);
-					}
-
-					expression->IncrementLazyEvalState();
-					stack.push(expression);
-					stack.push(right);
-				}
-				else if (state == 2)
-				{
-					expression->SetInferredType(right->GetInferredType());
-					expression->SetTraits(right->GetTraits());
-				}
-				else
-				{
-					expression->IncrementLazyEvalState();
-					stack.push(expression);
-					stack.push(left);
-				}
-			}
-			break;
-			case NodeType_MemberAccessExpression:
-			{
-				auto expression = dynamic_cast<MemberAccessExpression*>(current);
-
-				if (expression->GetLazyEvalState())
-				{
-					auto& nextExpr = expression->GetExpression();
-					expression->SetInferredType(nextExpr->GetInferredType());
-					expression->SetTraits(nextExpr->GetTraits());
-				}
-				else
-				{
-					expression->IncrementLazyEvalState();
-					stack.push(expression);
-					stack.push(expression->GetExpression().get());
-				}
-			}
-			break;
-			case NodeType_MemberReferenceExpression:
-			{
-				auto expression = dynamic_cast<MemberReferenceExpression*>(current);
-				auto decl = expression->GetSymbolRef()->GetBaseDeclaration();
-				expression->SetInferredType(decl);
-			}
-			break;
-			case NodeType_FunctionCallExpression:
-			{
-				auto expression = dynamic_cast<FunctionCallExpression*>(current);
-
-				if (expression->GetLazyEvalState())
-				{
-					if (!expression->CanBuildOverloadSignature())
-					{
-						break;
-					}
-
-					auto& ref = expression->GetSymbolRef();
-					auto signature = expression->BuildOverloadSignature();
-
-					bool success = false;
-					if (auto expr = expression->FindAncestor<MemberAccessExpression>(NodeType_MemberAccessExpression, 1))
-					{
-						auto memberRef = expr->GetSymbolRef()->GetBaseDeclaration();
-						if (memberRef)
-						{
-							success = resolver.ResolveSymbol(ref.get(), TextSpan(signature), memberRef->GetTable(), memberRef->GetSymbolHandle());
-						}
-					}
-					else
-					{
-						success = resolver.ResolveSymbol(ref.get(), TextSpan(signature));
-					}
-
-					if (success)
-					{
-						auto function = dynamic_cast<FunctionOverload*>(ref->GetDeclaration());
-						HXSL_ASSERT(function, "Declaration in function call expression was not a function, this should never happen.");
-						expression->SetInferredType(function->GetReturnSymbolRef().get()->GetDeclaration());
-					}
-					else
-					{
-						analyzer.LogError("Couldn't find an matching overload for '%s'.", expression->GetSpan(), signature.c_str());
-					}
-				}
-				else
-				{
-					expression->IncrementLazyEvalState();
-					stack.push(expression);
-					auto& parameters = expression->GetParameters();
-					for (auto it = parameters.rbegin(); it != parameters.rend(); ++it)
-					{
-						stack.push(it->get()->GetExpression().get());
-					}
-				}
-			}
-			break;
-			case NodeType_LiteralExpression:
-			{
-				auto expression = dynamic_cast<LiteralExpression*>(current);
-				auto& token = expression->GetLiteral();
-
-				SymbolDef* def = nullptr;
-				if (token.isLiteral())
-				{
-					def = resolver.ResolvePrimitiveSymbol("string");
-				}
-				else if (token.isNumeric())
-				{
-					auto& numeric = token.Numeric;
-					def = GetNumericType(numeric.Kind);
-				}
-				else
-				{
-					HXSL_ASSERT(false, "Invalid token as constant expression, this should never happen.");
-				}
-
-				expression->SetInferredType(def);
-				expression->SetTraits(ExpressionTraits(true));
-			}
-			break;
-			default:
-				HXSL_ASSERT(false, "Missing expression type checking case.");
-				break;
-			}
+			auto handler = ExpressionCheckerRegistry::GetHandler(type);
+			handler->HandleExpression(analyzer, *this, resolver, current, stack);
 		}
 	}
 

@@ -39,6 +39,7 @@ file(GLOB SOURCES
     src/symbols/symbol_resolver.cpp
     src/symbols/symbol_collector.cpp
     src/symbols/type_checker.cpp
+    src/symbols/expression_checker.cpp
     src/analyzers/analyzer.cpp
     src/analyzers/sub_analyzer_registry.cpp
     src/analyzers/declaration_analyzer.cpp
@@ -55,6 +56,7 @@ file(GLOB SOURCES
     src/ast_modules/declarations.cpp
     src/ast_modules/statements.cpp
     src/ast_modules/namespace.cpp
+    src/ast_modules/array_manager.cpp
     src/ast_modules/primitive_manager.cpp
     src/ast_modules/swizzle_manager.cpp
 )

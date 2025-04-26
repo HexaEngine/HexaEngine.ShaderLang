@@ -89,11 +89,11 @@ namespace HXSL
 				auto ternary = std::make_unique<TernaryExpression>(TextSpan(), parent, std::move(expression), nullptr, nullptr);
 				std::unique_ptr<Expression> right;
 				IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, ternary.get(), right, hadBrackets));
-				ternary->SetRight(std::move(right));
+				ternary->SetTrueBranch(std::move(right));
 				stream.ExpectOperator(Operator_TernaryElse);
 				std::unique_ptr<Expression> left;
 				IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, ternary.get(), left, hadBrackets));
-				ternary->SetRight(std::move(left));
+				ternary->SetFalseBranch(std::move(left));
 				ternary->SetSpan(stream.MakeFromLast(start));
 				expression = std::move(ternary);
 			}

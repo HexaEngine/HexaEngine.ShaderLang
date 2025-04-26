@@ -7,6 +7,7 @@
 #include "ast_modules/statements.hpp"
 #include "ast_modules/expressions.hpp"
 
+#include "ast_modules/array.hpp"
 #include "ast_modules/primitive.hpp"
 #include "ast_modules/swizzle.hpp"
 #include "ast_modules/namespace.hpp"
