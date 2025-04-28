@@ -63,7 +63,7 @@ namespace HXSL
 
 	bool TypeChecker::ImplicitBinaryOperatorCheck(SymbolRef* opRef, SymbolDef* a, SymbolDef* b, Operator op, OperatorOverload*& castMatchOut)
 	{
-		auto getter = dynamic_cast<IHasOperators*>(a);
+		auto getter = dynamic_cast<IHasOperatorOverloads*>(a);
 		if (!getter)
 		{
 			HXSL_ASSERT(false, "IHasOperators was null, this should never happen.");

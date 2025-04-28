@@ -88,6 +88,19 @@ namespace HXSL
 		void ResetLazyEvalState() noexcept { lazyEvalState = 0; }
 	};
 
+	class OperatorExpression : public Expression
+	{
+	protected:
+		OperatorExpression(TextSpan span, ASTNode* parent, NodeType type)
+			: Expression(span, parent, type)
+		{
+		}
+
+	public:
+		virtual const Operator& GetOperator() const noexcept = 0;
+		virtual ~OperatorExpression() = default;
+	};
+
 	class ChainExpression : public Expression, public IHasSymbolRef
 	{
 	protected:
@@ -114,7 +127,7 @@ namespace HXSL
 		}
 	};
 
-	class UnaryExpression : public Expression
+	class UnaryExpression : public OperatorExpression
 	{
 	private:
 		std::unique_ptr<SymbolRef> operatorSymbol;
@@ -122,7 +135,7 @@ namespace HXSL
 		std::unique_ptr<Expression> operand;
 	protected:
 		UnaryExpression(TextSpan span, ASTNode* parent, NodeType type, Operator op, std::unique_ptr<Expression> operand)
-			: Expression(span, parent, type),
+			: OperatorExpression(span, parent, type),
 			operatorSymbol(std::make_unique<SymbolRef>(TextSpan(), SymbolRefType_OperatorOverload, false)),
 			_operator(op),
 			operand(std::move(operand))
@@ -153,9 +166,17 @@ namespace HXSL
 			return operatorSymbol;
 		}
 
-		DEFINE_GETTER_SETTER(Operator, Operator, _operator)
+		const Operator& GetOperator() const noexcept override
+		{
+			return _operator;
+		}
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Operand, operand)
+		void SetOperator(const Operator& value) noexcept
+		{
+			_operator = value;
+		}
+
+		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Operand, operand)
 	};
 
 	class PrefixExpression : public UnaryExpression
@@ -176,7 +197,7 @@ namespace HXSL
 		}
 	};
 
-	class BinaryExpression : public Expression
+	class BinaryExpression : public OperatorExpression
 	{
 	private:
 		Operator _operator;
@@ -185,7 +206,7 @@ namespace HXSL
 		std::unique_ptr<Expression> right;
 	public:
 		BinaryExpression(TextSpan span, ASTNode* parent, Operator op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
-			: Expression(span, parent, NodeType_BinaryExpression),
+			: OperatorExpression(span, parent, NodeType_BinaryExpression),
 			_operator(op),
 			left(std::move(left)),
 			right(std::move(right)),
@@ -230,9 +251,17 @@ namespace HXSL
 			return operatorSymbol;
 		}
 
-		DEFINE_GETTER_SETTER(Operator, Operator, _operator)
+		const Operator& GetOperator() const noexcept override
+		{
+			return _operator;
+		}
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Left, left)
+		void SetOperator(const Operator& value) noexcept
+		{
+			_operator = value;
+		}
+
+		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Left, left)
 
 			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Right, right)
 	};
@@ -295,7 +324,7 @@ namespace HXSL
 			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Operand, operand)
 	};
 
-	class TernaryExpression : public Expression
+	class TernaryExpression : public OperatorExpression
 	{
 	private:
 		std::unique_ptr<Expression> condition;
@@ -303,7 +332,7 @@ namespace HXSL
 		std::unique_ptr<Expression> falseBranch;
 	public:
 		TernaryExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> trueBranch, std::unique_ptr<Expression> falseBranch)
-			: Expression(span, parent, NodeType_TernaryExpression),
+			: OperatorExpression(span, parent, NodeType_TernaryExpression),
 			condition(std::move(condition)),
 			trueBranch(std::move(trueBranch)),
 			falseBranch(std::move(falseBranch))
@@ -311,6 +340,11 @@ namespace HXSL
 			if (this->condition) this->condition->SetParent(this);
 			if (this->trueBranch) this->trueBranch->SetParent(this);
 			if (this->falseBranch) this->falseBranch->SetParent(this);
+		}
+
+		const Operator& GetOperator() const noexcept override
+		{
+			return Operator_Ternary;
 		}
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Condition, condition)
@@ -502,14 +536,17 @@ namespace HXSL
 			DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
 	};
 
-	class AssignmentExpression : public Expression {
+	class AssignmentExpression : public OperatorExpression
+	{
 	private:
+		Operator _operator;
 		std::unique_ptr<Expression> target;
 		std::unique_ptr<Expression> expression;
 
-	protected:
-		AssignmentExpression(TextSpan span, ASTNode* parent, NodeType type, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: Expression(span, parent, type),
+	public:
+		AssignmentExpression(TextSpan span, ASTNode* parent, Operator _operator, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+			: OperatorExpression(span, parent, NodeType_AssignmentExpression),
+			_operator(_operator),
 			target(std::move(target)),
 			expression(std::move(expression))
 		{
@@ -517,14 +554,14 @@ namespace HXSL
 			if (this->expression) this->expression->SetParent(this);
 		}
 
-	public:
-		AssignmentExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: Expression(span, parent, NodeType_AssignmentExpression),
-			target(std::move(target)),
-			expression(std::move(expression))
+		const Operator& GetOperator() const noexcept override
 		{
-			if (this->target) this->target->SetParent(this);
-			if (this->expression) this->expression->SetParent(this);
+			return _operator;
+		}
+
+		void SetOperator(const Operator& value) noexcept
+		{
+			_operator = value;
 		}
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Target, target)

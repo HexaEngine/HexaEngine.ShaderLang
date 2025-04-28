@@ -9,10 +9,19 @@ namespace HXSL
 {
 	void ASTNode::AssignId()
 	{
-		if (id != 0) return;
-		auto compilation = GetCompilation();
-		if (!compilation) return;
+		if (id != 0)
+		{
+			return;
+		}
+
+		auto compilation = GetCompilation(); // aka root.
+		if (!compilation)
+		{
+			return;
+		}
+
 		//HXSL_ASSERT(compilation != nullptr, "Cannot assign ID compilation was null.");
+
 		id = compilation->GetNextID();
 		for (auto child : children)
 		{

@@ -42,11 +42,11 @@ namespace HXSL
 		virtual ~IHasExpressions() = default;
 	};
 
-	class IHasOperators
+	class IHasOperatorOverloads
 	{
 	public:
 		virtual const std::vector<std::unique_ptr<OperatorOverload>>& GetOperators() const = 0;
-		virtual ~IHasOperators() = default;
+		virtual ~IHasOperatorOverloads() = default;
 	};
 
 	class ICloneable

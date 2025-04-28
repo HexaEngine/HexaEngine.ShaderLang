@@ -94,7 +94,7 @@ namespace HXSL
 		PrimitiveClass_Matrix = 2,
 	};
 
-	class Primitive : public Type, public IHasOperators
+	class Primitive : public Type, public IHasOperatorOverloads
 	{
 	private:
 		std::vector<std::unique_ptr<OperatorOverload>> operators;

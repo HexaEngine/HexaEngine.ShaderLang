@@ -6,7 +6,7 @@
 
 namespace HXSL
 {
-	class Container : virtual public ASTNode, public IHasOperators
+	class Container : virtual public ASTNode, public IHasOperatorOverloads
 	{
 	protected:
 		std::vector<std::unique_ptr<FunctionOverload>> functions;
