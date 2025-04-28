@@ -207,7 +207,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
 			return oss.str();
 		}
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
@@ -434,7 +434,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
 			return oss.str();
 		}
 
@@ -475,7 +475,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
 			return oss.str();
 		}
 

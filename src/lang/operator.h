@@ -264,7 +264,7 @@ namespace HXSL
 			case Operator_MultiplyAssign:
 			case Operator_DivideAssign:
 			case Operator_ModulusAssign:
-				return 0;
+				return 1;
 
 			case Operator_Ternary:
 				return 5;
@@ -376,6 +376,35 @@ namespace HXSL
 				return true;
 			default:
 				return false;
+			}
+		}
+
+		static Operator compoundToBinary(Operator op)
+		{
+			switch (op)
+			{
+			case Operator_PlusAssign:
+				return Operator_Add;
+			case Operator_MinusAssign:
+				return Operator_Subtract;
+			case Operator_MultiplyAssign:
+				return Operator_Multiply;
+			case Operator_DivideAssign:
+				return Operator_Divide;
+			case Operator_ModulusAssign:
+				return Operator_Modulus;
+			case Operator_BitwiseShiftLeftAssign:
+				return Operator_BitwiseShiftLeft;
+			case Operator_BitwiseShiftRightAssign:
+				return Operator_BitwiseShiftRight;
+			case Operator_BitwiseAndAssign:
+				return Operator_BitwiseAnd;
+			case Operator_BitwiseOrAssign:
+				return Operator_BitwiseOr;
+			case Operator_BitwiseXorAssign:
+				return Operator_BitwiseXor;
+			default:
+				return op;
 			}
 		}
 	}

@@ -45,7 +45,6 @@ namespace HXSL
 				Register<LiteralExpressionParser>();
 				Register<MemberAccessExpressionParser>();
 				Register<SymbolExpressionParser>();
-				Register<AssignmentExpressionParser>();
 			});
 	}
 }

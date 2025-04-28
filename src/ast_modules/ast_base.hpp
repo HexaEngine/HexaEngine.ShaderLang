@@ -60,8 +60,10 @@ namespace HXSL
 		NodeType_OperatorOverload,
 		NodeType_Constructor, // Placeholder (Will be added in the future.)
 		NodeType_Parameter,
+		NodeType_SwizzleDefinition,
 		NodeType_AttributeDeclaration,
-		NodeType_BlockStatement,
+
+		NodeType_BlockStatement, // type-check: yes
 		NodeType_DeclarationStatement,
 		NodeType_AssignmentStatement,
 		NodeType_CompoundAssignmentStatement,
@@ -78,9 +80,8 @@ namespace HXSL
 		NodeType_SwitchStatement,
 		NodeType_CaseStatement,
 		NodeType_DefaultCaseStatement,
-		NodeType_SwizzleDefinition,
+
 		NodeType_EmptyExpression,
-		NodeType_ExpressionFirst = NodeType_EmptyExpression,
 		NodeType_BinaryExpression, // type-check: yes
 		NodeType_LiteralExpression, // type-check: yes
 		NodeType_MemberReferenceExpression, // type-check: yes
@@ -93,13 +94,19 @@ namespace HXSL
 		NodeType_UnaryExpression, // type-check: yes
 		NodeType_PrefixExpression, // type-check: yes
 		NodeType_PostfixExpression, // type-check: yes
-		NodeType_AssignmentExpression,
-		NodeType_CompoundAssignmentExpression,
+		NodeType_AssignmentExpression, // type-check: yes
 		NodeType_InitializationExpression,
-		NodeType_ExpressionLast = NodeType_InitializationExpression,
-		NodeType_ExpressionCount = NodeType_ExpressionLast - NodeType_ExpressionFirst,
+
 		NodeType_Count,
 	};
+
+	constexpr int NodeType_FirstStatement = NodeType_BlockStatement;
+	constexpr int NodeType_LastStatement = NodeType_DefaultCaseStatement;
+	constexpr int NodeType_StatementCount = NodeType_LastStatement - NodeType_FirstStatement;
+
+	constexpr int NodeType_FirstExpression = NodeType_EmptyExpression;
+	constexpr int NodeType_LastExpression = NodeType_InitializationExpression;
+	constexpr int NodeType_ExpressionCount = NodeType_LastExpression - NodeType_FirstExpression;
 
 	static bool IsDataType(NodeType nodeType)
 	{
@@ -130,7 +137,6 @@ namespace HXSL
 		case NodeType_PrefixExpression:
 		case NodeType_PostfixExpression:
 		case NodeType_AssignmentExpression:
-		case NodeType_CompoundAssignmentExpression:
 		case NodeType_InitializationExpression:
 			return true;
 		default:
@@ -195,7 +201,6 @@ namespace HXSL
 		case NodeType_BlockStatement: return "NodeType_BlockStatement";
 		case NodeType_DeclarationStatement: return "NodeType_DeclarationStatement";
 		case NodeType_AssignmentStatement: return "NodeType_AssignmentStatement";
-		case NodeType_CompoundAssignmentStatement: return "NodeType_CompoundAssignmentStatement";
 		case NodeType_FunctionCallStatement: return "NodeType_FunctionCallStatement";
 		case NodeType_ReturnStatement: return "NodeType_ReturnStatement";
 		case NodeType_IfStatement: return "NodeType_IfStatement";
@@ -215,7 +220,6 @@ namespace HXSL
 		case NodeType_PrefixExpression: return "NodeType_PrefixExpression";
 		case NodeType_PostfixExpression: return "NodeType_PostfixExpression";
 		case NodeType_AssignmentExpression: return "NodeType_AssignmentExpression";
-		case NodeType_CompoundAssignmentExpression: return "NodeType_CompoundAssignmentExpression";
 		case NodeType_InitializationExpression: return "NodeType_InitializationExpression";
 		default: return "Unknown NodeType";
 		}
@@ -295,7 +299,7 @@ namespace HXSL
 			return isExtern;
 		}
 
-		ASTNode* GetParent() noexcept { return parent; }
+		ASTNode* GetParent() const noexcept { return parent; }
 		void SetParent(ASTNode* newParent) noexcept
 		{
 			if (parent == newParent) return;
@@ -333,7 +337,7 @@ namespace HXSL
 			return _type == type;
 		}
 
-		ASTNode* FindAncestors(const std::unordered_set<NodeType>& types, size_t maxDepth = std::numeric_limits<size_t>::max()) const noexcept
+		ASTNode* FindAncestor(const std::unordered_set<NodeType>& types, size_t maxDepth = std::numeric_limits<size_t>::max()) const noexcept
 		{
 			ASTNode* current = this->parent;
 			size_t depth = 0;
@@ -348,6 +352,17 @@ namespace HXSL
 				++depth;
 			}
 			return nullptr;
+		}
+
+		template<typename T>
+		T* FindAncestor(const std::unordered_set<NodeType>& types, size_t maxDepth = std::numeric_limits<size_t>::max()) const noexcept
+		{
+			auto node = FindAncestor(types, maxDepth);
+			if (!node)
+			{
+				return nullptr;
+			}
+			return dynamic_cast<T*>(node);
 		}
 
 		ASTNode* FindAncestor(const NodeType& type, size_t maxDepth = std::numeric_limits<size_t>::max()) const noexcept
@@ -387,6 +402,35 @@ namespace HXSL
 
 		template <typename T>
 		T* As() { return dynamic_cast<T*>(this); };
+
+		virtual std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept
+		{
+			return {};
+		}
+
+		template <class T>
+		std::unique_ptr<T> CloneNode(const std::unique_ptr<T>& ptr, ASTNode* parent) const noexcept
+		{
+			return ptr ? std::unique_ptr<T>(static_cast<T*>(ptr->Clone(parent).release())) : nullptr;
+		}
+
+		template <typename T>
+		std::vector<std::unique_ptr<T>> CloneNodes(const std::vector<std::unique_ptr<T>>& ptr, ASTNode* parent) const noexcept
+		{
+			std::vector<std::unique_ptr<T>> result;
+			for (auto& pt : ptr)
+			{
+				result.push_back(std::unique_ptr<T>(static_cast<T*>(ptr->Clone(parent).release())));
+			}
+			return result;
+		}
+
+		template <typename T>
+		std::unique_ptr<T> CloneExtern(const std::unique_ptr<T>& ptr) const noexcept
+		{
+			return ptr ? std::unique_ptr<T>(static_cast<T*>(ptr->Clone())) : nullptr;
+		}
+
 		virtual ~ASTNode()
 		{
 			if (parent)

@@ -299,6 +299,19 @@ namespace HXSL
 		return false;
 	}
 
+	void Parser::TryRecoverStatement()
+	{
+		while (!stream.IsEndOfTokens() && !stream.HasCriticalErrors())
+		{
+			auto current = stream.Current();
+			if (current.isKeyword() || current.isDelimiterOf(';'))
+			{
+				return;
+			}
+			stream.Advance();
+		}
+	}
+
 	UsingDeclaration Parser::ParseUsingDeclaration()
 	{
 		auto nsKeywordSpan = stream.LastToken().Span;
@@ -815,7 +828,7 @@ namespace HXSL
 				}
 				firstParam = false;
 				std::unique_ptr<Expression> parameter;
-				if (!ParseExpression(*this, stream, attribute.get(), parameter))
+				if (!PrattParser::ParseExpression(*this, stream, attribute.get(), parameter))
 				{
 					return;
 				}

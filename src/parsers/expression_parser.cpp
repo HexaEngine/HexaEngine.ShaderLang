@@ -40,43 +40,4 @@ namespace HXSL
 		expressionOut = std::move(expression);
 		return true;
 	}
-
-	bool AssignmentExpressionParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
-	{
-		auto start = stream.Current();
-		std::unique_ptr<Expression> target;
-		if (!ParserHelper::TryParseMemberAccessPath(parser, stream, nullptr, target))
-		{
-			return false;
-		}
-
-		if (stream.TryGetOperator(Operator_Assign))
-		{
-			auto assignmentStatement = std::make_unique<AssignmentExpression>(TextSpan(), parser.parentNode(), std::move(target), nullptr);
-			std::unique_ptr<Expression> expression;
-			IF_ERR_RET_FALSE(ParseExpression(parser, stream, assignmentStatement.get(), expression));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
-			assignmentStatement->SetExpression(std::move(expression));
-			assignmentStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-			expressionOut = std::move(assignmentStatement);
-			return true;
-		}
-
-		auto token = stream.Current();
-		Operator op;
-		if (token.isCompoundAssignment(op))
-		{
-			stream.Advance();
-			auto assignmentStatement = std::make_unique<CompoundAssignmentExpression>(TextSpan(), parser.parentNode(), op, std::move(target), nullptr);
-			std::unique_ptr<Expression> expression;
-			IF_ERR_RET_FALSE(ParseExpression(parser, stream, assignmentStatement.get(), expression));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
-			assignmentStatement->SetExpression(std::move(expression));
-			assignmentStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-			expressionOut = std::move(assignmentStatement);
-			return true;
-		}
-
-		return false;
-	}
 }

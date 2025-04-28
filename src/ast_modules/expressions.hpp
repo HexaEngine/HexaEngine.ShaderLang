@@ -3,6 +3,7 @@
 
 #include "ast_base.hpp"
 #include "interfaces.hpp"
+#include "macros.hpp"
 
 namespace HXSL
 {
@@ -307,6 +308,7 @@ namespace HXSL
 			trueBranch(std::move(trueBranch)),
 			falseBranch(std::move(falseBranch))
 		{
+			if (this->condition) this->condition->SetParent(this);
 			if (this->trueBranch) this->trueBranch->SetParent(this);
 			if (this->falseBranch) this->falseBranch->SetParent(this);
 		}
@@ -357,7 +359,13 @@ namespace HXSL
 			return symbol;
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
+		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol);
+
+		std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept override
+		{
+			auto result = std::make_unique<MemberReferenceExpression>(span, parent, symbol->Clone());
+			return result;
+		}
 	};
 
 	class FunctionCallParameter : public ASTNode
@@ -372,7 +380,7 @@ namespace HXSL
 			if (this->expression) this->expression->SetParent(this);
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Expression, expression)
+		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Expression, expression);
 	};
 
 	class FunctionCallExpression : public ChainExpression
@@ -424,6 +432,11 @@ namespace HXSL
 			return oss.str();
 		}
 
+		void AddParameter(std::unique_ptr<FunctionCallParameter> param) noexcept
+		{
+			parameters.push_back(std::move(param));
+		}
+
 		std::unique_ptr<SymbolRef>& GetSymbolRef() override
 		{
 			return symbol;
@@ -450,7 +463,14 @@ namespace HXSL
 			return symbol;
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
+		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol);
+
+		std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept override
+		{
+			auto result = std::make_unique<MemberAccessExpression>(span, parent, symbol->Clone(), nullptr);
+			result->next = CloneNode(next, result.get());
+			return result;
+		}
 	};
 
 	class IndexerAccessExpression : public ChainExpression
@@ -458,7 +478,6 @@ namespace HXSL
 	private:
 		std::unique_ptr<SymbolRef> symbol;
 		std::unique_ptr<Expression> indexExpression;
-
 	public:
 		IndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<Expression> indexExpression)
 			: ChainExpression(span, parent, NodeType_IndexerAccessExpression),
@@ -511,20 +530,6 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Target, target)
 
 			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Expression, expression)
-	};
-
-	class CompoundAssignmentExpression : public AssignmentExpression {
-	private:
-		Operator _operator;
-
-	public:
-		CompoundAssignmentExpression(TextSpan span, ASTNode* parent, Operator op, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: AssignmentExpression(span, parent, NodeType_CompoundAssignmentExpression, std::move(target), std::move(expression)),
-			_operator(op)
-		{
-		}
-
-		DEFINE_GETTER_SETTER(Operator, Operator, _operator)
 	};
 
 	class InitializationExpression : public Expression

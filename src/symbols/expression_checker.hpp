@@ -37,9 +37,9 @@ namespace HXSL
 
 		static ExpressionCheckerBase* GetHandler(NodeType type)
 		{
-			if (type >= NodeType_ExpressionFirst && type <= NodeType_ExpressionLast)
+			if (type >= NodeType_FirstExpression && type <= NodeType_LastExpression)
 			{
-				return handlers[type - NodeType_ExpressionFirst].get();
+				return handlers[type - NodeType_FirstExpression].get();
 			}
 			return nullptr;
 		}
@@ -48,7 +48,7 @@ namespace HXSL
 		static typename std::enable_if<std::is_base_of<ExpressionCheckerBase, CheckerType>::value>::type
 			Register()
 		{
-			handlers[Type - NodeType_ExpressionFirst] = std::make_unique<CheckerType>();
+			handlers[Type - NodeType_FirstExpression] = std::make_unique<CheckerType>();
 		}
 	};
 
@@ -100,6 +100,11 @@ namespace HXSL
 	class IndexerExpressionChecker : public ExpressionChecker<IndexerAccessExpression>
 	{
 		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, IndexerAccessExpression* expression, std::stack<Expression*>& stack);
+	};
+
+	class AssignmentChecker : public ExpressionChecker<AssignmentExpression>
+	{
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, AssignmentExpression* expression, std::stack<Expression*>& stack);
 	};
 }
 

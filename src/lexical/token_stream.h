@@ -242,6 +242,16 @@ namespace HXSL
 			return TryGetTypeValue(TokenType_Operator, op);
 		}
 
+		bool TryGetUnaryOperator(Operator& op)
+		{
+			if (Current().isUnaryOperator(op))
+			{
+				TryAdvance();
+				return true;
+			}
+			return false;
+		}
+
 		bool TryGetAnyOperator(Operator& op)
 		{
 			if (Current().isOperator(op))

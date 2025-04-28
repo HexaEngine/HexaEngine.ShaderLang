@@ -307,6 +307,7 @@ namespace HXSL
 		bool IterateScope();
 		bool TryRecoverScope(bool exitScope);
 		bool TryRecoverParameterList();
+		void TryRecoverStatement();
 		UsingDeclaration ParseUsingDeclaration();
 		NamespaceDeclaration ParseNamespaceDeclaration(bool& scoped);
 		bool TryAdvance();

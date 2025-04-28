@@ -143,7 +143,6 @@ namespace HXSL
 	DEFINE_POOL_KEY(NodeType_PrefixExpression, PrefixExpression);
 	DEFINE_POOL_KEY(NodeType_PostfixExpression, PostfixExpression);
 	DEFINE_POOL_KEY(NodeType_AssignmentExpression, AssignmentExpression);
-	DEFINE_POOL_KEY(NodeType_CompoundAssignmentExpression, CompoundAssignmentExpression);
 	DEFINE_POOL_KEY(NodeType_InitializationExpression, InitializationExpression);
 
 	class PoolRegistry

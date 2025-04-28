@@ -34,6 +34,7 @@ file(GLOB SOURCES
     src/parsers/declaration_parser.cpp
     src/parsers/statement_parser.cpp
     src/parsers/expression_parser.cpp
+    src/parsers/pratt_parser.cpp
     src/parsers/sub_parser_registry.cpp
     src/symbols/symbol_handle.cpp
     src/symbols/symbol_table.cpp
@@ -41,6 +42,7 @@ file(GLOB SOURCES
     src/symbols/symbol_collector.cpp
     src/symbols/type_checker.cpp
     src/symbols/expression_checker.cpp
+    src/symbols/statement_checker.cpp
     src/analyzers/analyzer.cpp
     src/analyzers/sub_analyzer_registry.cpp
     src/analyzers/declaration_analyzer.cpp

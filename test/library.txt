@@ -8,6 +8,12 @@ struct PS_INPUT
 
     public static explicit operator float4(PS_INPUT input)
     {
+	// int a = ((i && j) || (k ? l : m)) && (n |= o) && !(p ^ q);
+	// int result = (a += b);
+	// float a = (++a.b ? (float)(c * --d) + (e || f ? g++ : h - i) : j / (k + l--)) * (m && n ? o : p.q++);
+	// int result = ((a + (b * (c - (d / (e + (f % g)))))) > ((h && i) || (j ? k : l)) && (m == n) && !(o || p)) ? q : r;
+	int result = ((a += b + (c * (d -= (e / (f + (g % h))))))) > ((i && j) || (k ? l : m)) && (n |= o) && !(p ^ q) ? r++ : --s;
+
          return input.position;
     }
 

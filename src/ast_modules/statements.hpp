@@ -90,6 +90,11 @@ namespace HXSL
 			return symbol;
 		}
 
+		SymbolDef* GetDeclaredType() const noexcept
+		{
+			return symbol->GetDeclaration();
+		}
+
 		const StorageClass& GetStorageClass() const noexcept
 		{
 			return storageClass;

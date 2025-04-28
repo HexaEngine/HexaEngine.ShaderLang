@@ -3,6 +3,7 @@
 
 #include "symbol_resolver.hpp"
 #include "expression_checker.hpp"
+#include "statement_checker.hpp"
 
 namespace HXSL
 {
@@ -16,6 +17,7 @@ namespace HXSL
 		TypeChecker(Analyzer& analyzer, SymbolResolver& resolver) : analyzer(analyzer), resolver(resolver)
 		{
 			ExpressionCheckerRegistry::EnsureCreated();
+			StatementCheckerRegistry::EnsureCreated();
 		}
 
 		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override;
@@ -34,13 +36,13 @@ namespace HXSL
 
 		bool CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, std::unique_ptr<SymbolRef>& result);
 
-		bool AreTypesCompatible(std::unique_ptr<Expression>& insertPoint, SymbolDef* a, SymbolDef* b);
+		bool AreTypesCompatible(std::unique_ptr<Expression>& insertPoint, SymbolDef* target, SymbolDef* source);
 
 		bool AreTypesCompatible(std::unique_ptr<Expression>& insertPointA, SymbolDef* a, std::unique_ptr<Expression>& insertPointB, SymbolDef* b);
 
-		bool IsBooleanType(std::unique_ptr<Expression>& insertPoint, SymbolDef* a);
+		bool IsBooleanType(std::unique_ptr<Expression>& insertPoint, SymbolDef* source);
 
-		bool IsIndexerType(std::unique_ptr<Expression>& insertPoint, SymbolDef* a);
+		bool IsIndexerType(std::unique_ptr<Expression>& insertPoint, SymbolDef* source);
 
 		void TypeCheckExpression(Expression* node);
 

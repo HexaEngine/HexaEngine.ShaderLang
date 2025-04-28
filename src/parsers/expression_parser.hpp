@@ -3,7 +3,7 @@
 
 #include "sub_parser_registry.hpp"
 #include "sub_parser.hpp"
-namespace HXSL 
+namespace HXSL
 {
 	class SymbolExpressionParser : public ExpressionParser
 	{
@@ -21,11 +21,6 @@ namespace HXSL
 	};
 
 	class MemberAccessExpressionParser : public ExpressionParser
-	{
-		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut) override;
-	};
-
-	class AssignmentExpressionParser : public ExpressionParser
 	{
 		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut) override;
 	};

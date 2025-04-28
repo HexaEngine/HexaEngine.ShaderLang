@@ -50,7 +50,7 @@ namespace HXSL
 		std::unique_ptr<std::string> Name;
 		std::unordered_map<StringSpan, size_t, StringSpanHash, StringSpanEqual> Children;
 		std::shared_ptr<SymbolMetadata> Metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
-		std::shared_ptr<size_t> handle; // pointer to own index used for propagating the correct index if moved.
+		std::shared_ptr<size_t> handle; // Pointer to own index, this is crucial to support stable indices even if the node gets moved see SymbolHandle for more info.
 		size_t Depth;
 		size_t ParentIndex;
 
@@ -118,55 +118,6 @@ namespace HXSL
 			return -1;
 		}
 
-	public:
-		SymbolTable()
-		{
-			nodes.resize(capacity);
-			std::unique_ptr<std::string> str = std::make_unique<std::string>("");
-			nodes[0] = (SymbolTableNode(std::move(str), nullptr, std::make_shared<size_t>(0), 0, 0));
-			counter.store(1);
-		}
-
-		StringPool& GetStringPool()
-		{
-			return stringPool;
-		}
-
-		void Clear();
-
-		Compilation* GetCompilation() const
-		{
-			return compilation.get();
-		}
-
-		bool RenameNode(const TextSpan& newName, const SymbolHandle& handle)
-		{
-			auto index = handle.GetIndex();
-			if (index == 0 || index >= nodes.size())
-			{
-				return false;
-			}
-
-			auto& node = nodes[index];
-			TextSpan oldName = *node.Name.get();
-			auto& parent = nodes[node.ParentIndex];
-
-			if (parent.Children.find(newName) != parent.Children.end())
-			{
-				return false;
-			}
-
-			std::unique_ptr<std::string> str = std::make_unique<std::string>(newName.toString());
-
-			parent.Children.erase(oldName);
-			node.Name = std::move(str);
-
-			auto span = TextSpan(node.GetName());
-			parent.Children[span] = index;
-
-			return true;
-		}
-
 		void SwapRemoveNode(size_t nodeIndex)
 		{
 			if (nodes.empty())
@@ -211,6 +162,62 @@ namespace HXSL
 				nodes.pop_back();
 			}
 		}
+
+	public:
+		SymbolTable()
+		{
+			nodes.resize(capacity);
+			std::unique_ptr<std::string> str = std::make_unique<std::string>("");
+			nodes[0] = (SymbolTableNode(std::move(str), nullptr, std::make_shared<size_t>(0), 0, 0));
+			counter.store(1);
+		}
+
+		StringPool& GetStringPool()
+		{
+			return stringPool;
+		}
+
+		void Clear();
+
+		void ShrinkToFit()
+		{
+			capacity = counter.load();
+			nodes.resize(capacity);
+		}
+
+		Compilation* GetCompilation() const
+		{
+			return compilation.get();
+		}
+
+		bool RenameNode(const TextSpan& newName, const SymbolHandle& handle)
+		{
+			auto index = handle.GetIndex();
+			if (index == 0 || index >= nodes.size())
+			{
+				return false;
+			}
+
+			auto& node = nodes[index];
+			TextSpan oldName = *node.Name.get();
+			auto& parent = nodes[node.ParentIndex];
+
+			if (parent.Children.find(newName) != parent.Children.end())
+			{
+				return false;
+			}
+
+			std::unique_ptr<std::string> str = std::make_unique<std::string>(newName.toString());
+
+			parent.Children.erase(oldName);
+			node.Name = std::move(str);
+
+			auto span = TextSpan(node.GetName());
+			parent.Children[span] = index;
+
+			return true;
+		}
+
 
 		void RemoveNode(size_t index)
 		{
@@ -285,6 +292,9 @@ namespace HXSL
 
 		void Strip();
 
+		/// <summary>
+		/// Sorts the tree in a DFS fasion, meant for improving cache locality, if you inserted nodes in a random order.
+		/// </summary>
 		void Sort();
 
 		void Write(Stream& stream) const;

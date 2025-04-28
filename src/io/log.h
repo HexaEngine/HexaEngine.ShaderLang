@@ -100,10 +100,26 @@ namespace HXSL
 			}
 		}
 
+		template <typename T>
+		auto convert_to_cstr(T&& arg) -> decltype(std::forward<T>(arg))
+		{
+			return std::forward<T>(arg);
+		}
+
+		const char* convert_to_cstr(const std::string& arg)
+		{
+			return arg.c_str();
+		}
+
+		const char* convert_to_cstr(std::string&& arg)
+		{
+			return arg.c_str();
+		}
+
 		template <typename... Args>
 		void LogFormatted(LogLevel level, const std::string& format, Args&&... args)
 		{
-			const auto size_s = std::snprintf(nullptr, 0, format.data(), std::forward<Args>(args)...);
+			const auto size_s = std::snprintf(nullptr, 0, format.data(), convert_to_cstr(std::forward<Args>(args))...);
 
 			if (size_s <= 0)
 			{
@@ -114,7 +130,7 @@ namespace HXSL
 			std::string buf;
 			buf.resize(size);
 
-			std::snprintf(buf.data(), size_s + 1, format.data(), std::forward<Args>(args)...);
+			std::snprintf(buf.data(), size_s + 1, format.data(), convert_to_cstr(std::forward<Args>(args))...);
 
 			Log(level, buf);
 		}

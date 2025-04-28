@@ -5,11 +5,11 @@ using namespace HXSL;
 int main()
 {
 	AssemblyCollection collection;
-	//HXSLCompiler::Compile({ "library.txt" }, "library.module", collection);
+	HXSLCompiler::Compile({ "library.txt" }, "library.module", collection);
 
-	collection.LoadAssemblyFromFile("library.module");
+	//collection.LoadAssemblyFromFile("library.module");
 
-	HXSLCompiler::Compile({ "shader.txt" , "shader2.txt" }, "shader.module", collection);
+	//HXSLCompiler::Compile({ "shader.txt" , "shader2.txt" }, "shader.module", collection);
 
 	return 0;
 }

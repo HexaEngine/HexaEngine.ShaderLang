@@ -1,0 +1,100 @@
+#include "statement_checker.hpp"
+#include "type_checker.hpp"
+
+namespace HXSL
+{
+	std::unique_ptr<StatementCheckerBase> StatementCheckerRegistry::handlers[NodeType_StatementCount];
+	std::once_flag StatementCheckerRegistry::initFlag;
+
+	void StatementCheckerRegistry::EnsureCreated()
+	{
+		std::call_once(initFlag, []()
+			{
+				Register<DummyStatementChecker, NodeType_BlockStatement>();
+				Register<ReturnStatementChecker, NodeType_ReturnStatement>();
+				Register<DeclarationStatementChecker, NodeType_DeclarationStatement>();
+				Register<AssignmentStatementChecker, NodeType_AssignmentStatement>();
+				Register<ForStatementChecker, NodeType_ForStatement>();
+			});
+	}
+
+	static const std::unordered_set<NodeType> functionLikeTypes =
+	{
+		NodeType_FunctionOverload,
+		NodeType_OperatorOverload,
+	};
+
+	void ReturnStatementChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ReturnStatement* statement)
+	{
+		auto func = statement->FindAncestor<FunctionOverload>(functionLikeTypes);
+
+		SymbolDef* retType = func->GetReturnType();
+		SymbolDef* exprType = statement->GetReturnValueExpression()->GetInferredType();
+
+		if (retType == nullptr || exprType == nullptr)
+		{
+			return;
+		}
+
+		std::unique_ptr<Expression> expr = std::move(statement->DetachReturnValueExpression());
+		if (!checker.AreTypesCompatible(expr, retType, exprType))
+		{
+			analyzer.LogError("Return type mismatch: expected '%s' but got '%s'", statement->GetSpan(), retType->ToString(), exprType->ToString());
+		}
+		statement->SetReturnValueExpression(std::move(expr));
+	}
+
+	void DeclarationStatementChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, DeclarationStatement* statement)
+	{
+		auto& exprInit = statement->GetInitializer();
+		if (!exprInit)
+		{
+			return;
+		}
+
+		auto initType = exprInit->GetInferredType();
+		auto declType = statement->GetDeclaredType();
+
+		if (initType == nullptr || declType == nullptr)
+		{
+			return;
+		}
+
+		std::unique_ptr<Expression> expr = std::move(statement->DetachInitializer());
+		if (!checker.AreTypesCompatible(expr, declType, initType))
+		{
+			analyzer.LogError("Type mismatch: Initializer type '%s' is not compatible with declared type '%s'.", expr->GetSpan(), initType->ToString(), declType->ToString());
+		}
+		statement->SetInitializer(std::move(expr));
+	}
+
+	void AssignmentStatementChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, AssignmentStatement* statement)
+	{
+		auto exprType = statement->GetExpression()->GetInferredType();
+		auto targetType = statement->GetTarget()->GetInferredType();
+
+		if (exprType == nullptr || targetType == nullptr)
+		{
+			return;
+		}
+
+		std::unique_ptr<Expression> expr = std::move(statement->DetachExpression());
+		if (!checker.AreTypesCompatible(expr, targetType, exprType))
+		{
+			analyzer.LogError("Type mismatch: Expression type '%s' is not compatible with declared type '%s'.", expr->GetSpan(), targetType->ToString(), exprType->ToString());
+		}
+		statement->SetExpression(std::move(expr));
+	}
+
+	void ForStatementChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ForStatement* statement)
+	{
+		auto conditionType = statement->GetCondition()->GetInferredType();
+
+		if (conditionType == nullptr)
+		{
+			return;
+		}
+		int i = 0, j = 0;
+		i++, j++;
+	}
+}

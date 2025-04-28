@@ -123,6 +123,8 @@ namespace HXSL
 
 		Class* _class;
 
+		AddPrimClass(TextSpan("string"));
+
 		AddPrimClass(TextSpan("SamplerState"));
 
 		AddPrimClass(TextSpan("Texture2D"), &_class);

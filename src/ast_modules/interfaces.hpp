@@ -48,6 +48,13 @@ namespace HXSL
 		virtual const std::vector<std::unique_ptr<OperatorOverload>>& GetOperators() const = 0;
 		virtual ~IHasOperators() = default;
 	};
+
+	class ICloneable
+	{
+	public:
+		virtual std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept = 0;
+		virtual ~ICloneable() = default;
+	};
 }
 
 #endif

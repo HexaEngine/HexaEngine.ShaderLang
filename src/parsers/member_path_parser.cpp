@@ -30,7 +30,7 @@ namespace HXSL
 			{
 				auto indexerAccessExpression = std::make_unique<IndexerAccessExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier, !wantsIdentifier)));
 				std::unique_ptr<Expression> indexExpression;
-				ParseExpression(parser, stream, indexerAccessExpression.get(), indexExpression);
+				PrattParser::ParseExpression(parser, stream, indexerAccessExpression.get(), indexExpression);
 				stream.ExpectDelimiter(']');
 				indexerAccessExpression->SetIndexExpression(std::move(indexExpression));
 				indexerAccessExpression->SetSpan(stream.MakeFromLast(start));

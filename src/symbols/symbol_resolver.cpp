@@ -13,7 +13,7 @@ namespace HXSL
 		case SymbolRefType_Unknown:
 			if (!silent)
 			{
-				analyzer.LogError("Symbol '%s' has an unknown reference type", span, span.toString().c_str());
+				analyzer.LogError("Symbol '%s' has an unknown reference type", span, span.toString());
 			}
 			return false;
 
@@ -22,7 +22,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString(), ToString(defType));
 				}
 
 				return false;
@@ -34,7 +34,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString(), ToString(defType));
 				}
 
 				return false;
@@ -46,7 +46,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString(), ToString(defType));
 				}
 
 				return false;
@@ -58,7 +58,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a '%s' definition", span, span.toString(), ToString(defType));
 				}
 
 				return false;
@@ -70,7 +70,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Function' or 'Constructor' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Function' or 'Constructor' definition.", span, span.toString(), ToString(defType));
 				}
 
 				return false;
@@ -82,7 +82,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct' or 'Primitive' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct' or 'Primitive' definition.", span, span.toString(), ToString(defType));
 				}
 				return false;
 			}
@@ -93,7 +93,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected an 'Enum' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected an 'Enum' definition.", span, span.toString(), ToString(defType));
 				}
 				return false;
 			}
@@ -104,7 +104,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Field', 'Parameter', or 'Variable' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Field', 'Parameter', or 'Variable' definition.", span, span.toString(), ToString(defType));
 				}
 				return false;
 			}
@@ -115,7 +115,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected an 'AttributeDeclaration' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected an 'AttributeDeclaration' definition.", span, span.toString(), ToString(defType));
 				}
 				return false;
 			}
@@ -126,7 +126,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Field' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Field' definition.", span, span.toString(), ToString(defType));
 				}
 				return false;
 			}
@@ -137,7 +137,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct', 'Primitive', or 'Class' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Struct', 'Primitive', or 'Class' definition.", span, span.toString(), ToString(defType));
 				}
 				return false;
 			}
@@ -148,7 +148,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Array' definition.", span, span.toString().c_str(), ToString(defType).c_str());
+					analyzer.LogError("Symbol '%s' is of type '%s', but expected a 'Array' definition.", span, span.toString(), ToString(defType));
 				}
 				return false;
 			}
@@ -270,7 +270,7 @@ namespace HXSL
 
 			if (!silent)
 			{
-				analyzer.LogError("Symbol not found '%s'", name, name.toString().c_str());
+				analyzer.LogError("Symbol not found '%s'", name, name.toString());
 			}
 			return nullptr;
 		}
@@ -321,7 +321,7 @@ namespace HXSL
 
 		if (!silent)
 		{
-			analyzer.LogError("Symbol not found '%s'", name, name.toString().c_str());
+			analyzer.LogError("Symbol not found '%s'", name, name.toString());
 		}
 
 		return nullptr;
@@ -367,7 +367,7 @@ namespace HXSL
 		{
 			if (!arrayManager->TryGetOrCreateArrayType(ref, def, handle, def))
 			{
-				analyzer.LogError("Cannot create an array out of '%s', only arrays, structs, classes and enums are allowed", ref->GetName(), def->GetName().toString().c_str());
+				analyzer.LogError("Cannot create an array out of '%s', only arrays, structs, classes and enums are allowed", ref->GetName(), def->ToString());
 				return false;
 			}
 		}
@@ -393,7 +393,7 @@ namespace HXSL
 		{
 			if (!silent)
 			{
-				analyzer.LogError("Symbol not found '%s'", span, actualName.toString().c_str());
+				analyzer.LogError("Symbol not found '%s'", span, actualName.toString());
 			}
 			return false;
 		}
@@ -510,8 +510,7 @@ namespace HXSL
 				auto declID = declStmt->GetID();
 				if (usageID < declID) // this works because IDs are incremental.
 				{
-					auto refStr = ref->GetName().toString();
-					analyzer.LogError("Use of variable '%s' before its declaration.", parent->GetSpan(), refStr.c_str());
+					analyzer.LogError("Use of variable '%s' before its declaration.", parent->GetSpan(), ref->ToString());
 					return false;
 				}
 			}
@@ -703,7 +702,7 @@ namespace HXSL
 			SymbolRef* type = GetResolvedTypeFromDecl(ref);
 			if (!type)
 			{
-				analyzer.LogError("Couldn't resolve type of member '%s'", ref->GetName(), ref->GetName().toString().c_str());
+				analyzer.LogError("Couldn't resolve type of member '%s'", ref->GetName(), ref->ToString());
 				return TraversalBehavior_Keep;
 			}
 
@@ -720,7 +719,7 @@ namespace HXSL
 			if (result == -1)
 			{
 				auto refInner = chain->GetSymbolRef().get();
-				analyzer.LogError("Couldn't resolve member '%s'", refInner->GetName(), refInner->GetName().toString().c_str());
+				analyzer.LogError("Couldn't resolve member '%s'", refInner->GetName(), refInner->ToString());
 				return TraversalBehavior_Keep;
 			}
 			else if (result == 1)

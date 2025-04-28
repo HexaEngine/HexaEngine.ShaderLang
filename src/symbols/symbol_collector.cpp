@@ -8,7 +8,7 @@ namespace HXSL
 		SymbolHandle handle = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
 		if (handle.invalid())
 		{
-			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString().c_str());
+			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString());
 			return false;
 		}
 
@@ -24,7 +24,7 @@ namespace HXSL
 		SymbolHandle handle = targetAssembly->AddSymbolScope(span, metadata, current.NodeIndex);
 		if (handle.invalid())
 		{
-			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString().c_str());
+			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString());
 			return false;
 		}
 		current.NodeIndex = handle.GetIndex();
@@ -39,7 +39,7 @@ namespace HXSL
 		SymbolHandle handle = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
 		if (handle.invalid())
 		{
-			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString().c_str());
+			analyzer.LogError("Redefinition of symbol '%s'", span, span.toString());
 			return false;
 		}
 		return true;
@@ -152,7 +152,7 @@ namespace HXSL
 				auto& index = s->GetSymbolHandle();
 				if (!table->RenameNode(signature, index))
 				{
-					analyzer.LogError("Redefinition of symbol '%s'", s->GetName(), signature.c_str());
+					analyzer.LogError("Redefinition of symbol '%s'", s->GetName(), signature);
 				}
 			}
 			break;
@@ -164,7 +164,7 @@ namespace HXSL
 				auto& index = s->GetSymbolHandle();
 				if (!table->RenameNode(signature, index))
 				{
-					analyzer.LogError("Redefinition of symbol '%s'", s->GetName(), signature.c_str());
+					analyzer.LogError("Redefinition of symbol '%s'", s->GetName(), signature);
 				}
 			}
 			break;

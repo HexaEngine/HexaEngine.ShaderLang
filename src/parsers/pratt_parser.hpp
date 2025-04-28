@@ -2,146 +2,106 @@
 #define PRATT_PARSER_H
 
 #include "sub_parser_registry.hpp"
+
 namespace HXSL
 {
-	static bool ParseSingleLeftExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, bool& hadBrackets);
-
-	static bool ParseExpressionInner(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, int precedence = 0)
+	enum FrameFlags : int
 	{
-		auto start = stream.Current();
+		FrameFlags_None = 0,
+		FrameFlags_HadBrackets = 1,
+		FrameFlags_Unary = 2,
+	};
 
-		bool hadBrackets = false;
-		Operator unaryOp;
-		if (start.isUnaryOperator(unaryOp))
-		{
-			stream.Advance();
-			std::unique_ptr<Expression> operand;
-			IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, parent, operand, hadBrackets));
-			if (unaryOp == Operator_Increment || unaryOp == Operator_Decrement)
-			{
-				if (operand->GetType() != NodeType_MemberReferenceExpression)
-				{
-					parser.LogError("Prefix increment/decrement must target a variable.", operand->GetSpan());
-					return false;
-				}
-			}
-			expression = std::make_unique<PrefixExpression>(TextSpan(), parent, unaryOp, std::move(operand));
-			expression->SetSpan(stream.MakeFromLast(start));
-			hadBrackets = false;
-		}
-		else
-		{
-			IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, parent, expression, hadBrackets));
-		}
+	enum FrameType : int
+	{
+		FrameType_ClosingBracket,
+		FrameType_ParseExpression,
+		FrameType_ParseOperator,
+		FrameType_Prefix,
+		FrameType_Cast,
+		FrameType_Binary,
+		FrameType_Ternary,
+	};
 
-		while (true)
-		{
-			auto token = stream.Current();
+	DEFINE_FLAGS_OPERATORS(FrameFlags, int);
 
+	class PrattParser
+	{
+		struct Frame
+		{
+			FrameType type;
+			FrameFlags flags;
+			int precedence;
 			Operator op;
-			if (!token.isOperator(op))
+			TextSpan begin;
+			std::unique_ptr<Expression> expr;
+			ASTNode* parent;
+
+			void SetFlag(FrameFlags flag, bool value)
 			{
-				if (token.isDelimiterOf({ ';' ,')', '}', ']', ',', ':' }))
+				if (value)
 				{
-					return true;
+					flags |= flag;
 				}
-
-				if (hadBrackets && expression->GetType() == NodeType_MemberReferenceExpression)
+				else
 				{
-					std::unique_ptr<SymbolRef> type;
-					ParserHelper::MakeConcreteSymbolRef(expression.get(), SymbolRefType_Type, type);
-					std::unique_ptr<Expression> rightCast;
-					IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, parent, rightCast, hadBrackets));
-					expression = std::make_unique<CastExpression>(TextSpan(), parent, std::move(type), std::move(rightCast));
-					expression->SetSpan(stream.MakeFromLast(start));
-					continue;
+					flags &= ~flag;
 				}
-
-				ERR_RETURN_FALSE(parser, "Unexpected token in expression, expected an operator or ';'.");
 			}
 
-			int prec = Operators::GetOperatorPrecedence(op);
-
-			if (prec <= precedence)
+			void SetFlag(FrameFlags flag) noexcept
 			{
-				return true;
+				SetFlag(flag, true);
 			}
 
-			stream.Advance();
-
-			if (Operators::isUnaryOperator(op) && op != Operator_Subtract)
+			void ClearFlag(FrameFlags flag) noexcept
 			{
-				if (op != Operator_Increment && op != Operator_Decrement)
-				{
-					parser.LogError("Invalid postfix operator.", stream.LastToken());
-					return false;
-				}
-
-				if (expression->GetType() != NodeType_MemberReferenceExpression)
-				{
-					parser.LogError("Postfix increment/decrement must target a variable.", expression->GetSpan());
-					return false;
-				}
-
-				expression = std::make_unique<PostfixExpression>(TextSpan(), parent, op, std::move(expression));
-				expression->SetSpan(stream.MakeFromLast(start));
+				SetFlag(flag, false);
 			}
-			else if (Operators::isTernaryOperator(op))
+
+			bool GetFlag(FrameFlags flag) const noexcept
 			{
-				auto ternary = std::make_unique<TernaryExpression>(TextSpan(), parent, std::move(expression), nullptr, nullptr);
-				std::unique_ptr<Expression> right;
-				IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, ternary.get(), right, hadBrackets));
-				ternary->SetTrueBranch(std::move(right));
-				stream.ExpectOperator(Operator_TernaryElse);
-				std::unique_ptr<Expression> left;
-				IF_ERR_RET_FALSE(ParseSingleLeftExpression(parser, stream, ternary.get(), left, hadBrackets));
-				ternary->SetFalseBranch(std::move(left));
-				ternary->SetSpan(stream.MakeFromLast(start));
-				expression = std::move(ternary);
+				return (flags & flag) != 0;
 			}
-			else
+
+			Frame() = default;
+
+			Frame(FrameType type, FrameFlags flags, int precedence, ASTNode* parent) : type(type), flags(flags), precedence(precedence), parent(parent), op(Operator_Unknown)
 			{
-				std::unique_ptr<Expression> right;
-				IF_ERR_RET_FALSE(ParseExpressionInner(parser, stream, parent, right, prec));
-				expression = std::make_unique<BinaryExpression>(TextSpan(), parent, op, std::move(expression), std::move(right));
-				expression->SetSpan(stream.MakeFromLast(start));
 			}
-		}
 
-		return true;
-	}
+			Frame(FrameType type, int precedence, ASTNode* parent) : type(type), flags(FrameFlags_None), precedence(precedence), parent(parent), op(Operator_Unknown)
+			{
+			}
 
-	bool ParseSingleLeftExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, bool& hadBrackets)
-	{
-		if (stream.TryGetDelimiter('('))
-		{
-			IF_ERR_RET_FALSE(ParseExpressionInner(parser, stream, parent, expression, 0));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(')'));
-			hadBrackets = true;
-		}
-		else
-		{
-			IF_ERR_RET_FALSE(ExpressionParserRegistry::TryParse(parser, stream, parent, expression)); // member expressions and complex grammar.
-		}
-		return true;
-	}
+			Frame(FrameType type, FrameFlags flags, int precedence, std::unique_ptr<Expression> expr, TextSpan begin) : type(type), flags(flags), precedence(precedence), op(Operator_Unknown), expr(std::move(expr)), begin(begin)
+			{
+				parent = this->expr.get();
+			}
 
-	static bool ParseExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression)
-	{
-		HXSL_ASSERT(parent, "Parent cannot be null.");
-		auto start = stream.Current();
-		stream.PushState();
-		ParseExpressionInner(parser, stream, parent, expression);
-		if (!expression.get())
-		{
-			stream.PopState();
-			return false;
-		}
-		stream.PopState(false);
-		expression->SetParent(parent);
+			Frame(FrameType type, int precedence, std::unique_ptr<Expression> expr, TextSpan begin) : type(type), flags(FrameFlags_None), precedence(precedence), op(Operator_Unknown), expr(std::move(expr)), begin(begin)
+			{
+				parent = this->expr.get();
+			}
+		};
 
-		return true;
-	}
+	public:
+		static bool TryParseUnaryPrefixOperator(const Token& start, Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, bool& hadBrackets);
+
+		static bool TryParseUnaryPostfixOperator(const Token& start, Operator op, Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression);
+
+		static bool TryParseCastOperator(const Token& start, Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression);
+
+		static bool ParseExpressionInner(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, int precedence = 0);
+
+		static bool ParseExpressionInnerIter(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression);
+
+		static bool ParseSingleLeftExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression, bool& hadBrackets);
+
+		static int ParseSingleLeftExpressionIter(Frame& frame, std::stack<Frame>& stack, std::stack<std::unique_ptr<Expression>>& resultStack, Parser& parser, TokenStream& stream);
+
+		static bool ParseExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression);
+	};
 }
 
 #endif

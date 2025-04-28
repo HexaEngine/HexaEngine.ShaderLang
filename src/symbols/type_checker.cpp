@@ -1,6 +1,7 @@
 #include "type_checker.hpp"
 #include "symbol_resolver.hpp"
 #include "expression_checker.hpp"
+#include "statement_checker.hpp"
 
 namespace HXSL
 {
@@ -20,7 +21,7 @@ namespace HXSL
 				auto returnType = n->GetReturnSymbolRef()->GetDeclaration();
 				if (returnType && !returnType->IsEquivalentTo(resolver.ResolvePrimitiveSymbol("bool")))
 				{
-					analyzer.LogError("Operator overload for '%s' must return type 'bool'. Found '%s' instead.", n->GetSpan(), ToString(op).c_str(), returnType->GetName().toString().c_str());
+					analyzer.LogError("Operator overload for '%s' must return type 'bool'. Found '%s' instead.", n->GetSpan(), ToString(op), returnType->ToString());
 				}
 			}
 		}
@@ -133,7 +134,7 @@ namespace HXSL
 			{
 				if (found)
 				{
-					analyzer.LogError("Ambiguous operator overload for '%s'.", binary->GetSpan(), signature.c_str());
+					analyzer.LogError("Ambiguous operator overload for '%s'.", binary->GetSpan(), signature);
 					return false;
 				}
 				found = true;
@@ -161,9 +162,9 @@ namespace HXSL
 		{
 			analyzer.LogError("Cannot apply operator '%s', no operation defined between types '%s' and '%s'.",
 				binary->GetSpan(),
-				ToString(op).c_str(),
-				leftType->GetName().toString().c_str(),
-				rightType->GetName().toString().c_str());
+				ToString(op),
+				leftType->ToString(),
+				rightType->ToString());
 			return false;
 		}
 
@@ -198,8 +199,8 @@ namespace HXSL
 		{
 			analyzer.LogError("Cannot apply operator '%s', no operation defined for type '%s'.",
 				unary->GetSpan(),
-				ToString(op).c_str(),
-				leftType->GetName().toString().c_str());
+				ToString(op),
+				leftType->ToString());
 			return false;
 		}
 
@@ -261,21 +262,21 @@ namespace HXSL
 	}
 
 	// for unary-like operations.
-	bool TypeChecker::AreTypesCompatible(std::unique_ptr<Expression>& insertPoint, SymbolDef* a, SymbolDef* b)
+	bool TypeChecker::AreTypesCompatible(std::unique_ptr<Expression>& insertPoint, SymbolDef* target, SymbolDef* source)
 	{
-		if (a->IsEquivalentTo(b))
+		if (source->IsEquivalentTo(target))
 		{
 			return true;
 		}
 
 		// implicit cast handling.
 		std::unique_ptr<SymbolRef> opRef;
-		if (!CastOperatorCheck(b, a, opRef))
+		if (!CastOperatorCheck(target, source, opRef))
 		{
 			return false;
 		}
 
-		auto castExpr = std::make_unique<CastExpression>(TextSpan(), nullptr, std::move(opRef), b->MakeSymbolRef(), nullptr);
+		auto castExpr = std::make_unique<CastExpression>(TextSpan(), nullptr, std::move(opRef), target->MakeSymbolRef(), nullptr);
 		InjectNode(insertPoint, std::move(castExpr), &CastExpression::SetOperand);
 
 		return true;
@@ -292,14 +293,14 @@ namespace HXSL
 		return false; // TODO: set me true later.
 	}
 
-	bool TypeChecker::IsBooleanType(std::unique_ptr<Expression>& insertPoint, SymbolDef* a)
+	bool TypeChecker::IsBooleanType(std::unique_ptr<Expression>& insertPoint, SymbolDef* source)
 	{
-		return AreTypesCompatible(insertPoint, a, resolver.ResolvePrimitiveSymbol("bool"));
+		return AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("bool"), source);
 	}
 
-	bool TypeChecker::IsIndexerType(std::unique_ptr<Expression>& insertPoint, SymbolDef* a)
+	bool TypeChecker::IsIndexerType(std::unique_ptr<Expression>& insertPoint, SymbolDef* source)
 	{
-		return AreTypesCompatible(insertPoint, a, resolver.ResolvePrimitiveSymbol("int")) || AreTypesCompatible(insertPoint, a, resolver.ResolvePrimitiveSymbol("uint"));
+		return AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("int"), source) || AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("uint"), source);
 	}
 
 	void TypeChecker::TypeCheckExpression(Expression* node)
@@ -314,19 +315,14 @@ namespace HXSL
 
 			auto& type = current->GetType();
 			auto handler = ExpressionCheckerRegistry::GetHandler(type);
-			handler->HandleExpression(analyzer, *this, resolver, current, stack);
+			HXSL_ASSERT(handler, "ExpressionChecker handler was null, forgot to implement more?");
+			if (handler)
+			{
+				handler->HandleExpression(analyzer, *this, resolver, current, stack);
+			}
 		}
 	}
 
-	static const std::unordered_set<NodeType> functionLikeTypes =
-	{
-		NodeType_FunctionOverload,
-		NodeType_OperatorOverload,
-	};
-
-#pragma warning(push)
-#pragma warning(disable: 28182) // node cannot be null.
-#pragma warning(pop)
 	void TypeChecker::TypeCheckStatement(ASTNode*& node)
 	{
 		auto& type = node->GetType();
@@ -339,32 +335,14 @@ namespace HXSL
 			}
 		}
 
-		switch (type)
+		if (auto statement = dynamic_cast<Statement*>(node))
 		{
-		case NodeType_ReturnStatement:
-		{
-			auto ret = dynamic_cast<ReturnStatement*>(node);
-			auto ancestor = node->FindAncestors(functionLikeTypes);
-			auto func = dynamic_cast<FunctionOverload*>(ancestor);
-			HXSL_ASSERT(func, "Function-like ancestor of statement couldn't be found");
-
-			SymbolDef* retType = func->GetReturnSymbolRef()->GetDeclaration();
-			SymbolDef* exprType = ret->GetReturnValueExpression()->GetInferredType();
-
-			if (retType && exprType && !retType->IsEquivalentTo(exprType))
+			auto handler = StatementCheckerRegistry::GetHandler(type);
+			HXSL_ASSERT(handler, "StatementChecker handler was null, forgot to implement more?");
+			if (handler)
 			{
-				analyzer.LogError("Return type mismatch: expected '%s' but got '%s'", ret->GetSpan(), retType->GetFullyQualifiedName().c_str(), exprType->GetFullyQualifiedName().c_str());
+				handler->HandleExpression(analyzer, *this, resolver, statement);
 			}
-		}
-		break;
-		case NodeType_IfStatement:
-		{
-			auto ifStmt = dynamic_cast<IfStatement*>(node);
-		}
-		break;
-
-		default:
-			break;
 		}
 	}
 }

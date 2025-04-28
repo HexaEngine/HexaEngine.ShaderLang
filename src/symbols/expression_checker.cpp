@@ -21,6 +21,7 @@ namespace HXSL
 				Register<PrefixPostfixExpressionChecker, NodeType_PrefixExpression>();
 				Register<PrefixPostfixExpressionChecker, NodeType_PostfixExpression>();
 				Register<IndexerExpressionChecker, NodeType_IndexerAccessExpression>();
+				Register<AssignmentChecker, NodeType_AssignmentExpression>();
 			});
 	}
 
@@ -101,7 +102,7 @@ namespace HXSL
 			SymbolDef* result;
 			if (!checker.CastOperatorCheck(expression, targetType, operand, result, true))
 			{
-				analyzer.LogError("Cannot cast from '%s' to '%s' no cast operator defined.", expression->GetSpan(), targetType->GetName().toString().c_str(), operandType->GetName().toString().c_str());
+				analyzer.LogError("Cannot cast from '%s' to '%s' no cast operator defined.", expression->GetSpan(), targetType->ToString(), operandType->ToString());
 				return;
 			}
 
@@ -169,7 +170,7 @@ namespace HXSL
 
 			if (!success)
 			{
-				analyzer.LogError("Couldn't find an matching overload for '%s'.", expression->GetSpan(), signature.c_str());
+				analyzer.LogError("Couldn't find an matching overload for '%s'.", expression->GetSpan(), signature);
 				return;
 			}
 
@@ -241,7 +242,7 @@ namespace HXSL
 
 			if (!checker.AreTypesCompatible(trueBranch, trueBranchType, falseBranch, falseBranchType))
 			{
-				analyzer.LogError("Branches of ternary expression must have compatible types, found: %s and %s", expression->GetSpan(), trueBranchType->GetName().toString().c_str(), falseBranchType->GetName().toString().c_str());
+				analyzer.LogError("Branches of ternary expression must have compatible types, found: %s and %s", expression->GetSpan(), trueBranchType->ToString(), falseBranchType->ToString());
 				return;
 			}
 
@@ -335,13 +336,13 @@ namespace HXSL
 
 			if (!checker.IsIndexerType(index, indexType))
 			{
-				analyzer.LogError("Cannot convert '%s' to an indexer type. Only integer types are allowed for indexing.", expression->GetSpan(), indexType->GetName().toString().c_str());
+				analyzer.LogError("Cannot convert '%s' to an indexer type. Only integer types are allowed for indexing.", expression->GetSpan(), indexType->ToString());
 				return;
 			}
 
 			if (type->GetType() != NodeType_Array)
 			{
-				analyzer.LogError("Tried to index into type '%s', which is not an array.", expression->GetSpan(), type->GetName().toString().c_str());
+				analyzer.LogError("Tried to index into type '%s', which is not an array.", expression->GetSpan(), type->ToString());
 				return;
 			}
 
@@ -375,6 +376,34 @@ namespace HXSL
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
 			stack.push(index.get());
+		}
+	}
+
+	void AssignmentChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, AssignmentExpression* expression, std::stack<Expression*>& stack)
+	{
+		auto target = expression->GetTarget().get();
+		auto& assignment = expression->GetExpressionMut();
+
+		if (expression->GetLazyEvalState())
+		{
+			auto targetType = target->GetInferredType();
+			auto assignmentType = assignment->GetInferredType();
+			if (targetType == nullptr || assignmentType == nullptr)
+			{
+				return;
+			}
+
+			if (!checker.AreTypesCompatible(assignment, targetType, assignmentType))
+			{
+				analyzer.LogError("Type mismatch: Expression type '%s' is not compatible with declared type '%s'.", assignment->GetSpan(), assignmentType->ToString(), targetType->ToString());
+			}
+		}
+		else
+		{
+			expression->IncrementLazyEvalState();
+			stack.push(expression);
+			stack.push(assignment.get());
+			stack.push(target);
 		}
 	}
 }

@@ -159,6 +159,11 @@ namespace HXSL
 		virtual ~SymbolDef() = default;
 
 		std::unique_ptr<SymbolRef> MakeSymbolRef() const;
+
+		std::string ToString() const noexcept
+		{
+			return name.toString();
+		}
 	};
 
 	enum SymbolRefType
@@ -289,6 +294,11 @@ namespace HXSL
 			cloned->isDeferred = isDeferred;
 			cloned->notFound = notFound;
 			return cloned;
+		}
+
+		std::string ToString() const noexcept
+		{
+			return span.toString();
 		}
 	};
 

@@ -32,7 +32,7 @@ namespace HXSL
 	{
 		auto callParameter = std::make_unique<FunctionCallParameter>(TextSpan(), parent, nullptr);
 		std::unique_ptr<Expression> expression;
-		IF_ERR_RET_FALSE(ParseExpression(parser, stream, callParameter.get(), expression));
+		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, callParameter.get(), expression));
 		callParameter->SetSpan(expression->GetSpan());
 		callParameter->SetExpression(std::move(expression));
 		parameter = std::move(callParameter);
@@ -156,7 +156,7 @@ namespace HXSL
 				else
 				{
 					std::unique_ptr<Expression> expression;
-					IF_ERR_RET_FALSE(ParseExpression(parser, stream, current, expression));
+					IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, current, expression));
 					current->AddParameter(std::move(expression));
 				}
 			}
