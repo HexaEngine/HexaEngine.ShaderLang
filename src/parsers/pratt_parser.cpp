@@ -321,6 +321,7 @@ namespace HXSL
 		std::stack<ExpressionPtr> operandStack;
 		std::stack<OperatorPtr> operatorStack;
 		TaskFrame currentTask;
+		std::stack<size_t> ternaryStack;
 
 		ParseContext(Parser& parser, TokenStream& stream) : TokenStreamAdapter(stream), ParserAdapter(parser)
 		{
@@ -332,9 +333,19 @@ namespace HXSL
 			{
 				return false;
 			}
+			if (currentTask.type == TaskType_TernaryTrue)
+			{
+				ternaryStack.pop();
+			}
+			if (currentTask.type == TaskType_TernaryFalse)
+			{
+				ternaryStack.pop();
+			}
 			currentTask = popFromStack(tasks);
 			return true;
 		}
+
+		bool IsInTernary() const noexcept { return !ternaryStack.empty() && ternaryStack.top() == tasks.size() + 1; }
 
 		void PushParseExpressionTask(ASTNode* parent)
 		{
@@ -360,6 +371,14 @@ namespace HXSL
 			PushCurrentTask();
 			tasks.push(TaskFrame(type, operatorStack.size(), ptr, std::move(expr)));
 			PushParseExpressionTask(ptr);
+			if (type == TaskType_TernaryTrue)
+			{
+				ternaryStack.push(tasks.size());
+			}
+			if (type == TaskType_TernaryFalse)
+			{
+				ternaryStack.push(tasks.size());
+			}
 		}
 
 		void PushSubTask(TaskType type, ExpressionPtr&& expr)
@@ -367,6 +386,14 @@ namespace HXSL
 			auto ptr = expr.get();
 			tasks.push(TaskFrame(type, operatorStack.size(), ptr, std::move(expr)));
 			PushParseExpressionTask(ptr);
+			if (type == TaskType_TernaryTrue)
+			{
+				ternaryStack.push(tasks.size());
+			}
+			if (type == TaskType_TernaryFalse)
+			{
+				ternaryStack.push(tasks.size());
+			}
 		}
 
 		template<typename ExpressionType, typename... Args>
@@ -404,11 +431,11 @@ namespace HXSL
 			return popFromStack(operandStack);
 		}
 
-		bool HasOperand() const 
+		bool HasOperand() const
 		{
 			return !operandStack.empty();
 		}
-		
+
 		const ExpressionPtr& TopOperand() const
 		{
 			return operandStack.top();
@@ -446,14 +473,14 @@ namespace HXSL
 	{
 		if (op != Operator_Increment && op != Operator_Decrement)
 		{
-			context.LogError("Invalid postfix operator.", context.LastToken());
+			context.LogError("Syntax error: invalid postfix operator.", context.LastToken());
 			return false;
 		}
 
 		auto type = operand->GetType();
 		if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
 		{
-			context.LogError("Postfix increment/decrement must target a variable.", operand->GetSpan());
+			context.LogError("Syntax error: postfix increment/decrement must target a variable.", operand->GetSpan());
 			return false;
 		}
 
@@ -471,7 +498,7 @@ namespace HXSL
 		{
 			context.PushCurrentTask();
 			// member expressions, function calls, indexer and other complex grammar.
-			ExpressionPtr expression;	
+			ExpressionPtr expression;
 			if (!ExpressionParserRegistry::TryParse(context.GetParser(), context.GetTokenStream(), parent, expression))
 			{
 				return -1;
@@ -507,6 +534,20 @@ namespace HXSL
 
 			if (current.isOperatorOf(Operator_TernaryElse))
 			{
+				if (!context.IsInTernary())
+				{
+					context.Advance();
+					context.LogError("Syntax error: unexpected ':' outside of a ternary expression.", current);
+					continue;
+				}
+
+				if (context.LastToken().isOperatorOf(Operator_TernaryElse))
+				{
+					context.Advance();
+					context.LogError("Syntax error: unexpected ':' expected expression after ternary ':'.", current);
+					continue;
+				}
+
 				break;
 			}
 
@@ -517,6 +558,7 @@ namespace HXSL
 				{
 					if (wasOperator)
 					{
+						wasOperator = false;
 						ExpressionPtr unary;
 						HANDLE_RESULT(ParseUnaryPrefix(context, parent, op));
 					}
@@ -528,7 +570,13 @@ namespace HXSL
 
 					continue;
 				}
-	
+
+				if (wasOperator)
+				{
+					context.LogError("Syntax error: expected an operand after operator.", current);
+					continue;
+				}
+
 				context.TryReduceOperators(Operators::GetOperatorPrecedence(op));
 
 				if (Operators::isTernaryOperator(op))
@@ -541,10 +589,15 @@ namespace HXSL
 					context.PushSubExpressionTask<AssignmentExpression>(TaskType_Assignment, current.Span, parent, op, nullptr, nullptr);
 					return true;
 				}
-				else
+				else if (Operators::isBinaryOperator(op))
 				{
 					context.PushOperator<BinaryExpression>(current.Span, parent, op, nullptr, nullptr);
 					wasOperator = true;
+				}
+				else
+				{
+					context.LogError("Syntax error: unexpected token in expression.", current);
+					continue;
 				}
 
 				hadBrackets = false;
@@ -565,13 +618,13 @@ namespace HXSL
 					std::unique_ptr<SymbolRef> typeRef;
 					ParserHelper::MakeConcreteSymbolRef(left.get(), SymbolRefType_Type, typeRef);
 
-					auto cast = std::make_unique<CastExpression>(left->GetSpan(), parent, std::move(typeRef), nullptr);		
+					auto cast = std::make_unique<CastExpression>(left->GetSpan(), parent, std::move(typeRef), nullptr);
 					auto result = ParseOperandIter(context, cast.get());
 					if (result == -1)
 					{
 						return false;
 					}
-					
+
 					context.InjectTask(TaskType_Cast, std::move(cast));
 					wasOperator = false;
 					return true;
@@ -586,7 +639,15 @@ namespace HXSL
 			}
 			else
 			{
-				return false; // TODO: Handle error.
+				if (context.IsEndOfTokens())
+				{
+					context.LogError("Unexpected end of tokens.", current);
+				}
+				else
+				{
+					context.LogError("Syntax error: unexpected token in expression.", current);
+				}
+				break;
 			}
 		}
 
@@ -606,14 +667,23 @@ namespace HXSL
 			switch (frame.type)
 			{
 			case TaskType_ParseExpression:
-				IF_ERR_RET_FALSE(PerformParse(context));
+				if (!PerformParse(context))
+				{
+					return false;
+				}
 				break;
 			case TaskType_TernaryTrue:
 			{
-				auto expr = static_cast<TernaryExpression*>(frame.result.get());
+				auto expr = std::unique_ptr<TernaryExpression>(static_cast<TernaryExpression*>(frame.result.release()));
 				expr->SetTrueBranch(context.PopOperand());
-				stream.ExpectOperator(Operator_TernaryElse);
-				context.PushSubTask(TaskType_TernaryFalse, std::move(frame.result));
+				if (!stream.ExpectOperator(Operator_TernaryElse, "Syntax error: expected ':' to separate branches of ternary expression."))
+				{
+					expr->SetSpan(expr->GetSpan().merge(expr->GetTrueBranch()->GetSpan()));
+					expr->SetFalseBranch(std::make_unique<EmptyExpression>(TextSpan(), expr.get()));
+					context.PushOperator(std::move(expr));
+					break;
+				}
+				context.PushSubTask(TaskType_TernaryFalse, std::move(expr));
 			}
 			break;
 			case TaskType_TernaryFalse:
@@ -634,9 +704,12 @@ namespace HXSL
 			break;
 			case TaskType_BracketClose:
 			{
-				stream.ExpectDelimiter(')');
-				auto& top = context.TopOperand();
-				top->SetSpan(stream.MakeFromLast(frame.start));
+				stream.ExpectDelimiter(')', "Syntax error: expected ')' to close the expression.");
+				if (context.HasOperand())
+				{
+					auto& top = context.TopOperand();
+					top->SetSpan(stream.MakeFromLast(frame.start));
+				}
 			}
 			break;
 			case TaskType_Cast:
@@ -658,7 +731,7 @@ namespace HXSL
 					auto type = operand->GetType();
 					if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
 					{
-						parser.LogError("Prefix increment/decrement must target a variable.", operand->GetSpan());
+						parser.LogError("Syntax error: prefix increment/decrement must target a variable.", operand->GetSpan());
 						return false;
 					}
 				}

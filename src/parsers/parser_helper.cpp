@@ -10,7 +10,7 @@ namespace HXSL
 {
 #define ERR_RETURN_FALSE_INTERNAL(message) \
 	do { \
-		LogError(message, stream.Current()); \
+		LogError(message, stream->Current()); \
 		return false; \
 	} while (0)
 
@@ -46,7 +46,13 @@ namespace HXSL
 		{
 			if (!firstParam)
 			{
-				IF_ERR_RET_FALSE(stream.ExpectDelimiter(','));
+				if (!stream.ExpectDelimiter(',', "Syntax error: ',' or ')' expected."))
+				{
+					if (!parser.TryRecoverParameterList())
+					{
+						break;
+					}
+				}
 			}
 			firstParam = false;
 			std::unique_ptr<FunctionCallParameter> parameter;
@@ -207,22 +213,22 @@ namespace HXSL
 	bool Parser::TryParseSymbol(const SymbolRefType& type, LazySymbol& symbol)
 	{
 		bool fqn = false;
-		TextSpan span = stream.Current().Span;
+		TextSpan span = stream->Current().Span;
 		while (true)
 		{
-			auto start = stream.Current();
+			auto start = stream->Current();
 
 			TextSpan baseSymbol;
 			IF_ERR_RET_FALSE(TryParseSymbolInternal(type, baseSymbol));
 
-			if (stream.TryGetOperator(Operator_MemberAccess))
+			if (stream->TryGetOperator(Operator_MemberAccess))
 			{
-				span = stream.MakeFromLast(span);
+				span = stream->MakeFromLast(span);
 				fqn = true;
 			}
 			else
 			{
-				span = stream.MakeFromLast(span);
+				span = stream->MakeFromLast(span);
 				break;
 			}
 		}
@@ -246,7 +252,7 @@ namespace HXSL
 
 	bool Parser::TryParseArraySizes(std::vector<size_t>& arraySizes)
 	{
-		if (stream.Current().isDelimiterOf('['))
+		if (stream->Current().isDelimiterOf('['))
 		{
 			ParseArraySizes(arraySizes);
 			return true;
@@ -256,20 +262,20 @@ namespace HXSL
 
 	void Parser::ParseArraySizes(std::vector<size_t>& arraySizes)
 	{
-		while (stream.TryGetDelimiter('['))
+		while (stream->TryGetDelimiter('['))
 		{
 			Number num;
-			stream.ExpectNumeric(num, "Expected a number in a array definition.");
+			stream->ExpectNumeric(num, "Expected a number in a array definition.");
 			if (!num.IsIntegral())
 			{
-				stream.LogError("Array size must be an integral number.");
+				stream->LogError("Array size must be an integral number.");
 			}
 			if (num.IsSigned() && num.IsNegative())
 			{
-				stream.LogError("Array size cannot be negative.");
+				stream->LogError("Array size cannot be negative.");
 			}
 			arraySizes.push_back(num.ToSizeT());
-			stream.ExpectDelimiter(']', "Expected an ']' after number.");
+			stream->ExpectDelimiter(']', "Expected an ']' after number.");
 		}
 	}
 }

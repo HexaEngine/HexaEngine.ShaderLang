@@ -56,6 +56,11 @@ namespace HXSL
 			strncpy_s(Message, message.c_str(), MAX_LOG_LENGTH - 1);
 			Message[MAX_LOG_LENGTH - 1] = '\0';
 		}
+
+		std::string ToString() const
+		{
+			return "[" + HXSL::ToString(Level) + "]: " + std::string(Message);
+		}
 	};
 
 	class ILogger
@@ -75,6 +80,11 @@ namespace HXSL
 		bool HasErrors() const noexcept { return errorCount > 0 || HasCriticalErrors(); }
 
 		int GetErrorCount()  const noexcept { return errorCount; };
+
+		const Vector<LogMessage>& GetMessages() const noexcept
+		{
+			return messages;
+		}
 
 		void Log(LogLevel level, const std::string& message)
 		{

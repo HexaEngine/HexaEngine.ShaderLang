@@ -9,47 +9,69 @@ namespace HXSL
 {
 	enum Operator : char
 	{
-		Operator_Unknown,
-		Operator_Add,
-		Operator_Subtract,
-		Operator_Multiply,
-		Operator_Divide,
-		Operator_Modulus,
-		Operator_Assign,
-		Operator_PlusAssign,
-		Operator_MinusAssign,
-		Operator_MultiplyAssign,
-		Operator_DivideAssign,
-		Operator_ModulusAssign,
-		Operator_BitwiseNot,
-		Operator_BitwiseShiftLeft,
-		Operator_BitwiseShiftRight,
-		Operator_BitwiseAnd,
-		Operator_BitwiseOr,
-		Operator_BitwiseXor,
-		Operator_BitwiseShiftLeftAssign,
-		Operator_BitwiseShiftRightAssign,
-		Operator_BitwiseAndAssign,
-		Operator_BitwiseOrAssign,
-		Operator_BitwiseXorAssign,
-		Operator_AndAnd,
-		Operator_OrOr,
-		Operator_Ternary,
-		Operator_TernaryElse,
-		Operator_LessThan,
-		Operator_GreaterThan,
-		Operator_Equal,
-		Operator_NotEqual,
-		Operator_LessThanOrEqual,
-		Operator_GreaterThanOrEqual,
-		Operator_Increment,
-		Operator_Decrement,
-		Operator_MemberAccess,
-		Operator_LogicalNot,
-		Operator_Cast,
+		Operator_Unknown,          // Unknown
+
+		Operator_Add,               // +
+		Operator_Subtract,          // -
+		Operator_Multiply,          // *
+		Operator_Divide,            // /
+		Operator_Modulus,           // %
+
+		Operator_BitwiseShiftLeft,  // <<
+		Operator_BitwiseShiftRight, // >>
+
+		Operator_AndAnd,            // &&
+		Operator_OrOr,              // ||
+
+		Operator_BitwiseAnd,        // &
+		Operator_BitwiseOr,         // |
+		Operator_BitwiseXor,        // ^
+
+		Operator_LessThan,          // <
+		Operator_LessThanOrEqual,   // <=
+		Operator_GreaterThan,       // >
+		Operator_GreaterThanOrEqual,// >=
+		Operator_Equal,             // ==
+		Operator_NotEqual,          // !=
+
+		Operator_Assign,            // =
+		Operator_PlusAssign,        // +=
+		Operator_MinusAssign,       // -=
+		Operator_MultiplyAssign,    // *=
+		Operator_DivideAssign,      // /=
+		Operator_ModulusAssign,     // %=
+		Operator_BitwiseShiftLeftAssign,  // <<= 
+		Operator_BitwiseShiftRightAssign, // >>= 
+		Operator_BitwiseAndAssign, // &= 
+		Operator_BitwiseOrAssign,  // |= 
+		Operator_BitwiseXorAssign, // ^=
+
+		Operator_Increment,         // ++
+		Operator_Decrement,         // --
+		Operator_LogicalNot,        // !
+		Operator_BitwiseNot,        // ~
+
+		Operator_Ternary,           // ?
+		Operator_TernaryElse,       // :
+
+		Operator_MemberAccess,      // .
+
+		Operator_Cast,               // Type casting
 
 		Operator_Colon = Operator_TernaryElse
 	};
+
+	constexpr int Operator_BinaryRangeStart = Operator_Add;
+	constexpr int Operator_BinaryRangeEnd = Operator_NotEqual;
+
+	constexpr int Operator_UnaryRangeStart = Operator_Increment;
+	constexpr int Operator_UnaryRangeEnd = Operator_BitwiseNot;
+
+	constexpr int Operator_AssignmentRangeStart = Operator_Assign;
+	constexpr int Operator_AssignmentRangeEnd = Operator_BitwiseXorAssign;
+
+	constexpr int Operator_CompoundAssignmentRangeStart = Operator_PlusAssign;
+	constexpr int Operator_CompoundAssignmentRangeEnd = Operator_BitwiseXorAssign;
 
 	static std::string ToString(Operator op)
 	{
@@ -250,7 +272,8 @@ namespace HXSL
 			}
 		}
 
-		static int GetOperatorPrecedence(Operator op) {
+		static int GetOperatorPrecedence(Operator op)
+		{
 			switch (op)
 			{
 			case Operator_BitwiseShiftLeftAssign:
@@ -313,19 +336,14 @@ namespace HXSL
 			}
 		}
 
+		static bool isBinaryOperator(Operator op)
+		{
+			return op >= Operator_BinaryRangeStart && op <= Operator_BinaryRangeEnd;
+		}
+
 		static bool isUnaryOperator(Operator op)
 		{
-			switch (op)
-			{
-			case Operator_Subtract:
-			case Operator_LogicalNot:
-			case Operator_BitwiseNot:
-			case Operator_Increment:
-			case Operator_Decrement:
-				return true;
-			default:
-				return false;
-			}
+			return op >= Operator_UnaryRangeStart && op <= Operator_UnaryRangeEnd || op == Operator_Subtract;
 		}
 
 		static bool isTernaryOperator(Operator op)
@@ -340,72 +358,21 @@ namespace HXSL
 
 		static bool isAssignment(Operator op)
 		{
-			switch (op)
-			{
-			case Operator_Assign:
-			case Operator_PlusAssign:
-			case Operator_MinusAssign:
-			case Operator_MultiplyAssign:
-			case Operator_DivideAssign:
-			case Operator_ModulusAssign:
-			case Operator_BitwiseShiftLeftAssign:
-			case Operator_BitwiseShiftRightAssign:
-			case Operator_BitwiseAndAssign:
-			case Operator_BitwiseOrAssign:
-			case Operator_BitwiseXorAssign:
-				return true;
-			default:
-				return false;
-			}
+			return op >= Operator_AssignmentRangeStart && op <= Operator_AssignmentRangeEnd;
 		}
 
 		static bool isCompoundAssignment(Operator op)
 		{
-			switch (op)
-			{
-			case Operator_PlusAssign:
-			case Operator_MinusAssign:
-			case Operator_MultiplyAssign:
-			case Operator_DivideAssign:
-			case Operator_ModulusAssign:
-			case Operator_BitwiseShiftLeftAssign:
-			case Operator_BitwiseShiftRightAssign:
-			case Operator_BitwiseAndAssign:
-			case Operator_BitwiseOrAssign:
-			case Operator_BitwiseXorAssign:
-				return true;
-			default:
-				return false;
-			}
+			return op >= Operator_CompoundAssignmentRangeStart && op <= Operator_CompoundAssignmentRangeEnd;
 		}
 
 		static Operator compoundToBinary(Operator op)
 		{
-			switch (op)
+			if (isCompoundAssignment(op))
 			{
-			case Operator_PlusAssign:
-				return Operator_Add;
-			case Operator_MinusAssign:
-				return Operator_Subtract;
-			case Operator_MultiplyAssign:
-				return Operator_Multiply;
-			case Operator_DivideAssign:
-				return Operator_Divide;
-			case Operator_ModulusAssign:
-				return Operator_Modulus;
-			case Operator_BitwiseShiftLeftAssign:
-				return Operator_BitwiseShiftLeft;
-			case Operator_BitwiseShiftRightAssign:
-				return Operator_BitwiseShiftRight;
-			case Operator_BitwiseAndAssign:
-				return Operator_BitwiseAnd;
-			case Operator_BitwiseOrAssign:
-				return Operator_BitwiseOr;
-			case Operator_BitwiseXorAssign:
-				return Operator_BitwiseXor;
-			default:
-				return op;
+				return static_cast<Operator>(op - Operator_AssignmentRangeStart);
 			}
+			return op;
 		}
 	}
 }

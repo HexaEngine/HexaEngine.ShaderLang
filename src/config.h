@@ -29,7 +29,7 @@
 #define HXSL_API EXTERN API
 
 static bool EnableAsserts = true;
-static bool EnableErrorOutput = true;
+extern bool EnableErrorOutput;
 
 #define HXSL_ASSERT(expr, message) \
     do { \

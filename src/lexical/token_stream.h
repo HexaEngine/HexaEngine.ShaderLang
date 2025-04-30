@@ -114,6 +114,7 @@ namespace HXSL
 		TokenCache cache;
 
 	public:
+		TokenStream() = default;
 		TokenStream(LexerState lexerState, LexerConfig* config) : streamState(TokenStreamState(lexerState)), config(config), currentStack(0)
 		{
 		}
@@ -322,7 +323,25 @@ namespace HXSL
 		{
 			Token token;
 			auto result = Expect(TokenType_Operator, token);
-			return result && op == static_cast<Operator>(token.Value);
+			if (!result || op != static_cast<Operator>(token.Value))
+			{
+				streamState.state.LogErrorFormatted("Unexpected token, expected an '%s'.", ToString(op));
+				return false;
+			}
+			return true;
+		}
+
+		template <typename... Args>
+		bool ExpectOperator(Operator op, const std::string& message, Args&&... args)
+		{
+			Token token;
+			auto result = Expect(TokenType_Operator, token);
+			if (!result || op != static_cast<Operator>(token.Value))
+			{
+				streamState.state.LogErrorFormatted(message, std::forward<Args>(args)...);
+				return false;
+			}
+			return true;
 		}
 
 		bool ExpectAnyOperator(Operator& op)
@@ -519,6 +538,12 @@ namespace HXSL
 		}
 
 		bool ExpectOperator(Operator op) { return tokenStream.ExpectOperator(op); }
+
+		template <typename... Args>
+		bool ExpectOperator(Operator op, const std::string& message, Args&&... args)
+		{
+			return tokenStream.ExpectOperator(op, message, std::forward<Args>(args)...);
+		}
 
 		bool ExpectAnyOperator(Operator& op) { return tokenStream.ExpectAnyOperator(op); }
 

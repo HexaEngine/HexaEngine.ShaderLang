@@ -8,7 +8,8 @@ namespace HXSL
 {
 	bool MemberPathParser::TryParse()
 	{
-		while (parsing)
+		bool first = true;
+		while (parsing && !stream.IsEndOfTokens() && !stream.HasCriticalErrors())
 		{
 			auto start = stream.Current();
 
@@ -16,7 +17,18 @@ namespace HXSL
 			if (wantsIdentifier)
 			{
 				TextSpan span;
-				IF_ERR_RET_FALSE(parser.TryParseSymbolInternal(SymbolRefType_Identifier, span));
+				if (!(parser.TryParseSymbolInternal(SymbolRefType_Identifier, span)))
+				{
+					if (first)
+					{
+						return false;
+					}
+
+					parser.LogError("Syntax error: unexpected token in member access expression.", start);
+					stream.TryAdvance();
+					continue;
+				}
+				first = false;
 				baseSymbol = LazySymbol(span, SymbolRefType_Identifier, false);
 			}
 

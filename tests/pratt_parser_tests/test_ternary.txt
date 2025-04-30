@@ -1,0 +1,23 @@
+#case
+#in
+5 ? 3 : 4;
+#ast
+[NodeType_TernaryExpression] ID: 2 Span: 5 ? 3 : 4 (Line: 1 Column: 1)
+  [NodeType_ConstantExpression] ID: 1 Span: 5 (Line: 1 Column: 1)
+  [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 5)
+  [NodeType_ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 9)
+
+#case
+#in
+a ? b : c ? d : e ? f : g;
+#ast
+[NodeType_TernaryExpression] ID: 2 Span: a ? b : c ? d : e ? f : g (Line: 1 Column: 1)
+  [NodeType_MemberReferenceExpression] ID: 1 Span: a (Line: 1 Column: 1)
+  [NodeType_MemberReferenceExpression] ID: 3 Span: b (Line: 1 Column: 5)
+  [NodeType_TernaryExpression] ID: 5 Span: c ? d : e ? f : g (Line: 1 Column: 9)
+    [NodeType_MemberReferenceExpression] ID: 4 Span: c (Line: 1 Column: 9)
+    [NodeType_MemberReferenceExpression] ID: 6 Span: d (Line: 1 Column: 13)
+    [NodeType_TernaryExpression] ID: 8 Span: e ? f : g (Line: 1 Column: 17)
+      [NodeType_MemberReferenceExpression] ID: 7 Span: e (Line: 1 Column: 17)
+      [NodeType_MemberReferenceExpression] ID: 9 Span: f (Line: 1 Column: 21)
+      [NodeType_MemberReferenceExpression] ID: 10 Span: g (Line: 1 Column: 25)

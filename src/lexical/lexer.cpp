@@ -13,7 +13,7 @@ namespace HXSL
 	{
 		static Token TokenizeStepInner(LexerState& state, LexerConfig* config)
 		{
-			char* pCurrent = state.Current();
+			const char* pCurrent = state.Current();
 			char current = *pCurrent;
 			size_t i = state.Index;
 			size_t len = state.Length;
@@ -119,20 +119,26 @@ namespace HXSL
 				return Token(state.AsTextSpan(i, identifierLength), state.TreatIdentiferAsLiteral ? TokenType_Literal : TokenType_Identifier);
 			}
 
-			state.Log(LogLevel_Critical, "Unknown token.");
+			state.Log(LogLevel_Error, "Unknown token.");
 			return {};
 		}
 
 		Token TokenizeStep(LexerState& state, LexerConfig* config)
 		{
-			char* pCurrent = state.Current();
-			char current = *pCurrent;
 			size_t i = state.Index;
+			if (i >= state.Length)
+			{
+				state.IndexNext++;
+				return {};
+			}
+
+			const char* pCurrent = state.Current();
+			char current = *pCurrent;
 
 			if (config->enableNewline && (current == '\n' || current == '\r'))
 			{
 				int width = 1;
-				char* next = pCurrent + 1;
+				const char* next = pCurrent + 1;
 				if (i + 1 < state.Length && *next == '\n')
 				{
 					width++;

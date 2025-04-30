@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(MSVC)
-    add_compile_options(/W3 /DEBUG /Od /Zi)
+    add_compile_options(/W3 /Od /Zi)
 else()
     add_compile_options(-Wall -Wextra -pedantic)
 endif()
@@ -14,6 +14,17 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 option(BUILD_TESTS "Enable Unit tests for compiler" ON)
+option(BUILD_SHARED "Build shared lib" OFF)
+option(BUILD_STATIC "Build static lib" ON)
+
+if(MSVC)
+    add_compile_options(
+        $<$<CONFIG:>:/MD>
+        $<$<CONFIG:Debug>:/MDd>
+        $<$<CONFIG:Release>:/MD>
+    )
+endif()
+
 
 # Add natvis file to the project if using Visual Studio
 if (MSVC)
@@ -55,6 +66,8 @@ file(GLOB SOURCES
 
     src/il/assembly.cpp
 
+    src/config.cpp
+
     src/ast_modules/ast_base.cpp
     src/ast_modules/container.cpp
     src/ast_modules/symbol_base.cpp
@@ -66,14 +79,19 @@ file(GLOB SOURCES
     src/ast_modules/swizzle_manager.cpp
 )
 
-add_library(Compiler SHARED ${SOURCES})
-add_library(CompilerStatic STATIC ${SOURCES})
+if (BUILD_SHARED)
+    add_library(Compiler SHARED ${SOURCES})
+endif()
 
-set_target_properties(CompilerStatic PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED YES
-    COMPILE_OPTIONS /MTd
-)
+if (BUILD_STATIC)
+    add_library(CompilerStatic STATIC ${SOURCES})
+
+    set_target_properties(CompilerStatic PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED YES
+    )
+endif()
+
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
 
@@ -101,8 +119,15 @@ if(BUILD_TESTS)
     set_target_properties(unit_tests PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES
-        COMPILE_OPTIONS /MTd 
     )
+
+    file(GLOB TXT_FILES ${CMAKE_SOURCE_DIR}/tests/pratt_parser_tests/*.txt)
+
+    if(TXT_FILES)
+        file(COPY ${TXT_FILES} DESTINATION ${CMAKE_BINARY_DIR}/pratt_parser_tests)
+    else()
+        message(WARNING "No .txt files found in ${CMAKE_SOURCE_DIR}/tests/pratt_parser_tests/")
+    endif()
 
     include(GoogleTest)
     gtest_discover_tests(unit_tests)

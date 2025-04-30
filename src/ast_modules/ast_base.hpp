@@ -433,13 +433,8 @@ namespace HXSL
 
 		virtual ~ASTNode()
 		{
-			if (parent)
-			{
-				parent->RemoveChild(this);
-				parent = nullptr;
-			}
 #ifdef DEBUG
-			else if (parentMissing)
+			if (parentMissing)
 			{
 				std::cout << "[Verbose]: (AST) Recovered from Parent is null (Destroyed): " << ToString(type) << " Span: " << span.toString() << std::endl;
 			}

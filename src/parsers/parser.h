@@ -183,7 +183,7 @@ namespace HXSL
 	class Parser
 	{
 	public:
-		TokenStream& stream;
+		TokenStream* stream;
 		int ScopeLevel;
 		int NamespaceScope;
 		Compilation* m_compilation;
@@ -195,7 +195,8 @@ namespace HXSL
 		TakeHandle<AttributeDeclaration> attribute;
 		ModifierList modifierList;
 
-		Parser(TokenStream& stream, Compilation* compilation) : stream(stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None)), modifierList({})
+		Parser() = default;
+		Parser(TokenStream& stream, Compilation* compilation) : stream(&stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None)), modifierList({})
 		{
 		}
 
@@ -203,7 +204,7 @@ namespace HXSL
 
 		Compilation* Compilation() const noexcept { return m_compilation; }
 
-		TokenStream& GetStream() noexcept { return stream; }
+		TokenStream& GetStream() noexcept { return *stream; }
 
 		int scopeLevel() const noexcept { return ScopeLevel; }
 
@@ -221,7 +222,7 @@ namespace HXSL
 		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
 		{
 			std::string format = message + " (Line: %i, Column: %i)";
-			stream.LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+			stream->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
 		}
 
 		template<typename... Args>
@@ -230,7 +231,7 @@ namespace HXSL
 			if (condition)
 			{
 				std::string format = message + " (Line: %i, Column: %i)";
-				stream.LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+				stream->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
 			}
 		}
 
@@ -244,7 +245,7 @@ namespace HXSL
 		{
 			if (!(scopeFlags() & flags))
 			{
-				LogError(message, stream.LastToken());
+				LogError(message, stream->LastToken());
 				return false;
 			}
 
@@ -293,7 +294,7 @@ namespace HXSL
 		template<typename... Args>
 		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretentOnError, const std::string& message, Args&&... args)
 		{
-			if (!stream.ExpectDelimiter('{', token, message, std::forward<Args>(args)...) && !pretentOnError)
+			if (!stream->ExpectDelimiter('{', token, message, std::forward<Args>(args)...) && !pretentOnError)
 			{
 				return false;
 			}

@@ -1,0 +1,9 @@
+#case
+#in
+a - b - c;
+#ast
+[NodeType_BinaryExpression] ID: 4 Span: a - b - c (Line: 1 Column: 1)
+  [NodeType_BinaryExpression] ID: 2 Span: a - b (Line: 1 Column: 1)
+    [NodeType_MemberReferenceExpression] ID: 1 Span: a (Line: 1 Column: 1)
+    [NodeType_MemberReferenceExpression] ID: 3 Span: b (Line: 1 Column: 5)
+  [NodeType_MemberReferenceExpression] ID: 5 Span: c (Line: 1 Column: 9)

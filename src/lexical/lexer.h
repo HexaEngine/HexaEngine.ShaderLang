@@ -20,7 +20,7 @@ namespace HXSL
 			ILogger* logger;
 
 		public:
-			char* Text;
+			const char* Text;
 			size_t Length;
 			size_t Index;
 			size_t IndexNext;
@@ -32,13 +32,13 @@ namespace HXSL
 				: logger(nullptr), Text(nullptr), Length(0), Index(0), IndexNext(0), Line(1), Column(1), TreatIdentiferAsLiteral(false) {
 			}
 
-			LexerState(ILogger* logger, char* text, size_t length)
+			LexerState(ILogger* logger, const char* text, size_t length)
 				: logger(logger), Text(text), Length(length), Index(0), IndexNext(0), Line(1), Column(1), TreatIdentiferAsLiteral(false) {
 			}
 
 			ILogger* GetLogger() const noexcept { return logger; }
 
-			char* Current() const noexcept
+			const char* Current() const noexcept
 			{
 				return Text + Index;
 			}
@@ -71,9 +71,9 @@ namespace HXSL
 
 			void SkipNewLines()
 			{
-				char* start = Text + Index;
-				char* current = start;
-				char* end = Text + Length;
+				const char* start = Text + Index;
+				const char* current = start;
+				const char* end = Text + Length;
 				char c;
 				while (current != end)
 				{
@@ -85,7 +85,7 @@ namespace HXSL
 					}
 
 					int width = 1;
-					char* next = current + 1;
+					const char* next = current + 1;
 					if (!isLF && next < end && *next == '\n')
 					{
 						width++;

@@ -25,6 +25,10 @@ namespace HXSL
 			: pool_(std::move(pool)) {
 		}
 
+		ReturnToPool_Deleter() : pool_({})
+		{
+		}
+
 		void operator()(T* ptr) {
 			if (auto pool_ptr = pool_.lock())
 				(*pool_ptr.get())->add(std::unique_ptr<T, D>{ptr});

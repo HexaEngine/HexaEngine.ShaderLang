@@ -344,7 +344,8 @@ namespace HXSL
 
 		const Operator& GetOperator() const noexcept override
 		{
-			return Operator_Ternary;
+			static const Operator _operator = Operator_Ternary;
+			return _operator;
 		}
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Condition, condition)
