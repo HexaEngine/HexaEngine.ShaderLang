@@ -479,5 +479,127 @@ namespace HXSL
 		InterpolationModifier Parser::ParseInterpolationModifiers(bool& anySpecified);
 		FunctionFlags ParseFunctionFlags();
 	};
+
+	struct ParserAdapter
+	{
+	protected:
+		Parser& parser;
+
+	public:
+		ParserAdapter(Parser& p) : parser(p) {}
+
+		Parser& GetParser()
+		{
+			return parser;
+		}
+
+		// Direct accessors
+		TokenStream& GetStream() noexcept { return parser.GetStream(); }
+		Compilation* GetCompilation() const noexcept { return parser.Compilation(); }
+		int GetScopeLevel() const noexcept { return parser.scopeLevel(); }
+		ScopeType GetScopeType() const noexcept { return parser.scopeType(); }
+		TextSpan GetScopeName() const noexcept { return parser.scopeName(); }
+		ASTNode* GetScopeParent() const noexcept { return parser.scopeParent(); }
+		ScopeFlags GetScopeFlags() const noexcept { return parser.scopeFlags(); }
+		ASTNode* GetParentNode() const noexcept { return parser.parentNode(); }
+
+		// Logging
+		template<typename... Args>
+		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
+		{
+			parser.LogError(message, span, std::forward<Args>(args)...);
+		}
+
+		template<typename... Args>
+		void LogErrorIf(bool condition, const std::string& message, const TextSpan& span, Args&&... args) const
+		{
+			parser.LogErrorIf(condition, message, span, std::forward<Args>(args)...);
+		}
+
+		template<typename... Args>
+		void LogError(const std::string& message, Token token, Args&&... args) const
+		{
+			parser.LogError(message, token, std::forward<Args>(args)...);
+		}
+
+		bool InScope(ScopeFlags flags) const noexcept { return parser.inScope(flags); }
+		bool InScope(ScopeFlags flags, const std::string& message) const noexcept { return parser.inScope(flags, message); }
+
+		void PushParentNode(ASTNode* parent) { parser.pushParentNode(parent); }
+		void PopParentNode() { parser.popParentNode(); }
+
+		bool IsInNamespaceScope(bool strict = false) const { return parser.IsInNamespaceScope(strict); }
+		bool IsInGlobalOrNamespaceScope() const { return parser.IsInGlobalOrNamespaceScope(); }
+
+		void RestoreFromPoint() { parser.RestoreFromPoint(); }
+
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, bool pretendOnError)
+		{
+			return parser.EnterScope(name, type, parent, pretendOnError);
+		}
+
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretendOnError)
+		{
+			return parser.EnterScope(name, type, parent, token, pretendOnError);
+		}
+
+		template<typename... Args>
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretendOnError, const std::string& message, Args&&... args)
+		{
+			return parser.EnterScope(name, type, parent, token, pretendOnError, message, std::forward<Args>(args)...);
+		}
+
+		bool SkipScope(Token& token) { return parser.SkipScope(token); }
+		bool IterateScope() { return parser.IterateScope(); }
+		bool TryRecoverScope(bool exitScope) { return parser.TryRecoverScope(exitScope); }
+		bool TryRecoverParameterList() { return parser.TryRecoverParameterList(); }
+		void TryRecoverStatement() { parser.TryRecoverStatement(); }
+
+		UsingDeclaration ParseUsingDeclaration() { return parser.ParseUsingDeclaration(); }
+		NamespaceDeclaration ParseNamespaceDeclaration(bool& scoped) { return parser.ParseNamespaceDeclaration(scoped); }
+
+		bool TryAdvance() { return parser.TryAdvance(); }
+		bool Parse() { return parser.Parse(); }
+
+		bool ParseSubStep(ASTNode* parent) { return parser.ParseSubStep(parent); }
+		void ParseInnerBegin() { parser.ParseInnerBegin(); }
+		bool ParseSubStepInner(ASTNode* parent) { return parser.ParseSubStepInner(parent); }
+		bool AttemptErrorRecovery(bool restorePoint = false) { return parser.AttemptErrorRecovery(restorePoint); }
+
+		template<typename... Args>
+		bool AcceptAttribute(TakeHandle<AttributeDeclaration>** attributeOut, const std::string& message, Args&&... args)
+		{
+			return parser.AcceptAttribute(attributeOut, message, std::forward<Args>(args)...);
+		}
+
+		template<typename... Args>
+		bool RejectAttribute(const std::string& message, Args&&... args)
+		{
+			return parser.RejectAttribute(message, std::forward<Args>(args)...);
+		}
+
+		template<typename... Args>
+		bool AcceptModifierList(ModifierList* modifierListOut, const ModifierList& allowed, const std::string& message, bool replaceMessage = false, Args&&... args)
+		{
+			return parser.AcceptModifierList(modifierListOut, allowed, message, replaceMessage, std::forward<Args>(args)...);
+		}
+
+		template<typename... Args>
+		bool RejectModifierList(const std::string& message, bool replaceMessage = false, Args&&... args)
+		{
+			return parser.RejectModifierList(message, replaceMessage, std::forward<Args>(args)...);
+		}
+
+		std::tuple<ParameterFlags, InterpolationModifier> ParseParameterFlags() { return parser.ParseParameterFlags(); }
+
+		bool TryParseSymbol(const SymbolRefType& type, LazySymbol& symbol) { return parser.TryParseSymbol(type, symbol); }
+
+		bool ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type) { return parser.ParseSymbol(expectedType, type); }
+
+		bool TryParseArraySizes(std::vector<size_t>& arraySizes) { return parser.TryParseArraySizes(arraySizes); }
+
+		void ParseArraySizes(std::vector<size_t>& arraySizes) { parser.ParseArraySizes(arraySizes); }
+	};
+
 }
 #endif

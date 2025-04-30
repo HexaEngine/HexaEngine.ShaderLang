@@ -190,7 +190,7 @@ namespace HXSL
 
 #define HANDLE_RESULT(expr) \
 	auto result = expr; \
-	if (result == 1) continue; else if (result == -1) return false;
+	if (result == 0) return true; else if (result == -1) return false;
 
 	using BinaryExpressionPtr = std::unique_ptr<BinaryExpression>;
 	using OperatorPtr = std::unique_ptr<OperatorExpression>;
@@ -203,23 +203,41 @@ namespace HXSL
 		return std::move(temp);
 	}
 
-	static ExpressionPtr ParseUnaryPostfix(Parser& parser, TokenStream& stream, ASTNode* parent, Operator op, ExpressionPtr operand)
+	enum TaskType
 	{
-		if (op != Operator_Increment && op != Operator_Decrement)
+		TaskType_Unknown,
+		TaskType_ParseExpression,
+		TaskType_TernaryTrue,
+		TaskType_TernaryFalse,
+		TaskType_Assignment,
+		TaskType_BracketClose,
+		TaskType_Cast,
+		TaskType_UnaryPrefix
+	};
+
+	struct TaskFrame
+	{
+		TaskType type;
+		size_t stackBoundary;
+		ASTNode* parent;
+		ExpressionPtr result;
+		bool wasOperator;
+		bool hadBrackets;
+		TextSpan start;
+
+		TaskFrame(const TaskType& type, const size_t& stackLimit, ASTNode* parent, ExpressionPtr result)
+			: type(type), stackBoundary(stackLimit), parent(parent), result(std::move(result)), wasOperator(true), hadBrackets(false)
 		{
-			parser.LogError("Invalid postfix operator.", stream.LastToken());
-			return false;
+		}
+		TaskFrame(const TaskType& type, const size_t& stackLimit, ASTNode* parent, ExpressionPtr result, TextSpan start)
+			: type(type), stackBoundary(stackLimit), parent(parent), result(std::move(result)), wasOperator(true), hadBrackets(false), start(start)
+		{
 		}
 
-		auto type = operand->GetType();
-		if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
+		TaskFrame() : type(TaskType_Unknown), stackBoundary(0), parent(nullptr), wasOperator(true), hadBrackets(false)
 		{
-			parser.LogError("Postfix increment/decrement must target a variable.", operand->GetSpan());
-			return false;
 		}
-
-		return std::make_unique<PostfixExpression>(stream.MakeFromLast(operand->GetSpan()), parent, op, std::move(operand));
-	}
+	};
 
 	static void ReduceOperator(std::stack<OperatorPtr>& operatorStack, std::stack<ExpressionPtr>& operandStack)
 	{
@@ -297,102 +315,195 @@ namespace HXSL
 		operandStack.push(std::move(expr));
 	}
 
-	enum TaskType
+	struct ParseContext : public TokenStreamAdapter, public ParserAdapter
 	{
-		TaskType_ParseExpression,
-		TaskType_TernaryTrue,
-		TaskType_TernaryFalse,
-		TaskType_Assignment,
-		TaskType_BracketClose,
-		TaskType_Cast,
-		TaskType_UnaryPrefix
-	};
+		std::stack<TaskFrame> tasks;
+		std::stack<ExpressionPtr> operandStack;
+		std::stack<OperatorPtr> operatorStack;
+		TaskFrame currentTask;
 
-	struct TaskFrame
-	{
-		TaskType type;
-		size_t stackBoundary;
-		ASTNode* parent;
-		ExpressionPtr result;
-		bool wasOperator;
-		bool hadBrackets;
-		TextSpan start;
-
-		TaskFrame(const TaskType& type, const size_t& stackLimit, ASTNode* parent, ExpressionPtr result)
-			: type(type), stackBoundary(stackLimit), parent(parent), result(std::move(result)), wasOperator(true), hadBrackets(false)
+		ParseContext(Parser& parser, TokenStream& stream) : TokenStreamAdapter(stream), ParserAdapter(parser)
 		{
 		}
-		TaskFrame(const TaskType& type, const size_t& stackLimit, ASTNode* parent, ExpressionPtr result, TextSpan start)
-			: type(type), stackBoundary(stackLimit), parent(parent), result(std::move(result)), wasOperator(true), hadBrackets(false), start(start)
+
+		bool NextTask()
 		{
+			if (tasks.empty())
+			{
+				return false;
+			}
+			currentTask = popFromStack(tasks);
+			return true;
+		}
+
+		void PushParseExpressionTask(ASTNode* parent)
+		{
+			tasks.push(TaskFrame(TaskType_ParseExpression, operatorStack.size(), parent, nullptr));
+		}
+
+		void PushBracketCloseTask(ASTNode* parent)
+		{
+			currentTask.hadBrackets = true;
+			PushCurrentTask();
+			tasks.push(TaskFrame(TaskType_BracketClose, operatorStack.size(), parent, nullptr, LastToken().Span));
+			PushParseExpressionTask(parent);
+		}
+
+		void PushCurrentTask()
+		{
+			tasks.push(std::move(currentTask));
+		}
+
+		void PushSubExpressionTask(TaskType type, ExpressionPtr&& expr)
+		{
+			auto ptr = expr.get();
+			PushCurrentTask();
+			tasks.push(TaskFrame(type, operatorStack.size(), ptr, std::move(expr)));
+			PushParseExpressionTask(ptr);
+		}
+
+		void PushSubTask(TaskType type, ExpressionPtr&& expr)
+		{
+			auto ptr = expr.get();
+			tasks.push(TaskFrame(type, operatorStack.size(), ptr, std::move(expr)));
+			PushParseExpressionTask(ptr);
+		}
+
+		template<typename ExpressionType, typename... Args>
+		void PushSubExpressionTask(TaskType type, Args&&... args)
+		{
+			PushSubExpressionTask(type, std::make_unique<ExpressionType>(std::forward<Args>(args)...));
+		}
+
+		void InjectTask(TaskType type, ExpressionPtr&& expr)
+		{
+			auto ptr = expr.get();
+			auto last = popFromStack(tasks);
+			tasks.push(TaskFrame(type, operatorStack.size(), ptr, std::move(expr)));
+			tasks.push(std::move(last));
+		}
+
+		void PushOperand(ExpressionPtr&& operand)
+		{
+			operandStack.push(std::move(operand));
+		}
+
+		void PushOperator(OperatorPtr&& _operator)
+		{
+			operatorStack.push(std::move(_operator));
+		}
+
+		template<typename ExpressionType, typename... Args>
+		void PushOperator(Args&&... args)
+		{
+			PushOperator(std::make_unique<ExpressionType>(std::forward<Args>(args)...));
+		}
+
+		ExpressionPtr PopOperand()
+		{
+			return popFromStack(operandStack);
+		}
+
+		bool HasOperand() const 
+		{
+			return !operandStack.empty();
+		}
+		
+		const ExpressionPtr& TopOperand() const
+		{
+			return operandStack.top();
+		}
+
+		void TryReduceOperators(int precedence)
+		{
+			while (operatorStack.size() > currentTask.stackBoundary && Operators::GetOperatorPrecedence(operatorStack.top()->GetOperator()) >= precedence)
+			{
+				ReduceOperator(operatorStack, operandStack);
+			}
+		}
+
+		void ReduceOperatorsFinal()
+		{
+			while (operatorStack.size() > currentTask.stackBoundary)
+			{
+				ReduceOperator(operatorStack, operandStack);
+			}
+		}
+
+		bool GetResult(ExpressionPtr& exprOut, ASTNode* parent)
+		{
+			if (operandStack.size() == 1)
+			{
+				exprOut = std::move(operandStack.top());
+				exprOut->SetParent(parent);
+				return true;
+			}
+			return false;
 		}
 	};
 
-	static int ParseOperandIter(Parser& parser, TokenStream& stream, ASTNode* parent, std::stack<TaskFrame>& tasks, TaskFrame& task, size_t stackBoundary, ExpressionPtr& expressionOut)
+	static ExpressionPtr ParseUnaryPostfix(ParseContext& context, ASTNode* parent, Operator op, ExpressionPtr operand)
 	{
-		if (stream.TryGetDelimiter('('))
+		if (op != Operator_Increment && op != Operator_Decrement)
 		{
-			task.hadBrackets = true;
-			tasks.push(std::move(task));
-			tasks.push(TaskFrame(TaskType_BracketClose, stackBoundary, parent, nullptr, stream.LastToken().Span));
-			tasks.push(TaskFrame(TaskType_ParseExpression, stackBoundary, parent, nullptr));
-			return 1;
+			context.LogError("Invalid postfix operator.", context.LastToken());
+			return false;
+		}
+
+		auto type = operand->GetType();
+		if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
+		{
+			context.LogError("Postfix increment/decrement must target a variable.", operand->GetSpan());
+			return false;
+		}
+
+		return std::make_unique<PostfixExpression>(context.MakeFromLast(operand->GetSpan()), parent, op, std::move(operand));
+	}
+
+	static int ParseOperandIter(ParseContext& context, ASTNode* parent)
+	{
+		if (context.TryGetDelimiter('('))
+		{
+			context.PushBracketCloseTask(parent);
+			return 0;
 		}
 		else
 		{
-			ExpressionPtr expression;
-			ExpressionParserRegistry::TryParse(parser, stream, parent, expression); // member expressions, function calls, indexer and other complex grammar.
-			expressionOut = std::move(expression);
+			context.PushCurrentTask();
+			// member expressions, function calls, indexer and other complex grammar.
+			ExpressionPtr expression;	
+			if (!ExpressionParserRegistry::TryParse(context.GetParser(), context.GetTokenStream(), parent, expression))
+			{
+				return -1;
+			}
+			context.PushOperand(std::move(expression));
 			return 0;
 		}
 	}
 
-	static int ParseUnaryPrefix(Parser& parser, TokenStream& stream, ASTNode* parent, Operator op, std::stack<TaskFrame>& tasks, TaskFrame& task, size_t stackBoundary, ExpressionPtr& expressionOut)
+	static int ParseUnaryPrefix(ParseContext& context, ASTNode* parent, Operator op)
 	{
-		auto start = stream.LastToken().Span;
+		auto start = context.LastToken().Span;
 		auto unary = std::make_unique<PrefixExpression>(start, parent, op, nullptr);;
 
-		ExpressionPtr operand;
-		auto result = ParseOperandIter(parser, stream, unary.get(), tasks, task, stackBoundary, operand);
-		if (result == 1)
+		auto result = ParseOperandIter(context, unary.get());
+		if (result == -1)
 		{
-			auto ptr = unary.get();
-			auto last = popFromStack(tasks);
-			tasks.push(TaskFrame(TaskType_UnaryPrefix, stackBoundary, ptr, std::move(unary)));
-			tasks.push(std::move(last));
-			return 1;
-		}
-		else if (result != 0)
-		{
-			return result;
+			return -1;
 		}
 
-		if (op == Operator_Increment || op == Operator_Decrement)
-		{
-			auto type = operand->GetType();
-			if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
-			{
-				parser.LogError("Prefix increment/decrement must target a variable.", operand->GetSpan());
-				return -1;
-			}
-		}
-
-		unary->SetOperand(std::move(operand));
-		unary->SetSpan(stream.MakeFromLast(start));
-
-		expressionOut = std::move(unary);
+		context.InjectTask(TaskType_UnaryPrefix, std::move(unary));
 		return 0;
 	}
 
-	static bool PerformParse(Parser& parser, TokenStream& stream, std::stack<TaskFrame>& tasks, TaskFrame& task, std::stack<ExpressionPtr>& operandStack, std::stack<OperatorPtr>& operatorStack)
+	static bool PerformParse(ParseContext& context)
 	{
-		ASTNode*& parent = task.parent;
-
-		bool& wasOperator = task.wasOperator;
-		bool& hadBrackets = task.hadBrackets;
-		while (!stream.IsEndOfTokens() && !stream.HasCriticalErrors())
+		ASTNode*& parent = context.currentTask.parent;
+		bool& wasOperator = context.currentTask.wasOperator;
+		bool& hadBrackets = context.currentTask.hadBrackets;
+		while (!context.IsEndOfTokens() && !context.HasCriticalErrors())
 		{
-			auto current = stream.Current();
+			auto current = context.Current();
 
 			if (current.isOperatorOf(Operator_TernaryElse))
 			{
@@ -400,59 +511,39 @@ namespace HXSL
 			}
 
 			Operator op;
-			if (stream.TryGetAnyOperator(op))
+			if (context.TryGetAnyOperator(op))
 			{
 				if (Operators::isUnaryOperator(op) && (op != Operator_Subtract || (op == Operator_Subtract && wasOperator)))
 				{
 					if (wasOperator)
 					{
 						ExpressionPtr unary;
-						auto result = ParseUnaryPrefix(parser, stream, parent, op, tasks, task, operatorStack.size(), unary);
-						if (result == 1)
-						{
-							return true;
-						}
-						operandStack.push(std::move(unary));
+						HANDLE_RESULT(ParseUnaryPrefix(context, parent, op));
 					}
 					else
 					{
-						ExpressionPtr operand = std::move(operandStack.top());
-						operandStack.pop();
-						operandStack.push(ParseUnaryPostfix(parser, stream, parent, op, std::move(operand)));
+						ExpressionPtr operand = context.PopOperand();
+						context.PushOperand(ParseUnaryPostfix(context, parent, op, std::move(operand)));
 					}
 
 					continue;
 				}
-
-				int precedence = Operators::GetOperatorPrecedence(op);
-				while (operatorStack.size() > task.stackBoundary && Operators::GetOperatorPrecedence(operatorStack.top()->GetOperator()) >= precedence)
-				{
-					ReduceOperator(operatorStack, operandStack);
-				}
+	
+				context.TryReduceOperators(Operators::GetOperatorPrecedence(op));
 
 				if (Operators::isTernaryOperator(op))
 				{
-					auto expr = std::make_unique<TernaryExpression>(current.Span, parent, nullptr, nullptr, nullptr);
-					auto ptr = expr.get();
-					tasks.push(std::move(task));
-					tasks.push(TaskFrame(TaskType_TernaryTrue, operatorStack.size(), ptr, std::move(expr)));
-					tasks.push(TaskFrame(TaskType_ParseExpression, operatorStack.size(), ptr, nullptr));
+					context.PushSubExpressionTask<TernaryExpression>(TaskType_TernaryTrue, current.Span, parent, nullptr, nullptr, nullptr);
 					return true;
 				}
 				else if (Operators::isAssignment(op))
 				{
-					auto expr = std::make_unique<AssignmentExpression>(current.Span, parent, op, nullptr, nullptr);
-					auto ptr = expr.get();
-					tasks.push(std::move(task));
-					tasks.push(TaskFrame(TaskType_Assignment, operatorStack.size(), ptr, std::move(expr)));
-					tasks.push(TaskFrame(TaskType_ParseExpression, operatorStack.size(), ptr, nullptr));
+					context.PushSubExpressionTask<AssignmentExpression>(TaskType_Assignment, current.Span, parent, op, nullptr, nullptr);
 					return true;
 				}
-				else // binary
+				else
 				{
-					auto binary = std::make_unique<BinaryExpression>(current.Span, parent, op, nullptr, nullptr);
-					parent = binary.get();
-					operatorStack.push(std::move(binary));
+					context.PushOperator<BinaryExpression>(current.Span, parent, op, nullptr, nullptr);
 					wasOperator = true;
 				}
 
@@ -460,49 +551,34 @@ namespace HXSL
 			}
 			else if (current.isDelimiterOf('(') || current.isLiteral() || current.isNumeric() || current.isIdentifier())
 			{
-				if (hadBrackets && !operandStack.empty())
+				if (hadBrackets && context.HasOperand())
 				{
-					auto left = popFromStack(operandStack);
+					auto left = context.PopOperand();
 					auto type = left->GetType();
 
 					if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
 					{
-						parser.LogError("Expected an type in cast expression.", left->GetSpan());
+						context.LogError("Expected an type in cast expression.", left->GetSpan());
 						return false;
 					}
 
 					std::unique_ptr<SymbolRef> typeRef;
 					ParserHelper::MakeConcreteSymbolRef(left.get(), SymbolRefType_Type, typeRef);
 
-					auto cast = std::make_unique<CastExpression>(left->GetSpan(), parent, std::move(typeRef), nullptr);
-
-					ExpressionPtr right;
-					auto result = ParseOperandIter(parser, stream, cast.get(), tasks, task, operandStack.size(), right);
-					if (result == 1)
+					auto cast = std::make_unique<CastExpression>(left->GetSpan(), parent, std::move(typeRef), nullptr);		
+					auto result = ParseOperandIter(context, cast.get());
+					if (result == -1)
 					{
-						auto ptr = cast.get();
-						auto last = popFromStack(tasks);
-						tasks.push(TaskFrame(TaskType_Cast, operandStack.size(), ptr, std::move(cast)));
-						tasks.push(std::move(last));
-						return true;
+						return false;
 					}
-
-					cast->SetOperand(std::move(right));
-					cast->SetSpan(stream.MakeFromLast(left->GetSpan()));
-
-					operandStack.push(std::move(cast));
+					
+					context.InjectTask(TaskType_Cast, std::move(cast));
 					wasOperator = false;
-					continue;
-				}
-
-				ExpressionPtr operand;
-				auto result = ParseOperandIter(parser, stream, parent, tasks, task, operandStack.size(), operand);
-				if (result == 1)
-				{
 					return true;
 				}
-				operandStack.push(std::move(operand));
+
 				wasOperator = false;
+				HANDLE_RESULT(ParseOperandIter(context, parent));
 			}
 			else if (current.isDelimiterOf(expressionDelimiters))
 			{
@@ -514,74 +590,82 @@ namespace HXSL
 			}
 		}
 
-		while (operatorStack.size() > task.stackBoundary)
-		{
-			ReduceOperator(operatorStack, operandStack);
-		}
+		context.ReduceOperatorsFinal();
+		return true;
 	}
 
 	bool PrattParser::ParseExpressionInnerIterGen2(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expressionOut)
 	{
-		std::stack<TaskFrame> tasks;
-		std::stack<ExpressionPtr> operandStack;
-		std::stack<OperatorPtr> operatorStack;
-		tasks.push(TaskFrame(TaskType_ParseExpression, 0, parent, nullptr));
+		ParseContext context = ParseContext(parser, stream);
+		context.PushParseExpressionTask(parent);
 
-		while (!tasks.empty())
+		while (context.NextTask())
 		{
-			TaskFrame frame = popFromStack(tasks);
+			TaskFrame& frame = context.currentTask;
 
 			switch (frame.type)
 			{
 			case TaskType_ParseExpression:
-				PerformParse(parser, stream, tasks, frame, operandStack, operatorStack);
+				IF_ERR_RET_FALSE(PerformParse(context));
 				break;
 			case TaskType_TernaryTrue:
 			{
 				auto expr = static_cast<TernaryExpression*>(frame.result.get());
-				expr->SetTrueBranch(popFromStack(operandStack));
+				expr->SetTrueBranch(context.PopOperand());
 				stream.ExpectOperator(Operator_TernaryElse);
-				tasks.push(TaskFrame(TaskType_TernaryFalse, operatorStack.size(), expr, std::move(frame.result)));
-				tasks.push(TaskFrame(TaskType_ParseExpression, operatorStack.size(), expr, nullptr));
+				context.PushSubTask(TaskType_TernaryFalse, std::move(frame.result));
 			}
 			break;
 			case TaskType_TernaryFalse:
 			{
 				auto expr = std::unique_ptr<TernaryExpression>(static_cast<TernaryExpression*>(frame.result.release()));
-				expr->SetFalseBranch(popFromStack(operandStack));
+				expr->SetFalseBranch(context.PopOperand());
 				expr->SetSpan(expr->GetSpan().merge(expr->GetFalseBranch()->GetSpan()));
-				operatorStack.push(std::move(expr));
+				context.PushOperator(std::move(expr));
 			}
 			break;
 			case TaskType_Assignment:
 			{
 				auto expr = std::unique_ptr<AssignmentExpression>(static_cast<AssignmentExpression*>(frame.result.release()));
-				expr->SetExpression(std::move(popFromStack(operandStack)));
+				expr->SetExpression(context.PopOperand());
 				expr->SetSpan(expr->GetSpan().merge(expr->GetExpression()->GetSpan()));
-				operatorStack.push(std::move(expr));
+				context.PushOperator(std::move(expr));
 			}
 			break;
 			case TaskType_BracketClose:
 			{
 				stream.ExpectDelimiter(')');
-				auto& top = operandStack.top();
+				auto& top = context.TopOperand();
 				top->SetSpan(stream.MakeFromLast(frame.start));
 			}
 			break;
 			case TaskType_Cast:
 			{
 				auto expr = std::unique_ptr<CastExpression>(static_cast<CastExpression*>(frame.result.release()));
-				expr->SetOperand(std::move(popFromStack(operandStack)));
+				expr->SetOperand(context.PopOperand());
 				expr->SetSpan(expr->GetSpan().merge(expr->GetOperand()->GetSpan()));
-				operandStack.push(std::move(expr));
+				context.PushOperand(std::move(expr));
 			}
 			break;
 			case TaskType_UnaryPrefix:
 			{
 				auto expr = std::unique_ptr<PrefixExpression>(static_cast<PrefixExpression*>(frame.result.release()));
-				expr->SetOperand(std::move(popFromStack(operandStack)));
+				auto operand = context.PopOperand();
+				auto op = expr->GetOperator();
+
+				if (op == Operator_Increment || op == Operator_Decrement)
+				{
+					auto type = operand->GetType();
+					if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
+					{
+						parser.LogError("Prefix increment/decrement must target a variable.", operand->GetSpan());
+						return false;
+					}
+				}
+
+				expr->SetOperand(std::move(operand));
 				expr->SetSpan(stream.MakeFromLast(expr->GetSpan()));
-				operandStack.push(std::move(expr));
+				context.PushOperand(std::move(expr));
 			}
 			break;
 			default:
@@ -589,14 +673,7 @@ namespace HXSL
 			}
 		}
 
-		if (operandStack.size() == 1)
-		{
-			expressionOut = std::move(operandStack.top());
-			expressionOut->SetParent(parent);
-			return true;
-		}
-
-		return false;
+		return context.GetResult(expressionOut, parent);
 	}
 
 	bool PrattParser::ParseExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression)

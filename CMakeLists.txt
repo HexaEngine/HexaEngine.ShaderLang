@@ -6,12 +6,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(MSVC)
-    add_compile_options(/W3 /DEBUG /Od /Zi)  # For MSVC (Visual Studio)
+    add_compile_options(/W3 /DEBUG /Od /Zi)
 else()
-    add_compile_options(-Wall -Wextra -pedantic)  # For GCC/Clang
+    add_compile_options(-Wall -Wextra -pedantic)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
+
+option(BUILD_TESTS "Enable Unit tests for compiler" ON)
 
 # Add natvis file to the project if using Visual Studio
 if (MSVC)
@@ -22,7 +24,6 @@ if (MSVC)
         list(APPEND EXTRA_SOURCES ${NATVIS_FILE})
     endif()
 endif()
-
 
 file(GLOB SOURCES
     src/lexical/lexer.cpp
@@ -68,5 +69,43 @@ file(GLOB SOURCES
 add_library(Compiler SHARED ${SOURCES})
 add_library(CompilerStatic STATIC ${SOURCES})
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/test)
-add_subdirectory(${PROJECT_SOURCE_DIR}/tools)
+set_target_properties(CompilerStatic PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED YES
+    COMPILE_OPTIONS /MTd
+)
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
+
+if(BUILD_TESTS)
+    if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/googletest")
+        message(STATUS "GoogleTest submodule is not initialized, initializing now...")
+        execute_process(COMMAND git submodule update --init --recursive)
+    endif()
+
+    add_subdirectory(external/googletest)
+
+    enable_testing()
+
+    add_executable(unit_tests
+        tests/pratt_parser_tests.cpp
+    )
+
+    target_link_libraries(unit_tests
+        PRIVATE
+            gtest
+            gtest_main
+            CompilerStatic
+    )
+
+    set_target_properties(unit_tests PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED YES
+        COMPILE_OPTIONS /MTd 
+    )
+
+    include(GoogleTest)
+    gtest_discover_tests(unit_tests)
+else()
+    message(STATUS "GoogleTest is disabled. Skipping tests.")
+endif()

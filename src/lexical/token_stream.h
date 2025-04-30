@@ -454,5 +454,119 @@ namespace HXSL
 			return true;
 		}
 	};
+
+	struct TokenStreamAdapter
+	{
+	private:
+		TokenStream& tokenStream;
+
+	public:
+		TokenStreamAdapter(TokenStream& ts) : tokenStream(ts) {}
+
+		TokenStream& GetTokenStream() const
+		{
+			return tokenStream;
+		}
+
+		bool IsEndOfTokens() const { return tokenStream.IsEndOfTokens(); }
+		Token LastToken() const { return tokenStream.LastToken(); }
+		Token Current() const { return tokenStream.Current(); }
+
+		TextSpan MakeFromLast(const TextSpan& span) const { return tokenStream.MakeFromLast(span); }
+		TextSpan MakeFromLast(const Token& token) const { return tokenStream.MakeFromLast(token); }
+
+		bool HasCriticalErrors() const noexcept { return tokenStream.HasCriticalErrors(); }
+
+		// Restore points
+		void MakeRestorePoint() { tokenStream.MakeRestorePoint(); }
+		void RestoreFromPoint() { tokenStream.RestoreFromPoint(); }
+
+		void PushState() { tokenStream.PushState(); }
+		void PopState(bool restore = true) { tokenStream.PopState(restore); }
+
+		// Token advancing
+		void Advance() { tokenStream.Advance(); }
+		bool TryAdvance() { return tokenStream.TryAdvance(); }
+
+		// Token retrieval
+		bool TryGetToken(TokenType type, Token& current) const { return tokenStream.TryGetToken(type, current); }
+
+		bool TryGetTypeValue(TokenType type, int value) { return tokenStream.TryGetTypeValue(type, value); }
+
+		bool TryGetTypeAnyValue(TokenType type, int& value) { return tokenStream.TryGetTypeAnyValue(type, value); }
+
+		bool TryGetDelimiter(char delimiter) { return tokenStream.TryGetDelimiter(delimiter); }
+
+		bool TryGetKeyword(Keyword keyword) { return tokenStream.TryGetKeyword(keyword); }
+
+		bool TryGetKeywords(const std::unordered_set<Keyword>& keywords) { return tokenStream.TryGetKeywords(keywords); }
+
+		bool TryGetOperator(Operator op) { return tokenStream.TryGetOperator(op); }
+
+		bool TryGetUnaryOperator(Operator& op) { return tokenStream.TryGetUnaryOperator(op); }
+
+		bool TryGetAnyOperator(Operator& op) { return tokenStream.TryGetAnyOperator(op); }
+
+		bool TryGetIdentifier(TextSpan& span) { return tokenStream.TryGetIdentifier(span); }
+
+		bool TryGetLiteral(TextSpan& span) { return tokenStream.TryGetLiteral(span); }
+
+		bool TryGetNumber(Number& number) { return tokenStream.TryGetNumber(number); }
+
+		bool Expect(TokenType type, Token& current, bool advance = true)
+		{
+			return tokenStream.Expect(type, current, advance);
+		}
+
+		bool ExpectOperator(Operator op) { return tokenStream.ExpectOperator(op); }
+
+		bool ExpectAnyOperator(Operator& op) { return tokenStream.ExpectAnyOperator(op); }
+
+		bool ExpectLiteral(TextSpan& literal) { return tokenStream.ExpectLiteral(literal); }
+
+		bool ExpectIdentifier(TextSpan& identifier) { return tokenStream.ExpectIdentifier(identifier); }
+
+		bool ExpectCodeblock(TextSpan& literal) { return tokenStream.ExpectCodeblock(literal); }
+
+		bool ExpectKeyword(const Keyword& keyword) { return tokenStream.ExpectKeyword(keyword); }
+
+		bool ExpectKeywords(const std::unordered_set<Keyword>& keywords, Keyword& keyword)
+		{
+			return tokenStream.ExpectKeywords(keywords, keyword);
+		}
+
+		bool ExpectDelimiter(char delimiter, Token& token) { return tokenStream.ExpectDelimiter(delimiter, token); }
+
+		bool ExpectDelimiter(char delimiter) { return tokenStream.ExpectDelimiter(delimiter); }
+
+		template <typename... Args>
+		bool ExpectDelimiter(char delimiter, Token& token, const std::string& message, Args&&... args)
+		{
+			return tokenStream.ExpectDelimiter(delimiter, token, message, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectDelimiter(char delimiter, const std::string& message, Args&&... args)
+		{
+			return tokenStream.ExpectDelimiter(delimiter, message, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectNumeric(Number& numberOut, Token& token, const std::string& message, Args&&... args)
+		{
+			return tokenStream.ExpectNumeric(numberOut, token, message, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectNumeric(Number& numberOut, const std::string& message, Args&&... args)
+		{
+			return tokenStream.ExpectNumeric(numberOut, message, std::forward<Args>(args)...);
+		}
+
+		bool ExpectNoDelimiters(const std::unordered_set<char>& delimiters)
+		{
+			return tokenStream.ExpectNoDelimiters(delimiters);
+		}
+	};
 }
 #endif
