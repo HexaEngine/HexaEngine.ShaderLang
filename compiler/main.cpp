@@ -1,9 +1,13 @@
 #include "hxls_compiler.hpp"
 
+
 using namespace HXSL;
 
 int main()
 {
+
+	SetLocale("en_US");
+
 	AssemblyCollection collection;
 	HXSLCompiler::Compile({ "library.txt" }, "library.module", collection);
 

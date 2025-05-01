@@ -12,6 +12,7 @@ else()
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/include)
 
 option(BUILD_TESTS "Enable Unit tests for compiler" ON)
 option(BUILD_SHARED "Build shared lib" OFF)
@@ -67,7 +68,7 @@ file(GLOB SOURCES
     src/il/assembly.cpp
 
     src/config.cpp
-
+    src/localization.cpp
     src/ast_modules/ast_base.cpp
     src/ast_modules/container.cpp
     src/ast_modules/symbol_base.cpp
@@ -79,19 +80,54 @@ file(GLOB SOURCES
     src/ast_modules/swizzle_manager.cpp
 )
 
+find_package(Python3 REQUIRED)
+
+set(LOCALES en_US)
+set(LOCALES_GEN_TOOL "${CMAKE_SOURCE_DIR}/tools/locales_gen.py")
+set(GENERATED_HEADER_DIR "${CMAKE_SOURCE_DIR}/include/generated")
+set(GENERATED_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/generated")
+set(LOCALE_DIR "${GENERATED_SOURCE_DIR}/locales")
+
+execute_process(
+        COMMAND ${Python3_EXECUTABLE} ${LOCALES_GEN_TOOL} --locale all --out_hpp "${GENERATED_HEADER_DIR}/localization.hpp" --out_locales "${CMAKE_SOURCE_DIR}/resources/locales_out"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+
+add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/locales"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/locales"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/resources/locales_out"
+            "${CMAKE_BINARY_DIR}/locales"
+    COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/locales"
+    COMMENT "Copying locale files"
+)
+
+add_custom_target(copy_locales ALL DEPENDS "${CMAKE_BINARY_DIR}/locales")
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/build/cmake)
+target_include_directories(zstd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/lib/)
+
 if (BUILD_SHARED)
     add_library(Compiler SHARED ${SOURCES})
+
+    target_link_libraries(Compiler PRIVATE libzstd_static)
+
+    add_dependencies(Compiler copy_locales)
 endif()
 
 if (BUILD_STATIC)
     add_library(CompilerStatic STATIC ${SOURCES})
+
+    target_link_libraries(CompilerStatic PRIVATE libzstd_static)
+
+    add_dependencies(CompilerStatic copy_locales)
 
     set_target_properties(CompilerStatic PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES
     )
 endif()
-
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
 
@@ -134,3 +170,4 @@ if(BUILD_TESTS)
 else()
     message(STATUS "GoogleTest is disabled. Skipping tests.")
 endif()
+

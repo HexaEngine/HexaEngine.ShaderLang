@@ -6,6 +6,7 @@ add_executable(HXSLCompiler main.cpp)
 
 target_link_libraries(HXSLCompiler CompilerStatic)
 
+add_dependencies(HXSLCompiler copy_locales)
 
 set(SOURCE_FILES
     ${CMAKE_SOURCE_DIR}/compiler/intrinsics.txt

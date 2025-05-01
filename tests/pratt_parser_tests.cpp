@@ -1,4 +1,5 @@
 #include "common.hpp"
+#include "generated/localization.hpp"
 
 TEST_P(PrattParserTest, TestWithParameter)
 {

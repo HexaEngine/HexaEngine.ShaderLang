@@ -3,6 +3,7 @@
 
 #include "parsers/parser.h"
 #include "analyzers/analyzer.hpp"
+#include "generated/localization.hpp"
 
 namespace HXSL
 {
