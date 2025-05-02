@@ -3,6 +3,7 @@
 #include "utils/tst.hpp"
 #include "io/log.h"
 #include "numbers.h"
+#include "generated/localization.hpp"
 
 #include <stdexcept>
 #include <cctype>
@@ -68,18 +69,6 @@ namespace HXSL
 				return Token(state.AsTextSpan(i, 1), TokenType_Delimiter);
 			}
 
-			if (config->enableCodeblock && state.MatchPair(current, '<', '!'))
-			{
-				size_t trackedLength;
-				if (!state.LookAhead(i + 2, "!>", trackedLength))
-				{
-					state.LogError("Inbalanced code block.");
-					return {};
-				}
-				state.IndexNext += trackedLength + 4;
-				return Token(state.AsTextSpan(i + 2, trackedLength - 1), TokenType_Codeblock);
-			}
-
 			if (state.MatchPair(current, '/', '/'))
 			{
 				size_t lineCommentLen = state.FindEndOfLine(i + 2);
@@ -93,7 +82,7 @@ namespace HXSL
 				size_t trackedLength;
 				if (!state.LookAhead(i + 2, "*/", trackedLength))
 				{
-					state.LogError("Inbalanced comment block.");
+					state.LogFormatted(MISSING_END_COMMENT);
 					return {};
 				}
 				state.IndexNext += trackedLength + 4;
@@ -105,7 +94,7 @@ namespace HXSL
 				size_t trackedLength;
 				if (!state.LookAhead(i + 1, '"', trackedLength))
 				{
-					state.LogError("Inbalanced literal.");
+					state.LogFormatted(MISSING_QUOTE);
 					return {};
 				}
 				state.IndexNext += trackedLength + 2;
@@ -119,7 +108,7 @@ namespace HXSL
 				return Token(state.AsTextSpan(i, identifierLength), state.TreatIdentiferAsLiteral ? TokenType_Literal : TokenType_Identifier);
 			}
 
-			state.Log(LogLevel_Error, "Unknown token.");
+			state.LogFormatted(INVALID_TOKEN);
 			return {};
 		}
 

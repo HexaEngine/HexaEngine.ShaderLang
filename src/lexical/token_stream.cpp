@@ -1,4 +1,5 @@
 #include "token_stream.h"
+#include <generated/localization.hpp>
 
 namespace HXSL
 {
@@ -15,6 +16,7 @@ namespace HXSL
 		{
 			streamState = stack.top();
 		}
+		/*
 		else if (currentStack == 0)
 		{
 			auto& state = streamState;
@@ -23,7 +25,7 @@ namespace HXSL
 			{
 				cache.Flush(state.tokenPosition);
 			}
-		}
+		}*/
 		stack.pop();
 	}
 
@@ -33,7 +35,7 @@ namespace HXSL
 		{
 			if (IsEndOfTokens())
 			{
-				streamState.state.LogError("Unexpected end of stream.");
+				LogFormatted(UNEXPECTED_EOS, "");
 			}
 		}
 	}
@@ -47,6 +49,7 @@ namespace HXSL
 
 		state.lastToken = currentToken;
 
+		/*
 		if (cache.CanAccess(state.tokenPosition))
 		{
 			if (currentStack == 0)
@@ -61,7 +64,7 @@ namespace HXSL
 			state.tokenPosition++;
 			return true;
 		}
-
+		*/
 		do
 		{
 			if (IsEndOfTokens() || lexerState.HasCriticalErrors())

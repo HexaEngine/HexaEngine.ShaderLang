@@ -15,7 +15,7 @@ namespace HXSL
 		{
 			parser.RejectAttribute("is not allowed in this context.");
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop | ScopeFlags_InsideSwitch, "'break' statement used outside of a loop or switch context."));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
+			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
 			statementOut = std::make_unique<BreakStatement>(TextSpan(), parser.parentNode());
 			return true;
 		}
@@ -23,7 +23,7 @@ namespace HXSL
 		{
 			parser.RejectAttribute("is not allowed in this context.");
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop, "'continue' statement used outside of a loop context."));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
+			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
 			statementOut = std::make_unique<ContinueStatement>(TextSpan(), parser.parentNode());
 			return true;
 		}
@@ -31,7 +31,7 @@ namespace HXSL
 		{
 			parser.RejectAttribute("is not allowed in this context.");
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideFunction));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
+			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
 			statementOut = std::make_unique<DiscardStatement>(TextSpan(), parser.parentNode());
 			return true;
 		}
@@ -64,7 +64,7 @@ namespace HXSL
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, "");
 
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter('('));
+		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 
 		auto forStatement = std::make_unique<ForStatement>(TextSpan(), parser.parentNode());
 
@@ -80,12 +80,12 @@ namespace HXSL
 
 		std::unique_ptr<Expression> condition;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, forStatement.get(), condition));
-		stream.ExpectDelimiter(';');
+		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 		forStatement->SetCondition(std::move(condition));
 
 		std::unique_ptr<Expression> iteration;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, forStatement.get(), iteration));
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')'));
+		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		forStatement->SetIteration(std::move(iteration));
 
 		std::unique_ptr<BlockStatement> body; // TODO: single line statements.
@@ -100,16 +100,28 @@ namespace HXSL
 
 	static bool ParseCaseInner(Parser& parser, TokenStream& stream, ASTNode* parent, StatementContainer* container)
 	{
-		static const std::unordered_set<char> unexpectedDelimiters = { '}', ')', '.', ':' };
 		static const std::unordered_set<NodeType> breakoutTypes = { NodeType_BreakStatement, NodeType_ReturnStatement, NodeType_ContinueStatement, NodeType_DiscardStatement };
 
 		while (true)
 		{
-			IF_ERR_RET_FALSE(stream.ExpectNoDelimiters(unexpectedDelimiters));
-			IF_ERR_RET_FALSE(ParseStatementBodyInner(parser, stream, parent, container, true));
+			if (ParseStatementBodyInner(parser, stream, parent, container, true))
+			{
+				HXSL_ASSERT(parser.modifierList.Empty(), "Modifier list was not empty, forgot to accept/reject it?.");
+				HXSL_ASSERT(!parser.attribute.HasResource(), "Attribute list was not empty, forgot to accept/reject it?.");
+			}
+			else
+			{
+				if (!parser.TryRecoverScope(true))
+				{
+					break;
+				}
+			}
 			auto& statements = container->GetStatements();
-			auto& last = statements[statements.size() - 1];
-			if (last->IsAnyTypeOf(breakoutTypes)) break;
+			if (!statements.empty())
+			{
+				auto& last = statements.back();
+				if (last->IsAnyTypeOf(breakoutTypes)) break;
+			}
 		}
 
 		return true;
@@ -127,7 +139,7 @@ namespace HXSL
 		TakeHandle<AttributeDeclaration>* attribute;
 		parser.AcceptAttribute(&attribute, "");
 
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter('('));
+		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 		auto switchStatement = std::make_unique<SwitchStatement>(TextSpan(), parser.parentNode());
 		if (attribute->HasResource())
 		{
@@ -135,7 +147,7 @@ namespace HXSL
 		}
 		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, switchStatement.get(), expression));
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')'));
+		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		switchStatement->SetExpression(std::move(expression));
 
 		parser.EnterScope(TextSpan(), ScopeType_Switch, switchStatement.get(), true);
@@ -146,7 +158,7 @@ namespace HXSL
 		{
 			Keyword keyword;
 			auto caseStart = stream.Current();
-			IF_ERR_RET_FALSE(stream.ExpectKeywords(keywords, keyword));
+			IF_ERR_RET_FALSE(stream.ExpectKeywords(keywords, keyword, EXPECTED_CASE_OR_DEFAULT));
 
 			if (keyword == Keyword_Case)
 			{
@@ -154,7 +166,7 @@ namespace HXSL
 				std::unique_ptr<Expression> caseExpression;
 				IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, caseStatement.get(), caseExpression));
 				caseStatement->SetExpression(std::move(caseExpression));
-				IF_ERR_RET_FALSE(stream.ExpectOperator(Operator_Colon));
+				IF_ERR_RET_FALSE(stream.ExpectOperator(Operator_Colon, EXPECTED_COLON));
 				IF_ERR_RET_FALSE(ParseCaseInner(parser, stream, caseStatement.get(), caseStatement.get()));
 				caseStatement->SetSpan(stream.MakeFromLast(caseStart));
 				switchStatement->AddCase(std::move(caseStatement));
@@ -166,7 +178,7 @@ namespace HXSL
 					ERR_RETURN_FALSE(parser, "Cannot declare two default cases in a switch-case.");
 				}
 
-				IF_ERR_RET_FALSE(stream.ExpectOperator(Operator_Colon));
+				IF_ERR_RET_FALSE(stream.ExpectOperator(Operator_Colon, EXPECTED_COLON));
 				auto defaultCaseStatement = std::make_unique<DefaultCaseStatement>(TextSpan(), switchStatement.get());
 				IF_ERR_RET_FALSE(ParseCaseInner(parser, stream, defaultCaseStatement.get(), defaultCaseStatement.get()));
 				defaultCaseStatement->SetSpan(stream.MakeFromLast(caseStart));
@@ -191,7 +203,7 @@ namespace HXSL
 		TakeHandle<AttributeDeclaration>* attribute;
 		parser.AcceptAttribute(&attribute, "");
 
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter('('));
+		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 		auto ifStatement = std::make_unique<IfStatement>(TextSpan(), parser.parentNode(), nullptr, nullptr);
 		if (attribute->HasResource())
 		{
@@ -199,7 +211,7 @@ namespace HXSL
 		}
 		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, ifStatement.get(), expression));
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')'));
+		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		ifStatement->SetExpression(std::move(expression));
 
 		std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
@@ -221,11 +233,11 @@ namespace HXSL
 		if (stream.TryGetKeyword(Keyword_If))
 		{
 			parser.RejectAttribute("is not allowed in this context.");
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter('('));
+			IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 			auto elseIfStatement = std::make_unique<ElseIfStatement>(TextSpan(), parser.parentNode(), nullptr, nullptr);
 			std::unique_ptr<Expression> expression;
 			IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, elseIfStatement.get(), expression));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(')'));
+			IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 			elseIfStatement->SetExpression(std::move(expression));
 
 			std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
@@ -259,7 +271,7 @@ namespace HXSL
 		TakeHandle<AttributeDeclaration>* attribute;
 		parser.AcceptAttribute(&attribute, "");
 
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter('('));
+		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 		auto whileStatement = std::make_unique<WhileStatement>(TextSpan(), parser.parentNode(), nullptr, nullptr);
 
 		if (attribute->HasResource())
@@ -269,7 +281,7 @@ namespace HXSL
 
 		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, whileStatement.get(), expression));
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')'));
+		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		whileStatement->SetExpression(std::move(expression));
 
 		std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
@@ -291,7 +303,7 @@ namespace HXSL
 		auto returnStatement = std::make_unique<ReturnStatement>(TextSpan(), parser.parentNode(), nullptr);
 		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, returnStatement.get(), expression));
-		stream.ExpectDelimiter(';');
+		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 		returnStatement->SetReturnValueExpression(std::move(expression));
 		returnStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
 		statementOut = std::move(returnStatement);
@@ -338,7 +350,7 @@ namespace HXSL
 			}
 		}
 
-		stream.ExpectDelimiter(';');
+		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 		assignmentStatement->SetExpression(std::move(expression));
 		assignmentStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
 		statementOut = std::move(assignmentStatement);
@@ -359,7 +371,7 @@ namespace HXSL
 		parser.RejectAttribute("is not allowed in this context.");
 
 		TextSpan identifer;
-		stream.ExpectIdentifier(identifer);
+		stream.ExpectIdentifier(identifer, EXPECTED_IDENTIFIER);
 
 		std::vector<size_t> arraySizes;
 		if (parser.TryParseArraySizes(arraySizes))
@@ -384,7 +396,7 @@ namespace HXSL
 		{
 			std::unique_ptr<InitializationExpression> initExpression;
 			IF_ERR_RET_FALSE(ParserHelper::TryParseInitializationExpression(parser, stream, declarationStatement.get(), initExpression));
-			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';'));
+			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
 			declarationStatement->SetInitializer(std::move(initExpression));
 		}
 		else if (!stream.TryGetDelimiter(';'))
@@ -394,7 +406,7 @@ namespace HXSL
 			{
 				parser.TryRecoverStatement();
 			}
-			stream.ExpectDelimiter(';');
+			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 			declarationStatement->SetInitializer(std::move(expression));
 		}
 
@@ -428,7 +440,7 @@ namespace HXSL
 		}
 
 		auto functionCallStatement = std::make_unique<FunctionCallStatement>(TextSpan(), parser.parentNode(), std::move(target));
-		stream.ExpectDelimiter(';');
+		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 		functionCallStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
 		statementOut = std::move(functionCallStatement);
 		return true;

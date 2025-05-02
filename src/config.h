@@ -54,4 +54,11 @@ typedef unsigned int uint;
 
 constexpr auto QUALIFIER_SEP = '.';
 
+#define HXSL_ASSERT_DEPRECATION \
+    HXSL_ASSERT(false, "Use of deprecated method.")
+
+#ifndef HXSL_LOCALE_PATH
+#define HXSL_LOCALE_PATH "./locales"
+#endif
+
 #endif

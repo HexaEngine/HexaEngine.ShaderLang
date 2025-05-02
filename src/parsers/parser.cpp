@@ -4,9 +4,9 @@
 #include "pratt_parser.hpp"
 namespace HXSL
 {
-#define ERR_RETURN_FALSE_INTERNAL(message) \
+#define ERR_RETURN_FALSE_INTERNAL(code) \
 	do { \
-		LogError(message, stream->Current()); \
+		Log(code, stream->Current()); \
 		return false; \
 	} while (0)
 
@@ -97,7 +97,7 @@ namespace HXSL
 
 	bool Parser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretendOnError)
 	{
-		if (!stream->ExpectDelimiter('{', token) && !pretendOnError)
+		if (!stream->ExpectDelimiter('{', token, EXPECTED_RIGHT_BRACE) && !pretendOnError)
 		{
 			return false;
 		}
@@ -137,7 +137,7 @@ namespace HXSL
 			return true;
 		}
 
-		LogError("Unexpected end of tokens.", stream->Current());
+		Log(UNEXPECTED_EOS, stream->Current());
 		return false;
 	}
 
@@ -222,7 +222,7 @@ namespace HXSL
 
 		if (stream->IsEndOfTokens())
 		{
-			LogError("Unexpected token, expected an '}'.", stream->LastToken());
+			Log(EXPECTED_RIGHT_BRACE, stream->LastToken());
 		}
 
 		return true;
@@ -236,7 +236,7 @@ namespace HXSL
 			auto current = stream->Current();
 			if (current.isKeywordOf(scopeRecoveryPoints))
 			{
-				LogError("Unexpected token, expected an '}'.", current);
+				Log(EXPECTED_RIGHT_BRACE, current);
 				if (exitScope)
 				{
 					ExitScopeInternal();
@@ -332,7 +332,7 @@ namespace HXSL
 		{
 			us.Target = identifier;
 		}
-		stream->ExpectDelimiter(';');
+		stream->ExpectDelimiter(';', EXPECTED_SEMICOLON);
 		us.Span = nsKeywordSpan.merge(stream->LastToken().Span);
 		return us;
 	}
@@ -349,7 +349,7 @@ namespace HXSL
 		else
 		{
 			scoped = false;
-			stream->ExpectDelimiter(';', "Expected a semicolon after namespace declaration");
+			stream->ExpectDelimiter(';', EXPECTED_SEMICOLON);
 		}
 
 		return NamespaceDeclaration(nsKeywordSpan.merge(stream->LastToken().Span), name);
@@ -366,8 +366,8 @@ namespace HXSL
 		{
 			if (stream->TryGetKeyword(Keyword_Namespace))
 			{
-				if (ScopeLevel != 0) ERR_RETURN_FALSE_INTERNAL("Namespaces must be at the global scope.");
-				if (CurrentNamespace != nullptr) ERR_RETURN_FALSE_INTERNAL("Only one namespace HXSL can be declared in the current scope.");
+				if (ScopeLevel != 0) ERR_RETURN_FALSE_INTERNAL(NAMESPACE_MUST_BE_GLOBAL_SCOPE);
+				if (CurrentNamespace != nullptr) ERR_RETURN_FALSE_INTERNAL(ONLY_ONE_NAMESPACE_ALLOWED);
 				bool scoped;
 				CurrentNamespace = m_compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
 				if (!scoped)
@@ -378,7 +378,7 @@ namespace HXSL
 			}
 			else if (stream->TryGetKeyword(Keyword_Using))
 			{
-				if (!IsInGlobalOrNamespaceScope()) ERR_RETURN_FALSE_INTERNAL("Usings must be at the global or namespace HXSL scope.");
+				if (!IsInGlobalOrNamespaceScope()) ERR_RETURN_FALSE_INTERNAL(USINGS_MUST_BE_GLOBAL_OR_NAMESPACE_SCOPE);
 				auto declaration = ParseUsingDeclaration();
 				if (CurrentNamespace != nullptr)
 				{
@@ -412,7 +412,7 @@ namespace HXSL
 
 		if (CurrentNamespace == nullptr)
 		{
-			ERR_RETURN_FALSE_INTERNAL("Expected namespace HXSL.");
+			ERR_RETURN_FALSE_INTERNAL(EXPECTED_NAMESPACE);
 		}
 
 		return true;
@@ -425,7 +425,7 @@ namespace HXSL
 		{
 			if (!ParseSubStepInner(m_compilation))
 			{
-				LogError("Unexpected token", stream->Current());
+				Log(UNEXPECTED_TOKEN, stream->Current());
 				stream->TryAdvance();
 			}
 		}
@@ -538,7 +538,7 @@ namespace HXSL
 			{
 				if (hasPrivate || hasProtected || hasInternal)
 				{
-					LogError("Invalid combination: 'public' cannot be combined with 'private', 'protected', or 'internal'.", start.Span);
+					Log(PUB_CANNOT_COMBINE_WITH_PRIV_PROT_INT, start.Span);
 					hadError = true;
 				}
 				modifier |= AccessModifier_Public;
@@ -548,7 +548,7 @@ namespace HXSL
 			{
 				if (hasPrivate || hasPublic)
 				{
-					LogError("Invalid combination: 'internal' cannot be combined with 'private' or 'public'.", start.Span);
+					Log(INT_CANNOT_COMBINE_WITH_PRIV_OR_PUB, start.Span);
 					hadError = true;
 				}
 				modifier |= AccessModifier_Internal;
@@ -558,7 +558,7 @@ namespace HXSL
 			{
 				if (hasPrivate || hasPublic)
 				{
-					LogError("Invalid combination: 'protected' cannot be combined with 'private' or 'public'.", start.Span);
+					Log(PROT_CANNOT_COMBINE_WITH_PRIV_OR_PUB, start.Span);
 					hadError = true;
 				}
 				modifier |= AccessModifier_Protected;
@@ -568,7 +568,7 @@ namespace HXSL
 			{
 				if (hasPublic || hasProtected || hasInternal)
 				{
-					LogError("Invalid combination: 'private' cannot be combined with 'public', 'protected', or 'internal'.", start.Span);
+					Log(PRIV_CANNOT_COMBINE_WITH_PUB_PROT_INT, start.Span);
 					hadError = true;
 				}
 				modifier |= AccessModifier_Private;
@@ -613,7 +613,7 @@ namespace HXSL
 			{
 				if (hasOut || hasInOut)
 				{
-					LogError("Invalid combination: 'in' cannot be combined with 'out' or 'inout'.", start.Span);
+					Log(IN_CANNOT_COMBINE_WITH_OUT_OR_INOUT, start.Span);
 					hadError = true;
 				}
 				flags = static_cast<ParameterFlags>(flags | ParameterFlags_In);
@@ -623,7 +623,7 @@ namespace HXSL
 			{
 				if (hasIn || hasInOut)
 				{
-					LogError("Invalid combination: 'out' cannot be combined with 'in' or 'inout'.", start.Span);
+					Log(OUT_CANNOT_COMBINE_WITH_IN_OR_INOUT, start.Span);
 					hadError = true;
 				}
 				flags = static_cast<ParameterFlags>(flags | ParameterFlags_Out);
@@ -633,7 +633,7 @@ namespace HXSL
 			{
 				if (hasIn || hasOut)
 				{
-					LogError("Invalid combination: 'inout' cannot be combined with 'in' or 'out'.", start.Span);
+					Log(INOUT_CANNOT_COMBINE_WITH_IN_OR_OUT, start.Span);
 					hadError = true;
 				}
 				flags = static_cast<ParameterFlags>(flags | ParameterFlags_InOut);
@@ -679,7 +679,7 @@ namespace HXSL
 			{
 				if (hasCentroid || hasNoInterpolation)
 				{
-					LogError("Invalid combination: 'linear' cannot be combined with 'centroid' or 'nointerpolation'.", start.Span);
+					Log(LINEAR_CANNOT_COMBINE_WITH_CENTROID_OR_NOINTERP, start.Span);
 					hadError = true;
 				}
 				modifier = InterpolationModifier_Linear;
@@ -689,7 +689,7 @@ namespace HXSL
 			{
 				if (hasLinear || hasNoInterpolation)
 				{
-					LogError("Invalid combination: 'centroid' cannot be combined with 'linear' or 'nointerpolation'.", start.Span);
+					Log(CENTROID_CANNOT_COMBINE_WITH_LINEAR_OR_NOINTERP, start.Span);
 					hadError = true;
 				}
 				modifier = InterpolationModifier_Centroid;
@@ -699,7 +699,7 @@ namespace HXSL
 			{
 				if (hasLinear || hasCentroid || hasSample || hasNoPerspective)
 				{
-					LogError("Invalid combination: 'nointerpolation' cannot be combined with other interpolation modifiers.", start.Span);
+					Log(NOINTERP_CANNOT_COMBINE_WITH_OTHER_INTERP_MODIFIERS, start.Span);
 					hadError = true;
 				}
 				modifier = InterpolationModifier_NoInterpolation;
@@ -709,7 +709,7 @@ namespace HXSL
 			{
 				if (hasNoInterpolation)
 				{
-					LogError("Invalid combination: 'noperspecitve' cannot be combined with 'nointerpolation'.", start.Span);
+					Log(NOPERSPECTIVE_CANNOT_COMBINE_WITH_NOINTERP, start.Span);
 					hadError = true;
 				}
 				modifier = InterpolationModifier_NoPerspecitve;
@@ -719,7 +719,7 @@ namespace HXSL
 			{
 				if (hasNoInterpolation)
 				{
-					LogError("Invalid combination: 'sample' cannot be combined with 'nointerpolation'.", start.Span);
+					Log(SAMPLE_CANNOT_COMBINE_WITH_NOINTERP, start.Span);
 					hadError = true;
 				}
 				modifier = InterpolationModifier_Sample;
@@ -824,7 +824,7 @@ namespace HXSL
 			{
 				if (!firstParam)
 				{
-					IF_ERR_RET(stream->ExpectDelimiter(','));
+					IF_ERR_RET(stream->ExpectDelimiter(',', EXPECTED_COMMA));
 				}
 				firstParam = false;
 				std::unique_ptr<Expression> parameter;
@@ -836,7 +836,7 @@ namespace HXSL
 			}
 		}
 
-		IF_ERR_RET(stream->ExpectDelimiter(']'));
+		IF_ERR_RET(stream->ExpectDelimiter(']', EXPECTED_RIGHT_BRACKET));
 		attribute->SetParameters(std::move(parameters));
 		attribute->SetSymbol(std::move(symbol));
 		attribute->SetSpan(stream->MakeFromLast(start));

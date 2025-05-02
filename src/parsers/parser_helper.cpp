@@ -8,9 +8,9 @@
 
 namespace HXSL
 {
-#define ERR_RETURN_FALSE_INTERNAL(message) \
+#define ERR_RETURN_FALSE_INTERNAL(code) \
 	do { \
-		LogError(message, stream->Current()); \
+		Log(code, stream->Current()); \
 		return false; \
 	} while (0)
 
@@ -46,7 +46,7 @@ namespace HXSL
 		{
 			if (!firstParam)
 			{
-				if (!stream.ExpectDelimiter(',', "Syntax error: ',' or ')' expected."))
+				if (!stream.ExpectDelimiter(',', EXPECTED_COMMA))
 				{
 					if (!parser.TryRecoverParameterList())
 					{
@@ -144,7 +144,7 @@ namespace HXSL
 			{
 				if (!isFirst)
 				{
-					IF_ERR_RET_FALSE(stream.ExpectDelimiter(','));
+					stream.ExpectDelimiter(',', EXPECTED_COMMA);
 				}
 				isFirst = false;
 
@@ -242,7 +242,7 @@ namespace HXSL
 		LazySymbol symbol;
 		if (!TryParseSymbol(expectedType, symbol))
 		{
-			ERR_RETURN_FALSE_INTERNAL("Expected an symbol.");
+			ERR_RETURN_FALSE_INTERNAL(EXPECTED_IDENTIFIER);
 		}
 
 		type = symbol.make();
@@ -265,17 +265,17 @@ namespace HXSL
 		while (stream->TryGetDelimiter('['))
 		{
 			Number num;
-			stream->ExpectNumeric(num, "Expected a number in a array definition.");
+			stream->ExpectNumeric(num, EXPECTED_NUMBER);
 			if (!num.IsIntegral())
 			{
-				stream->LogError("Array size must be an integral number.");
+				Log(ARRAY_SIZE_MUST_BE_INT, stream->LastToken());
 			}
 			if (num.IsSigned() && num.IsNegative())
 			{
-				stream->LogError("Array size cannot be negative.");
+				Log(ARRAY_SIZE_CANNOT_BE_NEG, stream->LastToken());
 			}
 			arraySizes.push_back(num.ToSizeT());
-			stream->ExpectDelimiter(']', "Expected an ']' after number.");
+			stream->ExpectDelimiter(']', EXPECTED_RIGHT_BRACKET);
 		}
 	}
 }

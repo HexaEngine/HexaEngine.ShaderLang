@@ -24,7 +24,7 @@ namespace HXSL
 						return false;
 					}
 
-					parser.LogError("Syntax error: unexpected token in member access expression.", start);
+					parser.Log(UNEXPECTED_TOKEN, start);
 					stream.TryAdvance();
 					continue;
 				}
@@ -43,7 +43,7 @@ namespace HXSL
 				auto indexerAccessExpression = std::make_unique<IndexerAccessExpression>(TextSpan(), parent, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier, !wantsIdentifier)));
 				std::unique_ptr<Expression> indexExpression;
 				PrattParser::ParseExpression(parser, stream, indexerAccessExpression.get(), indexExpression);
-				stream.ExpectDelimiter(']');
+				stream.ExpectDelimiter(']', EXPECTED_RIGHT_BRACKET);
 				indexerAccessExpression->SetIndexExpression(std::move(indexExpression));
 				indexerAccessExpression->SetSpan(stream.MakeFromLast(start));
 				ChainOrEnd(std::move(indexerAccessExpression));

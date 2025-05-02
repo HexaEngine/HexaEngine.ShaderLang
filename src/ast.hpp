@@ -1,6 +1,9 @@
 #ifndef AST_HPP
 #define AST_HPP
 
+#include "generated/localization.hpp"
+#include "diagnostic_code.hpp"
+
 #include "ast_modules/ast_base.hpp"
 #include "ast_modules/container.hpp"
 #include "ast_modules/symbol_base.hpp"

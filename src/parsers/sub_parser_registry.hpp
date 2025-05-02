@@ -82,7 +82,7 @@ namespace HXSL
 				auto current = stream.Current();
 				if (!stream.IsEndOfTokens() && (current.Type != TokenType_Delimiter || current.Span[0] != '}'))
 				{
-					parser.LogError("Unrecognised token.", stream.Current());
+					parser.Log(UNEXPECTED_TOKEN, stream.Current());
 					return false;
 				}
 			}
@@ -185,7 +185,7 @@ namespace HXSL
 			auto current = stream.Current();
 			if (!stream.IsEndOfTokens() && current.Type != TokenType_Delimiter && current.Span[0] != ';')
 			{
-				parser.LogError("Unrecognised token.", stream.Current());
+				parser.Log(UNEXPECTED_TOKEN, stream.Current());
 				return false;
 			}
 

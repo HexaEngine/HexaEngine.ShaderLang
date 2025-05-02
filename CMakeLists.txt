@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 project(Compiler VERSION 1.0)
 
@@ -37,73 +37,48 @@ if (MSVC)
     endif()
 endif()
 
-file(GLOB SOURCES
-    src/lexical/lexer.cpp
-    src/lexical/numbers.cpp
-    src/lexical/token_stream.cpp
-    src/parsers/parser.cpp
-    src/parsers/parser_helper.cpp
-    src/parsers/member_path_parser.cpp
-    src/parsers/declaration_parser.cpp
-    src/parsers/statement_parser.cpp
-    src/parsers/expression_parser.cpp
-    src/parsers/pratt_parser.cpp
-    src/parsers/sub_parser_registry.cpp
-    src/symbols/symbol_handle.cpp
-    src/symbols/symbol_table.cpp
-    src/symbols/symbol_resolver.cpp
-    src/symbols/symbol_collector.cpp
-    src/symbols/type_checker.cpp
-    src/symbols/expression_checker.cpp
-    src/symbols/statement_checker.cpp
-    src/analyzers/analyzer.cpp
-    src/analyzers/sub_analyzer_registry.cpp
-    src/analyzers/declaration_analyzer.cpp
-
-    src/utils/object_pool.cpp
-    src/utils/text_helper.cpp
-    src/utils/allocator.cpp
-    src/io/stream.cpp
-
-    src/il/assembly.cpp
-
-    src/config.cpp
-    src/localization.cpp
-    src/ast_modules/ast_base.cpp
-    src/ast_modules/container.cpp
-    src/ast_modules/symbol_base.cpp
-    src/ast_modules/declarations.cpp
-    src/ast_modules/statements.cpp
-    src/ast_modules/namespace.cpp
-    src/ast_modules/array_manager.cpp
-    src/ast_modules/primitive_manager.cpp
-    src/ast_modules/swizzle_manager.cpp
-)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 find_package(Python3 REQUIRED)
 
-set(LOCALES en_US)
 set(LOCALES_GEN_TOOL "${CMAKE_SOURCE_DIR}/tools/locales_gen.py")
-set(GENERATED_HEADER_DIR "${CMAKE_SOURCE_DIR}/include/generated")
-set(GENERATED_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/generated")
-set(LOCALE_DIR "${GENERATED_SOURCE_DIR}/locales")
+set(GENERATED_HEADER_DIR "${CMAKE_SOURCE_DIR}/src/generated")
+set(DIAG_MESSAGE_DIR "${CMAKE_SOURCE_DIR}/resources/diagnostic_messages")
+set(LOCALES_OUT_DIR "${CMAKE_BINARY_DIR}/locales")
+set(LOCALES_MARKER "${LOCALES_OUT_DIR}/.locales_generated")
+set(LOCALIZATION_HPP "${GENERATED_HEADER_DIR}/localization.hpp")
 
-execute_process(
-        COMMAND ${Python3_EXECUTABLE} ${LOCALES_GEN_TOOL} --locale all --out_hpp "${GENERATED_HEADER_DIR}/localization.hpp" --out_locales "${CMAKE_SOURCE_DIR}/resources/locales_out"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    )
+file(GLOB_RECURSE EN_US_FILES CONFIGURE_DEPENDS "${DIAG_MESSAGE_DIR}/en_US/*.md")
 
 add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/locales"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/locales"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/resources/locales_out"
-            "${CMAKE_BINARY_DIR}/locales"
-    COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/locales"
-    COMMENT "Copying locale files"
+    OUTPUT "${LOCALIZATION_HPP}"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${GENERATED_HEADER_DIR}"
+    COMMAND ${Python3_EXECUTABLE} ${LOCALES_GEN_TOOL}
+        --locale en_US
+        --out_hpp "${LOCALIZATION_HPP}"
+    DEPENDS ${LOCALES_GEN_TOOL} ${EN_US_FILES}
+    COMMENT "Regenerating localization header..."
+    VERBATIM
 )
 
-add_custom_target(copy_locales ALL DEPENDS "${CMAKE_BINARY_DIR}/locales")
+file(GLOB_RECURSE DIAG_FILES CONFIGURE_DEPENDS "${DIAG_MESSAGE_DIR}/*.md")
+
+add_custom_command(
+    OUTPUT "${LOCALES_MARKER}"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${GENERATED_HEADER_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${LOCALES_OUT_DIR}"
+    COMMAND ${Python3_EXECUTABLE} ${LOCALES_GEN_TOOL}
+        --locale all
+        --out_locales "${LOCALES_OUT_DIR}"
+    DEPENDS ${LOCALES_GEN_TOOL} ${DIAG_FILES}
+    COMMENT "Generating localization data..."
+    VERBATIM
+)
+
+add_custom_target(generate_locales ALL DEPENDS "${LOCALES_MARKER}" "${LOCALIZATION_HPP}")
+add_definitions(-DHXSL_LOCALE_PATH="${LOCALES_OUT_DIR}")
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/build/cmake)
 target_include_directories(zstd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/lib/)
@@ -113,7 +88,7 @@ if (BUILD_SHARED)
 
     target_link_libraries(Compiler PRIVATE libzstd_static)
 
-    add_dependencies(Compiler copy_locales)
+    add_dependencies(Compiler generate_locales)
 endif()
 
 if (BUILD_STATIC)
@@ -121,12 +96,7 @@ if (BUILD_STATIC)
 
     target_link_libraries(CompilerStatic PRIVATE libzstd_static)
 
-    add_dependencies(CompilerStatic copy_locales)
-
-    set_target_properties(CompilerStatic PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED YES
-    )
+    add_dependencies(CompilerStatic generate_locales)
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)

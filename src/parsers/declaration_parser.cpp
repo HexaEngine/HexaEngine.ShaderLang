@@ -51,12 +51,12 @@ namespace HXSL
 		LazySymbol symbol;
 		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_Type, symbol));
 		TextSpan name;
-		IF_ERR_RET_FALSE(stream.ExpectIdentifier(name));
+		IF_ERR_RET_FALSE(stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER));
 
 		TextSpan semantic = {};
 		if (stream.TryGetOperator(Operator_Colon))
 		{
-			IF_ERR_RET_FALSE(stream.ExpectIdentifier(semantic));
+			IF_ERR_RET_FALSE(stream.ExpectIdentifier(semantic, EXPECTED_IDENTIFIER));
 		}
 
 		auto span = startingToken.Span.merge(stream.LastToken().Span);
@@ -94,7 +94,7 @@ namespace HXSL
 		{
 			if (!firstParameter)
 			{
-				stream.ExpectDelimiter(',');
+				stream.ExpectDelimiter(',', EXPECTED_COMMA);
 			}
 			firstParameter = false;
 
@@ -110,7 +110,7 @@ namespace HXSL
 		if (stream.TryGetOperator(Operator_Colon))
 		{
 			TextSpan semantic;
-			IF_ERR_RET_FALSE(stream.ExpectIdentifier(semantic));
+			IF_ERR_RET_FALSE(stream.ExpectIdentifier(semantic, EXPECTED_IDENTIFIER));
 			function->SetSemantic(semantic);
 		}
 
@@ -145,7 +145,7 @@ namespace HXSL
 	static bool ParseOperator(const Token& start, OperatorFlags flags, Parser& parser, TokenStream& stream, Compilation* compilation)
 	{
 		auto opKeywordToken = stream.Current();
-		IF_ERR_RET_FALSE(stream.ExpectKeyword(Keyword_Operator));
+		stream.ExpectKeyword(Keyword_Operator, EXPECTED_OPERATOR);
 
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, "");
@@ -185,14 +185,14 @@ namespace HXSL
 
 		std::vector<std::unique_ptr<Parameter>> parameters;
 
-		stream.ExpectDelimiter('(');
+		stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
 
 		bool firstParameter = true;
 		while (!stream.TryGetDelimiter(')'))
 		{
 			if (!firstParameter)
 			{
-				stream.ExpectDelimiter(',', "Unexpected token in parameter list, expected an ',' or ')'.");
+				stream.ExpectDelimiter(',', EXPECTED_COMMA);
 			}
 			firstParameter = false;
 
@@ -260,7 +260,7 @@ namespace HXSL
 		}
 		else if (stream.TryGetOperator(Operator_Colon) && stream.TryGetIdentifier(fieldSemantic))
 		{
-			stream.ExpectDelimiter(';', "Expected an semicolon after field declaration.");
+			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 			ParseField(startingToken, name, std::move(symbol.make()), fieldSemantic, parser, stream, compilation);
 			return true;
 		}
@@ -268,12 +268,12 @@ namespace HXSL
 		{
 			auto hSymbol = symbol.make(SymbolRefType_ArrayType);
 			hSymbol->SetArrayDims(std::move(arraySizes));
-			stream.ExpectDelimiter(';', "Expected an semicolon after field declaration.");
+			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 			ParseField(startingToken, name, std::move(hSymbol), {}, parser, stream, compilation);
 		}
 		else
 		{
-			stream.ExpectDelimiter(';', "Expected an semicolon after field declaration.");
+			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 			ParseField(startingToken, name, std::move(symbol.make()), {}, parser, stream, compilation);
 			return true;
 		}
@@ -316,14 +316,14 @@ namespace HXSL
 		IF_ERR_RET_FALSE(stream.TryGetKeyword(Keyword_Struct));
 
 		TextSpan name;
-		stream.ExpectIdentifier(name);
+		stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER);
 
 		parser.AcceptAttribute(nullptr, "is not valid in this context on '%s'", name.toString().c_str());
 
 		auto scopeType = parser.scopeType();
 		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
 		{
-			parser.LogError("Cannot declare a struct in this scope, allowed scopes are 'namespace', 'struct' or 'class'.", startingToken);
+			parser.Log(STRUCT_DECL_OUT_OF_SCOPE, startingToken);
 		}
 
 		ModifierList list;
@@ -334,7 +334,7 @@ namespace HXSL
 		auto _struct = std::make_unique<Struct>(TextSpan(), parent, list.accessModifiers, name);
 
 		Token t;
-		parser.EnterScope(name, ScopeType_Struct, _struct.get(), t, true, "Expected an '{' after struct declaration.");
+		parser.EnterScope(name, ScopeType_Struct, _struct.get(), t, true, EXPECTED_LEFT_BRACE);
 		while (parser.IterateScope())
 		{
 			if (!parser.ParseSubStepInner(_struct.get()))

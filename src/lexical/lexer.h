@@ -9,6 +9,7 @@
 #include "token.h"
 #include "numbers.h"
 #include "lang/language.h"
+#include "diagnostic_code.hpp"
 
 namespace HXSL
 {
@@ -168,22 +169,9 @@ namespace HXSL
 			}
 
 			template <typename... Args>
-			void Log(LogLevel level, const std::string& format, Args&&... args)
+			void LogFormatted(DiagnosticCode code, Args&&... args) const
 			{
-				std::string formatted_message = format + " (Line: %i, Column: %i)";
-				logger->LogFormatted(level, formatted_message, std::forward<Args>(args)..., Line, Column);
-			}
-
-			void LogError(const std::string& message)
-			{
-				logger->LogFormatted(LogLevel_Error, "%s (Line: %i, Column: %i)", message.c_str(), Line, Column);
-			}
-
-			template <typename... Args>
-			void LogErrorFormatted(const std::string& format, Args&&... args)
-			{
-				std::string formatted_message = format + " (Line: %i, Column: %i)";
-				logger->LogFormatted(LogLevel_Error, formatted_message, std::forward<Args>(args)..., Line, Column);
+				logger->LogFormattedEx(code, " (Line: %i, Column: %i)", std::forward<Args>(args)..., Line, Column);
 			}
 		};
 
@@ -193,17 +181,16 @@ namespace HXSL
 			bool enableNewline;
 			bool enableWhitespace;
 			bool specialParseTreatIdentiferAsLiteral;
-			bool enableCodeblock;
 			std::unordered_set<char> delimiters;
 			TernarySearchTreeDictionary<int> keywords;
 			TernarySearchTreeDictionary<int> operators;
 
-			LexerConfig() : enableNewline(false), enableWhitespace(false), specialParseTreatIdentiferAsLiteral(false), enableCodeblock(false)
+			LexerConfig() : enableNewline(false), enableWhitespace(false), specialParseTreatIdentiferAsLiteral(false)
 			{
 			}
 
-			LexerConfig(bool enableNewline, bool enableWhitespace, bool specialParseTreatIdentiferAsLiteral, bool enableCodeblock, const std::unordered_set<char>& delimiters, const TernarySearchTreeDictionary<int>& keywords, const TernarySearchTreeDictionary<int>& operators)
-				: enableNewline(enableNewline), enableWhitespace(enableWhitespace), specialParseTreatIdentiferAsLiteral(specialParseTreatIdentiferAsLiteral), enableCodeblock(enableCodeblock), delimiters(delimiters), keywords(keywords), operators(operators)
+			LexerConfig(bool enableNewline, bool enableWhitespace, bool specialParseTreatIdentiferAsLiteral, const std::unordered_set<char>& delimiters, const TernarySearchTreeDictionary<int>& keywords, const TernarySearchTreeDictionary<int>& operators)
+				: enableNewline(enableNewline), enableWhitespace(enableWhitespace), specialParseTreatIdentiferAsLiteral(specialParseTreatIdentiferAsLiteral), delimiters(delimiters), keywords(keywords), operators(operators)
 			{
 			}
 		};
@@ -220,7 +207,7 @@ namespace HXSL
 					instance = new LexerConfig();
 					BuildKeywordTST(&instance->keywords);
 					BuildOperatorTST(&instance->operators);
-					instance->delimiters = { '{', '}', '[', ']', '(', ')', ',', ':', '.', ';', '#', '@' };
+					instance->delimiters = { '{', '}', '[', ']', '(', ')', ',', ';', '#', '@' };
 					initialized = true;
 				}
 				return instance;

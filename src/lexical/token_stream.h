@@ -120,15 +120,23 @@ namespace HXSL
 		}
 
 		template<typename... Args>
-		void LogFormatted(LogLevel level, const std::string& message, Args&&... args) const
+		void LogFormatted(DiagnosticCode code, Args&&... args) const
 		{
-			streamState.state.GetLogger()->LogFormatted(level, message, std::forward<Args>(args)...);
+			streamState.state.LogFormatted(code, std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
+		[[deprecated("Use DiagnosticCode overload")]]
+		void LogFormatted(LogLevel level, const std::string& message, Args&&... args) const
+		{
+			HXSL_ASSERT_DEPRECATION
+		}
+
+		template<typename... Args>
+		[[deprecated("Use DiagnosticCode overload")]]
 		void LogError(const std::string& message, Args&&... args) const
 		{
-			LogFormatted(LogLevel_Error, message, std::forward<Args>(args)...);
+			HXSL_ASSERT_DEPRECATION
 		}
 
 		bool HasCriticalErrors() const noexcept { return streamState.state.HasCriticalErrors(); }
@@ -319,154 +327,140 @@ namespace HXSL
 			return true;
 		}
 
-		bool ExpectOperator(Operator op)
+		template <typename... Args>
+		bool ExpectOperator(Operator op, DiagnosticCode code, Args&&... args)
 		{
 			Token token;
 			auto result = Expect(TokenType_Operator, token);
 			if (!result || op != static_cast<Operator>(token.Value))
 			{
-				streamState.state.LogErrorFormatted("Unexpected token, expected an '%s'.", ToString(op));
+				LogFormatted(code, std::forward<Args>(args)...);
 				return false;
 			}
 			return true;
 		}
 
 		template <typename... Args>
-		bool ExpectOperator(Operator op, const std::string& message, Args&&... args)
+		bool ExpectAnyOperator(Operator& op, DiagnosticCode code, Args&&... args)
 		{
 			Token token;
 			auto result = Expect(TokenType_Operator, token);
-			if (!result || op != static_cast<Operator>(token.Value))
+			if (!result)
 			{
-				streamState.state.LogErrorFormatted(message, std::forward<Args>(args)...);
+				LogFormatted(code, std::forward<Args>(args)...);
 				return false;
 			}
+			op = static_cast<Operator>(token.Value);
 			return true;
 		}
 
-		bool ExpectAnyOperator(Operator& op)
-		{
-			Token token;
-			auto result = Expect(TokenType_Operator, token);
-			op = static_cast<Operator>(token.Value);
-			return result;
-		}
-
-		bool ExpectLiteral(TextSpan& literal)
+		template <typename... Args>
+		bool ExpectLiteral(TextSpan& literal, DiagnosticCode code, Args&&... args)
 		{
 			Token token;
 			auto result = Expect(TokenType_Literal, token);
+			if (!result)
+			{
+				LogFormatted(code, std::forward<Args>(args)...);
+				return false;
+			}
 			literal = token.Span;
+			return true;
 		}
 
-		bool ExpectIdentifier(TextSpan& identifier)
+		template <typename... Args>
+		bool ExpectIdentifier(TextSpan& identifier, DiagnosticCode code, Args&&... args)
 		{
 			Token token;
 			auto result = Expect(TokenType_Identifier, token);
+			if (!result)
+			{
+				LogFormatted(code, std::forward<Args>(args)...);
+				return false;
+			}
 			identifier = token.Span;
-			return result;
+			return true;
 		}
 
-		bool ExpectCodeblock(TextSpan& literal)
-		{
-			Token token;
-			auto result = Expect(TokenType_Codeblock, token);
-			literal = token.Span;
-		}
-
-		bool ExpectKeyword(const Keyword& keyword)
+		template <typename... Args>
+		bool ExpectKeyword(const Keyword& keyword, DiagnosticCode code, Args&&... args)
 		{
 			Token token;
 			auto result = Expect(TokenType_Keyword, token, false);
-			if (result && keyword == static_cast<Keyword>(token.Value))
+			if (!result || keyword != static_cast<Keyword>(token.Value))
 			{
-				Advance();
-				return true;
+				LogFormatted(code, std::forward<Args>(args)...);
+				return false;
 			}
-			return false;
+			Advance();
+			return true;
 		}
 
-		bool ExpectKeywords(const std::unordered_set<Keyword>& keywords, Keyword& keyword)
+		template <typename... Args>
+		bool ExpectKeywords(const std::unordered_set<Keyword>& keywords, Keyword& keyword, DiagnosticCode code, Args&&... args)
 		{
 			Token token;
 			auto result = Expect(TokenType_Keyword, token, false);
-
 			keyword = static_cast<Keyword>(token.Value);
-			if (result && keywords.find(keyword) != keywords.end())
+			if (!result || keywords.find(keyword) == keywords.end())
 			{
-				Advance();
-				return true;
+				LogFormatted(code, std::forward<Args>(args)...);
+				return false;
 			}
-			return false;
+			Advance();
+			return true;
 		}
 
-		bool ExpectDelimiter(char delimiter, Token& token)
+		template <typename... Args>
+		bool ExpectDelimiter(char delimiter, Token& token, DiagnosticCode code, Args&&... args)
 		{
 			auto result = Expect(TokenType_Delimiter, token, false);
 			if (!result || token.Span[0] != delimiter)
 			{
-				streamState.state.LogErrorFormatted("Unexpected delimiter, expected an '%c'", delimiter);
+				streamState.state.LogFormatted(code, std::forward<Args>(args)...);
 				return false;
 			}
 			TryAdvance();
-			return result;
+			return true;
 		}
 
-		bool ExpectDelimiter(char delimiter)
+		template <typename... Args>
+		bool ExpectDelimiter(char delimiter, DiagnosticCode code, Args&&... args)
 		{
 			Token token;
-			return ExpectDelimiter(delimiter, token);
+			return ExpectDelimiter(delimiter, token, code, std::forward<Args>(args)...);
 		}
 
 		template <typename... Args>
-		bool ExpectDelimiter(char delimiter, Token& token, const std::string& message, Args&&... args)
-		{
-			auto result = Expect(TokenType_Delimiter, token, false);
-			if (!result || token.Span[0] != delimiter)
-			{
-				streamState.state.LogErrorFormatted(message, std::forward<Args>(args)...);
-				return false;
-			}
-			TryAdvance();
-			return result;
-		}
-
-		template <typename... Args>
-		bool ExpectDelimiter(char delimiter, const std::string& message, Args&&... args)
-		{
-			Token token;
-			return ExpectDelimiter(delimiter, token, message, std::forward<Args>(args)...);
-		}
-
-		template <typename... Args>
-		bool ExpectNumeric(Number& numberOut, Token& token, const std::string& message, Args&&... args)
+		bool ExpectNumeric(Number& numberOut, Token& token, DiagnosticCode code, Args&&... args)
 		{
 			auto result = Expect(TokenType_Numeric, token, false);
 			if (!result)
 			{
-				streamState.state.LogErrorFormatted(message, std::forward<Args>(args)...);
+				streamState.state.LogFormatted(code, std::forward<Args>(args)...);
 				return false;
 			}
 			numberOut = token.Numeric;
 			TryAdvance();
-			return result;
+			return true;
 		}
 
 		template <typename... Args>
-		bool ExpectNumeric(Number& numberOut, const std::string& message, Args&&... args)
+		bool ExpectNumeric(Number& numberOut, DiagnosticCode code, Args&&... args)
 		{
 			Token token;
-			return ExpectNumeric(numberOut, token, message, std::forward<Args>(args)...);
+			return ExpectNumeric(numberOut, token, code, std::forward<Args>(args)...);
 		}
 
-		bool ExpectNoDelimiters(const std::unordered_set<char>& delimiters)
+		template <typename... Args>
+		bool ExpectNoDelimiters(const std::unordered_set<char>& delimiters, DiagnosticCode code, Args&&... args)
 		{
 			Token current = Current();
 			if (current.Type != TokenType_Delimiter) return true;
 			char delimiter = current.Span[0];
 			if (delimiters.find(delimiter) != delimiters.end())
 			{
-				streamState.state.LogErrorFormatted("Unexpected delimiter, found an '%c' when it was not expected.", delimiter);
+				LogFormatted(code, std::forward<Args>(args)...);
 				return false;
 			}
 
@@ -537,43 +531,52 @@ namespace HXSL
 			return tokenStream.Expect(type, current, advance);
 		}
 
-		bool ExpectOperator(Operator op) { return tokenStream.ExpectOperator(op); }
-
 		template <typename... Args>
-		bool ExpectOperator(Operator op, const std::string& message, Args&&... args)
+		bool ExpectOperator(Operator op, DiagnosticCode code, Args&&... args)
 		{
-			return tokenStream.ExpectOperator(op, message, std::forward<Args>(args)...);
-		}
-
-		bool ExpectAnyOperator(Operator& op) { return tokenStream.ExpectAnyOperator(op); }
-
-		bool ExpectLiteral(TextSpan& literal) { return tokenStream.ExpectLiteral(literal); }
-
-		bool ExpectIdentifier(TextSpan& identifier) { return tokenStream.ExpectIdentifier(identifier); }
-
-		bool ExpectCodeblock(TextSpan& literal) { return tokenStream.ExpectCodeblock(literal); }
-
-		bool ExpectKeyword(const Keyword& keyword) { return tokenStream.ExpectKeyword(keyword); }
-
-		bool ExpectKeywords(const std::unordered_set<Keyword>& keywords, Keyword& keyword)
-		{
-			return tokenStream.ExpectKeywords(keywords, keyword);
-		}
-
-		bool ExpectDelimiter(char delimiter, Token& token) { return tokenStream.ExpectDelimiter(delimiter, token); }
-
-		bool ExpectDelimiter(char delimiter) { return tokenStream.ExpectDelimiter(delimiter); }
-
-		template <typename... Args>
-		bool ExpectDelimiter(char delimiter, Token& token, const std::string& message, Args&&... args)
-		{
-			return tokenStream.ExpectDelimiter(delimiter, token, message, std::forward<Args>(args)...);
+			return tokenStream.ExpectOperator(op, code, std::forward<Args>(args)...);
 		}
 
 		template <typename... Args>
-		bool ExpectDelimiter(char delimiter, const std::string& message, Args&&... args)
+		bool ExpectAnyOperator(Operator& op, DiagnosticCode code, Args&&... args)
 		{
-			return tokenStream.ExpectDelimiter(delimiter, message, std::forward<Args>(args)...);
+			return tokenStream.ExpectAnyOperator(op, code, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectLiteral(TextSpan& literal, DiagnosticCode code, Args&&... args)
+		{
+			return tokenStream.ExpectLiteral(literal, code, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectIdentifier(TextSpan& identifier, DiagnosticCode code, Args&&... args)
+		{
+			return tokenStream.ExpectIdentifier(identifier, code, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectKeyword(const Keyword& keyword, DiagnosticCode code, Args&&... args)
+		{
+			return tokenStream.ExpectKeyword(keyword, code, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectKeywords(const std::unordered_set<Keyword>& keywords, Keyword& keyword, DiagnosticCode code, Args&&... args)
+		{
+			return tokenStream.ExpectKeywords(keywords, keyword, code, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectDelimiter(char delimiter, Token& token, DiagnosticCode code, Args&&... args)
+		{
+			return tokenStream.ExpectDelimiter(delimiter, token, code, std::forward<Args>(args)...);
+		}
+
+		template <typename... Args>
+		bool ExpectDelimiter(char delimiter, DiagnosticCode code, Args&&... args)
+		{
+			return tokenStream.ExpectDelimiter(delimiter, code, std::forward<Args>(args)...);
 		}
 
 		template <typename... Args>
@@ -588,9 +591,10 @@ namespace HXSL
 			return tokenStream.ExpectNumeric(numberOut, message, std::forward<Args>(args)...);
 		}
 
-		bool ExpectNoDelimiters(const std::unordered_set<char>& delimiters)
+		template <typename... Args>
+		bool ExpectNoDelimiters(const std::unordered_set<char>& delimiters, DiagnosticCode code, Args&&... args)
 		{
-			return tokenStream.ExpectNoDelimiters(delimiters);
+			return tokenStream.ExpectNoDelimiters(delimiters, code, std::forward<Args>(args)...);
 		}
 	};
 }

@@ -104,13 +104,13 @@ namespace HXSL
 	static TextSpan ParseQualifiedName(TokenStream& stream, bool& hasDot)
 	{
 		TextSpan identifier;
-		stream.ExpectIdentifier(identifier);
+		stream.ExpectIdentifier(identifier, EXPECTED_IDENTIFIER);
 		hasDot = false;
 		while (stream.TryGetDelimiter('.'))
 		{
 			hasDot = true;
 			TextSpan secondary;
-			stream.ExpectIdentifier(secondary);
+			stream.ExpectIdentifier(secondary, EXPECTED_IDENTIFIER);
 			identifier = identifier.merge(secondary);
 		}
 
@@ -219,42 +219,71 @@ namespace HXSL
 		ASTNode* parentNode() const noexcept { return ParentNode; }
 
 		template<typename... Args>
+		[[deprecated("Use DiagnosticCode overload")]]
 		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
 		{
-			std::string format = message + " (Line: %i, Column: %i)";
-			stream->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+			HXSL_ASSERT_DEPRECATION
 		}
 
 		template<typename... Args>
+		[[deprecated("Use DiagnosticCode overload")]]
 		void LogErrorIf(bool condition, const std::string& message, const TextSpan& span, Args&&... args) const
+		{
+			HXSL_ASSERT_DEPRECATION
+		}
+
+		template<typename... Args>
+		[[deprecated("Use DiagnosticCode overload")]]
+		void LogError(const std::string& message, Token token, Args&&... args) const
+		{
+			HXSL_ASSERT_DEPRECATION
+		}
+
+		template<typename... Args>
+		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
+		{
+			stream->LogFormatted(code, " (Line: %i, Column: %i)", std::forward<Args>(args)..., span.Line, span.Column);
+		}
+
+		template<typename... Args>
+		void LogIf(bool condition, DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
 			if (condition)
 			{
-				std::string format = message + " (Line: %i, Column: %i)";
-				stream->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+				stream->LogFormatted(code, " (Line: %i, Column: %i)", std::forward<Args>(args)..., span.Line, span.Column);
 			}
 		}
 
 		template<typename... Args>
-		void LogError(const std::string& message, Token token, Args&&... args) const
+		void Log(DiagnosticCode code, const Token& token, Args&&... args) const
 		{
-			LogError(message, token.Span, std::forward<Args>(args)...);
+			Log(code, token.Span, std::forward<Args>(args)...);
 		}
 
+		[[deprecated("Use DiagnosticCode overload")]]
 		bool inScope(ScopeFlags flags, const std::string& message) const noexcept
+		{
+			HXSL_ASSERT_DEPRECATION
+				return false;
+		}
+
+		template<typename... Args>
+		bool inScope(ScopeFlags flags, DiagnosticCode code, Args&&... args) const noexcept
 		{
 			if (!(scopeFlags() & flags))
 			{
-				LogError(message, stream->LastToken());
+				Log(code, stream->LastToken(), std::forward<Args>(args)...);
 				return false;
 			}
 
 			return true;
 		}
 
+		[[deprecated("Use DiagnosticCode overload")]]
 		bool inScope(ScopeFlags flags) const noexcept
 		{
-			return inScope(flags, "Invalid token in current scope.");
+			HXSL_ASSERT_DEPRECATION
+				return false;
 		}
 
 		void pushParentNode(ASTNode* parent)
@@ -292,9 +321,9 @@ namespace HXSL
 		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretentOnError);
 
 		template<typename... Args>
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretentOnError, const std::string& message, Args&&... args)
+		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretentOnError, DiagnosticCode code, Args&&... args)
 		{
-			if (!stream->ExpectDelimiter('{', token, message, std::forward<Args>(args)...) && !pretentOnError)
+			if (!stream->ExpectDelimiter('{', token, code, std::forward<Args>(args)...) && !pretentOnError)
 			{
 				return false;
 			}
@@ -601,6 +630,5 @@ namespace HXSL
 
 		void ParseArraySizes(std::vector<size_t>& arraySizes) { parser.ParseArraySizes(arraySizes); }
 	};
-
 }
 #endif

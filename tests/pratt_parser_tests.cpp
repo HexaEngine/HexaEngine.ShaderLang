@@ -32,8 +32,17 @@ INSTANTIATE_TEST_SUITE_P(
 	}
 );
 
+TEST(CodeId, EncodingDecodingCodeId)
+{
+	std::string input = "ZZ99999999";
+	auto code = EncodeCodeId(LogLevel_Error, input);
+	auto result = GetStringForCode(code);
+	ASSERT_EQ(result, input);
+}
+
 int main(int argc, char** argv)
 {
+	SetLocale("en_US");
 	EnableErrorOutput = false;
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
