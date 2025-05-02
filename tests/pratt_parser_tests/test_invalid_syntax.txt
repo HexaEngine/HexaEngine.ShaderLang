@@ -6,7 +6,7 @@
   [NodeType_ConstantExpression] ID: 1 Span: 2 (Line: 1 Column: 1)
   [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
 #logs
-[Error]: Syntax error: expected an operand after operator. (Line: 1, Column: 5)
+[Error]: expected an operand after operator (Line: 1, Column: 5)
 
 #case
 #in
@@ -18,7 +18,7 @@
   [NodeType_ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 11)
 
 #logs
-[Error]: Syntax error: unexpected ':' expected expression after ternary ':'. (Line: 1, Column: 9)
+[Error]: expected expression after ternary ':' (Line: 1, Column: 9)
 
 #case
 #in
@@ -29,7 +29,7 @@
   [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
   [NodeType_ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 11)
 #logs
-[Error]: Syntax error: expected an operand after operator. (Line: 1, Column: 5)
+[Error]: expected an operand after operator (Line: 1, Column: 5)
 
 #case
 #in
@@ -40,17 +40,17 @@
   [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
   [NodeType_ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 13)
 #logs
-[Error]: Syntax error: expected an operand after operator. (Line: 1, Column: 5)
-[Error]: Syntax error: unexpected ':' expected expression after ternary ':'. (Line: 1, Column: 11)
+[Error]: expected an operand after operator (Line: 1, Column: 5)
+[Error]: expected expression after ternary ':' (Line: 1, Column: 11)
 
 #case
 #in
 5 ? (x + y : 3;
 #ast
 #logs
-[Error]: Syntax error: unexpected ':' outside of a ternary expression. (Line: 1, Column: 12)
-[Error]: Syntax error: expected ')' to close the expression. (Line: 1, Column: 16)
-[Error]: Syntax error: expected ':' to separate branches of ternary expression. (Line: 1, Column: 16)
+[Error]: unexpected ':' outside of a ternary expression (Line: 1, Column: 12)
+[Error]: expected ')' (Line: 1, Column: 16)
+[Error]: expected ':' to separate branches of ternary expression (Line: 1, Column: 16)
 
 #case
 #in
@@ -59,7 +59,7 @@ object. .member();
 [NodeType_MemberAccessExpression] ID: 1 Span: object. (Line: 1 Column: 1)
   [NodeType_FunctionCallExpression] ID: 2 Span: member() (Line: 1 Column: 10)
 #logs
-[Error]: Syntax error: unexpected token in member access expression. (Line: 1, Column: 9)
+[Error]: unexpected token encountered (Line: 1, Column: 9)
 
 #case
 #in
@@ -70,8 +70,18 @@ object.member(5 . );
     [NodeType_FunctionCallParameter] ID: 3 Span: 5 (Line: 1 Column: 15)
       [NodeType_ConstantExpression] ID: 4 Span: 5 (Line: 1 Column: 15)
 #logs
-[Error]: Syntax error: unexpected token in expression. (Line: 1, Column: 17)
+[Error]: unexpected token encountered (Line: 1, Column: 17)
 
 #case
 #in
 func(3, 5, 6;
+#ast
+[NodeType_FunctionCallExpression] ID: 1 Span: func(3, 5, 6 (Line: 1 Column: 1)
+  [NodeType_FunctionCallParameter] ID: 2 Span: 3 (Line: 1 Column: 6)
+    [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 6)
+  [NodeType_FunctionCallParameter] ID: 4 Span: 5 (Line: 1 Column: 9)
+    [NodeType_ConstantExpression] ID: 5 Span: 5 (Line: 1 Column: 9)
+  [NodeType_FunctionCallParameter] ID: 6 Span: 6 (Line: 1 Column: 12)
+    [NodeType_ConstantExpression] ID: 7 Span: 6 (Line: 1 Column: 12)
+#logs
+[Error]: expected ',' (Line: 1, Column: 14)

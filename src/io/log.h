@@ -132,7 +132,7 @@ namespace HXSL
 		[[deprecated("Use DiagnosticCode overload")]]
 		void LogFormatted(LogLevel level, const std::string& format, Args&&... args)
 		{
-			const auto size_s = std::snprintf(nullptr, 0, format.data(), convert_to_cstr(std::forward<Args>(args))...);
+			const auto size_s = std::snprintf(nullptr, 0, format.data(), convert_to_cstr(args)...);
 
 			if (size_s <= 0)
 			{
@@ -143,7 +143,26 @@ namespace HXSL
 			std::string buf;
 			buf.resize(size);
 
-			std::snprintf(buf.data(), size_s + 1, format.data(), convert_to_cstr(std::forward<Args>(args))...);
+			std::snprintf(buf.data(), size_s + 1, format.data(), convert_to_cstr(args)...);
+
+			Log(level, buf);
+		}
+
+		template <typename... Args>
+		void LogFormattedInternal(LogLevel level, const std::string& format, Args&&... args)
+		{
+			const auto size_s = std::snprintf(nullptr, 0, format.data(), convert_to_cstr(args)...);
+
+			if (size_s <= 0)
+			{
+				return;
+			}
+
+			const auto size = static_cast<size_t>(size_s);
+			std::string buf;
+			buf.resize(size);
+
+			std::snprintf(buf.data(), size_s + 1, format.data(), convert_to_cstr(args)...);
 
 			Log(level, buf);
 		}
@@ -152,7 +171,7 @@ namespace HXSL
 		void LogFormattedEx(DiagnosticCode code, const std::string& format, Args&&... args)
 		{
 			const auto formatFinal = code.GetMessage() + format;
-			const auto size_s = std::snprintf(nullptr, 0, formatFinal.data(), convert_to_cstr(std::forward<Args>(args))...);
+			const auto size_s = std::snprintf(nullptr, 0, formatFinal.data(), convert_to_cstr(args)...);
 
 			if (size_s <= 0)
 			{
@@ -163,7 +182,7 @@ namespace HXSL
 			std::string buf;
 			buf.resize(size);
 
-			std::snprintf(buf.data(), size_s + 1, formatFinal.data(), convert_to_cstr(std::forward<Args>(args))...);
+			std::snprintf(buf.data(), size_s + 1, formatFinal.data(), convert_to_cstr(args)...);
 
 			Log(code.GetLogLevel(), buf);
 		}

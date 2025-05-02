@@ -21,7 +21,7 @@ namespace HXSL
 				auto returnType = n->GetReturnSymbolRef()->GetDeclaration();
 				if (returnType && !returnType->IsEquivalentTo(resolver.ResolvePrimitiveSymbol("bool")))
 				{
-					analyzer.LogError("Operator overload for '%s' must return type 'bool'. Found '%s' instead.", n->GetSpan(), ToString(op), returnType->ToString());
+					analyzer.Log(EXPECTED_BOOL_EXPR, n->GetSpan());
 				}
 			}
 		}
@@ -134,7 +134,7 @@ namespace HXSL
 			{
 				if (found)
 				{
-					analyzer.LogError("Ambiguous operator overload for '%s'.", binary->GetSpan(), signature);
+					analyzer.Log(AMBIGUOUS_OP_OVERLOAD, binary->GetSpan(), signature);
 					return false;
 				}
 				found = true;
@@ -160,7 +160,7 @@ namespace HXSL
 		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
 		if (!found || !operatorDecl)
 		{
-			analyzer.LogError("Cannot apply operator '%s', no operation defined between types '%s' and '%s'.",
+			analyzer.Log(OP_OVERLOAD_NOT_FOUND_BINARY,
 				binary->GetSpan(),
 				ToString(op),
 				leftType->ToString(),
@@ -197,7 +197,7 @@ namespace HXSL
 		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
 		if (!operatorDecl || !found)
 		{
-			analyzer.LogError("Cannot apply operator '%s', no operation defined for type '%s'.",
+			analyzer.Log(OP_OVERLOAD_NOT_FOUND_UNARY,
 				unary->GetSpan(),
 				ToString(op),
 				leftType->ToString());

@@ -13,24 +13,24 @@ namespace HXSL
 		auto start = stream.Current();
 		if (stream.TryGetKeyword(Keyword_Break))
 		{
-			parser.RejectAttribute("is not allowed in this context.");
-			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop | ScopeFlags_InsideSwitch, "'break' statement used outside of a loop or switch context."));
+			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
+			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop | ScopeFlags_InsideSwitch, UNEXPECTED_BREAK_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
 			statementOut = std::make_unique<BreakStatement>(TextSpan(), parser.parentNode());
 			return true;
 		}
 		else if (stream.TryGetKeyword(Keyword_Continue))
 		{
-			parser.RejectAttribute("is not allowed in this context.");
-			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop, "'continue' statement used outside of a loop context."));
+			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
+			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop, UNEXPECTED_CONTINUE_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
 			statementOut = std::make_unique<ContinueStatement>(TextSpan(), parser.parentNode());
 			return true;
 		}
 		else if (stream.TryGetKeyword(Keyword_Discard))
 		{
-			parser.RejectAttribute("is not allowed in this context.");
-			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideFunction));
+			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
+			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideFunction, UNEXPECTED_DISCARD_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
 			statementOut = std::make_unique<DiscardStatement>(TextSpan(), parser.parentNode());
 			return true;
@@ -45,7 +45,7 @@ namespace HXSL
 		{
 			return false;
 		}
-		parser.RejectAttribute("is not allowed in this context.");
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 		std::unique_ptr<BlockStatement> body;
 		IF_ERR_RET_FALSE(ParseStatementBody(TextSpan(), parser.scopeType(), parser.parentNode(), parser, stream, body));
 		statementOut = std::move(body);
@@ -62,7 +62,7 @@ namespace HXSL
 		}
 
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
-		parser.AcceptAttribute(&attribute, "");
+		parser.AcceptAttribute(&attribute, 0);
 
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 
@@ -137,7 +137,7 @@ namespace HXSL
 		}
 
 		TakeHandle<AttributeDeclaration>* attribute;
-		parser.AcceptAttribute(&attribute, "");
+		parser.AcceptAttribute(&attribute, 0);
 
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 		auto switchStatement = std::make_unique<SwitchStatement>(TextSpan(), parser.parentNode());
@@ -175,7 +175,7 @@ namespace HXSL
 			{
 				if (switchStatement->GetDefaultCase())
 				{
-					ERR_RETURN_FALSE(parser, "Cannot declare two default cases in a switch-case.");
+					ERR_RETURN_FALSE(parser, DUPLICATE_DEFAULT_CASE);
 				}
 
 				IF_ERR_RET_FALSE(stream.ExpectOperator(Operator_Colon, EXPECTED_COLON));
@@ -201,7 +201,7 @@ namespace HXSL
 		}
 
 		TakeHandle<AttributeDeclaration>* attribute;
-		parser.AcceptAttribute(&attribute, "");
+		parser.AcceptAttribute(&attribute, 0);
 
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 		auto ifStatement = std::make_unique<IfStatement>(TextSpan(), parser.parentNode(), nullptr, nullptr);
@@ -232,7 +232,7 @@ namespace HXSL
 
 		if (stream.TryGetKeyword(Keyword_If))
 		{
-			parser.RejectAttribute("is not allowed in this context.");
+			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 			auto elseIfStatement = std::make_unique<ElseIfStatement>(TextSpan(), parser.parentNode(), nullptr, nullptr);
 			std::unique_ptr<Expression> expression;
@@ -248,7 +248,7 @@ namespace HXSL
 		}
 		else
 		{
-			parser.RejectAttribute("is not allowed in this context.");
+			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			auto elseStatement = std::make_unique<ElseStatement>(TextSpan(), parser.parentNode(), nullptr);
 			std::unique_ptr<BlockStatement> statement;
 			IF_ERR_RET_FALSE(ParseStatementBody(TextSpan(), ScopeType_Else, elseStatement.get(), parser, stream, statement));
@@ -269,7 +269,7 @@ namespace HXSL
 		}
 
 		TakeHandle<AttributeDeclaration>* attribute;
-		parser.AcceptAttribute(&attribute, "");
+		parser.AcceptAttribute(&attribute, 0);
 
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 		auto whileStatement = std::make_unique<WhileStatement>(TextSpan(), parser.parentNode(), nullptr, nullptr);
@@ -299,7 +299,7 @@ namespace HXSL
 		{
 			return false;
 		}
-		parser.RejectAttribute("is not allowed in this context.");
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 		auto returnStatement = std::make_unique<ReturnStatement>(TextSpan(), parser.parentNode(), nullptr);
 		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, returnStatement.get(), expression));
@@ -312,14 +312,14 @@ namespace HXSL
 
 	static bool ParseAssignment(const Token& start, std::unique_ptr<Expression> target, Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
 	{
-		parser.RejectModifierList("No modifiers are allowed in this context", true);
-		parser.RejectAttribute("is not allowed in this context.");
+		parser.RejectModifierList(NO_MODIFIER_INVALID_IN_CONTEXT, true);
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
 		auto current = stream.Current();
 		Operator op;
 		if (!current.isAssignment(op))
 		{
-			parser.LogError("Expected an assignment operator.", current);
+			parser.Log(EXPECTED_ASSIGNMENT_OP, current);
 		}
 
 		std::unique_ptr<AssignmentStatement> assignmentStatement;
@@ -363,12 +363,12 @@ namespace HXSL
 		std::unique_ptr<SymbolRef> symbol;
 		if (!ParserHelper::MakeConcreteSymbolRef(target.get(), SymbolRefType_Type, symbol))
 		{
-			parser.LogError("Expected type expression.", target->GetSpan());
+			parser.Log(EXPECTED_TYPE_EXPR, target->GetSpan());
 		}
 		ModifierList list;
 		ModifierList allowed = ModifierList(AccessModifier_None, false, FunctionFlags_None, StorageClass_Const | StorageClass_Precise, InterpolationModifier_None, false);
-		parser.AcceptModifierList(&list, allowed, "Invalid StorageClass flags. Only 'const' and 'precise' are allowed on local variables.", true);
-		parser.RejectAttribute("is not allowed in this context.");
+		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_VAR);
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
 		TextSpan identifer;
 		stream.ExpectIdentifier(identifer, EXPECTED_IDENTIFIER);
@@ -382,7 +382,7 @@ namespace HXSL
 		auto token = stream.Current();
 		if (!token.isOperatorOf(Operator_Assign) && !token.isDelimiterOf(';'))
 		{
-			parser.LogError("Expected a '=' or ';' in a declaration expression.", token);
+			parser.Log(EXPECTED_EQUALS_OR_SEMICOLON_DECL, token);
 			return false;
 		}
 
@@ -417,8 +417,8 @@ namespace HXSL
 
 	static bool ParseFunctionCall(const Token& start, std::unique_ptr<Expression> target, Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
 	{
-		parser.RejectModifierList("No modifiers are allowed in this context", true);
-		parser.RejectAttribute("is not allowed in this context.");
+		parser.RejectModifierList(NO_MODIFIER_INVALID_IN_CONTEXT);
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
 		Expression* end = target.get();
 		while (auto getter = dynamic_cast<ChainExpression*>(end))
@@ -428,14 +428,7 @@ namespace HXSL
 
 		if (end == nullptr || end->GetType() != NodeType_FunctionCallExpression)
 		{
-			if (end == nullptr)
-			{
-				parser.LogError("Expected a function call expression, but found an invalid expression.", target->GetSpan());
-			}
-			else
-			{
-				parser.LogError("Expected a function call expression, but got '%s' instead.", end->GetSpan(), ToString(end->GetType()));
-			}
+			parser.Log(EXPECTED_FUNC_CALL_EXPR, end ? end->GetSpan() : target->GetSpan());
 			return false;
 		}
 

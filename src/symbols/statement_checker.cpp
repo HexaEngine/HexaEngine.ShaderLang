@@ -39,7 +39,7 @@ namespace HXSL
 		std::unique_ptr<Expression> expr = std::move(statement->DetachReturnValueExpression());
 		if (!checker.AreTypesCompatible(expr, retType, exprType))
 		{
-			analyzer.LogError("Return type mismatch: expected '%s' but got '%s'", statement->GetSpan(), retType->ToString(), exprType->ToString());
+			analyzer.Log(RETURN_TYPE_DOES_NOT_MATCH, statement->GetSpan(), retType->ToString(), exprType->ToString());
 		}
 		statement->SetReturnValueExpression(std::move(expr));
 	}
@@ -63,7 +63,7 @@ namespace HXSL
 		std::unique_ptr<Expression> expr = std::move(statement->DetachInitializer());
 		if (!checker.AreTypesCompatible(expr, declType, initType))
 		{
-			analyzer.LogError("Type mismatch: Initializer type '%s' is not compatible with declared type '%s'.", expr->GetSpan(), initType->ToString(), declType->ToString());
+			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), initType->ToString(), declType->ToString());
 		}
 		statement->SetInitializer(std::move(expr));
 	}
@@ -81,7 +81,7 @@ namespace HXSL
 		std::unique_ptr<Expression> expr = std::move(statement->DetachExpression());
 		if (!checker.AreTypesCompatible(expr, targetType, exprType))
 		{
-			analyzer.LogError("Type mismatch: Expression type '%s' is not compatible with declared type '%s'.", expr->GetSpan(), targetType->ToString(), exprType->ToString());
+			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), targetType->ToString(), exprType->ToString());
 		}
 		statement->SetExpression(std::move(expr));
 	}

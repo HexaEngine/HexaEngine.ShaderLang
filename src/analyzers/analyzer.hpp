@@ -44,10 +44,9 @@ if (!expr) { \
 		bool Analyze();
 
 		template <typename... Args>
-		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
+		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			std::string format = message + " (Line: %i, Column: %i)";
-			compilation->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+			compilation->LogFormattedEx(code, " (Line: %i, Column: %i)", std::forward<Args>(args)..., span.Line, span.Column);
 		}
 	};
 

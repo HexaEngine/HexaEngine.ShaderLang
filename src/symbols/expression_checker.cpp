@@ -102,7 +102,7 @@ namespace HXSL
 			SymbolDef* result;
 			if (!checker.CastOperatorCheck(expression, targetType, operand, result, true))
 			{
-				analyzer.LogError("Cannot cast from '%s' to '%s' no cast operator defined.", expression->GetSpan(), targetType->ToString(), operandType->ToString());
+				analyzer.Log(CANNOT_CAST_FROM_TO, expression->GetSpan(), targetType->ToString(), operandType->ToString());
 				return;
 			}
 
@@ -170,7 +170,7 @@ namespace HXSL
 
 			if (!success)
 			{
-				analyzer.LogError("Couldn't find an matching overload for '%s'.", expression->GetSpan(), signature);
+				analyzer.Log(FUNC_OVERLOAD_NOT_FOUND, expression->GetSpan(), signature);
 				return;
 			}
 
@@ -228,7 +228,7 @@ namespace HXSL
 
 			if (!checker.IsBooleanType(condition, conditionType))
 			{
-				analyzer.LogError("Condition in ternary expression must be of type boolean.", expression->GetSpan());
+				analyzer.Log(EXPECTED_BOOL_EXPR, expression->GetSpan());
 				return;
 			}
 
@@ -242,7 +242,7 @@ namespace HXSL
 
 			if (!checker.AreTypesCompatible(trueBranch, trueBranchType, falseBranch, falseBranchType))
 			{
-				analyzer.LogError("Branches of ternary expression must have compatible types, found: %s and %s", expression->GetSpan(), trueBranchType->ToString(), falseBranchType->ToString());
+				analyzer.Log(OPERAND_TYPES_INCOMPATIBLE, expression->GetSpan(), trueBranchType->ToString(), falseBranchType->ToString());
 				return;
 			}
 
@@ -296,7 +296,7 @@ namespace HXSL
 
 			if (!operand->GetTraits().IsMutable())
 			{
-				analyzer.LogError("Cannot modify an immutable operand in a prefix expression.", operand->GetSpan());
+				analyzer.Log(EXPR_MUST_BE_MUTABLE, operand->GetSpan());
 				return;
 			}
 
@@ -336,13 +336,13 @@ namespace HXSL
 
 			if (!checker.IsIndexerType(index, indexType))
 			{
-				analyzer.LogError("Cannot convert '%s' to an indexer type. Only integer types are allowed for indexing.", expression->GetSpan(), indexType->ToString());
+				analyzer.Log(EXPR_MUST_BE_INTEGRAL, expression->GetSpan());
 				return;
 			}
 
 			if (type->GetType() != NodeType_Array)
 			{
-				analyzer.LogError("Tried to index into type '%s', which is not an array.", expression->GetSpan(), type->ToString());
+				analyzer.Log(EXPR_MUST_BE_ARRAY, expression->GetSpan());
 				return;
 			}
 
@@ -395,7 +395,7 @@ namespace HXSL
 
 			if (!checker.AreTypesCompatible(assignment, targetType, assignmentType))
 			{
-				analyzer.LogError("Type mismatch: Expression type '%s' is not compatible with declared type '%s'.", assignment->GetSpan(), assignmentType->ToString(), targetType->ToString());
+				analyzer.Log(TYPE_CONVERSION_NOT_FOUND, assignment->GetSpan(), assignmentType->ToString(), targetType->ToString());
 			}
 		}
 		else

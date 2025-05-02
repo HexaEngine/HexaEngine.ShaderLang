@@ -17,7 +17,7 @@ namespace HXSL
 
 			if (processing.find(currentNode) != processing.end())
 			{
-				analyzer.LogError("Recursive struct layout detected.", currentNode->GetSpan());
+				analyzer.Log(RECURSIVE_STRUCT_LAYOUT, currentNode->GetSpan());
 				return TraversalBehavior_Break;
 			}
 
@@ -44,7 +44,7 @@ namespace HXSL
 					}
 					else
 					{
-						analyzer.LogError("Recursive struct layout detected.", currentNode->GetSpan());
+						analyzer.Log(RECURSIVE_STRUCT_LAYOUT, currentNode->GetSpan());
 						return TraversalBehavior_Break;
 					}
 				}

@@ -295,14 +295,14 @@ namespace HXSL
 	{
 		if (op != Operator_Increment && op != Operator_Decrement)
 		{
-			context.LogError("Syntax error: invalid postfix operator.", context.LastToken());
+			context.Log(INVALID_POSTFIX_OP, context.LastToken());
 			return false;
 		}
 
 		auto type = operand->GetType();
 		if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
 		{
-			context.LogError("Syntax error: postfix increment/decrement must target a variable.", operand->GetSpan());
+			context.Log(INC_DEC_MUST_TARGET_VAR, operand->GetSpan());
 			return false;
 		}
 
@@ -359,14 +359,14 @@ namespace HXSL
 				if (!context.IsInTernary())
 				{
 					context.Advance();
-					context.LogError("Syntax error: unexpected ':' outside of a ternary expression.", current);
+					context.Log(UNEXPECTED_COLON_OUTSIDE_TERNARY, current);
 					continue;
 				}
 
 				if (context.LastToken().isOperatorOf(Operator_TernaryElse))
 				{
 					context.Advance();
-					context.LogError("Syntax error: unexpected ':' expected expression after ternary ':'.", current);
+					context.Log(EXPECTED_EXPR_AFTER_TERNARY, current);
 					continue;
 				}
 
@@ -395,7 +395,7 @@ namespace HXSL
 
 				if (wasOperator)
 				{
-					context.LogError("Syntax error: expected an operand after operator.", current);
+					context.Log(EXPECTED_OPERAND_AFTER_OP, current);
 					continue;
 				}
 
@@ -418,7 +418,7 @@ namespace HXSL
 				}
 				else
 				{
-					context.LogError("Syntax error: unexpected token in expression.", current);
+					context.Log(UNEXPECTED_TOKEN, current);
 					continue;
 				}
 
@@ -433,7 +433,7 @@ namespace HXSL
 
 					if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
 					{
-						context.LogError("Expected an type in cast expression.", left->GetSpan());
+						context.Log(EXPECTED_TYPE_EXPR_CAST, left->GetSpan());
 						return false;
 					}
 
@@ -463,11 +463,11 @@ namespace HXSL
 			{
 				if (context.IsEndOfTokens())
 				{
-					context.LogError("Unexpected end of tokens.", current);
+					context.Log(UNEXPECTED_EOS, current);
 				}
 				else
 				{
-					context.LogError("Syntax error: unexpected token in expression.", current);
+					context.Log(UNEXPECTED_TOKEN, current);
 				}
 				break;
 			}
@@ -498,7 +498,7 @@ namespace HXSL
 			{
 				auto expr = std::unique_ptr<TernaryExpression>(static_cast<TernaryExpression*>(frame.result.release()));
 				expr->SetTrueBranch(context.PopOperand());
-				if (!stream.ExpectOperator(Operator_TernaryElse, EXPECTED_COLON))
+				if (!stream.ExpectOperator(Operator_TernaryElse, EXPECTED_COLON_TERNARY))
 				{
 					expr->SetSpan(expr->GetSpan().merge(expr->GetTrueBranch()->GetSpan()));
 					expr->SetFalseBranch(std::make_unique<EmptyExpression>(TextSpan(), expr.get()));

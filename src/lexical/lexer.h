@@ -171,7 +171,7 @@ namespace HXSL
 			template <typename... Args>
 			void LogFormatted(DiagnosticCode code, Args&&... args) const
 			{
-				logger->LogFormattedEx(code, " (Line: %i, Column: %i)", std::forward<Args>(args)..., Line, Column);
+				logger->LogFormattedEx(code, " (Line: %u, Column: %u)", std::forward<Args>(args)..., Line, Column);
 			}
 		};
 

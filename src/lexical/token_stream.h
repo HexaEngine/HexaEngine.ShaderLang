@@ -125,20 +125,6 @@ namespace HXSL
 			streamState.state.LogFormatted(code, std::forward<Args>(args)...);
 		}
 
-		template<typename... Args>
-		[[deprecated("Use DiagnosticCode overload")]]
-		void LogFormatted(LogLevel level, const std::string& message, Args&&... args) const
-		{
-			HXSL_ASSERT_DEPRECATION
-		}
-
-		template<typename... Args>
-		[[deprecated("Use DiagnosticCode overload")]]
-		void LogError(const std::string& message, Args&&... args) const
-		{
-			HXSL_ASSERT_DEPRECATION
-		}
-
 		bool HasCriticalErrors() const noexcept { return streamState.state.HasCriticalErrors(); }
 
 		Token LastToken() const { return streamState.lastToken; }

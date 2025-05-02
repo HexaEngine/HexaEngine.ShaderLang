@@ -46,7 +46,7 @@ namespace HXSL
 		{
 			if (!us.Warmup(references))
 			{
-				LogError("Namespace couldn't be found with the name '%s'.", us.Span, us.Target.toString().c_str());
+				Log(NAMESPACE_OR_TYPE_NOT_FOUND, us.Span, us.Target.toString().c_str());
 			}
 		}
 
@@ -56,7 +56,7 @@ namespace HXSL
 			{
 				if (!us.Warmup(references))
 				{
-					LogError("Namespace couldn't be found with the name '%s'.", us.Span, us.Target.toString().c_str());
+					Log(NAMESPACE_OR_TYPE_NOT_FOUND, us.Span, us.Target.toString().c_str());
 				}
 			}
 			ns->Warmup(references);
@@ -76,19 +76,19 @@ namespace HXSL
 		SymbolResolver resolver(*this, references, outputAssembly.get(), arrayManager.get(), swizzleManager.get());
 		resolver.Traverse(compilation);
 
-		compilation->LogFormatted(LogLevel_Verbose, "Symbol resolve initial phase done! %d errors.", compilation->GetErrorCount());
+		compilation->LogFormattedInternal(LogLevel_Verbose, "Symbol resolve initial phase done! %d errors.", compilation->GetErrorCount());
 
 		collector.LateTraverse();
 
 		TypeChecker checker(*this, resolver);
 		checker.Traverse(compilation);
 
-		compilation->LogFormatted(LogLevel_Verbose, "Type checks done! %d errors.", compilation->GetErrorCount());
+		compilation->LogFormattedInternal(LogLevel_Verbose, "Type checks done! %d errors.", compilation->GetErrorCount());
 
 		AnalyzerVisitor visitor(*this);
 		visitor.Traverse(compilation);
 
-		compilation->LogFormatted(LogLevel_Verbose, "Post Analysis AST");
+		compilation->LogFormattedInternal(LogLevel_Verbose, "Post Analysis AST");
 		debug.Traverse(compilation);
 
 		return true;

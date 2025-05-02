@@ -11,15 +11,15 @@
 #include <string>
 namespace HXSL
 {
-#define ERR_RETURN_FALSE(state, message) \
+#define ERR_RETURN_FALSE(state, code) \
 	do { \
-		state.LogError(message, state.GetStream().Current()); \
+		state.Log(code, state.GetStream().Current()); \
 		return false; \
 	} while (0)
 
-#define ERR_RETURN_DEFAULT(state, message) \
+#define ERR_RETURN_DEFAULT(state, code) \
 	do { \
-		state.LogError(message); \
+		state.Log(code); \
 		return { }; \
 	} while (0)
 
@@ -219,30 +219,9 @@ namespace HXSL
 		ASTNode* parentNode() const noexcept { return ParentNode; }
 
 		template<typename... Args>
-		[[deprecated("Use DiagnosticCode overload")]]
-		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
-		{
-			HXSL_ASSERT_DEPRECATION
-		}
-
-		template<typename... Args>
-		[[deprecated("Use DiagnosticCode overload")]]
-		void LogErrorIf(bool condition, const std::string& message, const TextSpan& span, Args&&... args) const
-		{
-			HXSL_ASSERT_DEPRECATION
-		}
-
-		template<typename... Args>
-		[[deprecated("Use DiagnosticCode overload")]]
-		void LogError(const std::string& message, Token token, Args&&... args) const
-		{
-			HXSL_ASSERT_DEPRECATION
-		}
-
-		template<typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			stream->LogFormatted(code, " (Line: %i, Column: %i)", std::forward<Args>(args)..., span.Line, span.Column);
+			m_compilation->LogFormattedEx(code, " (Line: %u, Column: %u)", std::forward<Args>(args)..., span.Line, span.Column);
 		}
 
 		template<typename... Args>
@@ -250,7 +229,7 @@ namespace HXSL
 		{
 			if (condition)
 			{
-				stream->LogFormatted(code, " (Line: %i, Column: %i)", std::forward<Args>(args)..., span.Line, span.Column);
+				m_compilation->LogFormattedEx(code, " (Line: %u, Column: %u)", std::forward<Args>(args)..., span.Line, span.Column);
 			}
 		}
 
@@ -258,13 +237,6 @@ namespace HXSL
 		void Log(DiagnosticCode code, const Token& token, Args&&... args) const
 		{
 			Log(code, token.Span, std::forward<Args>(args)...);
-		}
-
-		[[deprecated("Use DiagnosticCode overload")]]
-		bool inScope(ScopeFlags flags, const std::string& message) const noexcept
-		{
-			HXSL_ASSERT_DEPRECATION
-				return false;
 		}
 
 		template<typename... Args>
@@ -277,13 +249,6 @@ namespace HXSL
 			}
 
 			return true;
-		}
-
-		[[deprecated("Use DiagnosticCode overload")]]
-		bool inScope(ScopeFlags flags) const noexcept
-		{
-			HXSL_ASSERT_DEPRECATION
-				return false;
 		}
 
 		void pushParentNode(ASTNode* parent)
@@ -372,7 +337,7 @@ namespace HXSL
 		/// `true` to continue normally, regardless of the input.
 		/// </remarks>
 		template<typename... Args>
-		bool AcceptAttribute(TakeHandle<AttributeDeclaration>** attributeOut, const std::string& message, Args&&... args)
+		bool AcceptAttribute(TakeHandle<AttributeDeclaration>** attributeOut, DiagnosticCode code, Args&&... args)
 		{
 			if (!attribute.Get())
 			{
@@ -389,20 +354,19 @@ namespace HXSL
 				return true;
 			}
 
-			std::string format = "Attribute '%s' " + message;
-			LogError(format, attribute.Get()->GetSpan(), attribute.Get()->GetSpan().toString().c_str(), std::forward<Args>(args)...);
+			Log(code, attribute.Get()->GetSpan(), attribute.Get()->GetSpan().toString(), std::forward<Args>(args)...);
 			attribute.Reset();
 			return false;
 		}
 
 		template<typename... Args>
-		bool RejectAttribute(const std::string& message, Args&&... args)
+		bool RejectAttribute(DiagnosticCode code, Args&&... args)
 		{
-			return AcceptAttribute(nullptr, message, std::forward<Args>(args)...);
+			return AcceptAttribute(nullptr, code, std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
-		bool AcceptModifierList(ModifierList* modifierListOut, const ModifierList& allowed, const std::string& message, bool replaceMessage = false, Args&&... args)
+		bool AcceptModifierList(ModifierList* modifierListOut, const ModifierList& allowed, DiagnosticCode code, Args&&... args)
 		{
 			bool isValid = true;
 
@@ -412,26 +376,22 @@ namespace HXSL
 			{
 				if (modifierList.anyAccessModifiersSpecified)
 				{
-					format = replaceMessage ? message : "Access modifier " + message;
-					LogError(format, span, std::forward<Args>(args)...);
+					Log(code, span, std::forward<Args>(args)...);
 					isValid = false;
 				}
 				if (modifierList.functionFlags != FunctionFlags_None)
 				{
-					format = replaceMessage ? message : "Function modifier " + message;
-					LogError(format, span, std::forward<Args>(args)...);
+					Log(code, span, std::forward<Args>(args)...);
 					isValid = false;
 				}
 				if (modifierList.storageClasses != StorageClass_None)
 				{
-					format = replaceMessage ? message : "Storage class modifier " + message;
-					LogError(format, span, std::forward<Args>(args)...);
+					Log(code, span, std::forward<Args>(args)...);
 					isValid = false;
 				}
 				if (modifierList.anyInterpolationModifiersSpecified)
 				{
-					format = replaceMessage ? message : "Interpolation modifier " + message;
-					LogError(format, span, std::forward<Args>(args)...);
+					Log(code, span, std::forward<Args>(args)...);
 					isValid = false;
 				}
 
@@ -441,38 +401,32 @@ namespace HXSL
 
 			if (!allowed.anyAccessModifiersSpecified && modifierList.anyAccessModifiersSpecified)
 			{
-				format = replaceMessage ? message : "Access modifier " + message;
-				LogError(format, span, std::forward<Args>(args)...);
+				Log(code, span, std::forward<Args>(args)...);
 				isValid = false;
 			}
 			else if (modifierList.anyAccessModifiersSpecified && (modifierList.accessModifiers & ~allowed.accessModifiers) != 0)
 			{
-				format = replaceMessage ? message : "Access modifier " + message;
-				LogError(format, span, std::forward<Args>(args)...);
+				Log(code, span, std::forward<Args>(args)...);
 				isValid = false;
 			}
 			if ((modifierList.functionFlags & ~allowed.functionFlags) != 0)
 			{
-				format = replaceMessage ? message : "Function modifier " + message;
-				LogError(format, span, std::forward<Args>(args)...);
+				Log(code, span, std::forward<Args>(args)...);
 				isValid = false;
 			}
 			if ((modifierList.storageClasses & ~allowed.storageClasses) != 0)
 			{
-				format = replaceMessage ? message : "Storage class modifier " + message;
-				LogError(format, span, std::forward<Args>(args)...);
+				Log(code, span, std::forward<Args>(args)...);
 				isValid = false;
 			}
 			if (!allowed.anyInterpolationModifiersSpecified && modifierList.anyInterpolationModifiersSpecified)
 			{
-				format = replaceMessage ? message : "Interpolation modifier " + message;
-				LogError(format, span, std::forward<Args>(args)...);
+				Log(code, span, std::forward<Args>(args)...);
 				isValid = false;
 			}
 			else if (modifierList.anyInterpolationModifiersSpecified && (modifierList.interpolationModifiers & ~allowed.interpolationModifiers) != 0)
 			{
-				format = replaceMessage ? message : "Interpolation modifier " + message;
-				LogError(format, span, std::forward<Args>(args)...);
+				Log(code, span, std::forward<Args>(args)...);
 				isValid = false;
 			}
 
@@ -487,9 +441,9 @@ namespace HXSL
 		}
 
 		template<typename... Args>
-		bool RejectModifierList(const std::string& message, bool replaceMessage = false, Args&&... args)
+		bool RejectModifierList(DiagnosticCode code, Args&&... args)
 		{
-			return AcceptModifierList(nullptr, {}, message, replaceMessage, std::forward<Args>(args)...);
+			return AcceptModifierList(nullptr, {}, code, std::forward<Args>(args)...);
 		}
 
 		std::tuple<ParameterFlags, InterpolationModifier> ParseParameterFlags();
@@ -535,25 +489,28 @@ namespace HXSL
 
 		// Logging
 		template<typename... Args>
-		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
+		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			parser.LogError(message, span, std::forward<Args>(args)...);
+			parser.Log(code, span, std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
-		void LogErrorIf(bool condition, const std::string& message, const TextSpan& span, Args&&... args) const
+		void LogIf(bool condition, DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			parser.LogErrorIf(condition, message, span, std::forward<Args>(args)...);
+			parser.LogIf(condition, code, span, std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
-		void LogError(const std::string& message, Token token, Args&&... args) const
+		void Log(DiagnosticCode code, const Token& token, Args&&... args) const
 		{
-			parser.LogError(message, token, std::forward<Args>(args)...);
+			parser.Log(code, token, std::forward<Args>(args)...);
 		}
 
-		bool InScope(ScopeFlags flags) const noexcept { return parser.inScope(flags); }
-		bool InScope(ScopeFlags flags, const std::string& message) const noexcept { return parser.inScope(flags, message); }
+		template<typename... Args>
+		bool inScope(ScopeFlags flags, DiagnosticCode code, Args&&... args) const noexcept
+		{
+			return parser.inScope(flags, std::forward<Args>(args)...);
+		}
 
 		void PushParentNode(ASTNode* parent) { parser.pushParentNode(parent); }
 		void PopParentNode() { parser.popParentNode(); }
@@ -597,27 +554,27 @@ namespace HXSL
 		bool AttemptErrorRecovery(bool restorePoint = false) { return parser.AttemptErrorRecovery(restorePoint); }
 
 		template<typename... Args>
-		bool AcceptAttribute(TakeHandle<AttributeDeclaration>** attributeOut, const std::string& message, Args&&... args)
+		bool AcceptAttribute(TakeHandle<AttributeDeclaration>** attributeOut, DiagnosticCode code, Args&&... args)
 		{
-			return parser.AcceptAttribute(attributeOut, message, std::forward<Args>(args)...);
+			return parser.AcceptAttribute(attributeOut, code, std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
-		bool RejectAttribute(const std::string& message, Args&&... args)
+		bool RejectAttribute(DiagnosticCode code, Args&&... args)
 		{
-			return parser.RejectAttribute(message, std::forward<Args>(args)...);
+			return parser.RejectAttribute(code, std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
-		bool AcceptModifierList(ModifierList* modifierListOut, const ModifierList& allowed, const std::string& message, bool replaceMessage = false, Args&&... args)
+		bool AcceptModifierList(ModifierList* modifierListOut, const ModifierList& allowed, DiagnosticCode code, Args&&... args)
 		{
-			return parser.AcceptModifierList(modifierListOut, allowed, message, replaceMessage, std::forward<Args>(args)...);
+			return parser.AcceptModifierList(modifierListOut, allowed, code, std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
-		bool RejectModifierList(const std::string& message, bool replaceMessage = false, Args&&... args)
+		bool RejectModifierList(DiagnosticCode code, Args&&... args)
 		{
-			return parser.RejectModifierList(message, replaceMessage, std::forward<Args>(args)...);
+			return parser.RejectModifierList(code, std::forward<Args>(args)...);
 		}
 
 		std::tuple<ParameterFlags, InterpolationModifier> ParseParameterFlags() { return parser.ParseParameterFlags(); }

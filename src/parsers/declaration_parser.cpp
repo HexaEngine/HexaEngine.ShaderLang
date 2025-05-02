@@ -7,16 +7,16 @@ namespace HXSL
 {
 	static bool ParseField(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, Compilation* compilation)
 	{
-		parser.RejectAttribute("cannot be applied to fields, found on '%s'", name.toString().c_str());
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
 		ModifierList list;
 		ModifierList allowed = ModifierList(AccessModifier_All, true, FunctionFlags_None, StorageClass_All, InterpolationModifier_All, true);
-		parser.AcceptModifierList(&list, allowed, "is not valid on fields.");
+		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_FIELD);
 
 		auto scopeType = parser.scopeType();
 		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
 		{
-			ERR_RETURN_FALSE(parser, "Cannot declare field in this scope");
+			ERR_RETURN_FALSE(parser, FIELD_DECL_OUT_OF_SCOPE);
 		}
 
 		ASTNode* parent = parser.scopeParent();
@@ -68,11 +68,11 @@ namespace HXSL
 	static bool ParseFunction(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, Parser& parser, TokenStream& stream, Compilation* compilation)
 	{
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
-		parser.AcceptAttribute(&attribute, "");
+		parser.AcceptAttribute(&attribute, 0);
 
 		ModifierList list;
 		ModifierList allowed = ModifierList(AccessModifier_All, true, FunctionFlags_All, StorageClass_Static, InterpolationModifier_None, false);
-		parser.AcceptModifierList(&list, allowed, "is not valid on functions.");
+		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_FUNC);
 
 		auto scopeType = parser.scopeType();
 		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
@@ -148,11 +148,11 @@ namespace HXSL
 		stream.ExpectKeyword(Keyword_Operator, EXPECTED_OPERATOR);
 
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
-		parser.AcceptAttribute(&attribute, "");
+		parser.AcceptAttribute(&attribute, 0);
 
 		ModifierList list;
 		ModifierList allowed = ModifierList(AccessModifier_All, true, FunctionFlags_Inline, StorageClass_Static, InterpolationModifier_None, false);
-		parser.AcceptModifierList(&list, allowed, "is not valid on operators.");
+		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_OP);
 
 		Operator op;
 		auto opToken = stream.Current();
@@ -318,7 +318,7 @@ namespace HXSL
 		TextSpan name;
 		stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER);
 
-		parser.AcceptAttribute(nullptr, "is not valid in this context on '%s'", name.toString().c_str());
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
 		auto scopeType = parser.scopeType();
 		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
@@ -328,7 +328,7 @@ namespace HXSL
 
 		ModifierList list;
 		ModifierList allowed = ModifierList(AccessModifier_All, true);
-		parser.AcceptModifierList(&list, allowed, "is not valid on structs.");
+		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_STRUCT);
 
 		auto parent = parser.scopeParent();
 		auto _struct = std::make_unique<Struct>(TextSpan(), parent, list.accessModifiers, name);
