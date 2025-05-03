@@ -2,8 +2,8 @@
 #in
 8 / 4 * 2;
 #ast
-[NodeType_BinaryExpression] ID: 4 Span: 8 / 4 * 2 (Line: 1 Column: 1)
+[NodeType_BinaryExpression] ID: 1 Span: 8 / 4 * 2 (Line: 1 Column: 1)
   [NodeType_BinaryExpression] ID: 2 Span: 8 / 4 (Line: 1 Column: 1)
-    [NodeType_ConstantExpression] ID: 1 Span: 8 (Line: 1 Column: 1)
-    [NodeType_ConstantExpression] ID: 3 Span: 4 (Line: 1 Column: 5)
+    [NodeType_ConstantExpression] ID: 3 Span: 8 (Line: 1 Column: 1)
+    [NodeType_ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 5)
   [NodeType_ConstantExpression] ID: 5 Span: 2 (Line: 1 Column: 9)

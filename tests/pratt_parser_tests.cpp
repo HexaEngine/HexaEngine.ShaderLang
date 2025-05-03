@@ -16,7 +16,11 @@ protected:
 		stream.TryAdvance();
 
 		ExpressionPtr expr;
-		PrattParser::ParseExpression(parser, stream, parser.Compilation(), expr);
+		PrattParser::ParseExpression(parser, stream, expr);
+		if (expr)
+		{
+			expr->SetParent(compilation.get());
+		}
 		return std::make_tuple(std::move(compilation), std::move(expr));
 	}
 };
@@ -45,7 +49,8 @@ INSTANTIATE_TEST_SUITE_P
 		std::make_tuple("pratt_parser_tests/test_division_multiplication.txt", "DivisionAndMultiplicationTest"),
 		std::make_tuple("pratt_parser_tests/test_function_call.txt", "FunctionCallTest"),
 		std::make_tuple("pratt_parser_tests/test_invalid_syntax.txt", "InvalidSyntaxTest"),
-		std::make_tuple("pratt_parser_tests/test_empty_parentheses.txt", "EmptyParenthesesTest")
+		std::make_tuple("pratt_parser_tests/test_empty_parentheses.txt", "EmptyParenthesesTest"),
+		std::make_tuple("pratt_parser_tests/test_pending.txt", "PendingTest")
 	),
 	[](const testing::TestParamInfo<PrattParserTest::ParamType>& info)
 	{

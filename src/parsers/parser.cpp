@@ -281,7 +281,7 @@ namespace HXSL
 		while (!stream->IsEndOfTokens() && !stream->HasCriticalErrors())
 		{
 			auto current = stream->Current();
-			if (current.isIdentifier() || current.isKeywordOf(parameterFlagKeywords) || current.isKeywordOf(interpolationModifierKeywords))
+			if (current.isIdentifier() || current.isNumeric() || current.isKeywordOf(parameterFlagKeywords) || current.isKeywordOf(interpolationModifierKeywords))
 			{
 				return true;
 			}
@@ -814,7 +814,7 @@ namespace HXSL
 		std::unique_ptr<SymbolRef> symbol;
 		IF_ERR_RET(ParseSymbol(SymbolRefType_Attribute, symbol));
 
-		auto attribute = std::make_unique<AttributeDeclaration>(TextSpan(), nullptr);
+		auto attribute = std::make_unique<AttributeDeclaration>(TextSpan());
 
 		std::vector<std::unique_ptr<Expression>> parameters;
 		if (stream->TryGetDelimiter('('))
@@ -828,7 +828,7 @@ namespace HXSL
 				}
 				firstParam = false;
 				std::unique_ptr<Expression> parameter;
-				if (!PrattParser::ParseExpression(*this, *stream, attribute.get(), parameter))
+				if (!PrattParser::ParseExpression(*this, *stream, parameter))
 				{
 					return;
 				}

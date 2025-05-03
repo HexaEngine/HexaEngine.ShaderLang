@@ -287,7 +287,7 @@ namespace HXSL
 
 	public:
 		MemoryStream(uint8_t* buffer, size_t size, bool isDynamic) : Stream(sizeof(MemoryStream), this, MemoryStreamRead, MemoryStreamWrite, MemoryStreamSeek, MemoryStreamPosition, MemoryStreamLength, MemoryStreamFlush, MemoryStreamClose),
-			buffer(buffer), position(0), length(size), capacity(capacity), isDynamic(isDynamic)
+			buffer(buffer), position(0), length(size), capacity(size), isDynamic(isDynamic)
 		{
 		}
 

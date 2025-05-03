@@ -34,7 +34,7 @@ namespace HXSL
 
 	public:
 		Compilation(bool isExtern = false)
-			: ASTNode({ }, nullptr, NodeType_Compilation, isExtern), ILogger()
+			: ASTNode({ }, NodeType_Compilation, isExtern), ILogger()
 		{
 			AssignId();
 		}
@@ -64,7 +64,8 @@ namespace HXSL
 			lock.unlock();
 			std::unique_lock<std::shared_mutex> uniqueLock(_mutex);
 
-			auto ns = std::make_unique<Namespace>(this, declaration);
+			auto ns = std::make_unique<Namespace>(declaration);
+			ns->SetParent(this);
 			auto pNs = ns.get();
 			namespaces.push_back(std::move(ns));
 			return pNs;

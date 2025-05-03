@@ -15,8 +15,8 @@ namespace HXSL
 		size_t arraySize;
 	public:
 		Array(std::string& name, std::unique_ptr<SymbolRef>& elementType, size_t arraySize)
-			: Type(TextSpan(), nullptr, NodeType_Array, TextSpan()),
-			ASTNode(TextSpan(), nullptr, NodeType_Array),
+			: Type(TextSpan(), NodeType_Array, TextSpan()),
+			ASTNode(TextSpan(), NodeType_Array),
 			elementType(std::move(elementType)),
 			backingName(std::move(name)),
 			arraySize(arraySize)

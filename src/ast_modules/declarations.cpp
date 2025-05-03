@@ -112,6 +112,21 @@ namespace HXSL
 		}
 	}
 
+	const std::unique_ptr<BlockStatement>& FunctionOverload::GetBody() const noexcept
+	{
+		return body;
+	}
+
+	void FunctionOverload::SetBody(std::unique_ptr<BlockStatement>&& value) noexcept
+	{
+		UnregisterChild(body.get()); body = std::move(value); RegisterChild(body.get());
+	}
+
+	std::unique_ptr<BlockStatement>& FunctionOverload::GetBodyMut() noexcept
+	{
+		return body;
+	}
+
 	void OperatorOverload::Write(Stream& stream) const
 	{
 		stream.WriteUInt(functionFlags);

@@ -16,11 +16,14 @@ namespace HXSL
 		std::vector<std::unique_ptr<Field>> fields;
 
 	public:
-		Container(TextSpan span, ASTNode* parent, NodeType type, bool isExtern = false)
-			:ASTNode(span, parent, type, isExtern)
+		Container(TextSpan span, NodeType type, bool isExtern = false) : ASTNode(span, type, isExtern)
 		{
 		}
+
+	public:
+
 		virtual ~Container() {}
+
 		void AddFunction(std::unique_ptr<FunctionOverload> function);
 
 		void AddOperator(std::unique_ptr<OperatorOverload> _operator);

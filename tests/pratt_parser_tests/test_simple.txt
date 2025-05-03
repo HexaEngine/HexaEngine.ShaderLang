@@ -2,6 +2,6 @@
 #in
 x+y;
 #ast
-[NodeType_BinaryExpression] ID: 2 Span: x+y (Line: 1 Column: 1)
-  [NodeType_MemberReferenceExpression] ID: 1 Span: x (Line: 1 Column: 1)
+[NodeType_BinaryExpression] ID: 1 Span: x+y (Line: 1 Column: 1)
+  [NodeType_MemberReferenceExpression] ID: 2 Span: x (Line: 1 Column: 1)
   [NodeType_MemberReferenceExpression] ID: 3 Span: y (Line: 1 Column: 3)

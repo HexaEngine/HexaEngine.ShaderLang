@@ -12,22 +12,25 @@ namespace HXSL
 	class Statement : virtual public ASTNode
 	{
 	protected:
-		Statement(TextSpan span, ASTNode* parent, NodeType type)
-			: ASTNode(span, parent, type)
+		Statement(TextSpan span, NodeType type, bool isExtern = false)
+			: ASTNode(span, type, isExtern)
 		{
 		}
 	};
 
 	class StatementContainer
 	{
+		ASTNode* self;
 	protected:
 		std::vector<std::unique_ptr<Statement>> statements;
 
 	public:
+		StatementContainer(ASTNode* self) :self(self) {}
 		virtual ~StatementContainer() = default;
 
 		void AddStatement(std::unique_ptr<Statement> statement)
 		{
+			statement->SetParent(self);
 			statements.push_back(std::move(statement));
 		}
 
@@ -40,9 +43,10 @@ namespace HXSL
 	class BlockStatement : public Statement, public StatementContainer
 	{
 	public:
-		BlockStatement(TextSpan span, ASTNode* parent)
-			: Statement(span, parent, NodeType_BlockStatement),
-			ASTNode(span, parent, NodeType_BlockStatement)
+		BlockStatement(TextSpan span)
+			: Statement(span, NodeType_BlockStatement),
+			ASTNode(span, NodeType_BlockStatement),
+			StatementContainer(this)
 		{
 		}
 
@@ -63,26 +67,22 @@ namespace HXSL
 
 	public:
 		DeclarationStatement()
-			: Statement(TextSpan(), nullptr, NodeType_DeclarationStatement),
-			SymbolDef(TextSpan(), nullptr, NodeType_DeclarationStatement, TextSpan(), true),
-			ASTNode(TextSpan(), nullptr, NodeType_DeclarationStatement, true),
+			: Statement(TextSpan(), NodeType_DeclarationStatement, true),
+			SymbolDef(TextSpan(), NodeType_DeclarationStatement, TextSpan(), true),
+			ASTNode(TextSpan(), NodeType_DeclarationStatement, true),
 			storageClass(StorageClass_None)
 		{
 		}
 
-		DeclarationStatement(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, StorageClass storageClass, TextSpan name, std::unique_ptr<Expression> initializer)
-			: Statement(span, parent, NodeType_DeclarationStatement),
-			SymbolDef(span, parent, NodeType_DeclarationStatement, name),
-			ASTNode(span, parent, NodeType_DeclarationStatement),
+		DeclarationStatement(TextSpan span, std::unique_ptr<SymbolRef> symbol, StorageClass storageClass, TextSpan name, std::unique_ptr<Expression> initializer)
+			: Statement(span, NodeType_DeclarationStatement),
+			SymbolDef(span, NodeType_DeclarationStatement, name),
+			ASTNode(span, NodeType_DeclarationStatement),
 			storageClass(storageClass),
 			symbol(std::move(symbol)),
 			initializer(std::move(initializer))
 		{
-			if (this->initializer)
-			{
-				this->initializer->SetParent(this);
-				RegisterExpression(this->initializer.get());
-			}
+			REGISTER_EXPR(initializer);
 		}
 
 		std::unique_ptr<SymbolRef>& GetSymbolRef() override
@@ -128,43 +128,25 @@ namespace HXSL
 		std::unique_ptr<Expression> expression;
 
 	protected:
-		AssignmentStatement(TextSpan span, ASTNode* parent, NodeType type, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: Statement(span, parent, type),
-			ASTNode(span, parent, type),
+		AssignmentStatement(TextSpan span, NodeType type, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+			: Statement(span, type),
+			ASTNode(span, type),
 			target(std::move(target)),
 			expression(std::move(expression))
 		{
-			if (this->target)
-			{
-				this->target->SetParent(this);
-				RegisterExpression(this->target.get());
-			}
-
-			if (this->expression)
-			{
-				this->expression->SetParent(this);
-				RegisterExpression(this->expression.get());
-			}
+			REGISTER_EXPR(target);
+			REGISTER_EXPR(expression);
 		}
 
 	public:
-		AssignmentStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: Statement(span, parent, NodeType_AssignmentStatement),
-			ASTNode(span, parent, NodeType_AssignmentStatement),
+		AssignmentStatement(TextSpan span, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+			: Statement(span, NodeType_AssignmentStatement),
+			ASTNode(span, NodeType_AssignmentStatement),
 			target(std::move(target)),
 			expression(std::move(expression))
 		{
-			if (this->target)
-			{
-				this->target->SetParent(this);
-				RegisterExpression(this->target.get());
-			}
-
-			if (this->expression)
-			{
-				this->expression->SetParent(this);
-				RegisterExpression(this->expression.get());
-			}
+			REGISTER_EXPR(target);
+			REGISTER_EXPR(expression);
 		}
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Target, target)
@@ -177,9 +159,9 @@ namespace HXSL
 		Operator _operator;
 
 	public:
-		CompoundAssignmentStatement(TextSpan span, ASTNode* parent, Operator op, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: AssignmentStatement(span, parent, NodeType_CompoundAssignmentStatement, std::move(target), std::move(expression)),
-			ASTNode(span, parent, NodeType_CompoundAssignmentStatement),
+		CompoundAssignmentStatement(TextSpan span, Operator op, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+			: AssignmentStatement(span, NodeType_CompoundAssignmentStatement, std::move(target), std::move(expression)),
+			ASTNode(span, NodeType_CompoundAssignmentStatement),
 			_operator(op)
 		{
 		}
@@ -193,16 +175,12 @@ namespace HXSL
 		std::unique_ptr<Expression> expression;
 
 	public:
-		FunctionCallStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression)
-			: Statement(span, parent, NodeType_FunctionCallStatement),
-			ASTNode(span, parent, NodeType_FunctionCallStatement),
+		FunctionCallStatement(TextSpan span, std::unique_ptr<Expression> expression)
+			: Statement(span, NodeType_FunctionCallStatement),
+			ASTNode(span, NodeType_FunctionCallStatement),
 			expression(std::move(expression))
 		{
-			if (this->expression)
-			{
-				this->expression->SetParent(this);
-				RegisterExpression(this->expression.get());
-			}
+			REGISTER_EXPR(expression);
 		}
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
@@ -214,16 +192,12 @@ namespace HXSL
 		std::unique_ptr<Expression> returnValueExpression;
 
 	public:
-		ReturnStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> returnValueExpression)
-			: Statement(span, parent, NodeType_ReturnStatement),
-			ASTNode(span, parent, NodeType_ReturnStatement),
+		ReturnStatement(TextSpan span, std::unique_ptr<Expression> returnValueExpression)
+			: Statement(span, NodeType_ReturnStatement),
+			ASTNode(span, NodeType_ReturnStatement),
 			returnValueExpression(std::move(returnValueExpression))
 		{
-			if (this->returnValueExpression)
-			{
-				this->returnValueExpression->SetParent(this);
-				RegisterExpression(this->returnValueExpression.get());
-			}
+			REGISTER_EXPR(returnValueExpression);
 		}
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, ReturnValueExpression, returnValueExpression)
@@ -236,26 +210,20 @@ namespace HXSL
 		std::unique_ptr<BlockStatement> body;
 
 	public:
-		IfStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
-			: Statement(span, parent, NodeType_IfStatement),
-			ASTNode(span, parent, NodeType_IfStatement),
+		IfStatement(TextSpan span, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
+			: Statement(span, NodeType_IfStatement),
+			ASTNode(span, NodeType_IfStatement),
+			AttributeContainer(this),
 			expression(std::move(expression)),
 			body(std::move(body))
 		{
-			if (this->expression)
-			{
-				this->expression->SetParent(this);
-				RegisterExpression(this->expression.get());
-			}
-			if (this->body)
-			{
-				this->body->SetParent(this);
-			}
+			REGISTER_EXPR(expression);
+			REGISTER_CHILD(body);
 		}
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<BlockStatement>, Body, body)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
 	class ElseStatement : public Statement
@@ -264,15 +232,15 @@ namespace HXSL
 		std::unique_ptr<BlockStatement> body;
 
 	public:
-		ElseStatement(TextSpan span, ASTNode* parent, std::unique_ptr<BlockStatement> body)
-			: Statement(span, parent, NodeType_ElseStatement),
-			ASTNode(span, parent, NodeType_ElseStatement),
+		ElseStatement(TextSpan span, std::unique_ptr<BlockStatement> body)
+			: Statement(span, NodeType_ElseStatement),
+			ASTNode(span, NodeType_ElseStatement),
 			body(std::move(body))
 		{
-			if (this->body) this->body->SetParent(this);
+			REGISTER_CHILD(body);
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<BlockStatement>, Body, body)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
 	class ElseIfStatement : public Statement, public IHasExpressions
@@ -282,26 +250,19 @@ namespace HXSL
 		std::unique_ptr<BlockStatement> body;
 
 	public:
-		ElseIfStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
-			: Statement(span, parent, NodeType_ElseIfStatement),
-			ASTNode(span, parent, NodeType_ElseIfStatement),
+		ElseIfStatement(TextSpan span, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
+			: Statement(span, NodeType_ElseIfStatement),
+			ASTNode(span, NodeType_ElseIfStatement),
 			expression(std::move(expression)),
 			body(std::move(body))
 		{
-			if (this->expression)
-			{
-				this->expression->SetParent(this);
-				RegisterExpression(this->expression.get());
-			}
-			if (this->body)
-			{
-				this->body->SetParent(this);
-			}
+			REGISTER_EXPR(expression);
+			REGISTER_CHILD(body);
 		}
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<BlockStatement>, Body, body)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
 	class CaseStatement : public Statement, public StatementContainer, public IHasExpressions
@@ -309,16 +270,13 @@ namespace HXSL
 	private:
 		std::unique_ptr<Expression> expression;
 	public:
-		CaseStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression)
-			: Statement(span, parent, NodeType_CaseStatement),
-			ASTNode(span, parent, NodeType_CaseStatement),
+		CaseStatement(TextSpan span, std::unique_ptr<Expression> expression)
+			: Statement(span, NodeType_CaseStatement),
+			ASTNode(span, NodeType_CaseStatement),
+			StatementContainer(this),
 			expression(std::move(expression))
 		{
-			if (this->expression)
-			{
-				this->expression->SetParent(this);
-				RegisterExpression(this->expression.get());
-			}
+			REGISTER_EXPR(expression);
 		}
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
@@ -329,9 +287,10 @@ namespace HXSL
 	private:
 
 	public:
-		DefaultCaseStatement(TextSpan span, ASTNode* parent)
-			: Statement(span, parent, NodeType_DefaultCaseStatement),
-			ASTNode(span, parent, NodeType_DefaultCaseStatement)
+		DefaultCaseStatement(TextSpan span)
+			: Statement(span, NodeType_DefaultCaseStatement),
+			ASTNode(span, NodeType_DefaultCaseStatement),
+			StatementContainer(this)
 		{
 		}
 	};
@@ -343,22 +302,22 @@ namespace HXSL
 		std::vector<std::unique_ptr<CaseStatement>> cases;
 		std::unique_ptr<DefaultCaseStatement> defaultCase;
 	public:
-		SwitchStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression, std::vector<std::unique_ptr<CaseStatement>> cases, std::unique_ptr<DefaultCaseStatement> defaultCase)
-			: Statement(span, parent, NodeType_SwitchStatement),
-			ASTNode(span, parent, NodeType_SwitchStatement),
+		SwitchStatement(TextSpan span, std::unique_ptr<Expression> expression, std::vector<std::unique_ptr<CaseStatement>> cases, std::unique_ptr<DefaultCaseStatement> defaultCase)
+			: Statement(span, NodeType_SwitchStatement),
+			ASTNode(span, NodeType_SwitchStatement),
+			AttributeContainer(this),
 			expression(std::move(expression)),
 			cases(std::move(cases)),
 			defaultCase(std::move(defaultCase))
 		{
-			if (this->expression)
-			{
-				this->expression->SetParent(this);
-				RegisterExpression(this->expression.get());
-			}
+			REGISTER_EXPR(expression);
+			REGISTER_CHILD(defaultCase);
 		}
-		SwitchStatement(TextSpan span, ASTNode* parent)
-			: Statement(span, parent, NodeType_SwitchStatement),
-			ASTNode(span, parent, NodeType_SwitchStatement)
+
+		SwitchStatement(TextSpan span)
+			: Statement(span, NodeType_SwitchStatement),
+			ASTNode(span, NodeType_SwitchStatement),
+			AttributeContainer(this)
 		{
 		}
 
@@ -366,7 +325,7 @@ namespace HXSL
 
 			void AddCase(std::unique_ptr<CaseStatement> _case) { cases.push_back(std::move(_case)); }
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<DefaultCaseStatement>, DefaultCase, defaultCase)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<DefaultCaseStatement>, DefaultCase, defaultCase)
 	};
 
 	class ForStatement : public Statement, public AttributeContainer, public IHasExpressions
@@ -377,27 +336,25 @@ namespace HXSL
 		std::unique_ptr<Expression> iteration;
 		std::unique_ptr<BlockStatement> body;
 	public:
-		ForStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Statement> init, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
-			: Statement(span, parent, NodeType_ForStatement),
-			ASTNode(span, parent, NodeType_ForStatement),
+		ForStatement(TextSpan span, std::unique_ptr<Statement> init, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> iteration, std::unique_ptr<BlockStatement> body)
+			: Statement(span, NodeType_ForStatement),
+			ASTNode(span, NodeType_ForStatement),
+			AttributeContainer(this),
 			init(std::move(init)),
 			condition(std::move(condition)),
+			iteration(std::move(iteration)),
 			body(std::move(body))
 		{
-			if (this->condition)
-			{
-				this->condition->SetParent(this);
-				RegisterExpression(this->condition.get());
-			}
-			if (this->iteration)
-			{
-				this->iteration->SetParent(this);
-				RegisterExpression(this->iteration.get());
-			}
+			REGISTER_CHILD(init);
+			REGISTER_EXPR(condition);
+			REGISTER_EXPR(iteration);
+			REGISTER_CHILD(body);
 		}
-		ForStatement(TextSpan span, ASTNode* parent)
-			: Statement(span, parent, NodeType_ForStatement),
-			ASTNode(span, parent, NodeType_ForStatement)
+
+		ForStatement(TextSpan span)
+			: Statement(span, NodeType_ForStatement),
+			ASTNode(span, NodeType_ForStatement),
+			AttributeContainer(this)
 		{
 		}
 
@@ -408,18 +365,18 @@ namespace HXSL
 			return oss.str();
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Statement>, Init, init)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Statement>, Init, init)
 			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Condition, condition)
 			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Iteration, iteration)
-			DEFINE_GET_SET_MOVE(std::unique_ptr<BlockStatement>, Body, body)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
 	class BreakStatement : public Statement
 	{
 	public:
-		BreakStatement(TextSpan span, ASTNode* parent)
-			: Statement(span, parent, NodeType_BreakStatement),
-			ASTNode(span, parent, NodeType_BreakStatement)
+		BreakStatement(TextSpan span)
+			: Statement(span, NodeType_BreakStatement),
+			ASTNode(span, NodeType_BreakStatement)
 		{
 		}
 	};
@@ -427,9 +384,9 @@ namespace HXSL
 	class ContinueStatement : public Statement
 	{
 	public:
-		ContinueStatement(TextSpan span, ASTNode* parent)
-			: Statement(span, parent, NodeType_ContinueStatement),
-			ASTNode(span, parent, NodeType_ContinueStatement)
+		ContinueStatement(TextSpan span)
+			: Statement(span, NodeType_ContinueStatement),
+			ASTNode(span, NodeType_ContinueStatement)
 		{
 		}
 	};
@@ -437,9 +394,9 @@ namespace HXSL
 	class DiscardStatement : public Statement
 	{
 	public:
-		DiscardStatement(TextSpan span, ASTNode* parent)
-			: Statement(span, parent, NodeType_DiscardStatement),
-			ASTNode(span, parent, NodeType_DiscardStatement)
+		DiscardStatement(TextSpan span)
+			: Statement(span, NodeType_DiscardStatement),
+			ASTNode(span, NodeType_DiscardStatement)
 		{
 		}
 	};
@@ -451,26 +408,27 @@ namespace HXSL
 		std::unique_ptr<BlockStatement> body;
 
 	public:
-		WhileStatement(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
-			: Statement(span, parent, NodeType_WhileStatement),
-			ASTNode(span, parent, NodeType_WhileStatement),
+		WhileStatement(TextSpan span, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
+			: Statement(span, NodeType_WhileStatement),
+			ASTNode(span, NodeType_WhileStatement),
+			AttributeContainer(this),
 			expression(std::move(expression)),
 			body(std::move(body))
 		{
-			if (this->expression)
-			{
-				this->expression->SetParent(this);
-				RegisterExpression(this->expression.get());
-			}
-			if (this->body)
-			{
-				this->body->SetParent(this);
-			}
+			REGISTER_EXPR(expression);
+			REGISTER_CHILD(body);
+		}
+
+		WhileStatement(TextSpan span)
+			: Statement(span, NodeType_WhileStatement),
+			ASTNode(span, NodeType_WhileStatement),
+			AttributeContainer(this)
+		{
 		}
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<BlockStatement>, Body, body)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 }
 

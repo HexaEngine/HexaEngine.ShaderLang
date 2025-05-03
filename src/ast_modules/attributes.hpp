@@ -2,12 +2,13 @@
 #define ATTRIBUTES_HPP
 
 #include "ast_base.hpp"
+#include "interfaces.hpp"
 
 namespace HXSL
 {
 #define DEFINE_GET_SET_MOVE_REG_EXPR(type, name, field)    \
     const type& Get##name() const noexcept { return field; } \
-    void Set##name(type&& value) noexcept { UnregisterExpression(field.get()); field = std::move(value); RegisterExpression(field.get()); } \
+    void Set##name(type&& value) noexcept { UnregisterExpression(field.get()); field = std::move(value); RegisterExpression(this, field.get()); } \
 	type Detach##name() noexcept { UnregisterExpression(field.get()); return std::move(field); }
 
 	class AttributeDeclaration : public ASTNode, public IHasExpressions
@@ -16,18 +17,16 @@ namespace HXSL
 		std::unique_ptr<SymbolRef> symbol;
 		std::vector<std::unique_ptr<Expression>> parameters;
 	public:
-		AttributeDeclaration(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::vector<std::unique_ptr<Expression>> parameters)
-			: ASTNode(span, parent, NodeType_AttributeDeclaration),
+		AttributeDeclaration(TextSpan span, std::unique_ptr<SymbolRef> symbol, std::vector<std::unique_ptr<Expression>> parameters)
+			: ASTNode(span, NodeType_AttributeDeclaration),
 			symbol(std::move(symbol)),
 			parameters(std::move(parameters))
 		{
-			for (auto& param : this->parameters)
-			{
-				RegisterExpression(param.get());
-			}
+			RegisterExpressions(this, this->parameters);
 		}
-		AttributeDeclaration(TextSpan span, ASTNode* parent)
-			: ASTNode(span, parent, NodeType_AttributeDeclaration)
+
+		AttributeDeclaration(TextSpan span)
+			: ASTNode(span, NodeType_AttributeDeclaration)
 		{
 		}
 
@@ -45,27 +44,25 @@ namespace HXSL
 
 		void SetParameters(std::vector<std::unique_ptr<Expression>> value) noexcept
 		{
-			for (auto& param : parameters)
-			{
-				UnregisterExpression(param.get());
-			}
+			UnregisterExpression(parameters);
 			parameters = std::move(value);
-			for (auto& param : parameters)
-			{
-				RegisterExpression(param.get());
-			}
+			RegisterExpressions(this, parameters);
 		}
 	};
 
 	class AttributeContainer
 	{
 	protected:
+		ASTNode* self;
 		std::vector<std::unique_ptr<AttributeDeclaration>> attributes;
 	public:
+		AttributeContainer(ASTNode* self) : self(self)
+		{
+		}
 		virtual ~AttributeContainer() {}
 		void AddAttribute(std::unique_ptr<AttributeDeclaration> attribute)
 		{
-			attribute->SetParent(dynamic_cast<ASTNode*>(this));
+			attribute->SetParent(self);
 			attributes.push_back(std::move(attribute));
 		}
 

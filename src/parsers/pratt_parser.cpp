@@ -41,22 +41,21 @@ namespace HXSL
 	{
 		TaskType type;
 		size_t stackBoundary;
-		ASTNode* parent;
 		ExpressionPtr result;
 		bool wasOperator;
 		bool hadBrackets;
 		TextSpan start;
 
-		TaskFrame(const TaskType& type, const size_t& stackLimit, ASTNode* parent, ExpressionPtr result)
-			: type(type), stackBoundary(stackLimit), parent(parent), result(std::move(result)), wasOperator(true), hadBrackets(false)
+		TaskFrame(const TaskType& type, const size_t& stackLimit, ExpressionPtr result)
+			: type(type), stackBoundary(stackLimit), result(std::move(result)), wasOperator(true), hadBrackets(false)
 		{
 		}
-		TaskFrame(const TaskType& type, const size_t& stackLimit, ASTNode* parent, ExpressionPtr result, TextSpan start)
-			: type(type), stackBoundary(stackLimit), parent(parent), result(std::move(result)), wasOperator(true), hadBrackets(false), start(start)
+		TaskFrame(const TaskType& type, const size_t& stackLimit, ExpressionPtr result, TextSpan start)
+			: type(type), stackBoundary(stackLimit), result(std::move(result)), wasOperator(true), hadBrackets(false), start(start)
 		{
 		}
 
-		TaskFrame() : type(TaskType_Unknown), stackBoundary(0), parent(nullptr), wasOperator(true), hadBrackets(false)
+		TaskFrame() : type(TaskType_Unknown), stackBoundary(0), wasOperator(true), hadBrackets(false)
 		{
 		}
 	};
@@ -115,8 +114,8 @@ namespace HXSL
 			if (Operators::isCompoundAssignment(assignmentOp))
 			{
 				auto binaryOp = Operators::compoundToBinary(assignmentOp);
-				auto binary = std::make_unique<BinaryExpression>(TextSpan(), assignment, binaryOp, nullptr, nullptr);
-				binary->SetLeft(std::unique_ptr<Expression>(static_cast<Expression*>(target->Clone(binary.get()).release())));
+				auto binary = std::make_unique<BinaryExpression>(TextSpan(), binaryOp, nullptr, nullptr);
+				binary->SetLeft(UNIQUE_PTR_CAST(target->Clone(), Expression));
 				ExpressionPtr expression = std::move(assignment->GetExpressionMut());
 				expression->SetParent(binary.get());
 				binary->SetRight(std::move(expression));
@@ -169,17 +168,17 @@ namespace HXSL
 
 		bool IsInTernary() const noexcept { return !ternaryStack.empty() && ternaryStack.top() == tasks.size() + 1; }
 
-		void PushParseExpressionTask(ASTNode* parent)
+		void PushParseExpressionTask()
 		{
-			tasks.push(TaskFrame(TaskType_ParseExpression, operatorStack.size(), parent, nullptr));
+			tasks.push(TaskFrame(TaskType_ParseExpression, operatorStack.size(), nullptr));
 		}
 
-		void PushBracketCloseTask(ASTNode* parent)
+		void PushBracketCloseTask()
 		{
 			currentTask.hadBrackets = true;
 			PushCurrentTask();
-			tasks.push(TaskFrame(TaskType_BracketClose, operatorStack.size(), parent, nullptr, LastToken().Span));
-			PushParseExpressionTask(parent);
+			tasks.push(TaskFrame(TaskType_BracketClose, operatorStack.size(), nullptr, LastToken().Span));
+			PushParseExpressionTask();
 		}
 
 		void PushCurrentTask()
@@ -189,10 +188,9 @@ namespace HXSL
 
 		void PushSubExpressionTask(TaskType type, ExpressionPtr&& expr)
 		{
-			auto ptr = expr.get();
 			PushCurrentTask();
-			tasks.push(TaskFrame(type, operatorStack.size(), ptr, std::move(expr)));
-			PushParseExpressionTask(ptr);
+			tasks.push(TaskFrame(type, operatorStack.size(), std::move(expr)));
+			PushParseExpressionTask();
 			if (type == TaskType_TernaryTrue)
 			{
 				ternaryStack.push(tasks.size());
@@ -205,9 +203,8 @@ namespace HXSL
 
 		void PushSubTask(TaskType type, ExpressionPtr&& expr)
 		{
-			auto ptr = expr.get();
-			tasks.push(TaskFrame(type, operatorStack.size(), ptr, std::move(expr)));
-			PushParseExpressionTask(ptr);
+			tasks.push(TaskFrame(type, operatorStack.size(), std::move(expr)));
+			PushParseExpressionTask();
 			if (type == TaskType_TernaryTrue)
 			{
 				ternaryStack.push(tasks.size());
@@ -226,9 +223,8 @@ namespace HXSL
 
 		void InjectTask(TaskType type, ExpressionPtr&& expr)
 		{
-			auto ptr = expr.get();
 			auto last = popFromStack(tasks);
-			tasks.push(TaskFrame(type, operatorStack.size(), ptr, std::move(expr)));
+			tasks.push(TaskFrame(type, operatorStack.size(), std::move(expr)));
 			tasks.push(std::move(last));
 		}
 
@@ -279,19 +275,18 @@ namespace HXSL
 			}
 		}
 
-		bool GetResult(ExpressionPtr& exprOut, ASTNode* parent)
+		bool GetResult(ExpressionPtr& exprOut)
 		{
 			if (operandStack.size() == 1)
 			{
 				exprOut = std::move(operandStack.top());
-				exprOut->SetParent(parent);
 				return true;
 			}
 			return false;
 		}
 	};
 
-	static ExpressionPtr ParseUnaryPostfix(ParseContext& context, ASTNode* parent, Operator op, ExpressionPtr operand)
+	static ExpressionPtr ParseUnaryPostfix(ParseContext& context, Operator op, ExpressionPtr operand)
 	{
 		if (op != Operator_Increment && op != Operator_Decrement)
 		{
@@ -306,14 +301,14 @@ namespace HXSL
 			return nullptr;
 		}
 
-		return std::make_unique<PostfixExpression>(context.MakeFromLast(operand->GetSpan()), parent, op, std::move(operand));
+		return std::make_unique<PostfixExpression>(context.MakeFromLast(operand->GetSpan()), op, std::move(operand));
 	}
 
-	static int ParseOperandIter(ParseContext& context, ASTNode* parent)
+	static int ParseOperandIter(ParseContext& context)
 	{
 		if (context.TryGetDelimiter('('))
 		{
-			context.PushBracketCloseTask(parent);
+			context.PushBracketCloseTask();
 			return 0;
 		}
 		else
@@ -321,7 +316,7 @@ namespace HXSL
 			context.PushCurrentTask();
 			// member expressions, function calls, indexer and other complex grammar.
 			ExpressionPtr expression;
-			if (!ExpressionParserRegistry::TryParse(context.GetParser(), context.GetTokenStream(), parent, expression))
+			if (!ExpressionParserRegistry::TryParse(context.GetParser(), context.GetTokenStream(), expression))
 			{
 				return -1;
 			}
@@ -330,12 +325,12 @@ namespace HXSL
 		}
 	}
 
-	static int ParseUnaryPrefix(ParseContext& context, ASTNode* parent, Operator op)
+	static int ParseUnaryPrefix(ParseContext& context, Operator op)
 	{
 		auto start = context.LastToken().Span;
-		auto unary = std::make_unique<PrefixExpression>(start, parent, op, nullptr);;
+		auto unary = std::make_unique<PrefixExpression>(start, op, nullptr);;
 
-		auto result = ParseOperandIter(context, unary.get());
+		auto result = ParseOperandIter(context);
 		if (result == -1)
 		{
 			return -1;
@@ -347,7 +342,6 @@ namespace HXSL
 
 	static bool PerformParse(ParseContext& context)
 	{
-		ASTNode*& parent = context.currentTask.parent;
 		bool& wasOperator = context.currentTask.wasOperator;
 		bool& hadBrackets = context.currentTask.hadBrackets;
 		while (!context.IsEndOfTokens() && !context.HasCriticalErrors())
@@ -382,12 +376,12 @@ namespace HXSL
 					{
 						wasOperator = false;
 						ExpressionPtr unary;
-						HANDLE_RESULT(ParseUnaryPrefix(context, parent, op));
+						HANDLE_RESULT(ParseUnaryPrefix(context, op));
 					}
 					else
 					{
 						ExpressionPtr operand = context.PopOperand();
-						context.PushOperand(ParseUnaryPostfix(context, parent, op, std::move(operand)));
+						context.PushOperand(ParseUnaryPostfix(context, op, std::move(operand)));
 					}
 
 					continue;
@@ -403,17 +397,17 @@ namespace HXSL
 
 				if (Operators::isTernaryOperator(op))
 				{
-					context.PushSubExpressionTask<TernaryExpression>(TaskType_TernaryTrue, current.Span, parent, nullptr, nullptr, nullptr);
+					context.PushSubExpressionTask<TernaryExpression>(TaskType_TernaryTrue, current.Span, nullptr, nullptr, nullptr);
 					return true;
 				}
 				else if (Operators::isAssignment(op))
 				{
-					context.PushSubExpressionTask<AssignmentExpression>(TaskType_Assignment, current.Span, parent, op, nullptr, nullptr);
+					context.PushSubExpressionTask<AssignmentExpression>(TaskType_Assignment, current.Span, op, nullptr, nullptr);
 					return true;
 				}
 				else if (Operators::isBinaryOperator(op))
 				{
-					context.PushOperator<BinaryExpression>(current.Span, parent, op, nullptr, nullptr);
+					context.PushOperator<BinaryExpression>(current.Span, op, nullptr, nullptr);
 					wasOperator = true;
 				}
 				else
@@ -440,8 +434,8 @@ namespace HXSL
 					std::unique_ptr<SymbolRef> typeRef;
 					ParserHelper::MakeConcreteSymbolRef(left.get(), SymbolRefType_Type, typeRef);
 
-					auto cast = std::make_unique<CastExpression>(left->GetSpan(), parent, std::move(typeRef), nullptr);
-					auto result = ParseOperandIter(context, cast.get());
+					auto cast = std::make_unique<CastExpression>(left->GetSpan(), std::move(typeRef), nullptr);
+					auto result = ParseOperandIter(context);
 					if (result == -1)
 					{
 						return false;
@@ -453,7 +447,7 @@ namespace HXSL
 				}
 
 				wasOperator = false;
-				HANDLE_RESULT(ParseOperandIter(context, parent));
+				HANDLE_RESULT(ParseOperandIter(context));
 			}
 			else if (current.isDelimiterOf(expressionDelimiters))
 			{
@@ -477,10 +471,10 @@ namespace HXSL
 		return true;
 	}
 
-	bool PrattParser::ParseExpressionInnerIterGen2(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expressionOut)
+	bool PrattParser::ParseExpressionInnerIterGen2(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 	{
 		ParseContext context = ParseContext(parser, stream);
-		context.PushParseExpressionTask(parent);
+		context.PushParseExpressionTask();
 
 		while (context.NextTask())
 		{
@@ -501,7 +495,7 @@ namespace HXSL
 				if (!stream.ExpectOperator(Operator_TernaryElse, EXPECTED_COLON_TERNARY))
 				{
 					expr->SetSpan(expr->GetSpan().merge(expr->GetTrueBranch()->GetSpan()));
-					expr->SetFalseBranch(std::make_unique<EmptyExpression>(TextSpan(), expr.get()));
+					expr->SetFalseBranch(std::make_unique<EmptyExpression>(TextSpan()));
 					context.PushOperator(std::move(expr));
 					break;
 				}
@@ -568,15 +562,14 @@ namespace HXSL
 			}
 		}
 
-		return context.GetResult(expressionOut, parent);
+		return context.GetResult(expressionOut);
 	}
 
-	bool PrattParser::ParseExpression(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expression)
+	bool PrattParser::ParseExpression(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expression)
 	{
-		HXSL_ASSERT(parent, "Parent cannot be null.");
 		auto start = stream.Current();
 		stream.PushState();
-		if (!ParseExpressionInnerIterGen2(parser, stream, parent, expression))
+		if (!ParseExpressionInnerIterGen2(parser, stream, expression))
 		{
 		}
 		if (!expression.get())
@@ -585,7 +578,6 @@ namespace HXSL
 			return false;
 		}
 		stream.PopState(false);
-		expression->SetParent(parent);
 
 		return true;
 	}

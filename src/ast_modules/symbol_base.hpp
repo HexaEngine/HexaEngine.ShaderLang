@@ -102,8 +102,8 @@ namespace HXSL
 		const Assembly* assembly;
 		SymbolHandle symbolHandle;
 
-		SymbolDef(TextSpan span, ASTNode* parent, NodeType type, TextSpan name, bool isExtern = false)
-			: ASTNode(span, parent, type, isExtern),
+		SymbolDef(TextSpan span, NodeType type, TextSpan name, bool isExtern = false)
+			: ASTNode(span, type, isExtern),
 			name(name),
 			assembly(nullptr)
 		{
@@ -307,7 +307,7 @@ namespace HXSL
 	private:
 		Type() = delete;
 	public:
-		Type(TextSpan span, ASTNode* parent, NodeType type, TextSpan name, bool isExtern = false) : SymbolDef(span, parent, type, name, isExtern)
+		Type(TextSpan span, NodeType type, TextSpan name, bool isExtern = false) : SymbolDef(span, type, name, isExtern)
 		{
 		}
 		virtual ~Type() {}

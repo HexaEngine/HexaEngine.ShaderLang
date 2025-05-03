@@ -51,15 +51,15 @@ namespace HXSL
 		std::vector<AssemblySymbolRef> references;
 	public:
 		Namespace()
-			: SymbolDef(TextSpan(), nullptr, NodeType_Namespace, TextSpan(), true),
-			ASTNode(TextSpan(), nullptr, NodeType_Namespace, true),
-			Container(TextSpan(), nullptr, NodeType_Namespace, true)
+			: ASTNode(TextSpan(), NodeType_Namespace, true),
+			SymbolDef(TextSpan(), NodeType_Namespace, TextSpan(), true),
+			Container(TextSpan(), NodeType_Namespace, true)
 		{
 		}
-		Namespace(ASTNode* parent, const NamespaceDeclaration& declaration)
-			: SymbolDef(declaration.Span, parent, NodeType_Namespace, declaration.Name),
-			ASTNode(declaration.Span, parent, NodeType_Namespace),
-			Container(declaration.Span, parent, NodeType_Namespace)
+		Namespace(const NamespaceDeclaration& declaration)
+			: SymbolDef(declaration.Span, NodeType_Namespace, declaration.Name),
+			ASTNode(declaration.Span, NodeType_Namespace),
+			Container(declaration.Span, NodeType_Namespace)
 		{
 		}
 

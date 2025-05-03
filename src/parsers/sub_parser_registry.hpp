@@ -61,21 +61,18 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Statement>& statementOut, bool leaveOpen = false)
+		static bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut, bool leaveOpen = false)
 		{
-			parser.pushParentNode(parent);
 			for (auto& subParser : parsers)
 			{
 				stream.PushState();
 				if (subParser->TryParse(parser, stream, statementOut))
 				{
 					stream.PopState(false);
-					parser.popParentNode();
 					return true;
 				}
 				stream.PopState();
 			}
-			parser.popParentNode();
 
 			if (!leaveOpen)
 			{
@@ -98,14 +95,14 @@ namespace HXSL
 		}
 	};
 
-	static bool ParseStatementBodyInner(Parser& parser, TokenStream& stream, ASTNode* parent, StatementContainer* container, bool leaveOpen = false)
+	static bool ParseStatementBodyInner(Parser& parser, TokenStream& stream, StatementContainer* container, bool leaveOpen = false)
 	{
 		if (stream.TryGetDelimiter(';'))
 		{
 			return true;
 		}
 		std::unique_ptr<Statement> outStatement;
-		bool success = StatementParserRegistry::TryParse(parser, stream, parent, outStatement, leaveOpen);
+		bool success = StatementParserRegistry::TryParse(parser, stream, outStatement, leaveOpen);
 
 		if (!success)
 		{
@@ -126,12 +123,12 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseStatementBody(TextSpan name, ScopeType type, ASTNode* parent, Parser& parser, TokenStream& stream, std::unique_ptr<BlockStatement>& statement)
+	static bool ParseStatementBody(TextSpan name, ScopeType type, Parser& parser, TokenStream& stream, std::unique_ptr<BlockStatement>& statement)
 	{
 		Token first;
-		parser.EnterScope(name, type, parent, first, true);
+		parser.EnterScope(name, type, nullptr, first, true);
 
-		auto blockStatement = std::make_unique<BlockStatement>(TextSpan(), parent);
+		auto blockStatement = std::make_unique<BlockStatement>(TextSpan());
 		while (parser.IterateScope())
 		{
 			parser.ParseInnerBegin();
@@ -165,22 +162,19 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Expression>& expressionOut)
+		static bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
 		{
 			auto first = stream.Current();
-			parser.pushParentNode(parent);
 			for (auto& subParser : parsers)
 			{
 				stream.PushState();
 				if (subParser->TryParse(parser, stream, expressionOut))
 				{
 					stream.PopState(false);
-					parser.popParentNode();
 					return true;
 				}
 				stream.PopState();
 			}
-			parser.popParentNode();
 
 			auto current = stream.Current();
 			if (!stream.IsEndOfTokens() && current.Type != TokenType_Delimiter && current.Span[0] != ';')
@@ -191,7 +185,7 @@ namespace HXSL
 
 			if (!expressionOut.get())
 			{
-				expressionOut = std::make_unique<EmptyExpression>(first.Span.merge(stream.LastToken().Span), static_cast<ASTNode*>(nullptr));
+				expressionOut = std::make_unique<EmptyExpression>(first.Span.merge(stream.LastToken().Span));
 				return true;
 			}
 

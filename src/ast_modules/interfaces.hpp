@@ -21,16 +21,26 @@ namespace HXSL
 		std::vector<Expression*> expressions;
 
 	protected:
-		void RegisterExpression(Expression* expr)
+		void RegisterExpression(ASTNode* parent, Expression* expr);
+
+		template<class T>
+		void RegisterExpressions(ASTNode* parent, const std::vector<std::unique_ptr<T>>& expressions)
 		{
-			if (expr == nullptr) return;
-			expressions.push_back(expr);
+			for (auto& expr : expressions)
+			{
+				RegisterExpression(parent, expr.get());
+			}
 		}
 
-		void UnregisterExpression(Expression* expr)
+		void UnregisterExpression(Expression* expr);
+
+		template<class T>
+		void UnregisterExpression(const std::vector<std::unique_ptr<T>>& expressions)
 		{
-			if (expr == nullptr) return;
-			expressions.erase(remove(expressions.begin(), expressions.end(), expr), expressions.end());
+			for (auto& expr : expressions)
+			{
+				UnregisterExpression(expr.get());
+			}
 		}
 
 	public:

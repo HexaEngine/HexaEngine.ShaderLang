@@ -3,3 +3,6 @@
 -5 + 3;
 #ast
 [NodeType_PrefixExpression] ID: 1 Span: -5 + 3 (Line: 1 Column: 1)
+  [NodeType_BinaryExpression] ID: 2 Span: 5 + 3 (Line: 1 Column: 2)
+    [NodeType_ConstantExpression] ID: 3 Span: 5 (Line: 1 Column: 2)
+    [NodeType_ConstantExpression] ID: 4 Span: 3 (Line: 1 Column: 6)

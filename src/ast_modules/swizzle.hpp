@@ -8,15 +8,15 @@
 
 namespace HXSL
 {
-	class SwizzleDefinition : virtual public ASTNode, public SymbolDef, public IHasSymbolRef
+	class SwizzleDefinition : public SymbolDef, public IHasSymbolRef
 	{
 	private:
 		TextSpan expression;
 		std::unique_ptr<SymbolRef> symbol;
 	public:
 		SwizzleDefinition(TextSpan expression, std::unique_ptr<SymbolRef> symbol)
-			: ASTNode(expression, nullptr, NodeType_SwizzleDefinition),
-			SymbolDef(expression, nullptr, NodeType_SwizzleDefinition, expression),
+			: ASTNode(expression, NodeType_SwizzleDefinition),
+			SymbolDef(expression, NodeType_SwizzleDefinition, expression),
 			expression(expression),
 			symbol(std::move(symbol))
 		{

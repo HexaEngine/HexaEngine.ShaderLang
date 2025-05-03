@@ -99,7 +99,7 @@ namespace HXSL
 
 	static void InjectCast(std::unique_ptr<Expression>& target, OperatorOverload* cast, SymbolDef* targetType)
 	{
-		auto castExpr = std::make_unique<CastExpression>(TextSpan(), nullptr, cast->MakeSymbolRef(), targetType->MakeSymbolRef(), nullptr);
+		auto castExpr = std::make_unique<CastExpression>(TextSpan(), cast->MakeSymbolRef(), targetType->MakeSymbolRef(), nullptr);
 		castExpr->SetInferredType(targetType);
 		InjectNode(target, std::move(castExpr), &CastExpression::SetOperand);
 	}
@@ -276,7 +276,7 @@ namespace HXSL
 			return false;
 		}
 
-		auto castExpr = std::make_unique<CastExpression>(TextSpan(), nullptr, std::move(opRef), target->MakeSymbolRef(), nullptr);
+		auto castExpr = std::make_unique<CastExpression>(TextSpan(), std::move(opRef), target->MakeSymbolRef(), nullptr);
 		InjectNode(insertPoint, std::move(castExpr), &CastExpression::SetOperand);
 
 		return true;

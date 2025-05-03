@@ -9,7 +9,7 @@
 
 namespace HXSL
 {
-	class Parameter : virtual public ASTNode, public SymbolDef, public IHasSymbolRef
+	class Parameter : public SymbolDef, public IHasSymbolRef
 	{
 	private:
 		ParameterFlags flags;
@@ -19,16 +19,16 @@ namespace HXSL
 
 	public:
 		Parameter()
-			: SymbolDef(TextSpan(), nullptr, NodeType_Parameter, TextSpan(), true),
-			ASTNode(TextSpan(), nullptr, NodeType_Parameter, true),
+			: ASTNode(TextSpan(), NodeType_Parameter, true),
+			SymbolDef(TextSpan(), NodeType_Parameter, TextSpan(), true),
 			flags(ParameterFlags_In),
 			interpolationModifiers(InterpolationModifier_Linear),
 			semantic(TextSpan())
 		{
 		}
-		Parameter(TextSpan span, ASTNode* parent, ParameterFlags flags, InterpolationModifier interpolationModifiers, std::unique_ptr<SymbolRef> symbol, TextSpan name, TextSpan semantic)
-			: SymbolDef(span, parent, NodeType_Parameter, name),
-			ASTNode(span, parent, NodeType_Parameter),
+		Parameter(TextSpan span, ParameterFlags flags, InterpolationModifier interpolationModifiers, std::unique_ptr<SymbolRef> symbol, TextSpan name, TextSpan semantic)
+			: ASTNode(span, NodeType_Parameter),
+			SymbolDef(span, NodeType_Parameter, name),
 			flags(flags),
 			interpolationModifiers(interpolationModifiers),
 			symbol(std::move(symbol)),
@@ -73,26 +73,30 @@ namespace HXSL
 		TextSpan semantic;
 		std::unique_ptr<BlockStatement> body;
 
-		FunctionOverload(TextSpan span, ASTNode* parent, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name)
-			: SymbolDef(span, parent, type, name),
-			ASTNode(span, parent, type),
+		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name)
+			: ASTNode(span, type),
+			SymbolDef(span, type, name),
+			AttributeContainer(this),
 			accessModifiers(accessModifiers),
 			functionFlags(functionFlags)
 		{
 		}
-		FunctionOverload(TextSpan span, ASTNode* parent, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
-			: SymbolDef(span, parent, type, name),
-			ASTNode(span, parent, type),
+		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
+			: ASTNode(span, type),
+			SymbolDef(span, type, name),
+			AttributeContainer(this),
 			accessModifiers(accessModifiers),
 			functionFlags(functionFlags),
 			returnSymbol(std::move(returnSymbol)),
 			parameters(std::move(parameters)),
 			semantic(semantic)
 		{
+			RegisterChildren(this->parameters);
 		}
-		FunctionOverload(TextSpan span, ASTNode* parent, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol)
-			: SymbolDef(span, parent, type, name),
-			ASTNode(span, parent, type),
+		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol)
+			: ASTNode(span, type),
+			SymbolDef(span, type, name),
+			AttributeContainer(this),
 			accessModifiers(accessModifiers),
 			functionFlags(functionFlags),
 			returnSymbol(std::move(returnSymbol))
@@ -101,27 +105,31 @@ namespace HXSL
 
 	public:
 		FunctionOverload()
-			: SymbolDef(TextSpan(), nullptr, NodeType_FunctionOverload, TextSpan(), true),
-			ASTNode(TextSpan(), nullptr, NodeType_FunctionOverload, true),
+			: ASTNode(TextSpan(), NodeType_FunctionOverload, true),
+			SymbolDef(TextSpan(), NodeType_FunctionOverload, name, true),
+			AttributeContainer(this),
 			accessModifiers(AccessModifier_Private),
 			functionFlags(FunctionFlags_None),
 			semantic(TextSpan())
 		{
 		}
-		FunctionOverload(TextSpan span, ASTNode* parent, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
-			: SymbolDef(span, parent, NodeType_FunctionOverload, name),
-			ASTNode(span, parent, NodeType_FunctionOverload),
+		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
+			: ASTNode(span, NodeType_FunctionOverload),
+			SymbolDef(span, NodeType_FunctionOverload, name),
+			AttributeContainer(this),
 			accessModifiers(accessModifiers),
 			functionFlags(functionFlags),
 			returnSymbol(std::move(returnSymbol)),
 			parameters(std::move(parameters)),
 			semantic(semantic)
 		{
+			RegisterChildren(this->parameters);
 		}
 
-		FunctionOverload(TextSpan span, ASTNode* parent, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol)
-			: SymbolDef(span, parent, NodeType_FunctionOverload, name),
-			ASTNode(span, parent, NodeType_FunctionOverload),
+		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol)
+			: ASTNode(span, NodeType_FunctionOverload),
+			SymbolDef(span, NodeType_FunctionOverload, name),
+			AttributeContainer(this),
 			accessModifiers(accessModifiers),
 			functionFlags(functionFlags),
 			returnSymbol(std::move(returnSymbol))
@@ -213,9 +221,14 @@ namespace HXSL
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 			DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, ReturnSymbol, returnSymbol)
 			DEFINE_GETTER_SETTER(TextSpan, Name, name)
-			DEFINE_GET_SET_MOVE(std::vector<std::unique_ptr<Parameter>>, Parameters, parameters)
+			DEFINE_GET_SET_MOVE_CHILDREN(std::vector<std::unique_ptr<Parameter>>, Parameters, parameters)
 			DEFINE_GETTER_SETTER(TextSpan, Semantic, semantic)
-			DEFINE_GET_SET_MOVE(std::unique_ptr<BlockStatement>, Body, body)
+
+			const std::unique_ptr<BlockStatement>& GetBody() const noexcept;
+
+		void SetBody(std::unique_ptr<BlockStatement>&& value) noexcept;
+
+		std::unique_ptr<BlockStatement>& GetBodyMut() noexcept;
 	};
 
 	class OperatorOverload : public FunctionOverload
@@ -225,31 +238,31 @@ namespace HXSL
 		Operator _operator;
 	public:
 		OperatorOverload()
-			: FunctionOverload(TextSpan(), nullptr, NodeType_OperatorOverload, AccessModifier_Private, FunctionFlags_None, TextSpan()),
-			ASTNode(TextSpan(), nullptr, NodeType_OperatorOverload, true),
+			: FunctionOverload(TextSpan(), NodeType_OperatorOverload, AccessModifier_Private, FunctionFlags_None, TextSpan()),
+			ASTNode(TextSpan(), NodeType_OperatorOverload, true),
 			_operator(Operator_Unknown),
 			operatorFlags(OperatorFlags_None)
 		{
 		}
-		OperatorOverload(TextSpan span, ASTNode* parent, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
-			: FunctionOverload(span, parent, NodeType_OperatorOverload, accessModifiers, functionFlags, name, std::move(returnSymbol), std::move(parameters), semantic),
-			ASTNode(span, parent, NodeType_OperatorOverload),
+		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
+			: FunctionOverload(span, NodeType_OperatorOverload, accessModifiers, functionFlags, name, std::move(returnSymbol), std::move(parameters), semantic),
+			ASTNode(span, NodeType_OperatorOverload),
 			_operator(_operator),
 			operatorFlags(operatorFlags)
 		{
 		}
 
-		OperatorOverload(TextSpan span, ASTNode* parent, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator)
-			: FunctionOverload(span, parent, NodeType_OperatorOverload, accessModifiers, functionFlags, name),
-			ASTNode(span, parent, NodeType_OperatorOverload),
+		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator)
+			: FunctionOverload(span, NodeType_OperatorOverload, accessModifiers, functionFlags, name),
+			ASTNode(span, NodeType_OperatorOverload),
 			_operator(_operator),
 			operatorFlags(operatorFlags)
 		{
 		}
 
-		OperatorOverload(TextSpan span, ASTNode* parent, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, std::unique_ptr<SymbolRef> returnSymbol)
-			: FunctionOverload(span, parent, NodeType_OperatorOverload, accessModifiers, functionFlags, name, std::move(returnSymbol)),
-			ASTNode(span, parent, NodeType_OperatorOverload),
+		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, std::unique_ptr<SymbolRef> returnSymbol)
+			: FunctionOverload(span, NodeType_OperatorOverload, accessModifiers, functionFlags, name, std::move(returnSymbol)),
+			ASTNode(span, NodeType_OperatorOverload),
 			_operator(_operator),
 			operatorFlags(operatorFlags)
 		{
@@ -348,7 +361,7 @@ namespace HXSL
 		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 	};
 
-	class Field : virtual public ASTNode, public SymbolDef, public IHasSymbolRef
+	class Field : public SymbolDef, public IHasSymbolRef
 	{
 	private:
 		AccessModifier accessModifiers;
@@ -358,17 +371,17 @@ namespace HXSL
 		TextSpan semantic;
 	public:
 		Field()
-			: SymbolDef(TextSpan(), nullptr, NodeType_Field, TextSpan(), true),
-			ASTNode(TextSpan(), nullptr, NodeType_Field, true),
+			: ASTNode(TextSpan(), NodeType_Field, true),
+			SymbolDef(TextSpan(), NodeType_Field, TextSpan(), true),
 			accessModifiers(AccessModifier_Private),
 			storageClass(StorageClass_None),
 			interpolationModifiers(InterpolationModifier_Linear),
 			semantic(TextSpan())
 		{
 		}
-		Field(TextSpan span, ASTNode* parent, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic)
-			: SymbolDef(span, parent, NodeType_Field, name),
-			ASTNode(span, parent, NodeType_Field),
+		Field(TextSpan span, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic)
+			: ASTNode(span, NodeType_Field),
+			SymbolDef(span, NodeType_Field, name),
 			accessModifiers(access),
 			storageClass(storageClass),
 			interpolationModifiers(interpolationModifiers),
@@ -417,16 +430,16 @@ namespace HXSL
 		AccessModifier accessModifiers;
 	public:
 		Struct()
-			: Type(TextSpan(), nullptr, NodeType_Struct, TextSpan(), true),
-			ASTNode(TextSpan(), nullptr, NodeType_Struct, true),
-			Container(TextSpan(), nullptr, NodeType_Struct, true),
+			: Type(TextSpan(), NodeType_Struct, TextSpan(), true),
+			Container(TextSpan(), NodeType_Struct),
+			ASTNode(TextSpan(), NodeType_Struct),
 			accessModifiers(AccessModifier_Private)
 		{
 		}
-		Struct(TextSpan span, ASTNode* parent, AccessModifier access, TextSpan name)
-			: Type(span, parent, NodeType_Struct, name),
-			ASTNode(span, parent, NodeType_Struct),
-			Container(span, parent, NodeType_Struct),
+		Struct(TextSpan span, AccessModifier access, TextSpan name)
+			: Type(span, NodeType_Struct, name),
+			Container(span, NodeType_Struct),
+			ASTNode(span, NodeType_Struct),
 			accessModifiers(access)
 		{
 		}
@@ -458,16 +471,16 @@ namespace HXSL
 		AccessModifier accessModifiers;
 	public:
 		Class()
-			: Type(TextSpan(), nullptr, NodeType_Class, TextSpan(), true),
-			ASTNode(TextSpan(), nullptr, NodeType_Class, true),
-			Container(TextSpan(), nullptr, NodeType_Class, true),
+			: Type(TextSpan(), NodeType_Class, TextSpan(), true),
+			Container(TextSpan(), NodeType_Class, true),
+			ASTNode(TextSpan(), NodeType_Class, true),
 			accessModifiers(AccessModifier_Private)
 		{
 		}
-		Class(TextSpan span, ASTNode* parent, AccessModifier access, TextSpan name)
-			: Type(span, parent, NodeType_Class, name),
-			ASTNode(span, parent, NodeType_Class),
-			Container(span, parent, NodeType_Class),
+		Class(TextSpan span, AccessModifier access, TextSpan name)
+			: Type(span, NodeType_Class, name),
+			Container(span, NodeType_Class, true),
+			ASTNode(span, NodeType_Class, true),
 			accessModifiers(access)
 		{
 		}

@@ -16,6 +16,7 @@
 
 namespace HXSL
 {
+	class ASTNodeAdapter;
 	class Compilation;
 	class FunctionOverload;
 	class OperatorOverload;
@@ -227,25 +228,24 @@ namespace HXSL
 
 	class ASTNode
 	{
+		friend class ASTNodeAdapter;
 	private:
 		Compilation* compilation = nullptr;
 		size_t id = 0;
 
 		void AddChild(ASTNode* node)
 		{
-			HXSL_ASSERT(node, "Child node was null");
+			if (node == nullptr) return;
 			children.push_back(node);
+			node->parent = this;
+			node->AssignId();
 		}
 
 		void RemoveChild(ASTNode* node)
 		{
-			HXSL_ASSERT(node, "Child node was null");
+			if (node == nullptr) return;
 			children.erase(remove(children.begin(), children.end(), node), children.end());
-		}
-
-		bool MustHaveParent() const
-		{
-			return type != NodeType_Compilation && type != NodeType_Primitive && type != NodeType_IntrinsicFunction && type != NodeType_AttributeDeclaration && type != NodeType_SwizzleDefinition && type != NodeType_Array && !isExtern;
+			node->parent = nullptr;
 		}
 
 	protected:
@@ -257,28 +257,51 @@ namespace HXSL
 
 		void AssignId();
 
-	private:
-#if HXSL_DEBUG
-		bool parentMissing = false;
-#endif
+		void RegisterChild(ASTNode* child)
+		{
+			if (child == nullptr) return;
+			child->SetParent(this);
+		}
+
+		template<class T>
+		void RegisterChild(const std::unique_ptr<T>& child)
+		{
+			RegisterChild(child.get());
+		}
+
+		template<class T>
+		void RegisterChildren(const std::vector<std::unique_ptr<T>>& children)
+		{
+			for (auto& child : children)
+			{
+				RegisterChild(child.get());
+			}
+		}
+
+		void UnregisterChild(ASTNode* child)
+		{
+			if (child == nullptr) return;
+			child->SetParent(nullptr);
+		}
+
+		template<class T>
+		void UnregisterChild(const std::unique_ptr<T>& child)
+		{
+			UnregisterChild(child.get());
+		}
+
+		template<class T>
+		void UnregisterChildren(const std::vector<std::unique_ptr<T>>& children)
+		{
+			for (auto& child : children)
+			{
+				UnregisterChild(child.get());
+			}
+		}
 
 	public:
-		ASTNode(TextSpan span, ASTNode* parent, NodeType type, bool isExtern = false) : span(span), parent(parent), type(type), children({}), isExtern(isExtern)
+		ASTNode(TextSpan span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), children({}), isExtern(isExtern)
 		{
-			//HXSL_ASSERT(parent, "Parent cannot be null");
-			if (parent)
-			{
-				parent->AddChild(this);
-				AssignId();
-			}
-#if HXSL_DEBUG
-			else
-			{
-				if (!MustHaveParent()) return;
-				parentMissing = true;
-				std::cout << "[Verbose]: (AST) Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
-			}
-#endif
 		}
 
 		virtual	Compilation* GetCompilation()
@@ -311,18 +334,10 @@ namespace HXSL
 			{
 				parent->RemoveChild(this);
 			}
-#if HXSL_DEBUG
-			else if (parentMissing)
-			{
-				std::cout << "[Verbose]: (AST) Recovered from Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
-				parentMissing = false;
-			}
-#endif
 			parent = newParent;
 			if (newParent)
 			{
 				newParent->AddChild(this);
-				AssignId();
 			}
 		}
 
@@ -406,24 +421,24 @@ namespace HXSL
 		template <typename T>
 		T* As() { return dynamic_cast<T*>(this); };
 
-		virtual std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept
+		virtual std::unique_ptr<ASTNode> Clone() const noexcept
 		{
 			return {};
 		}
 
 		template <class T>
-		std::unique_ptr<T> CloneNode(const std::unique_ptr<T>& ptr, ASTNode* parent) const noexcept
+		std::unique_ptr<T> CloneNode(const std::unique_ptr<T>& ptr) const noexcept
 		{
-			return ptr ? std::unique_ptr<T>(static_cast<T*>(ptr->Clone(parent).release())) : nullptr;
+			return ptr ? std::unique_ptr<T>(static_cast<T*>(ptr->Clone().release())) : nullptr;
 		}
 
 		template <typename T>
-		std::vector<std::unique_ptr<T>> CloneNodes(const std::vector<std::unique_ptr<T>>& ptr, ASTNode* parent) const noexcept
+		std::vector<std::unique_ptr<T>> CloneNodes(const std::vector<std::unique_ptr<T>>& ptr) const noexcept
 		{
 			std::vector<std::unique_ptr<T>> result;
 			for (auto& pt : ptr)
 			{
-				result.push_back(std::unique_ptr<T>(static_cast<T*>(ptr->Clone(parent).release())));
+				result.push_back(std::unique_ptr<T>(static_cast<T*>(ptr->Clone().release())));
 			}
 			return result;
 		}
@@ -436,12 +451,6 @@ namespace HXSL
 
 		virtual ~ASTNode()
 		{
-#if HXSL_DEBUG
-			if (parentMissing)
-			{
-				std::cout << "[Verbose]: (AST) Recovered from Parent is null (Destroyed): " << ToString(type) << " Span: " << span.toString() << std::endl;
-			}
-#endif
 		}
 	};
 

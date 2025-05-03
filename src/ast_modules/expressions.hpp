@@ -2,6 +2,7 @@
 #define EXPRESSIONS_HPP
 
 #include "ast_base.hpp"
+#include "symbol_base.hpp"
 #include "interfaces.hpp"
 #include "macros.hpp"
 
@@ -49,8 +50,8 @@ namespace HXSL
 		size_t lazyEvalState;
 		ExpressionTraits traits;
 	protected:
-		Expression(TextSpan span, ASTNode* parent, NodeType type)
-			: ASTNode(span, parent, type),
+		Expression(TextSpan span, NodeType type)
+			: ASTNode(span, type),
 			lazyEvalState(0),
 			inferredType(nullptr)
 		{
@@ -91,8 +92,8 @@ namespace HXSL
 	class OperatorExpression : public Expression
 	{
 	protected:
-		OperatorExpression(TextSpan span, ASTNode* parent, NodeType type)
-			: Expression(span, parent, type)
+		OperatorExpression(TextSpan span, NodeType type)
+			: Expression(span, type)
 		{
 		}
 
@@ -106,10 +107,11 @@ namespace HXSL
 	protected:
 		std::unique_ptr<ChainExpression> next;
 
-		ChainExpression(TextSpan span, ASTNode* parent, NodeType type, std::unique_ptr<ChainExpression> next = {})
-			: Expression(span, parent, type),
+		ChainExpression(TextSpan span, NodeType type, std::unique_ptr<ChainExpression> next = {})
+			: Expression(span, type),
 			next(std::move(next))
 		{
+			REGISTER_CHILD(next);
 		}
 
 	public:
@@ -122,8 +124,9 @@ namespace HXSL
 
 		void SetNextExpression(std::unique_ptr<ChainExpression> value) noexcept
 		{
-			value->SetParent(this);
+			UnregisterChild(next);
 			next = std::move(value);
+			RegisterChild(next);
 		}
 	};
 
@@ -134,13 +137,13 @@ namespace HXSL
 		Operator _operator;
 		std::unique_ptr<Expression> operand;
 	protected:
-		UnaryExpression(TextSpan span, ASTNode* parent, NodeType type, Operator op, std::unique_ptr<Expression> operand)
-			: OperatorExpression(span, parent, type),
+		UnaryExpression(TextSpan span, NodeType type, Operator op, std::unique_ptr<Expression> operand)
+			: OperatorExpression(span, type),
 			operatorSymbol(std::make_unique<SymbolRef>(TextSpan(), SymbolRefType_OperatorOverload, false)),
 			_operator(op),
 			operand(std::move(operand))
 		{
-			if (this->operand) this->operand->SetParent(this);
+			REGISTER_CHILD(operand);
 		}
 
 	public:
@@ -176,14 +179,14 @@ namespace HXSL
 			_operator = value;
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Operand, operand)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Operand, operand)
 	};
 
 	class PrefixExpression : public UnaryExpression
 	{
 	public:
-		PrefixExpression(TextSpan span, ASTNode* parent, Operator op, std::unique_ptr<Expression> operand)
-			: UnaryExpression(span, parent, NodeType_PrefixExpression, op, std::move(operand))
+		PrefixExpression(TextSpan span, Operator op, std::unique_ptr<Expression> operand)
+			: UnaryExpression(span, NodeType_PrefixExpression, op, std::move(operand))
 		{
 		}
 	};
@@ -191,8 +194,8 @@ namespace HXSL
 	class PostfixExpression : public UnaryExpression
 	{
 	public:
-		PostfixExpression(TextSpan span, ASTNode* parent, Operator op, std::unique_ptr<Expression> operand)
-			: UnaryExpression(span, parent, NodeType_PostfixExpression, op, std::move(operand))
+		PostfixExpression(TextSpan span, Operator op, std::unique_ptr<Expression> operand)
+			: UnaryExpression(span, NodeType_PostfixExpression, op, std::move(operand))
 		{
 		}
 	};
@@ -205,15 +208,15 @@ namespace HXSL
 		std::unique_ptr<Expression> left;
 		std::unique_ptr<Expression> right;
 	public:
-		BinaryExpression(TextSpan span, ASTNode* parent, Operator op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
-			: OperatorExpression(span, parent, NodeType_BinaryExpression),
+		BinaryExpression(TextSpan span, Operator op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+			: OperatorExpression(span, NodeType_BinaryExpression),
 			_operator(op),
 			left(std::move(left)),
 			right(std::move(right)),
 			operatorSymbol(std::make_unique<SymbolRef>(TextSpan(), SymbolRefType_OperatorOverload, false))
 		{
-			if (this->left) this->left->SetParent(this);
-			if (this->right) this->right->SetParent(this);
+			REGISTER_CHILD(left);
+			REGISTER_CHILD(right);
 		}
 
 		static void PrepareOverloadSignature(std::string& str, Operator _operator)
@@ -261,9 +264,9 @@ namespace HXSL
 			_operator = value;
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Left, left)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Left, left)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Right, right)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Right, right)
 	};
 
 	class CastExpression : public Expression
@@ -273,21 +276,21 @@ namespace HXSL
 		std::unique_ptr<SymbolRef> typeSymbol;
 		std::unique_ptr<Expression> operand;
 	public:
-		CastExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> typeSymbol, std::unique_ptr<Expression> operand)
-			: Expression(span, parent, NodeType_CastExpression),
+		CastExpression(TextSpan span, std::unique_ptr<SymbolRef> typeSymbol, std::unique_ptr<Expression> operand)
+			: Expression(span, NodeType_CastExpression),
 			typeSymbol(std::move(typeSymbol)),
 			operand(std::move(operand))
 		{
-			if (this->operand) this->operand->SetParent(this);
+			REGISTER_CHILD(operand);
 		}
 
-		CastExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> operatorSymbol, std::unique_ptr<SymbolRef> typeSymbol, std::unique_ptr<Expression> operand)
-			: Expression(span, parent, NodeType_CastExpression),
+		CastExpression(TextSpan span, std::unique_ptr<SymbolRef> operatorSymbol, std::unique_ptr<SymbolRef> typeSymbol, std::unique_ptr<Expression> operand)
+			: Expression(span, NodeType_CastExpression),
 			operatorSymbol(std::move(operatorSymbol)),
 			typeSymbol(std::move(typeSymbol)),
 			operand(std::move(operand))
 		{
-			if (this->operand) this->operand->SetParent(this);
+			REGISTER_CHILD(operand);
 		}
 
 		static std::string BuildOverloadSignature(const SymbolDef* targetType, const SymbolDef* sourceType)
@@ -321,7 +324,7 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, TypeSymbol, typeSymbol)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Operand, operand)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Operand, operand)
 	};
 
 	class TernaryExpression : public OperatorExpression
@@ -331,15 +334,15 @@ namespace HXSL
 		std::unique_ptr<Expression> trueBranch;
 		std::unique_ptr<Expression> falseBranch;
 	public:
-		TernaryExpression(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> trueBranch, std::unique_ptr<Expression> falseBranch)
-			: OperatorExpression(span, parent, NodeType_TernaryExpression),
+		TernaryExpression(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> trueBranch, std::unique_ptr<Expression> falseBranch)
+			: OperatorExpression(span, NodeType_TernaryExpression),
 			condition(std::move(condition)),
 			trueBranch(std::move(trueBranch)),
 			falseBranch(std::move(falseBranch))
 		{
-			if (this->condition) this->condition->SetParent(this);
-			if (this->trueBranch) this->trueBranch->SetParent(this);
-			if (this->falseBranch) this->falseBranch->SetParent(this);
+			REGISTER_CHILD(condition);
+			REGISTER_CHILD(trueBranch);
+			REGISTER_CHILD(falseBranch);
 		}
 
 		const Operator& GetOperator() const noexcept override
@@ -348,18 +351,18 @@ namespace HXSL
 			return _operator;
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Condition, condition)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Condition, condition)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, TrueBranch, trueBranch)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, TrueBranch, trueBranch)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, FalseBranch, falseBranch)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, FalseBranch, falseBranch)
 	};
 
 	class EmptyExpression : public Expression
 	{
 	public:
-		EmptyExpression(TextSpan span, ASTNode* parent)
-			: Expression(span, parent, NodeType_EmptyExpression)
+		EmptyExpression(TextSpan span)
+			: Expression(span, NodeType_EmptyExpression)
 		{
 		}
 	};
@@ -369,8 +372,8 @@ namespace HXSL
 	private:
 		Token literal;
 	public:
-		LiteralExpression(TextSpan span, ASTNode* parent, Token token)
-			: Expression(span, parent, NodeType_LiteralExpression),
+		LiteralExpression(TextSpan span, Token token)
+			: Expression(span, NodeType_LiteralExpression),
 			literal(token)
 		{
 		}
@@ -383,8 +386,8 @@ namespace HXSL
 	private:
 		std::unique_ptr<SymbolRef> symbol;
 	public:
-		MemberReferenceExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol)
-			: ChainExpression(span, parent, NodeType_MemberReferenceExpression),
+		MemberReferenceExpression(TextSpan span, std::unique_ptr<SymbolRef> symbol)
+			: ChainExpression(span, NodeType_MemberReferenceExpression),
 			symbol(std::move(symbol))
 		{
 		}
@@ -396,9 +399,9 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol);
 
-		std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept override
+		std::unique_ptr<ASTNode> Clone() const noexcept override
 		{
-			auto result = std::make_unique<MemberReferenceExpression>(span, parent, symbol->Clone());
+			auto result = std::make_unique<MemberReferenceExpression>(span, symbol->Clone());
 			return result;
 		}
 	};
@@ -408,14 +411,14 @@ namespace HXSL
 	private:
 		std::unique_ptr<Expression> expression;
 	public:
-		FunctionCallParameter(TextSpan span, ASTNode* parent, std::unique_ptr<Expression> expression)
-			: ASTNode(span, parent, NodeType_FunctionCallParameter),
+		FunctionCallParameter(TextSpan span, std::unique_ptr<Expression> expression)
+			: ASTNode(span, NodeType_FunctionCallParameter),
 			expression(std::move(expression))
 		{
-			if (this->expression) this->expression->SetParent(this);
+			REGISTER_CHILD(expression);
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Expression, expression);
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Expression, expression);
 	};
 
 	class FunctionCallExpression : public ChainExpression
@@ -424,15 +427,16 @@ namespace HXSL
 		std::unique_ptr<SymbolRef> symbol;
 		std::vector<std::unique_ptr<FunctionCallParameter>> parameters;
 	public:
-		FunctionCallExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::vector<std::unique_ptr<FunctionCallParameter>> parameters)
-			: ChainExpression(span, parent, NodeType_FunctionCallExpression),
+		FunctionCallExpression(TextSpan span, std::unique_ptr<SymbolRef> symbol, std::vector<std::unique_ptr<FunctionCallParameter>> parameters)
+			: ChainExpression(span, NodeType_FunctionCallExpression),
 			symbol(std::move(symbol)),
 			parameters(std::move(parameters))
 		{
+			REGISTER_CHILDREN(parameters);
 		}
 
-		FunctionCallExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol)
-			: ChainExpression(span, parent, NodeType_FunctionCallExpression),
+		FunctionCallExpression(TextSpan span, std::unique_ptr<SymbolRef> symbol)
+			: ChainExpression(span, NodeType_FunctionCallExpression),
 			symbol(std::move(symbol))
 		{
 		}
@@ -469,6 +473,7 @@ namespace HXSL
 
 		void AddParameter(std::unique_ptr<FunctionCallParameter> param) noexcept
 		{
+			RegisterChild(param);
 			parameters.push_back(std::move(param));
 		}
 
@@ -479,7 +484,7 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
 
-			DEFINE_GET_SET_MOVE(std::vector<std::unique_ptr<FunctionCallParameter>>, Parameters, parameters)
+			DEFINE_GET_SET_MOVE_CHILDREN(std::vector<std::unique_ptr<FunctionCallParameter>>, Parameters, parameters)
 	};
 
 	class MemberAccessExpression : public ChainExpression
@@ -487,8 +492,8 @@ namespace HXSL
 	private:
 		std::unique_ptr<SymbolRef> symbol;
 	public:
-		MemberAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<ChainExpression> expression)
-			: ChainExpression(span, parent, NodeType_MemberAccessExpression, std::move(expression)),
+		MemberAccessExpression(TextSpan span, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<ChainExpression> expression)
+			: ChainExpression(span, NodeType_MemberAccessExpression, std::move(expression)),
 			symbol(std::move(symbol))
 		{
 		}
@@ -500,10 +505,10 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol);
 
-		std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept override
+		std::unique_ptr<ASTNode> Clone() const noexcept override
 		{
-			auto result = std::make_unique<MemberAccessExpression>(span, parent, symbol->Clone(), nullptr);
-			result->next = CloneNode(next, result.get());
+			auto result = std::make_unique<MemberAccessExpression>(span, symbol->Clone(), nullptr);
+			result->SetNextExpression(CloneNode(next));
 			return result;
 		}
 	};
@@ -514,15 +519,16 @@ namespace HXSL
 		std::unique_ptr<SymbolRef> symbol;
 		std::unique_ptr<Expression> indexExpression;
 	public:
-		IndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<Expression> indexExpression)
-			: ChainExpression(span, parent, NodeType_IndexerAccessExpression),
+		IndexerAccessExpression(TextSpan span, std::unique_ptr<SymbolRef> symbol, std::unique_ptr<Expression> indexExpression)
+			: ChainExpression(span, NodeType_IndexerAccessExpression),
 			symbol(std::move(symbol)),
 			indexExpression(std::move(indexExpression))
 		{
+			REGISTER_CHILD(indexExpression);
 		}
 
-		IndexerAccessExpression(TextSpan span, ASTNode* parent, std::unique_ptr<SymbolRef> symbol)
-			: ChainExpression(span, parent, NodeType_IndexerAccessExpression),
+		IndexerAccessExpression(TextSpan span, std::unique_ptr<SymbolRef> symbol)
+			: ChainExpression(span, NodeType_IndexerAccessExpression),
 			symbol(std::move(symbol))
 		{
 		}
@@ -532,7 +538,7 @@ namespace HXSL
 			return symbol;
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, IndexExpression, indexExpression)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, IndexExpression, indexExpression)
 
 			DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
 	};
@@ -545,14 +551,14 @@ namespace HXSL
 		std::unique_ptr<Expression> expression;
 
 	public:
-		AssignmentExpression(TextSpan span, ASTNode* parent, Operator _operator, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: OperatorExpression(span, parent, NodeType_AssignmentExpression),
+		AssignmentExpression(TextSpan span, Operator _operator, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+			: OperatorExpression(span, NodeType_AssignmentExpression),
 			_operator(_operator),
 			target(std::move(target)),
 			expression(std::move(expression))
 		{
-			if (this->target) this->target->SetParent(this);
-			if (this->expression) this->expression->SetParent(this);
+			REGISTER_CHILD(target);
+			REGISTER_CHILD(expression);
 		}
 
 		const Operator& GetOperator() const noexcept override
@@ -565,9 +571,9 @@ namespace HXSL
 			_operator = value;
 		}
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Target, target)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Target, target)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<Expression>, Expression, expression)
+			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Expression, expression)
 	};
 
 	class InitializationExpression : public Expression
@@ -576,22 +582,24 @@ namespace HXSL
 		std::vector<std::unique_ptr<Expression>> parameters;
 
 	public:
-		InitializationExpression(TextSpan span, ASTNode* parent, std::vector<std::unique_ptr<Expression>> parameters)
-			: Expression(span, parent, NodeType_InitializationExpression),
+		InitializationExpression(TextSpan span, std::vector<std::unique_ptr<Expression>> parameters)
+			: Expression(span, NodeType_InitializationExpression),
 			parameters(std::move(parameters))
 		{
+			REGISTER_CHILDREN(parameters);
 		}
-		InitializationExpression(TextSpan span, ASTNode* parent)
-			: Expression(span, parent, NodeType_InitializationExpression)
+		InitializationExpression(TextSpan span)
+			: Expression(span, NodeType_InitializationExpression)
 		{
 		}
 
 		void AddParameter(std::unique_ptr<Expression> parameter)
 		{
+			RegisterChild(parameter);
 			parameters.push_back(std::move(parameter));
 		}
 
-		DEFINE_GET_SET_MOVE(std::vector<std::unique_ptr<Expression>>, Parameters, parameters)
+		DEFINE_GET_SET_MOVE_CHILDREN(std::vector<std::unique_ptr<Expression>>, Parameters, parameters)
 	};
 }
 

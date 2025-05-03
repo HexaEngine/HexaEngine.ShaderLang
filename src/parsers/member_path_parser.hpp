@@ -12,7 +12,6 @@ namespace HXSL
 		Parser& parser;
 		TokenStream& stream;
 		std::unique_ptr<Expression> root;
-		ASTNode* parent;
 		ChainExpression* chainExpr;
 
 		template <typename T>
@@ -28,7 +27,6 @@ namespace HXSL
 				root = std::move(newExpr);
 			}
 			chainExpr = next;
-			parent = next;
 		}
 
 		template <typename T>
@@ -60,8 +58,8 @@ namespace HXSL
 		}
 
 	public:
-		MemberPathParser(Parser& parser, TokenStream& stream, ASTNode* parent)
-			: parsing(true), wantsIdentifier(true), parser(parser), stream(stream), root(nullptr), parent(parent), chainExpr(nullptr)
+		MemberPathParser(Parser& parser, TokenStream& stream)
+			: parsing(true), wantsIdentifier(true), parser(parser), stream(stream), root(nullptr), chainExpr(nullptr)
 		{
 		}
 

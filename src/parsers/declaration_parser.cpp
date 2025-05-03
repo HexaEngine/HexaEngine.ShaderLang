@@ -19,10 +19,10 @@ namespace HXSL
 			ERR_RETURN_FALSE(parser, FIELD_DECL_OUT_OF_SCOPE);
 		}
 
-		ASTNode* parent = parser.scopeParent();
 		auto span = start.Span.merge(stream.LastToken().Span);
-		auto field = std::make_unique<Field>(span, parent, list.accessModifiers, list.storageClasses, list.interpolationModifiers, name, std::move(symbol), semantic);
+		auto field = std::make_unique<Field>(span, list.accessModifiers, list.storageClasses, list.interpolationModifiers, name, std::move(symbol), semantic);
 
+		ASTNode* parent = parser.scopeParent();
 		auto parentType = parent->GetType();
 		switch (parentType)
 		{
@@ -42,7 +42,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseParameter(Parser& parser, TokenStream& stream, ASTNode* parent, std::unique_ptr<Parameter>& parameter)
+	static bool ParseParameter(Parser& parser, TokenStream& stream, std::unique_ptr<Parameter>& parameter)
 	{
 		auto startingToken = stream.Current();
 
@@ -61,7 +61,7 @@ namespace HXSL
 
 		auto span = startingToken.Span.merge(stream.LastToken().Span);
 
-		parameter = std::make_unique<Parameter>(span, parent, std::get<0>(flags), std::get<1>(flags), std::move(symbol.make()), name, semantic);
+		parameter = std::make_unique<Parameter>(span, std::get<0>(flags), std::get<1>(flags), std::move(symbol.make()), name, semantic);
 		return true;
 	}
 
@@ -81,7 +81,7 @@ namespace HXSL
 		}
 
 		auto parent = parser.scopeParent();
-		auto function = std::make_unique<FunctionOverload>(TextSpan(), parent, list.accessModifiers, list.functionFlags, name, std::move(returnSymbol));
+		auto function = std::make_unique<FunctionOverload>(TextSpan(), list.accessModifiers, list.functionFlags, name, std::move(returnSymbol));
 		if (attribute && attribute->HasResource())
 		{
 			function->AddAttribute(std::move(attribute->Take()));
@@ -100,7 +100,7 @@ namespace HXSL
 
 			std::unique_ptr<Parameter> parameter;
 
-			IF_ERR_RET_FALSE(ParseParameter(parser, stream, function.get(), parameter));
+			IF_ERR_RET_FALSE(ParseParameter(parser, stream, parameter));
 
 			parameters.push_back(std::move(parameter));
 		}
@@ -117,7 +117,7 @@ namespace HXSL
 		if (!stream.TryGetDelimiter(';'))
 		{
 			std::unique_ptr<BlockStatement> statement;
-			IF_ERR_RET_FALSE(ParseStatementBody(name, ScopeType_Function, function.get(), parser, stream, statement));
+			IF_ERR_RET_FALSE(ParseStatementBody(name, ScopeType_Function, parser, stream, statement));
 			function->SetBody(std::move(statement));
 		}
 
@@ -176,8 +176,8 @@ namespace HXSL
 		}
 
 		auto name = opKeywordToken.Span.merge(opToken.Span);
-		auto parent = parser.scopeParent();
-		auto _operator = std::make_unique<OperatorOverload>(TextSpan(), parent, list.accessModifiers, list.functionFlags, flags, name, op, std::move(symbol));
+
+		auto _operator = std::make_unique<OperatorOverload>(TextSpan(), list.accessModifiers, list.functionFlags, flags, name, op, std::move(symbol));
 		if (attribute && attribute->HasResource())
 		{
 			_operator->AddAttribute(std::move(attribute->Take()));
@@ -198,7 +198,7 @@ namespace HXSL
 
 			std::unique_ptr<Parameter> parameter;
 
-			if (ParseParameter(parser, stream, _operator.get(), parameter))
+			if (ParseParameter(parser, stream, parameter))
 			{
 				parameters.push_back(std::move(parameter));
 			}
@@ -216,12 +216,13 @@ namespace HXSL
 		if (!stream.TryGetDelimiter(';'))
 		{
 			std::unique_ptr<BlockStatement> statement;
-			ParseStatementBody(name, ScopeType_Function, _operator.get(), parser, stream, statement);
+			ParseStatementBody(name, ScopeType_Function, parser, stream, statement);
 			_operator->SetBody(std::move(statement));
 		}
 
 		_operator->SetSpan(stream.MakeFromLast(start));
 
+		auto parent = parser.scopeParent();
 		auto parentType = parent->GetType();
 		switch (parentType)
 		{
@@ -330,8 +331,7 @@ namespace HXSL
 		ModifierList allowed = ModifierList(AccessModifier_All, true);
 		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_STRUCT);
 
-		auto parent = parser.scopeParent();
-		auto _struct = std::make_unique<Struct>(TextSpan(), parent, list.accessModifiers, name);
+		auto _struct = std::make_unique<Struct>(TextSpan(), list.accessModifiers, name);
 
 		Token t;
 		parser.EnterScope(name, ScopeType_Struct, _struct.get(), t, true, EXPECTED_LEFT_BRACE);
@@ -351,6 +351,7 @@ namespace HXSL
 		auto span = startingToken.Span.merge(stream.LastToken().Span);
 		_struct->SetSpan(span);
 
+		auto parent = parser.scopeParent();
 		auto parentType = parent->GetType();
 		switch (parentType)
 		{

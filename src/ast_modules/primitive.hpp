@@ -105,8 +105,8 @@ namespace HXSL
 		uint32_t columns;
 	public:
 		Primitive()
-			: Type(TextSpan(), nullptr, NodeType_Primitive, TextSpan()),
-			ASTNode(TextSpan(), nullptr, NodeType_Primitive),
+			: Type(TextSpan(), NodeType_Primitive, TextSpan()),
+			ASTNode(TextSpan(), NodeType_Primitive),
 			kind(PrimitiveKind_Void),
 			_class(PrimitiveClass_Scalar),
 			rows(0),
@@ -114,9 +114,9 @@ namespace HXSL
 		{
 			this->name = TextSpan(backingName);
 		}
-		Primitive(TextSpan span, ASTNode* parent, PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
-			: Type(span, parent, NodeType_Primitive, TextSpan()),
-			ASTNode(span, parent, NodeType_Primitive),
+		Primitive(TextSpan span, PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
+			: Type(span, NodeType_Primitive, TextSpan()),
+			ASTNode(span, NodeType_Primitive),
 			kind(kind),
 			_class(_class),
 			backingName(std::move(name)),
@@ -127,8 +127,8 @@ namespace HXSL
 		}
 
 		Primitive(PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
-			: Type(name, nullptr, NodeType_Primitive, TextSpan()),
-			ASTNode(name, nullptr, NodeType_Primitive),
+			: Type(name, NodeType_Primitive, TextSpan()),
+			ASTNode(name, NodeType_Primitive),
 			kind(kind),
 			_class(_class),
 			backingName(std::move(name)),
@@ -140,6 +140,7 @@ namespace HXSL
 
 		void AddOperator(std::unique_ptr<OperatorOverload> value) noexcept
 		{
+			RegisterChild(value);
 			operators.push_back(std::move(value));
 		}
 
