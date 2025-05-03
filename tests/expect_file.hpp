@@ -9,7 +9,7 @@
 #include <cctype>
 #include <optional>
 
-#include "io/log.h"
+#include "io/logger.hpp"
 
 using namespace HXSL;
 
@@ -67,7 +67,7 @@ static std::optional<LogMessage> ParseLogMessage(const std::string& line)
 	return LogMessage(level, message);
 }
 
-TestFileContent ParseTestFile(const std::string& filePath)
+static TestFileContent ParseTestFile(const std::string& filePath)
 {
 	enum class Section { None, Input, AST, Logs };
 	Section current = Section::None;

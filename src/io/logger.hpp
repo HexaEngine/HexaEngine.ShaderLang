@@ -1,13 +1,14 @@
-#ifndef LOG_H
-#define LOG_H
+#ifndef LOGGER_HPP
+#define LOGGER_HPP
 
 #include "config.h"
-#include "utils/vector.h"
 #include "utils/text_span.h"
 
+#include <vector>
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <iostream>
 
 namespace HXSL
 {
@@ -68,7 +69,7 @@ namespace HXSL
 	class ILogger
 	{
 	private:
-		Vector<LogMessage> messages;
+		std::vector<LogMessage> messages;
 		bool hasCriticalErrors;
 		int errorCount;
 
@@ -83,7 +84,7 @@ namespace HXSL
 
 		int GetErrorCount()  const noexcept { return errorCount; };
 
-		const Vector<LogMessage>& GetMessages() const noexcept
+		const std::vector<LogMessage>& GetMessages() const noexcept
 		{
 			return messages;
 		}
@@ -111,6 +112,8 @@ namespace HXSL
 				}
 			}
 		}
+
+		void Log(DiagnosticCode code, const std::string& message);
 
 		template <typename T>
 		auto convert_to_cstr(T&& arg) -> decltype(std::forward<T>(arg))

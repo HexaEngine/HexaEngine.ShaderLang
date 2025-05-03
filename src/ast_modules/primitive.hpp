@@ -101,8 +101,8 @@ namespace HXSL
 		PrimitiveKind kind;
 		PrimitiveClass _class;
 		std::string backingName;
-		uint rows;
-		uint columns;
+		uint32_t rows;
+		uint32_t columns;
 	public:
 		Primitive()
 			: Type(TextSpan(), nullptr, NodeType_Primitive, TextSpan()),
@@ -114,7 +114,7 @@ namespace HXSL
 		{
 			this->name = TextSpan(backingName);
 		}
-		Primitive(TextSpan span, ASTNode* parent, PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint rows, uint columns)
+		Primitive(TextSpan span, ASTNode* parent, PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
 			: Type(span, parent, NodeType_Primitive, TextSpan()),
 			ASTNode(span, parent, NodeType_Primitive),
 			kind(kind),
@@ -126,7 +126,7 @@ namespace HXSL
 			this->name = TextSpan(backingName);
 		}
 
-		Primitive(PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint rows, uint columns)
+		Primitive(PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
 			: Type(name, nullptr, NodeType_Primitive, TextSpan()),
 			ASTNode(name, nullptr, NodeType_Primitive),
 			kind(kind),
@@ -148,22 +148,22 @@ namespace HXSL
 			return operators;
 		}
 
-		const uint& GetRows() const noexcept
+		const uint32_t& GetRows() const noexcept
 		{
 			return rows;
 		}
 
-		void SetRows(const uint& value)  noexcept
+		void SetRows(const uint32_t& value)  noexcept
 		{
 			rows = value;
 		}
 
-		const uint& GetColumns() const noexcept
+		const uint32_t& GetColumns() const noexcept
 		{
 			return columns;
 		}
 
-		void SetColumns(const uint& value)  noexcept
+		void SetColumns(const uint32_t& value)  noexcept
 		{
 			columns = value;
 		}

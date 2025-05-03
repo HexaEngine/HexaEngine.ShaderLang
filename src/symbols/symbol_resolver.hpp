@@ -14,7 +14,7 @@ namespace HXSL
 		Namespace* CurrentNamespace;
 		ASTNode* Parent;
 		SymbolHandle SymbolHandle;
-		uint ScopeCounter;
+		uint32_t ScopeCounter;
 
 		ResolverScopeContext() : CurrentNamespace(nullptr), Parent(nullptr), SymbolHandle({}), ScopeCounter(0)
 		{

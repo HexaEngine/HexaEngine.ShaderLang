@@ -89,6 +89,8 @@ if (BUILD_SHARED)
     target_link_libraries(Compiler PRIVATE libzstd_static)
 
     add_dependencies(Compiler generate_locales)
+
+    target_compile_definitions(Compiler PRIVATE $<$<CONFIG:Debug>:HXSL_DEBUG=1>)
 endif()
 
 if (BUILD_STATIC)
@@ -97,6 +99,8 @@ if (BUILD_STATIC)
     target_link_libraries(CompilerStatic PRIVATE libzstd_static)
 
     add_dependencies(CompilerStatic generate_locales)
+
+    target_compile_definitions(CompilerStatic PRIVATE $<$<CONFIG:Debug>:HXSL_DEBUG=1> HXSL_ENABLE_CAPI=1)
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
@@ -111,9 +115,9 @@ if(BUILD_TESTS)
 
     enable_testing()
 
-    add_executable(unit_tests
-        tests/pratt_parser_tests.cpp
-    )
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+
+    add_executable(unit_tests ${TEST_SOURCES})
 
     target_link_libraries(unit_tests
         PRIVATE

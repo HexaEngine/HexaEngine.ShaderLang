@@ -246,7 +246,7 @@ namespace HXSL
 			return *this;
 		}
 
-		PrimitiveBuilder& WithRowsAndColumns(uint rows, uint columns)
+		PrimitiveBuilder& WithRowsAndColumns(uint32_t rows, uint32_t columns)
 		{
 			primitive->SetRows(rows);
 			primitive->SetColumns(columns);

@@ -8,10 +8,10 @@ namespace HXSL
 {
 	void SymbolMetadata::Write(Stream& stream) const
 	{
-		stream.WriteUInt((uint)symbolType);
-		stream.WriteUInt((uint)scope);
-		stream.WriteUInt((uint)accessModifier);
-		stream.WriteUInt((uint)size);
+		stream.WriteUInt((uint32_t)symbolType);
+		stream.WriteUInt((uint32_t)scope);
+		stream.WriteUInt((uint32_t)accessModifier);
+		stream.WriteUInt((uint32_t)size);
 		stream.WriteValue<bool>(declaration);
 		if (declaration)
 		{
@@ -252,15 +252,15 @@ namespace HXSL
 
 	static void WriteNode(Stream& stream, const SymbolTableNode& node, const size_t& index)
 	{
-		stream.WriteUInt((uint)index);
+		stream.WriteUInt((uint32_t)index);
 		stream.WriteString(node.GetName());
-		stream.WriteUInt((uint)node.Children.size());
+		stream.WriteUInt((uint32_t)node.Children.size());
 		for (const auto& [childSpan, childIdx] : node.Children)
 		{
-			stream.WriteUInt((uint)childIdx);
+			stream.WriteUInt((uint32_t)childIdx);
 		}
-		stream.WriteUInt((uint)node.Depth);
-		stream.WriteUInt((uint)node.ParentIndex);
+		stream.WriteUInt((uint32_t)node.Depth);
+		stream.WriteUInt((uint32_t)node.ParentIndex);
 
 		if (node.Metadata)
 		{
@@ -297,7 +297,7 @@ namespace HXSL
 		}
 		size_t end = stream.Position();
 		stream.Position(start);
-		stream.WriteUInt((uint)written);
+		stream.WriteUInt((uint32_t)written);
 		stream.Position(end);
 	}
 

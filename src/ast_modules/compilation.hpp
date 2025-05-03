@@ -2,7 +2,7 @@
 #define COMPILATION_HPP
 
 #include "namespace.hpp"
-#include "io/log.h"
+#include "io/logger.hpp"
 
 #include <mutex>
 #include <shared_mutex>

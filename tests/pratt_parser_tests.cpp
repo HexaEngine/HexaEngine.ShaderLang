@@ -1,12 +1,33 @@
 #include "common.hpp"
-#include "generated/localization.hpp"
+
+class PrattParserTest : public ASTTestBase
+{
+public:
+	PrattParserTest() : ASTTestBase()
+	{
+	}
+protected:
+	std::tuple<CompilationPtr, ASTNodePtr> ActCore(const std::string& input) override
+	{
+		TokenStream stream;
+		Parser parser;
+		CompilationPtr compilation;
+		PrepareTestData(input, parser, stream, compilation);
+		stream.TryAdvance();
+
+		ExpressionPtr expr;
+		PrattParser::ParseExpression(parser, stream, parser.Compilation(), expr);
+		return std::make_tuple(std::move(compilation), std::move(expr));
+	}
+};
 
 TEST_P(PrattParserTest, TestWithParameter)
 {
 	Act();
 }
 
-INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_TEST_SUITE_P
+(
 	PrattParserTests,
 	PrattParserTest,
 	::testing::Values(
@@ -31,19 +52,3 @@ INSTANTIATE_TEST_SUITE_P(
 		return std::get<1>(info.param);
 	}
 );
-
-TEST(CodeId, EncodingDecodingCodeId)
-{
-	std::string input = "ZZ99999999";
-	auto code = EncodeCodeId(LogLevel_Error, input);
-	auto result = GetStringForCode(code);
-	ASSERT_EQ(result, input);
-}
-
-int main(int argc, char** argv)
-{
-	SetLocale("en_US");
-	EnableErrorOutput = false;
-	::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
-}

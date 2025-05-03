@@ -12,7 +12,7 @@ namespace HXSL
 	{
 		const ASTNode* Parent;
 		size_t NodeIndex;
-		uint ScopeCounter;
+		uint32_t ScopeCounter;
 		SymbolScopeType Type;
 
 		CollectorScopeContext() : Parent(nullptr), NodeIndex(0), ScopeCounter(0), Type(SymbolScopeType_Global)

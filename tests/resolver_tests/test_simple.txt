@@ -1,0 +1,7 @@
+#case
+#in
+namespace Core;
+
+struct PS_INPUT
+{
+}

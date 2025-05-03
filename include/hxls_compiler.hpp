@@ -10,7 +10,7 @@ namespace HXSL
 	class HXSLCompiler
 	{
 	public:
-		static void Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references);
+		void Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references);
 	};
 }
 

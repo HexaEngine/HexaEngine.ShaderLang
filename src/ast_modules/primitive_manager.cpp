@@ -5,7 +5,7 @@ namespace HXSL
 {
 	std::once_flag PrimitiveManager::initFlag;
 
-	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint rows, uint columns)
+	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint32_t rows, uint32_t columns)
 	{
 		std::ostringstream name;
 
@@ -96,14 +96,14 @@ namespace HXSL
 
 			AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Scalar, 1, 1);
 
-			for (uint n = 2; n <= 4; ++n)
+			for (uint32_t n = 2; n <= 4; ++n)
 			{
 				AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Vector, n, 1);
 			}
 
-			for (uint r = 1; r <= 4; ++r)
+			for (uint32_t r = 1; r <= 4; ++r)
 			{
-				for (uint c = 1; c <= 4; ++c)
+				for (uint32_t c = 1; c <= 4; ++c)
 				{
 					AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Matrix, r, c);
 				}

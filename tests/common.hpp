@@ -188,29 +188,13 @@ protected:
 			{
 				ASTValidatorVisitor validator;
 				validator.Validate(compilation.get(), target.get(), content);
+				ActPost(compilation.get(), target.get(), content);
 			}
 		}
 	}
-};
 
-class PrattParserTest : public ASTTestBase
-{
-public:
-	PrattParserTest() : ASTTestBase()
+	virtual void ActPost(ILogger* log, ASTNode* actualAst, const ExpectFileSubContent& expected)
 	{
-	}
-protected:
-	std::tuple<CompilationPtr, ASTNodePtr> ActCore(const std::string& input)
-	{
-		TokenStream stream;
-		Parser parser;
-		CompilationPtr compilation;
-		PrepareTestData(input, parser, stream, compilation);
-		stream.TryAdvance();
-
-		ExpressionPtr expr;
-		PrattParser::ParseExpression(parser, stream, parser.Compilation(), expr);
-		return std::make_tuple(std::move(compilation), std::move(expr));
 	}
 };
 

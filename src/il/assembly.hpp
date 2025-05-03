@@ -3,7 +3,7 @@
 
 #include "symbols/symbol_handle.hpp"
 #include "utils/text_span.h"
-#include "io/stream.h"
+#include "io/stream.hpp"
 #include <string>
 #include <memory>
 #include <fstream>

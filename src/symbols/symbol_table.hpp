@@ -4,7 +4,7 @@
 #include "ast.hpp"
 #include "symbol_handle.hpp"
 
-#include "io/stream.h"
+#include "io/stream.hpp"
 #include "utils/string_pool.hpp"
 #include "utils/span.h"
 

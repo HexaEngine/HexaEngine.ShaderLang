@@ -1,7 +1,7 @@
 #include "lexer.h"
 #include "utils/text_helper.h"
 #include "utils/tst.hpp"
-#include "io/log.h"
+#include "io/logger.hpp"
 #include "numbers.h"
 #include "generated/localization.hpp"
 

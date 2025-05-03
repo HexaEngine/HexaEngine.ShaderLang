@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <string>
 #include "diagnostic_code.hpp"
-#include "io/log.h"
+#include "io/logger.hpp"
 
 // Automatically generated locale codes
 

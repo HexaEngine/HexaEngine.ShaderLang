@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include "utils/text_helper.h"
 #include "utils/tst.hpp"
-#include "io/log.h"
+#include "io/logger.hpp"
 #include "token.h"
 #include "numbers.h"
 #include "lang/language.h"

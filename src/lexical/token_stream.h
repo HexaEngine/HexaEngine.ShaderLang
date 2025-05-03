@@ -2,7 +2,7 @@
 #define TOKEN_STREAM_H
 
 #include "lexical/lexer.h"
-#include "io/log.h"
+#include "io/logger.hpp"
 
 #include <string>
 #include <stack>

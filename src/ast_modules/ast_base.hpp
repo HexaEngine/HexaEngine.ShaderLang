@@ -6,7 +6,7 @@
 #include "lexical/token.h"
 #include "utils/text_span.h"
 #include "utils/string_pool.hpp"
-#include "io/stream.h"
+#include "io/stream.hpp"
 #include "macros.hpp"
 
 #include <memory>
@@ -41,7 +41,7 @@ namespace HXSL
 	/// Symbol Resolve: All Done.
 	/// Type Check: WIP.
 	/// </summary>
-	enum NodeType
+	enum NodeType : int
 	{
 		/// <summary>
 		/// Special node and does not exist as class.
@@ -230,9 +230,7 @@ namespace HXSL
 	private:
 		Compilation* compilation = nullptr;
 		size_t id = 0;
-#ifdef DEBUG
-		bool parentMissing = false;
-#endif
+
 		void AddChild(ASTNode* node)
 		{
 			HXSL_ASSERT(node, "Child node was null");
@@ -259,6 +257,11 @@ namespace HXSL
 
 		void AssignId();
 
+	private:
+#if HXSL_DEBUG
+		bool parentMissing = false;
+#endif
+
 	public:
 		ASTNode(TextSpan span, ASTNode* parent, NodeType type, bool isExtern = false) : span(span), parent(parent), type(type), children({}), isExtern(isExtern)
 		{
@@ -268,14 +271,14 @@ namespace HXSL
 				parent->AddChild(this);
 				AssignId();
 			}
+#if HXSL_DEBUG
 			else
 			{
 				if (!MustHaveParent()) return;
-#ifdef DEBUG
 				parentMissing = true;
 				std::cout << "[Verbose]: (AST) Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
-#endif
 			}
+#endif
 		}
 
 		virtual	Compilation* GetCompilation()
@@ -308,13 +311,13 @@ namespace HXSL
 			{
 				parent->RemoveChild(this);
 			}
+#if HXSL_DEBUG
 			else if (parentMissing)
 			{
-#ifdef DEBUG
 				std::cout << "[Verbose]: (AST) Recovered from Parent of node is null: " << ToString(type) << " Span: " << span.toString() << std::endl;
 				parentMissing = false;
-#endif
 			}
+#endif
 			parent = newParent;
 			if (newParent)
 			{
@@ -433,7 +436,7 @@ namespace HXSL
 
 		virtual ~ASTNode()
 		{
-#ifdef DEBUG
+#if HXSL_DEBUG
 			if (parentMissing)
 			{
 				std::cout << "[Verbose]: (AST) Recovered from Parent is null (Destroyed): " << ToString(type) << " Span: " << span.toString() << std::endl;
