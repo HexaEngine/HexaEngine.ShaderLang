@@ -46,7 +46,7 @@ if (!expr) { \
 		template <typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			compilation->LogFormattedEx(code, " (Line: %i, Column: %i)", std::forward<Args>(args)..., span.Line, span.Column);
+			compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.Line, span.Column);
 		}
 	};
 

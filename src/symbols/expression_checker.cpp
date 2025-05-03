@@ -135,7 +135,11 @@ namespace HXSL
 	void MemberReferenceExpressionChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, MemberReferenceExpression* expression, std::stack<Expression*>& stack)
 	{
 		auto& ref = expression->GetSymbolRef();
-		HXSL_ASSERT(ref->IsResolved(), "");
+		if (!ref->IsResolved() && !ref->IsNotFound())
+		{
+			HXSL_ASSERT(false, "");
+		}
+		
 		auto decl = ref->GetBaseDeclaration();
 		expression->SetInferredType(decl);
 		expression->SetTraits(ExpressionTraits(ExpressionTraitFlags_Mutable));

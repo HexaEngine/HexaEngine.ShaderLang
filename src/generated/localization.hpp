@@ -480,7 +480,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL0206</para>
-	/// <para>Message: attribute '%s' is not allowed in this context</para>
+	/// <para>Message: attribute '{}' is not allowed in this context</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -624,7 +624,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1008</para>
-	/// <para>Message: operand types are not compatible '%s' and 's%'</para>
+	/// <para>Message: operand types are not compatible '{}' and '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -633,7 +633,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1009</para>
-	/// <para>Message: no suitable conversion exists to convert from '%s' to 's%'</para>
+	/// <para>Message: no suitable conversion exists to convert from '{}' to '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -669,7 +669,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1013</para>
-	/// <para>Message: return value type '%s' does not match the function return type '%s'</para>
+	/// <para>Message: return value type '{}' does not match the function return type '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -678,7 +678,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1100</para>
-	/// <para>Message: '%s' is already defined in this scope</para>
+	/// <para>Message: '{}' is already defined in this scope</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -687,7 +687,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1101</para>
-	/// <para>Message: '%s' is not declared in the current context</para>
+	/// <para>Message: '{}' is not declared in the current context</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -696,7 +696,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1102</para>
-	/// <para>Message: the namespace '%s' couldn't be found</para>
+	/// <para>Message: the namespace '{}' couldn't be found</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -705,7 +705,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1103</para>
-	/// <para>Message: the namespace or type '%s' couldn't be found</para>
+	/// <para>Message: the namespace or type '{}' couldn't be found</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -714,7 +714,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1104</para>
-	/// <para>Message: the namespace or type '%s' couldn't be found in '%s'</para>
+	/// <para>Message: the namespace or type '{}' couldn't be found in '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -723,7 +723,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1105</para>
-	/// <para>Message: the type '%s' couldn't be found</para>
+	/// <para>Message: the type '{}' couldn't be found</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -732,7 +732,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1106</para>
-	/// <para>Message: the type '%s' couldn't be found in '%s'</para>
+	/// <para>Message: the type '{}' couldn't be found in '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -741,7 +741,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1107</para>
-	/// <para>Message: the function '%s' couldn't be found</para>
+	/// <para>Message: the function '{}' couldn't be found</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -750,7 +750,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1108</para>
-	/// <para>Message: the function '%s' couldn't be found in '%s'</para>
+	/// <para>Message: the function '{}' couldn't be found in '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -759,7 +759,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1109</para>
-	/// <para>Message: the member '%s' couldn't be found</para>
+	/// <para>Message: the member '{}' couldn't be found</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -768,7 +768,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1110</para>
-	/// <para>Message: the member '%s' couldn't be found in '%s'</para>
+	/// <para>Message: the member '{}' couldn't be found in '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -777,7 +777,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1111</para>
-	/// <para>Message: cannot cast from '%s' to '%s' no cast operator defined</para>
+	/// <para>Message: cannot cast from '{}' to '{}' no cast operator defined</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -786,7 +786,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1112</para>
-	/// <para>Message: cannot overload function '%s', no overload defined</para>
+	/// <para>Message: cannot overload function '{}', no overload defined</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -795,7 +795,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1113</para>
-	/// <para>Message: cannot overload operator '%s', no overload defined for types '%s' and '%s'</para>
+	/// <para>Message: cannot overload operator '{}', no overload defined for types '{}' and '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -804,7 +804,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1114</para>
-	/// <para>Message: cannot overload operator '%s', no overload defined for type '%s'</para>
+	/// <para>Message: cannot overload operator '{}', no overload defined for type '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -813,7 +813,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1115</para>
-	/// <para>Message: '%s' is of type '%s', but a namespace was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a namespace was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -822,7 +822,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1116</para>
-	/// <para>Message: '%s' is of type '%s', but a function was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a function was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -831,7 +831,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1117</para>
-	/// <para>Message: '%s' is of type '%s', but a operator was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a operator was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -840,7 +840,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1118</para>
-	/// <para>Message: '%s' is of type '%s', but a constructor was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a constructor was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -849,7 +849,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1119</para>
-	/// <para>Message: '%s' is of type '%s', but a constructor or function was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a constructor or function was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -858,7 +858,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1120</para>
-	/// <para>Message: '%s' is of type '%s', but a struct was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a struct was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -867,7 +867,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1121</para>
-	/// <para>Message: '%s' is of type '%s', but a enum was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a enum was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -876,7 +876,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1122</para>
-	/// <para>Message: '%s' is of type '%s', but a member or variable was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a member or variable was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -885,7 +885,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1123</para>
-	/// <para>Message: '%s' is of type '%s', but a attribute was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a attribute was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -894,7 +894,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1124</para>
-	/// <para>Message: '%s' is of type '%s', but a member was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a member was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -903,7 +903,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1125</para>
-	/// <para>Message: '%s' is of type '%s', but a struct, class or enum type was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a struct, class or enum type was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -912,7 +912,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1126</para>
-	/// <para>Message: '%s' is of type '%s', but a array type was expected</para>
+	/// <para>Message: '{}' is of type '{}', but a array type was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -921,7 +921,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1127</para>
-	/// <para>Message: '%s' is not a valid array element type</para>
+	/// <para>Message: '{}' is not a valid array element type</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -930,7 +930,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1128</para>
-	/// <para>Message: use of variable '%s' before its declaration</para>
+	/// <para>Message: use of variable '{}' before its declaration</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -939,7 +939,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1129</para>
-	/// <para>Message: couldn't resolve type of member '%s'</para>
+	/// <para>Message: couldn't resolve type of member '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -948,7 +948,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1130</para>
-	/// <para>Message: ambiguous function overload for '%s'</para>
+	/// <para>Message: ambiguous function overload for '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
@@ -957,7 +957,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1131</para>
-	/// <para>Message: ambiguous operator overload for '%s'</para>
+	/// <para>Message: ambiguous operator overload for '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>

@@ -45,7 +45,8 @@ static std::string ToLower(const std::string& str)
 
 static std::optional<LogMessage> ParseLogMessage(const std::string& line)
 {
-	std::string levelStr = line.substr(1, line.find(']') - 1);
+	auto idx = line.find(']');
+	std::string levelStr = line.substr(1, idx - 1);
 	std::transform(levelStr.begin(), levelStr.end(), levelStr.begin(), ::tolower);
 
 	static const std::unordered_map<std::string, LogLevel> logLevelMap =
@@ -62,7 +63,7 @@ static std::optional<LogMessage> ParseLogMessage(const std::string& line)
 		return std::nullopt;
 
 	LogLevel level = it->second;
-	std::string message = line.substr(line.find(']') + 3);
+	std::string message = line.substr(idx + 2);
 
 	return LogMessage(level, message);
 }

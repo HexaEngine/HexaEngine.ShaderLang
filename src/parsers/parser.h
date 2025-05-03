@@ -221,7 +221,7 @@ namespace HXSL
 		template<typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			m_compilation->LogFormattedEx(code, " (Line: %u, Column: %u)", std::forward<Args>(args)..., span.Line, span.Column);
+			m_compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.Line, span.Column);
 		}
 
 		template<typename... Args>
@@ -229,7 +229,7 @@ namespace HXSL
 		{
 			if (condition)
 			{
-				m_compilation->LogFormattedEx(code, " (Line: %u, Column: %u)", std::forward<Args>(args)..., span.Line, span.Column);
+				m_compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.Line, span.Column);
 			}
 		}
 
@@ -460,7 +460,7 @@ namespace HXSL
 		void ParseModifierList();
 		AccessModifier ParseAccessModifiers(bool& anySpecified);
 		StorageClass ParseStorageClasses();
-		InterpolationModifier Parser::ParseInterpolationModifiers(bool& anySpecified);
+		InterpolationModifier ParseInterpolationModifiers(bool& anySpecified);
 		FunctionFlags ParseFunctionFlags();
 	};
 

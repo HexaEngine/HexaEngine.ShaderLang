@@ -3,7 +3,10 @@
 
 #include "config.h"
 #include "utils/text_span.h"
+#include "log_message.h"
+#include "diagnostic_code.hpp"
 
+#include <fmt/core.h>
 #include <vector>
 #include <stdexcept>
 #include <string>
@@ -12,60 +15,6 @@
 
 namespace HXSL
 {
-	enum LogLevel
-	{
-		LogLevel_Verbose,
-		LogLevel_Info,
-		LogLevel_Warn,
-		LogLevel_Error,
-		LogLevel_Critical
-	};
-
-	static std::string ToString(LogLevel level)
-	{
-		switch (level)
-		{
-		case LogLevel_Verbose:
-			return "Verbose";
-		case LogLevel_Info:
-			return "Info";
-		case LogLevel_Warn:
-			return "Warn";
-		case LogLevel_Error:
-			return "Error";
-		case LogLevel_Critical:
-			return "Critical";
-		default:
-			break;
-		}
-		return "";
-	}
-
-	struct DiagnosticCode;
-
-	struct LogMessage
-	{
-		LogLevel Level;
-		char Message[MAX_LOG_LENGTH];
-
-		LogMessage(LogLevel level, const char* message) : Level(level)
-		{
-			strncpy_s(Message, message, MAX_LOG_LENGTH - 1);
-			Message[MAX_LOG_LENGTH - 1] = '\0';
-		}
-
-		LogMessage(LogLevel level, const std::string& message) : Level(level)
-		{
-			strncpy_s(Message, message.c_str(), MAX_LOG_LENGTH - 1);
-			Message[MAX_LOG_LENGTH - 1] = '\0';
-		}
-
-		std::string ToString() const
-		{
-			return "[" + HXSL::ToString(Level) + "]: " + std::string(Message);
-		}
-	};
-
 	class ILogger
 	{
 	private:
@@ -173,25 +122,26 @@ namespace HXSL
 		template <typename... Args>
 		void LogFormattedEx(DiagnosticCode code, const std::string& format, Args&&... args)
 		{
-			const auto formatFinal = code.GetMessage() + format;
-			const auto size_s = std::snprintf(nullptr, 0, formatFinal.data(), convert_to_cstr(args)...);
+			std::string formatFinal = code.GetMessage() + format;
 
-			if (size_s <= 0)
-			{
-				return;
-			}
+			auto view = fmt::string_view(formatFinal);
 
-			const auto size = static_cast<size_t>(size_s);
-			std::string buf;
-			buf.resize(size);
+			auto storedArgs = std::make_tuple(std::forward<Args>(args)...);
 
-			std::snprintf(buf.data(), size_s + 1, formatFinal.data(), convert_to_cstr(args)...);
+			std::string formatted = std::apply(
+				[&](const auto&... unpacked) {
+					return fmt::vformat(view, fmt::make_format_args(unpacked...));
+				},
+				storedArgs
+			);
 
-			Log(code.GetLogLevel(), buf);
+			Log(code, formatted);
 		}
 
 		~ILogger()
 		{
+			std::string	 a = "";
+			fmt::vformat(a, fmt::make_format_args(""));
 			for (auto& message : messages)
 			{
 				message.~LogMessage();

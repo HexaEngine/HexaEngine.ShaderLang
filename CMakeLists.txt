@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.12)
 
 project(Compiler VERSION 1.0)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(MSVC)
     add_compile_options(/W3 /Od /Zi)
@@ -83,10 +85,13 @@ add_definitions(-DHXSL_LOCALE_PATH="${LOCALES_OUT_DIR}")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/build/cmake)
 target_include_directories(zstd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/lib/)
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fmt)
+
 if (BUILD_SHARED)
     add_library(Compiler SHARED ${SOURCES})
 
     target_link_libraries(Compiler PRIVATE libzstd_static)
+    target_link_libraries(Compiler PUBLIC fmt::fmt)
 
     add_dependencies(Compiler generate_locales)
 
@@ -97,6 +102,7 @@ if (BUILD_STATIC)
     add_library(CompilerStatic STATIC ${SOURCES})
 
     target_link_libraries(CompilerStatic PRIVATE libzstd_static)
+    target_link_libraries(CompilerStatic PUBLIC fmt::fmt)
 
     add_dependencies(CompilerStatic generate_locales)
 

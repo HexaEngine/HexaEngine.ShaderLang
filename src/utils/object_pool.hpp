@@ -212,7 +212,7 @@ namespace HXSL
 	};
 
 	template<NodeType Key, class... Args>
-	static typename pool_ptr<typename NodeTypeToType<Key>::Type> make_pool_ptr(Args&& ... args)
+	static pool_ptr<typename NodeTypeToType<Key>::Type> make_pool_ptr(Args&& ... args)
 	{
 		return PoolRegistry::getShared().getPool<Key>().acquire(std::forward<Args>(args)...);
 	}

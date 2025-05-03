@@ -283,7 +283,7 @@ namespace HXSL
 			return def;
 		}
 
-		for (auto& it = stack.rbegin(); it != stack.rend(); ++it)
+		for (auto it = stack.rbegin(); it != stack.rend(); ++it)
 		{
 			auto& scope = *it;
 			if (TryResolve(local, name, scope.SymbolHandle, outHandle, def))
@@ -357,6 +357,7 @@ namespace HXSL
 		auto def = ResolveSymbol(span, isFQN, handle, silent);
 		if (!def)
 		{
+			ref->SetNotFound(true);
 			return false;
 		}
 
@@ -364,6 +365,7 @@ namespace HXSL
 		{
 			if (!arrayManager->TryGetOrCreateArrayType(ref, def, handle, def))
 			{
+				ref->SetNotFound(true);
 				analyzer.Log(INVALID_ARRAY_TYPE, ref->GetName(), def->ToString());
 				return false;
 			}
@@ -372,6 +374,7 @@ namespace HXSL
 		auto metadata = handle.GetMetadata();
 		if (!SymbolTypeSanityCheck(metadata, ref, silent))
 		{
+			ref->SetNotFound(true);
 			return false;
 		}
 		ref->SetTable(handle);
@@ -382,12 +385,13 @@ namespace HXSL
 	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent) const
 	{
 		auto& span = ref->GetName();
-		auto& actualName = name.value_or(span);
+		auto actualName = name.value_or(span);
 
 		SymbolHandle handle;
 		SymbolDef* def;
 		if (!TryResolve(table, actualName, lookup, handle, def))
 		{
+			ref->SetNotFound(true);
 			if (!silent)
 			{
 				analyzer.Log(SYMBOL_NOT_FOUND, span, actualName.toString());
@@ -398,6 +402,7 @@ namespace HXSL
 		auto metadata = handle.GetMetadata();
 		if (!SymbolTypeSanityCheck(metadata, ref, silent))
 		{
+			ref->SetNotFound(true);
 			return false;
 		}
 		ref->SetTable(handle);

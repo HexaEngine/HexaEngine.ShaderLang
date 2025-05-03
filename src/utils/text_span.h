@@ -13,12 +13,12 @@ namespace HXSL
 		const char* Text;
 		size_t Start;
 		size_t Length;
-		size_t Line;
-		size_t Column;
+		uint32_t Line;
+		uint32_t Column;
 
 		TextSpan() : Text(nullptr), Start(0), Length(0), Line(1), Column(1) {}
 
-		TextSpan(const char* text, size_t start, size_t length, size_t line, size_t column) : Text(text), Start(start), Length(length), Line(line), Column(column)
+		TextSpan(const char* text, size_t start, size_t length, uint32_t line, uint32_t column) : Text(text), Start(start), Length(length), Line(line), Column(column)
 		{
 		}
 
@@ -51,8 +51,8 @@ namespace HXSL
 			size_t newEnd = std::max(End(), other.End());
 			size_t newLength = newEnd - newStart;
 
-			size_t newLine = Line;
-			size_t newColumn = Column;
+			uint32_t newLine = Line;
+			uint32_t newColumn = Column;
 
 			if (other.Line < Line)
 			{

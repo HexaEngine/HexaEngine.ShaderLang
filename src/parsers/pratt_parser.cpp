@@ -296,14 +296,14 @@ namespace HXSL
 		if (op != Operator_Increment && op != Operator_Decrement)
 		{
 			context.Log(INVALID_POSTFIX_OP, context.LastToken());
-			return false;
+			return nullptr;
 		}
 
 		auto type = operand->GetType();
 		if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
 		{
 			context.Log(INC_DEC_MUST_TARGET_VAR, operand->GetSpan());
-			return false;
+			return nullptr;
 		}
 
 		return std::make_unique<PostfixExpression>(context.MakeFromLast(operand->GetSpan()), parent, op, std::move(operand));

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-#include "io/logger.hpp"
+#include "log_message.h"
 
 namespace HXSL
 {

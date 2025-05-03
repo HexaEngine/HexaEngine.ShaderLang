@@ -196,7 +196,7 @@ def generate_header_file(output_file, messages):
         writer.writeln("#include <unordered_map>")
         writer.writeln("#include <string>")
         writer.writeln("#include \"diagnostic_code.hpp\"")
-        writer.writeln("#include \"io/log.h\"")
+        writer.writeln("#include \"io/logger.hpp\"")
         writer.writeln()
 
         writer.writeln("// Automatically generated locale codes")

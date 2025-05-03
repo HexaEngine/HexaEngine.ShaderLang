@@ -25,8 +25,8 @@ namespace HXSL
 			size_t Length;
 			size_t Index;
 			size_t IndexNext;
-			size_t Line;
-			size_t Column;
+			uint32_t Line;
+			uint32_t Column;
 			bool TreatIdentiferAsLiteral;
 
 			LexerState()
@@ -58,7 +58,7 @@ namespace HXSL
 			{
 				size_t diff = IndexNext - Index;
 				Index = IndexNext;
-				Column += diff;
+				Column += static_cast<uint32_t>(diff);
 			}
 
 			void SkipWhitespace()
@@ -66,7 +66,7 @@ namespace HXSL
 				size_t start = Index;
 				TextHelper::SkipLeadingWhitespace(Text, Index, Length);
 				size_t skipped = Index - start;
-				Column += skipped;
+				Column += static_cast<uint32_t>(skipped);
 				IndexNext = Index;
 			}
 
@@ -171,7 +171,7 @@ namespace HXSL
 			template <typename... Args>
 			void LogFormatted(DiagnosticCode code, Args&&... args) const
 			{
-				logger->LogFormattedEx(code, " (Line: %u, Column: %u)", std::forward<Args>(args)..., Line, Column);
+				logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., Line, Column);
 			}
 		};
 
