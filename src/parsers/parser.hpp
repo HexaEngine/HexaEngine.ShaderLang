@@ -2,7 +2,7 @@
 #define PARSER_HPP
 
 #include "lexical/token_stream.h"
-#include "utils/text_span.h"
+#include "lexical/text_span.hpp"
 #include "ast.hpp"
 #include "lazy.hpp"
 #include "utils/object_pool.hpp"
@@ -216,7 +216,7 @@ namespace HXSL
 		template<typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			m_compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.Line, span.Column);
+			m_compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
 		}
 
 		template<typename... Args>
@@ -224,7 +224,7 @@ namespace HXSL
 		{
 			if (condition)
 			{
-				m_compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.Line, span.Column);
+				m_compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
 			}
 		}
 
@@ -330,7 +330,7 @@ namespace HXSL
 				return true;
 			}
 
-			Log(code, attribute.Get()->GetSpan(), attribute.Get()->GetSpan().toString(), std::forward<Args>(args)...);
+			Log(code, attribute.Get()->GetSpan(), attribute.Get()->GetSpan().str(), std::forward<Args>(args)...);
 			attribute.Reset();
 			return false;
 		}

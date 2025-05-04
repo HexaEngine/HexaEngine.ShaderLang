@@ -51,7 +51,7 @@ namespace HXSL
 	{
 		flags = static_cast<ParameterFlags>(stream.ReadUInt());
 		interpolationModifiers = static_cast<InterpolationModifier>(stream.ReadUInt());
-		semantic = TextSpan(container.add(stream.ReadString()));
+		semantic = stream.ReadString();
 		symbol = std::make_unique<SymbolRef>();
 		symbol->Read(stream);
 	}
@@ -72,7 +72,7 @@ namespace HXSL
 	{
 		storageClass = static_cast<StorageClass>(stream.ReadUInt());
 		interpolationModifiers = static_cast<InterpolationModifier>(stream.ReadUInt());
-		semantic = TextSpan(container.add(stream.ReadString()));
+		semantic = stream.ReadString();
 		symbol = std::make_unique<SymbolRef>();
 		symbol->Read(stream);
 	}
@@ -91,7 +91,7 @@ namespace HXSL
 	void FunctionOverload::Read(Stream& stream, StringPool& container)
 	{
 		functionFlags = static_cast<FunctionFlags>(stream.ReadUInt());
-		semantic = TextSpan(container.add(stream.ReadString()));
+		semantic = stream.ReadString();
 		returnSymbol = std::make_unique<SymbolRef>();
 		returnSymbol->Read(stream);
 	}

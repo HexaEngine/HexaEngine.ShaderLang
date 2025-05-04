@@ -2,7 +2,7 @@
 #define LOGGER_HPP
 
 #include "config.h"
-#include "utils/text_span.h"
+#include "lexical/text_span.hpp"
 #include "log_message.h"
 #include "diagnostic_code.hpp"
 
@@ -162,7 +162,7 @@ namespace HXSL
 		void LogFormatted(LogLevel level, const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
 		{
 			std::string format = "[" + stage + "]: " + message + " (Line: %i, Column: %i)";
-			loggerBase->LogFormatted(level, format, std::forward<Args>(args)..., span.Line, span.Column);
+			loggerBase->LogFormatted(level, format, std::forward<Args>(args)..., span.line, span.column);
 		}
 
 		template <typename... Args>

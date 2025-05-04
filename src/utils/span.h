@@ -1,7 +1,7 @@
 #ifndef SPAN_H
 #define SPAN_H
 
-#include "text_span.h"
+#include "lexical/text_span.hpp"
 
 #include <stdexcept>
 #include <sstream>
@@ -182,11 +182,11 @@ namespace HXSL
 		{
 		}
 
-		StringSpan(const Span<char>& span) : Span(span.data, span.start, span.length)
+		StringSpan(const char* str, size_t start, size_t length) : Span(str, start, length)
 		{
 		}
 
-		StringSpan(const TextSpan& span) : Span(span.Text, span.Start, span.Length)
+		StringSpan(const Span<char>& span) : Span(span.data, span.start, span.length)
 		{
 		}
 

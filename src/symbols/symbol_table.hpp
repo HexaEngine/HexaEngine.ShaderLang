@@ -101,8 +101,7 @@ namespace HXSL
 			std::unique_ptr<std::string> str = std::make_unique<std::string>(name.str());
 			nodes[index] = SymbolTableNode(std::move(str), std::move(metadata), std::make_shared<size_t>(index), nodes[parentIndex].Depth + 1, parentIndex);
 
-			auto span = TextSpan(nodes[index].GetName());
-			nodes[parentIndex].Children[span] = index;
+			nodes[parentIndex].Children[nodes[index].GetName()] = index;
 
 			return index;
 		}
@@ -128,8 +127,7 @@ namespace HXSL
 			{
 				auto& removedNode = nodes[lastIndex];
 				auto& parentOfRemovedNode = nodes[removedNode.ParentIndex];
-				TextSpan removedSpan(removedNode.GetName());
-				parentOfRemovedNode.Children.erase(removedSpan);
+				parentOfRemovedNode.Children.erase(removedNode.GetName());
 
 				nodes.pop_back();
 			}
@@ -156,8 +154,7 @@ namespace HXSL
 
 				auto& removedNode = nodes[lastIndex];
 				auto& parentOfRemovedNode = nodes[removedNode.ParentIndex];
-				TextSpan removedSpan(removedNode.GetName());
-				parentOfRemovedNode.Children.erase(removedSpan);
+				parentOfRemovedNode.Children.erase(removedNode.GetName());
 
 				nodes.pop_back();
 			}
@@ -190,7 +187,7 @@ namespace HXSL
 			return compilation.get();
 		}
 
-		bool RenameNode(const TextSpan& newName, const SymbolHandle& handle)
+		bool RenameNode(const StringSpan& newName, const SymbolHandle& handle)
 		{
 			auto index = handle.GetIndex();
 			if (index == 0 || index >= nodes.size())
@@ -199,7 +196,7 @@ namespace HXSL
 			}
 
 			auto& node = nodes[index];
-			TextSpan oldName = *node.Name.get();
+			StringSpan oldName = *node.Name.get();
 			auto& parent = nodes[node.ParentIndex];
 
 			if (parent.Children.find(newName) != parent.Children.end())
@@ -207,17 +204,15 @@ namespace HXSL
 				return false;
 			}
 
-			std::unique_ptr<std::string> str = std::make_unique<std::string>(newName.toString());
+			std::unique_ptr<std::string> str = std::make_unique<std::string>(newName.str());
 
 			parent.Children.erase(oldName);
 			node.Name = std::move(str);
 
-			auto span = TextSpan(node.GetName());
-			parent.Children[span] = index;
+			parent.Children[node.GetName()] = index;
 
 			return true;
 		}
-
 
 		void RemoveNode(size_t index)
 		{

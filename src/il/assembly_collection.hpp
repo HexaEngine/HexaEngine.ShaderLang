@@ -18,13 +18,11 @@ namespace HXSL
 	public:
 		void AddAssembly(std::unique_ptr<Assembly> assembly)
 		{
-			auto& name = assembly->GetName();
-			TextSpan span = TextSpan(name);
-			nameToAssemblies.emplace(span, assembly.get());
+			nameToAssemblies.emplace(assembly->GetName(), assembly.get());
 			assemblies.push_back(std::move(assembly));
 		}
 
-		Assembly* GetAssembly(const TextSpan& name) const
+		Assembly* GetAssembly(const StringSpan& name) const
 		{
 			auto it = nameToAssemblies.find(name);
 			if (it != nameToAssemblies.end())

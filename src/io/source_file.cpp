@@ -2,7 +2,8 @@
 
 namespace HXSL
 {
-	void SourceFile::GetString(size_t start, size_t length, const char*& textOut)
+	std::string SourceFile::GetString(size_t start, size_t length)
 	{
+		return content.substr(start, length);
 	}
 }

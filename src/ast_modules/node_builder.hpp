@@ -48,7 +48,7 @@ namespace HXSL
 			auto param = std::make_unique<Parameter>();
 			param->SetName(paramName);
 
-			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(paramType)), SymbolRefType_Type, false);
+			auto paramRef = std::make_unique<SymbolRef>(paramType, SymbolRefType_Type, false);
 			ResolveInternal(paramRef.get());
 			param->SetSymbolRef(std::move(paramRef));
 
@@ -58,7 +58,7 @@ namespace HXSL
 
 		FunctionBuilder& Returns(const std::string& returnType)
 		{
-			auto returnRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(returnType)), SymbolRefType_Type, false);
+			auto returnRef = std::make_unique<SymbolRef>(returnType, SymbolRefType_Type, false);
 			ResolveInternal(returnRef.get());
 			func->SetReturnSymbol(std::move(returnRef));
 			return *this;
@@ -86,7 +86,7 @@ namespace HXSL
 
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Function, SymbolScopeType_Class, AccessModifier_Public, 0, funcPtr);
 			auto signature = funcPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(TextSpan(signature), meta, handle.GetIndex());
+			auto funcIndex = table->Insert(signature, meta, handle.GetIndex());
 			funcPtr->SetAssembly(assembly, funcIndex);
 		}
 	};
@@ -112,7 +112,7 @@ namespace HXSL
 			auto param = std::make_unique<Parameter>();
 			param->SetName(paramName);
 
-			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(paramType)), SymbolRefType_Type, false);
+			auto paramRef = std::make_unique<SymbolRef>(paramType, SymbolRefType_Type, false);
 			param->SetSymbolRef(std::move(paramRef));
 
 			parameters.push_back(std::move(param));
@@ -121,7 +121,7 @@ namespace HXSL
 
 		OperatorBuilder& Returns(const std::string& returnType)
 		{
-			auto returnRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(returnType)), SymbolRefType_Type, false);
+			auto returnRef = std::make_unique<SymbolRef>(returnType, SymbolRefType_Type, false);
 			_operator->SetReturnSymbol(std::move(returnRef));
 			return *this;
 		}
@@ -151,7 +151,7 @@ namespace HXSL
 
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Class, AccessModifier_Public, 0, operatorPtr);
 			auto signature = operatorPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(TextSpan(signature), meta, handle.GetIndex());
+			auto funcIndex = table->Insert(signature, meta, handle.GetIndex());
 			operatorPtr->SetAssembly(assembly, funcIndex);
 		}
 
@@ -171,7 +171,7 @@ namespace HXSL
 			ResolveInternal(operatorPtr->GetReturnSymbolRef().get());
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Struct, AccessModifier_Public, 0, operatorPtr);
 			auto signature = operatorPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(TextSpan(signature), meta, container->GetSymbolHandle().GetIndex());
+			auto funcIndex = table->Insert(signature, meta, container->GetSymbolHandle().GetIndex());
 			operatorPtr->SetAssembly(assembly, funcIndex);
 		}
 	};
@@ -206,7 +206,7 @@ namespace HXSL
 			auto param = std::make_unique<Field>();
 			param->SetName(name);
 
-			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(type)), SymbolRefType_Type, false);
+			auto paramRef = std::make_unique<SymbolRef>(type, SymbolRefType_Type, false);
 			ResolveInternal(paramRef.get());
 			param->SetSymbolRef(std::move(paramRef));
 

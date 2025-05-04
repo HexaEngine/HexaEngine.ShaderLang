@@ -14,7 +14,7 @@ namespace HXSL
 		{
 			std::string indentation(depth * 2, ' ');
 			auto& span = node->GetSpan();
-			std::cout << indentation << node->DebugName() << " (Line: " << span.Line << " Column: " << span.Column << ")" << std::endl;
+			std::cout << indentation << node->DebugName() << " (Line: " << span.line << " Column: " << span.column << ")" << std::endl;
 			return TraversalBehavior_Keep;
 		}
 	};
@@ -46,7 +46,7 @@ namespace HXSL
 		{
 			if (!us.Warmup(references))
 			{
-				Log(NAMESPACE_OR_TYPE_NOT_FOUND, us.Span, us.Target.toString().c_str());
+				Log(NAMESPACE_OR_TYPE_NOT_FOUND, us.Span, us.Target);
 			}
 		}
 
@@ -56,7 +56,7 @@ namespace HXSL
 			{
 				if (!us.Warmup(references))
 				{
-					Log(NAMESPACE_OR_TYPE_NOT_FOUND, us.Span, us.Target.toString().c_str());
+					Log(NAMESPACE_OR_TYPE_NOT_FOUND, us.Span, us.Target);
 				}
 			}
 			ns->Warmup(references);

@@ -17,7 +17,7 @@ class ASTValidatorVisitor : Visitor<EmptyDeferralContext>
 	{
 		std::string indentation(depth * 2, ' ');
 		auto& span = node->GetSpan();
-		debugOutput << indentation << node->DebugName() << " (Line: " << span.Line << " Column: " << span.Column << ")" << std::endl;
+		debugOutput << indentation << node->DebugName() << " (Line: " << span.line << " Column: " << span.column << ")" << std::endl;
 		return TraversalBehavior_Keep;
 	}
 

@@ -139,7 +139,7 @@ namespace HXSL
 		{
 			HXSL_ASSERT(false, "");
 		}
-		
+
 		auto decl = ref->GetBaseDeclaration();
 		expression->SetInferredType(decl);
 		expression->SetTraits(ExpressionTraits(ExpressionTraitFlags_Mutable));
@@ -164,12 +164,12 @@ namespace HXSL
 				auto memberRef = expr->GetSymbolRef()->GetBaseDeclaration();
 				if (memberRef)
 				{
-					success = resolver.ResolveSymbol(ref.get(), TextSpan(signature), memberRef->GetTable(), memberRef->GetSymbolHandle());
+					success = resolver.ResolveSymbol(ref.get(), signature, memberRef->GetTable(), memberRef->GetSymbolHandle());
 				}
 			}
 			else
 			{
-				success = resolver.ResolveSymbol(ref.get(), TextSpan(signature));
+				success = resolver.ResolveSymbol(ref.get(), signature);
 			}
 
 			if (!success)

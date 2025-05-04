@@ -31,7 +31,7 @@ namespace HXSL
 				return std::move(ptr);
 			}
 
-			if (span.Text == nullptr && !force)
+			if (span.source == nullptr && !force)
 			{
 				HXSL_ASSERT(false, "Attempted to double create a LazySymbol");
 				return {};

@@ -22,6 +22,7 @@ namespace HXSL
 			ILogger* logger;
 
 		public:
+			SourceFile* source;
 			const char* Text;
 			size_t Length;
 			size_t Index;
@@ -31,11 +32,11 @@ namespace HXSL
 			bool TreatIdentiferAsLiteral;
 
 			LexerState()
-				: logger(nullptr), Text(nullptr), Length(0), Index(0), IndexNext(0), Line(1), Column(1), TreatIdentiferAsLiteral(false) {
+				: logger(nullptr), source(nullptr), Text(nullptr), Length(0), Index(0), IndexNext(0), Line(1), Column(1), TreatIdentiferAsLiteral(false) {
 			}
 
-			LexerState(ILogger* logger, const char* text, size_t length)
-				: logger(logger), Text(text), Length(length), Index(0), IndexNext(0), Line(1), Column(1), TreatIdentiferAsLiteral(false) {
+			LexerState(ILogger* logger, SourceFile* source, const char* text, size_t length)
+				: logger(logger), source(source), Text(text), Length(length), Index(0), IndexNext(0), Line(1), Column(1), TreatIdentiferAsLiteral(false) {
 			}
 
 			ILogger* GetLogger() const noexcept { return logger; }
@@ -166,12 +167,17 @@ namespace HXSL
 
 			TextSpan AsTextSpan(size_t start, size_t length) const
 			{
-				return TextSpan(Text, start, length, Line, Column);
+				return TextSpan(source, start, length, Line, Column);
 			}
 
 			TextSpan AsTextSpan() const
 			{
-				return TextSpan(Text, Index, Length - Index, Line, Column);
+				return TextSpan(source, Index, Length - Index, Line, Column);
+			}
+
+			StringSpan AsSpan() const
+			{
+				return StringSpan(Text, Index, Length - Index);
 			}
 
 			template <typename... Args>

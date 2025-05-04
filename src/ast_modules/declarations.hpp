@@ -15,15 +15,14 @@ namespace HXSL
 		ParameterFlags flags;
 		InterpolationModifier interpolationModifiers;
 		std::unique_ptr<SymbolRef> symbol;
-		TextSpan semantic;
+		std::string semantic;
 
 	public:
 		Parameter()
 			: ASTNode(TextSpan(), NodeType_Parameter, true),
 			SymbolDef(TextSpan(), NodeType_Parameter, TextSpan(), true),
 			flags(ParameterFlags_In),
-			interpolationModifiers(InterpolationModifier_Linear),
-			semantic(TextSpan())
+			interpolationModifiers(InterpolationModifier_Linear)
 		{
 		}
 		Parameter(TextSpan span, ParameterFlags flags, InterpolationModifier interpolationModifiers, std::unique_ptr<SymbolRef> symbol, TextSpan name, TextSpan semantic)
@@ -32,7 +31,7 @@ namespace HXSL
 			flags(flags),
 			interpolationModifiers(interpolationModifiers),
 			symbol(std::move(symbol)),
-			semantic(semantic)
+			semantic(semantic.str())
 		{
 		}
 
@@ -70,7 +69,7 @@ namespace HXSL
 		FunctionFlags functionFlags;
 		std::unique_ptr<SymbolRef> returnSymbol;
 		std::vector<std::unique_ptr<Parameter>> parameters;
-		TextSpan semantic;
+		std::string semantic;
 		std::unique_ptr<BlockStatement> body;
 
 		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name)
@@ -89,7 +88,7 @@ namespace HXSL
 			functionFlags(functionFlags),
 			returnSymbol(std::move(returnSymbol)),
 			parameters(std::move(parameters)),
-			semantic(semantic)
+			semantic(semantic.str())
 		{
 			RegisterChildren(this->parameters);
 		}
@@ -109,8 +108,7 @@ namespace HXSL
 			SymbolDef(TextSpan(), NodeType_FunctionOverload, TextSpan(), true),
 			AttributeContainer(this),
 			accessModifiers(AccessModifier_Private),
-			functionFlags(FunctionFlags_None),
-			semantic(TextSpan())
+			functionFlags(FunctionFlags_None)
 		{
 		}
 		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
@@ -121,7 +119,7 @@ namespace HXSL
 			functionFlags(functionFlags),
 			returnSymbol(std::move(returnSymbol)),
 			parameters(std::move(parameters)),
-			semantic(semantic)
+			semantic(semantic.str())
 		{
 			RegisterChildren(this->parameters);
 		}
@@ -221,7 +219,7 @@ namespace HXSL
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 			DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, ReturnSymbol, returnSymbol)
 			DEFINE_GET_SET_MOVE_CHILDREN(std::vector<std::unique_ptr<Parameter>>, Parameters, parameters)
-			DEFINE_GETTER_SETTER(TextSpan, Semantic, semantic)
+			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
 
 			const std::unique_ptr<BlockStatement>& GetBody() const noexcept;
 
@@ -367,15 +365,14 @@ namespace HXSL
 		StorageClass storageClass;
 		InterpolationModifier interpolationModifiers;
 		std::unique_ptr<SymbolRef> symbol;
-		TextSpan semantic;
+		std::string semantic;
 	public:
 		Field()
 			: ASTNode(TextSpan(), NodeType_Field, true),
 			SymbolDef(TextSpan(), NodeType_Field, TextSpan(), true),
 			accessModifiers(AccessModifier_Private),
 			storageClass(StorageClass_None),
-			interpolationModifiers(InterpolationModifier_Linear),
-			semantic(TextSpan())
+			interpolationModifiers(InterpolationModifier_Linear)
 		{
 		}
 		Field(TextSpan span, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic)
@@ -385,7 +382,7 @@ namespace HXSL
 			storageClass(storageClass),
 			interpolationModifiers(interpolationModifiers),
 			symbol(std::move(symbol)),
-			semantic(semantic)
+			semantic(semantic.str())
 		{
 		}
 

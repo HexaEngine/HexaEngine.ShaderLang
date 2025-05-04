@@ -59,11 +59,6 @@ namespace HXSL
 			Append(span.begin(), span.length);
 		}
 
-		void Append(const Token& token)
-		{
-			Append(token.Span);
-		}
-
 		void Insert(size_t index, const char* src, size_t length)
 		{
 			if (index == writePosition)
@@ -93,11 +88,6 @@ namespace HXSL
 		void Insert(size_t index, const StringSpan& span)
 		{
 			Insert(index, span.begin(), span.length);
-		}
-
-		void Insert(size_t index, const Token& token)
-		{
-			Insert(index, token.Span);
 		}
 	};
 }

@@ -13,7 +13,7 @@ namespace HXSL
 
 		pool_ptr<Compilation> compilation = make_pool_ptr<NodeType_Compilation>();
 
-		std::vector<std::unique_ptr<std::string>> sources;
+		std::vector<std::unique_ptr<SourceFile>> sources;
 		for (auto& file : files)
 		{
 			std::ifstream fs = std::ifstream(file);
@@ -26,10 +26,10 @@ namespace HXSL
 			std::stringstream buffer;
 			buffer << fs.rdbuf();
 
-			sources.push_back(std::make_unique<std::string>(std::move(buffer.str())));
+			sources.push_back(std::make_unique<SourceFile>(std::move(buffer.str())));
 			auto& c = sources.back();
 
-			LexerState state = LexerState(compilation.get(), c->data(), c->length());
+			LexerState state = LexerState(compilation.get(), c.get(), c->GetContent().data(), c->GetContent().length());
 
 			Preprocessor preprocessor = Preprocessor();
 

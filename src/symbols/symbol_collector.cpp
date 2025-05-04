@@ -89,7 +89,7 @@ namespace HXSL
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
 			auto signature = s->BuildTemporaryOverloadSignature();
-			Push(TextSpan(signature), s, metadata, SymbolScopeType_Function);
+			Push(signature, s, metadata, SymbolScopeType_Function);
 			RegisterForLatePass(node);
 		}
 		break;
@@ -100,7 +100,7 @@ namespace HXSL
 			auto symType = s->GetSymbolType();
 			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
 			auto signature = s->BuildTemporaryOverloadSignature();
-			Push(TextSpan(signature), s, metadata, SymbolScopeType_Operator);
+			Push(signature, s, metadata, SymbolScopeType_Operator);
 			RegisterForLatePass(node);
 		}
 		break;
@@ -119,7 +119,7 @@ namespace HXSL
 			BlockStatement* s = dynamic_cast<BlockStatement*>(node);
 			auto metadata = std::make_shared<SymbolMetadata>(SymbolType_Scope, current.Type, AccessModifier_Private, 0);
 			std::string temp = MakeScopeId(current.ScopeCounter++);
-			PushScope(node, TextSpan(temp), metadata, SymbolScopeType_Block);
+			PushScope(node, temp, metadata, SymbolScopeType_Block);
 		}
 		break;
 

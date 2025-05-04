@@ -115,7 +115,7 @@ namespace HXSL
 			this->name = backingName;
 		}
 		Primitive(TextSpan span, PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
-			: Type(span, NodeType_Primitive, TextSpan()),
+			: Type(span, NodeType_Primitive, name),
 			ASTNode(span, NodeType_Primitive),
 			kind(kind),
 			_class(_class),
@@ -127,8 +127,8 @@ namespace HXSL
 		}
 
 		Primitive(PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
-			: Type(name, NodeType_Primitive, TextSpan()),
-			ASTNode(name, NodeType_Primitive),
+			: Type(TextSpan(), NodeType_Primitive, name),
+			ASTNode(TextSpan(), NodeType_Primitive),
 			kind(kind),
 			_class(_class),
 			backingName(std::move(name)),

@@ -2,9 +2,9 @@
 #define STREAM_HPP
 
 #include "allocator.h"
-#include "utils/text_span.h"
 #include "config.h"
 #include "c/stream.h"
+#include "utils/span.h"
 #include "utils/endianness.hpp"
 
 #include <fstream>
@@ -138,12 +138,12 @@ namespace HXSL
 			Write(str.data(), len);
 		}
 
-		void WriteString(const TextSpan& str)
+		void WriteString(const StringSpan& str)
 		{
-			uint32_t len = static_cast<uint32_t>(str.Length);
+			uint32_t len = static_cast<uint32_t>(str.length);
 			WriteUInt(len);
 			if (len == 0) return;
-			Write(str.Text + str.Start, len);
+			Write(str.data + str.start, len);
 		}
 
 		std::string ReadString()

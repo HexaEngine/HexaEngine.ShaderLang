@@ -317,7 +317,7 @@ namespace HXSL
 		auto nsKeywordSpan = stream->LastToken().Span;
 		UsingDeclaration us = UsingDeclaration();
 		bool hasDot;
-		TextSpan identifier = ParseQualifiedName(*stream, hasDot);
+		auto identifier = ParseQualifiedName(*stream, hasDot).str();
 		if (hasDot)
 		{
 			us.Target = identifier;
@@ -325,7 +325,7 @@ namespace HXSL
 		else if (stream->TryGetOperator(Operator_Equal))
 		{
 			us.Alias = identifier;
-			us.Target = ParseQualifiedName(*stream, hasDot);
+			us.Target = ParseQualifiedName(*stream, hasDot).str();
 			us.IsAlias = true;
 		}
 		else
@@ -341,7 +341,7 @@ namespace HXSL
 	{
 		auto nsKeywordSpan = stream->LastToken().Span;
 		bool hasDot;
-		auto name = ParseQualifiedName(*stream, hasDot).toString();
+		auto name = ParseQualifiedName(*stream, hasDot).str();
 		if (TryEnterScope(ScopeType_Namespace, nullptr))
 		{
 			scoped = true;

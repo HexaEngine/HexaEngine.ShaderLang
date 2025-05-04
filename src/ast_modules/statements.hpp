@@ -363,7 +363,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << ToString(type) << "] ID: " << GetID() << " Header: " + init->GetSpan().merge(condition->GetSpan()).merge(iteration->GetSpan()).toString();
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Header: " + init->GetSpan().merge(condition->GetSpan()).merge(iteration->GetSpan()).str();
 			return oss.str();
 		}
 

@@ -123,11 +123,11 @@ namespace HXSL
 
 		Class* _class;
 
-		AddPrimClass(TextSpan("string"));
+		AddPrimClass("string");
 
-		AddPrimClass(TextSpan("SamplerState"));
+		AddPrimClass("SamplerState");
 
-		AddPrimClass(TextSpan("Texture2D"), &_class);
+		AddPrimClass("Texture2D", &_class);
 
 		FunctionBuilder(assembly.get())
 			.WithName("Sample")
@@ -137,7 +137,7 @@ namespace HXSL
 			.AttachToClass(_class);
 	}
 
-	void PrimitiveManager::AddPrimClass(TextSpan name, Class** outClass, SymbolHandle* handleOut)
+	void PrimitiveManager::AddPrimClass(const std::string& name, Class** outClass, SymbolHandle* handleOut)
 	{
 		auto table = GetMutableSymbolTable();
 		auto compilation = table->GetCompilation();
@@ -147,7 +147,7 @@ namespace HXSL
 		compilation->primitiveClasses.push_back(std::move(_class));
 
 		classPtr->SetAccessModifiers(AccessModifier_Public);
-		classPtr->SetName(table->GetStringPool().add(name.toString()));
+		classPtr->SetName(name);
 
 		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, classPtr);
 		auto handle = table->Insert(classPtr->GetName(), meta);

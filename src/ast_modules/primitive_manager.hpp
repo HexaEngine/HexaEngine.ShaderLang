@@ -45,7 +45,7 @@ namespace HXSL
 
 		std::unique_ptr<Assembly> assembly;
 
-		void AddPrimClass(TextSpan name, Class** outClass = nullptr, SymbolHandle* symbolOut = nullptr);
+		void AddPrimClass(const std::string& name, Class** outClass = nullptr, SymbolHandle* symbolOut = nullptr);
 		void ResolveInternal(SymbolRef* ref);
 	};
 }

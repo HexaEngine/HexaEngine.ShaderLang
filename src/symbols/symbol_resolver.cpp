@@ -477,7 +477,7 @@ namespace HXSL
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildOverloadSignature();
-			PushScope(node, TextSpan(signature), true);
+			PushScope(node, signature, true);
 		}
 		break;
 		case NodeType_OperatorOverload:
@@ -486,7 +486,7 @@ namespace HXSL
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildOverloadSignature();
-			PushScope(node, TextSpan(signature), true);
+			PushScope(node, signature, true);
 		}
 		break;
 		case NodeType_Parameter:
@@ -549,7 +549,7 @@ namespace HXSL
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildTemporaryOverloadSignature();
-			PushScope(node, TextSpan(signature));
+			PushScope(node, signature);
 		}
 		break;
 		case NodeType_OperatorOverload:
@@ -558,7 +558,7 @@ namespace HXSL
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildTemporaryOverloadSignature();
-			PushScope(node, TextSpan(signature));
+			PushScope(node, signature);
 		}
 		break;
 		case NodeType_Parameter:
@@ -571,7 +571,7 @@ namespace HXSL
 		case NodeType_BlockStatement:
 		{
 			std::string temp = MakeScopeId(current.ScopeCounter++);
-			PushScope(node, TextSpan(temp));
+			PushScope(node, temp);
 		}
 		break;
 		case NodeType_MemberReferenceExpression:

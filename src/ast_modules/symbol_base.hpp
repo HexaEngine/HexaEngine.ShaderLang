@@ -108,7 +108,15 @@ namespace HXSL
 			: ASTNode(span, type, isExtern),
 			assembly(nullptr)
 		{
-			fullyQualifiedName = std::make_unique<std::string>(name.toString());
+			fullyQualifiedName = std::make_unique<std::string>(name.str());
+			UpdateName();
+		}
+
+		SymbolDef(TextSpan span, NodeType type, const std::string& name, bool isExtern = false)
+			: ASTNode(span, type, isExtern),
+			assembly(nullptr)
+		{
+			fullyQualifiedName = std::make_unique<std::string>(name);
 			UpdateName();
 		}
 	public:
@@ -217,7 +225,7 @@ namespace HXSL
 	public:
 		SymbolRef(TextSpan span, SymbolRefType type, bool isFullyQualified) : span(span), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
-			fullyQualifiedName = std::make_unique<std::string>(span.toString());
+			fullyQualifiedName = std::make_unique<std::string>(span.str());
 			UpdateName();
 		}
 
@@ -323,6 +331,10 @@ namespace HXSL
 		Type() = delete;
 	public:
 		Type(TextSpan span, NodeType type, TextSpan name, bool isExtern = false) : SymbolDef(span, type, name, isExtern)
+		{
+		}
+
+		Type(TextSpan span, NodeType type, const std::string& name, bool isExtern = false) : SymbolDef(span, type, name, isExtern)
 		{
 		}
 		virtual ~Type() {}

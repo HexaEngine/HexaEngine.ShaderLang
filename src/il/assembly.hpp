@@ -2,7 +2,7 @@
 #define ASSEMLBY_HPP
 
 #include "symbols/symbol_handle.hpp"
-#include "utils/text_span.h"
+#include "lexical/text_span.hpp"
 #include "io/stream.hpp"
 #include <string>
 #include <memory>

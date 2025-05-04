@@ -1,15 +1,22 @@
 #ifndef SOURCE_FILE_HPP
 #define SOURCE_FILE_HPP
 
+#include <string>
+
 namespace HXSL
 {
 	class SourceFile
 	{
-		const char* ptr;
+		std::string content;
 
 	public:
+		SourceFile(const std::string& content) : content(content)
+		{
+		}
 
-		void GetString(size_t start, size_t length, const char*& textOut);
+		const std::string& GetContent() const { return content; }
+
+		std::string GetString(size_t start, size_t length);
 	};
 }
 

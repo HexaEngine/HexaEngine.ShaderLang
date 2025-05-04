@@ -1,7 +1,4 @@
 namespace Core;
-   
-   
-#define PI 3
 
 struct PS_INPUT
 {

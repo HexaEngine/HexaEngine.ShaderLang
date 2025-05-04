@@ -63,7 +63,7 @@ namespace HXSL
 		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
 		{
 			std::string format = message + " (Line: %i, Column: %i)";
-			compilation->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.Line, span.Column);
+			compilation->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.line, span.column);
 		}
 
 		bool SymbolTypeSanityCheck(const SymbolMetadata* metadata, SymbolRef* ref, bool silent = false) const;

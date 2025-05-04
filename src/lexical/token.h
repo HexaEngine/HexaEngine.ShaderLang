@@ -1,7 +1,7 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
-#include "utils/text_span.h"
+#include "lexical/text_span.hpp"
 #include "numbers.h"
 #include "lang/language.h"
 

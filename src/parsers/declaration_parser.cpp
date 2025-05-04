@@ -111,7 +111,7 @@ namespace HXSL
 		{
 			TextSpan semantic;
 			IF_ERR_RET_FALSE(stream.ExpectIdentifier(semantic, EXPECTED_IDENTIFIER));
-			function->SetSemantic(semantic);
+			function->SetSemantic(semantic.str());
 		}
 
 		if (!stream.TryGetDelimiter(';'))

@@ -21,7 +21,7 @@ namespace HXSL
 
 			int keyword;
 			size_t keywordLength;
-			if (config->keywords.MatchLongestPrefix(state.AsTextSpan(), keyword, keywordLength) && keyword != 0)
+			if (config->keywords.MatchLongestPrefix(state.AsSpan(), keyword, keywordLength) && keyword != 0)
 			{
 				size_t wordLength = state.FindWordBoundary(i + keywordLength);
 				if (wordLength == 0)
@@ -33,7 +33,7 @@ namespace HXSL
 
 			int op;
 			size_t operatorLength;
-			if (config->operators.MatchLongestPrefix(state.AsTextSpan(), op, operatorLength))
+			if (config->operators.MatchLongestPrefix(state.AsSpan(), op, operatorLength))
 			{
 				// causes problems with -( for example, that's why we forward the delimiters.
 				size_t wordLength = state.FindOperatorBoundary(i + operatorLength, config->delimiters);

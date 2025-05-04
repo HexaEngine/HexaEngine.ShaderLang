@@ -32,14 +32,14 @@ namespace HXSL
 	struct UsingDeclaration
 	{
 		TextSpan Span;
-		TextSpan Target;
-		TextSpan Alias;
+		std::string Target;
+		std::string Alias;
 		bool IsAlias;
 		std::vector<AssemblySymbolRef> AssemblyReferences;
 
 		UsingDeclaration() : IsAlias(false) {}
-		UsingDeclaration(TextSpan span, TextSpan name) : Span(span), Target(name), Alias({}), IsAlias(false) {}
-		UsingDeclaration(TextSpan span, TextSpan name, TextSpan alias) : Span(span), Target(name), Alias(alias), IsAlias(true) {}
+		UsingDeclaration(TextSpan span, const std::string& name) : Span(span), Target(name), Alias({}), IsAlias(false) {}
+		UsingDeclaration(TextSpan span, const std::string& name, const std::string& alias) : Span(span), Target(name), Alias(alias), IsAlias(true) {}
 
 		bool Warmup(const AssemblyCollection& references);
 	};

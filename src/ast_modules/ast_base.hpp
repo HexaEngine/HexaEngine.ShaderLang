@@ -4,7 +4,7 @@
 #include "config.h"
 #include "lang/language.h"
 #include "lexical/token.h"
-#include "utils/text_span.h"
+#include "lexical/text_span.hpp"
 #include "utils/string_pool.hpp"
 #include "io/stream.hpp"
 #include "macros.hpp"
@@ -421,7 +421,7 @@ namespace HXSL
 		virtual	std::string DebugName() const
 		{
 			std::ostringstream oss;
-			oss << "[" << ToString(type) << "] ID: " << id << " Span: " + span.toString();
+			oss << "[" << ToString(type) << "] ID: " << id << " Span: " + span.str();
 			return oss.str();
 		}
 
