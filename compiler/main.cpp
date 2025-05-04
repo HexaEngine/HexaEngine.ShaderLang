@@ -8,7 +8,7 @@ int main()
 
 	AssemblyCollection collection;
 	HXSLCompiler* compiler = new HXSLCompiler();
-	compiler->Compile({ "library.txt" }, "library.module", collection);
+	compiler->Compile({ "example/library.txt" }, "library.module", collection);
 	delete compiler;
 	//collection.LoadAssemblyFromFile("library.module");
 

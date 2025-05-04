@@ -1,7 +1,7 @@
 #ifndef HXSL_COMPILER_HPP
 #define HXSL_COMPILER_HPP
 
-#include "parsers/parser.h"
+#include "parsers/parser.hpp"
 #include "analyzers/analyzer.hpp"
 #include "generated/localization.hpp"
 

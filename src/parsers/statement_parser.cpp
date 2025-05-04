@@ -47,7 +47,7 @@ namespace HXSL
 		}
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 		std::unique_ptr<BlockStatement> body;
-		IF_ERR_RET_FALSE(ParseStatementBody(TextSpan(), parser.scopeType(), parser, stream, body));
+		IF_ERR_RET_FALSE(ParseStatementBody(parser.scopeType(), parser, stream, body));
 		statementOut = std::move(body);
 		return true;
 	}
@@ -89,7 +89,7 @@ namespace HXSL
 		forStatement->SetIteration(std::move(iteration));
 
 		std::unique_ptr<BlockStatement> body; // TODO: single line statements.
-		IF_ERR_RET_FALSE(ParseStatementBody(TextSpan(), ScopeType_For, parser, stream, body));
+		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_For, parser, stream, body));
 		forStatement->SetBody(std::move(body));
 
 		forStatement->SetSpan(stream.MakeFromLast(start));
@@ -111,7 +111,7 @@ namespace HXSL
 			}
 			else
 			{
-				if (!parser.TryRecoverScope(true))
+				if (!parser.TryRecoverScope(container->GetSelf(), true))
 				{
 					break;
 				}
@@ -150,11 +150,11 @@ namespace HXSL
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		switchStatement->SetExpression(std::move(expression));
 
-		parser.EnterScope(TextSpan(), ScopeType_Switch, switchStatement.get(), true);
+		parser.EnterScope(ScopeType_Switch, switchStatement.get(), true);
 
 		static const std::unordered_set<Keyword> keywords = { Keyword_Case, Keyword_Default };
 
-		while (parser.IterateScope())
+		while (parser.IterateScope(switchStatement.get()))
 		{
 			Keyword keyword;
 			auto caseStart = stream.Current();
@@ -215,7 +215,7 @@ namespace HXSL
 		ifStatement->SetExpression(std::move(expression));
 
 		std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
-		IF_ERR_RET_FALSE(ParseStatementBody(TextSpan(), ScopeType_If, parser, stream, statement));
+		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_If, parser, stream, statement));
 		ifStatement->SetBody(std::move(statement));
 		ifStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
 		statementOut = std::move(ifStatement);
@@ -241,7 +241,7 @@ namespace HXSL
 			elseIfStatement->SetExpression(std::move(expression));
 
 			std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
-			IF_ERR_RET_FALSE(ParseStatementBody(TextSpan(), ScopeType_ElseIf, parser, stream, statement));
+			IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_ElseIf, parser, stream, statement));
 			elseIfStatement->SetBody(std::move(statement));
 			elseIfStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
 			statementOut = std::move(elseIfStatement);
@@ -251,7 +251,7 @@ namespace HXSL
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			auto elseStatement = std::make_unique<ElseStatement>(TextSpan(), nullptr);
 			std::unique_ptr<BlockStatement> statement;
-			IF_ERR_RET_FALSE(ParseStatementBody(TextSpan(), ScopeType_Else, parser, stream, statement));
+			IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_Else, parser, stream, statement));
 			elseStatement->SetBody(std::move(statement));
 			elseStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
 			statementOut = std::move(elseStatement);
@@ -285,7 +285,7 @@ namespace HXSL
 		whileStatement->SetExpression(std::move(expression));
 
 		std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
-		IF_ERR_RET_FALSE(ParseStatementBody(TextSpan(), ScopeType_While, parser, stream, statement));
+		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_While, parser, stream, statement));
 		whileStatement->SetBody(std::move(statement));
 		whileStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
 		statementOut = std::move(whileStatement);

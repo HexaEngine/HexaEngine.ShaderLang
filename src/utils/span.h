@@ -170,6 +170,10 @@ namespace HXSL
 
 	struct StringSpan : public Span<char>
 	{
+		StringSpan() : Span(nullptr, 0, 0)
+		{
+		}
+
 		StringSpan(const std::string& str) : Span(str.c_str(), 0, str.length())
 		{
 		}
@@ -183,6 +187,10 @@ namespace HXSL
 		}
 
 		StringSpan(const TextSpan& span) : Span(span.Text, span.Start, span.Length)
+		{
+		}
+
+		StringSpan(const std::string_view& span) : Span(span.data(), 0, span.size())
 		{
 		}
 

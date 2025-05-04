@@ -2,7 +2,8 @@
 
 #include "generated/localization.hpp"
 #include "analyzers/analyzer.hpp"
-#include "parsers/parser.h"
+#include "parsers/parser.hpp"
+#include <preprocessing/preprocessor.hpp>
 
 namespace HXSL
 {
@@ -30,7 +31,9 @@ namespace HXSL
 
 			LexerState state = LexerState(compilation.get(), c->data(), c->length());
 
-			TokenStream stream = TokenStream(state, HXSLLexerConfig::Instance());
+			Preprocessor preprocessor = Preprocessor();
+
+			TokenStream stream = TokenStream(preprocessor, state, HXSLLexerConfig::Instance());
 
 			Parser parser = Parser(stream, compilation.get());
 

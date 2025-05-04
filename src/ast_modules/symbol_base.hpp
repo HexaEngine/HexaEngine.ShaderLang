@@ -95,18 +95,21 @@ namespace HXSL
 	{
 	private:
 		SymbolDef() = delete;
+
+		void UpdateName();
 	protected:
 		std::unique_ptr<std::string> fullyQualifiedName;
-		TextSpan name;
+		std::string_view name;
 		std::vector<SymbolRef*> references;
 		const Assembly* assembly;
 		SymbolHandle symbolHandle;
 
 		SymbolDef(TextSpan span, NodeType type, TextSpan name, bool isExtern = false)
 			: ASTNode(span, type, isExtern),
-			name(name),
 			assembly(nullptr)
 		{
+			fullyQualifiedName = std::make_unique<std::string>(name.toString());
+			UpdateName();
 		}
 	public:
 		void AddRef(SymbolRef* ref)
@@ -136,14 +139,15 @@ namespace HXSL
 
 		const SymbolMetadata* GetMetadata() const;
 
-		const TextSpan& GetName() const
+		const std::string_view& GetName() const
 		{
 			return name;
 		}
 
-		void SetName(const TextSpan& name)
+		void SetName(const std::string& name)
 		{
-			this->name = name;
+			*fullyQualifiedName = name;
+			UpdateName();
 		}
 
 		virtual bool IsConstant() const { return false; }
@@ -160,9 +164,9 @@ namespace HXSL
 
 		std::unique_ptr<SymbolRef> MakeSymbolRef() const;
 
-		std::string ToString() const noexcept
+		std::string_view ToString() const noexcept
 		{
-			return name.toString();
+			return name;
 		}
 	};
 
@@ -199,6 +203,8 @@ namespace HXSL
 	{
 	private:
 		std::unique_ptr<std::string> fullyQualifiedName;
+		std::string_view name;
+		bool isFullyQualified;
 		TextSpan span;
 		SymbolRefType type;
 		SymbolHandle symbolHandle;
@@ -206,19 +212,26 @@ namespace HXSL
 		bool isDeferred;
 		bool notFound;
 
+		void UpdateName();
+
 	public:
-		SymbolRef(TextSpan span, SymbolRefType type, bool isFullyQualified) : span(span), type(type), symbolHandle({}), isDeferred(false), notFound(false)
+		SymbolRef(TextSpan span, SymbolRefType type, bool isFullyQualified) : span(span), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
-			if (isFullyQualified)
-			{
-				fullyQualifiedName = std::make_unique<std::string>(span.toString());
-			}
+			fullyQualifiedName = std::make_unique<std::string>(span.toString());
+			UpdateName();
 		}
-		SymbolRef() : span({}), type(SymbolRefType_Unknown), symbolHandle({}), isDeferred(false), notFound(false)
+
+		SymbolRef(std::string name, SymbolRefType type, bool isFullyQualified) : span(TextSpan()), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
+		{
+			fullyQualifiedName = std::make_unique<std::string>(name);
+			UpdateName();
+		}
+
+		SymbolRef() : span({}), type(SymbolRefType_Unknown), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(false)
 		{
 		}
 
-		bool HasFullyQualifiedName() const noexcept { return fullyQualifiedName.get() != nullptr; }
+		bool HasFullyQualifiedName() const noexcept { return isFullyQualified; }
 
 		const SymbolRefType& GetType() const noexcept { return type; }
 
@@ -239,10 +252,12 @@ namespace HXSL
 			return oss.str();
 		}
 
-		const TextSpan& GetName() const noexcept
+		const std::string_view& GetName() const noexcept
 		{
-			return span;
+			return name;
 		}
+
+		const TextSpan& GetSpan() const noexcept { return span; }
 
 		bool IsArray() const noexcept { return !arrayDims.empty(); }
 
@@ -296,9 +311,9 @@ namespace HXSL
 			return cloned;
 		}
 
-		std::string ToString() const noexcept
+		const std::string& ToString() const noexcept
 		{
-			return span.toString();
+			return *fullyQualifiedName;
 		}
 	};
 

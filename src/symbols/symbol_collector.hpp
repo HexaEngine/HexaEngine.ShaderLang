@@ -36,9 +36,9 @@ namespace HXSL
 		std::stack<CollectorScopeContext> stack;
 		std::vector<ASTNode*> lateNodes;
 
-		bool Push(const TextSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
+		bool Push(const StringSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
 
-		bool PushScope(const ASTNode* parent, const TextSpan& span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
+		bool PushScope(const ASTNode* parent, const StringSpan& span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
 
 		bool PushLeaf(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata);
 

@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "parser.hpp"
 #include "sub_parser_registry.hpp"
 #include "parsers/parser_helper.hpp"
 #include "pratt_parser.hpp"
@@ -17,7 +17,7 @@ namespace HXSL
 		ExpressionParserRegistry::EnsureCreated();
 	}
 
-	void Parser::EnterScopeInternal(TextSpan name, ScopeType type, ASTNode* userdata)
+	void Parser::EnterScopeInternal(ScopeType type, ASTNode* userdata)
 	{
 		ScopeFlags newFlags = CurrentScope.Flags;
 		switch (type) {
@@ -62,12 +62,13 @@ namespace HXSL
 		}
 
 		ScopeStack.push(CurrentScope);
-		CurrentScope = ParserScopeContext(name, type, userdata, newFlags);
+		CurrentScope = ParserScopeContext(type, userdata, newFlags);
 		ScopeLevel++;
 	}
 
-	void Parser::ExitScopeInternal()
+	void Parser::ExitScopeInternal(ASTNode* parent)
 	{
+		if (CurrentScope.Parent != parent) return;
 		ScopeLevel--;
 		if (ScopeLevel < 0)
 		{
@@ -85,23 +86,23 @@ namespace HXSL
 		}
 	}
 
-	bool Parser::TryEnterScope(TextSpan name, ScopeType type, ASTNode* parent)
+	bool Parser::TryEnterScope(ScopeType type, ASTNode* parent)
 	{
 		if (stream->TryGetDelimiter('{'))
 		{
-			EnterScopeInternal(name, type, parent);
+			EnterScopeInternal(type, parent);
 			return true;
 		}
 		return false;
 	}
 
-	bool Parser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretendOnError)
+	bool Parser::EnterScope(ScopeType type, ASTNode* parent, Token& token, bool pretendOnError)
 	{
 		if (!stream->ExpectDelimiter('{', token, EXPECTED_RIGHT_BRACE) && !pretendOnError)
 		{
 			return false;
 		}
-		EnterScopeInternal(name, type, parent);
+		EnterScopeInternal(type, parent);
 		return true;
 	}
 
@@ -112,33 +113,11 @@ namespace HXSL
 		attribute.Reset();
 	}
 
-	bool Parser::EnterScope(TextSpan name, ScopeType type, ASTNode* parent, bool pretendOnError)
+	bool Parser::EnterScope(ScopeType type, ASTNode* parent, bool pretendOnError)
 	{
 		Token token;
-		ERR_IF_RETURN_FALSE(!EnterScope(name, type, parent, token, pretendOnError));
+		ERR_IF_RETURN_FALSE(!EnterScope(type, parent, token, pretendOnError));
 		return true;
-	}
-
-	bool Parser::SkipScope(Token& token)
-	{
-		int targetScope = ScopeLevel - 1;
-		while (TryAdvance())
-		{
-			if (ScopeLevel == targetScope)
-			{
-				token = stream->LastToken();
-				return true;
-			}
-		}
-
-		if (ScopeLevel == targetScope)
-		{
-			token = stream->LastToken();
-			return true;
-		}
-
-		Log(UNEXPECTED_EOS, stream->Current());
-		return false;
 	}
 
 	static const std::unordered_set<Keyword> scopeRecoveryPoints =
@@ -212,25 +191,32 @@ namespace HXSL
 		Keyword_Default,
 	};
 
-	bool Parser::IterateScope()
+	bool Parser::IterateScope(ASTNode* parent)
 	{
 		if (stream->TryGetDelimiter('}'))
 		{
-			ExitScopeInternal();
+			ExitScopeInternal(parent);
 			return false;
 		}
 
 		if (stream->IsEndOfTokens())
 		{
 			Log(EXPECTED_RIGHT_BRACE, stream->LastToken());
+			ExitScopeInternal(parent);
+			return false;
 		}
 
 		return true;
 	}
 
-	bool Parser::TryRecoverScope(bool exitScope)
+	bool Parser::TryRecoverScope(ASTNode* parent, bool exitScope)
 	{
 		RestoreFromPoint();
+		if (lastRecovery == stream->TokenPosition())
+		{
+			stream->Advance();
+		}
+
 		while (!stream->IsEndOfTokens() && !stream->HasCriticalErrors())
 		{
 			auto current = stream->Current();
@@ -239,12 +225,13 @@ namespace HXSL
 				Log(EXPECTED_RIGHT_BRACE, current);
 				if (exitScope)
 				{
-					ExitScopeInternal();
+					ExitScopeInternal(parent);
 				}
 				return false;
 			}
 			if (current.isKeywordOf(BuiltInTypes) || current.isKeywordOf(flowControlKeywords) || current.isIdentifier())
 			{
+				lastRecovery = stream->TokenPosition();
 				return true;
 			}
 
@@ -278,11 +265,17 @@ namespace HXSL
 
 	bool Parser::TryRecoverParameterList()
 	{
+		if (lastRecovery == stream->TokenPosition())
+		{
+			stream->Advance();
+		}
+
 		while (!stream->IsEndOfTokens() && !stream->HasCriticalErrors())
 		{
 			auto current = stream->Current();
 			if (current.isIdentifier() || current.isNumeric() || current.isKeywordOf(parameterFlagKeywords) || current.isKeywordOf(interpolationModifierKeywords))
 			{
+				lastRecovery = stream->TokenPosition();
 				return true;
 			}
 			if (current.isKeyword() || current.isOperator() || current.isDelimiterOf(parameterListExitRecoveryPoints))
@@ -292,6 +285,7 @@ namespace HXSL
 			stream->Advance();
 			if (stream->Current().isDelimiterOf(','))
 			{
+				lastRecovery = stream->TokenPosition();
 				return true;
 			}
 		}
@@ -301,11 +295,17 @@ namespace HXSL
 
 	void Parser::TryRecoverStatement()
 	{
+		if (lastRecovery == stream->TokenPosition())
+		{
+			stream->Advance();
+		}
+
 		while (!stream->IsEndOfTokens() && !stream->HasCriticalErrors())
 		{
 			auto current = stream->Current();
 			if (current.isKeyword() || current.isDelimiterOf(';'))
 			{
+				lastRecovery = stream->TokenPosition();
 				return;
 			}
 			stream->Advance();
@@ -341,8 +341,8 @@ namespace HXSL
 	{
 		auto nsKeywordSpan = stream->LastToken().Span;
 		bool hasDot;
-		auto name = ParseQualifiedName(*stream, hasDot);
-		if (TryEnterScope(name, ScopeType_Namespace, nullptr))
+		auto name = ParseQualifiedName(*stream, hasDot).toString();
+		if (TryEnterScope(ScopeType_Namespace, nullptr))
 		{
 			scoped = true;
 		}
@@ -372,7 +372,7 @@ namespace HXSL
 				CurrentNamespace = m_compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
 				if (!scoped)
 				{
-					CurrentScope = ParserScopeContext(CurrentNamespace->GetName(), ScopeType_Namespace, CurrentNamespace, ScopeFlags_None);
+					CurrentScope = ParserScopeContext(ScopeType_Namespace, CurrentNamespace, ScopeFlags_None);
 				}
 				NamespaceScope = ScopeLevel;
 			}
@@ -391,12 +391,12 @@ namespace HXSL
 			}
 			else if (stream->TryGetDelimiter('{'))
 			{
-				EnterScopeInternal({ }, ScopeType_Unknown, nullptr);
+				EnterScopeInternal(ScopeType_Unknown, nullptr);
 				return false;
 			}
 			else if (stream->TryGetDelimiter('}'))
 			{
-				ExitScopeInternal();
+				ExitScopeInternal(nullptr);
 				return false;
 			}
 			else

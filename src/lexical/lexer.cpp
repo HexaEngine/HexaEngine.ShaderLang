@@ -66,7 +66,7 @@ namespace HXSL
 					state.TreatIdentiferAsLiteral = false;
 				}
 				state.IndexNext += 1;
-				return Token(state.AsTextSpan(i, 1), TokenType_Delimiter);
+				return Token(state.AsTextSpan(i, 1), TokenType_Delimiter, current);
 			}
 
 			if (state.MatchPair(current, '/', '/'))
@@ -112,6 +112,74 @@ namespace HXSL
 			return {};
 		}
 
+		static bool isspace(char32_t c)
+		{
+			if (c <= 0x20) {
+				return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+			}
+
+			return (c >= 0x2000 && c <= 0x200A) || // Range for common space characters
+				(c == 0x202F) ||                // Narrow no-break space
+				(c == 0x3000) ||                // Ideographic space
+				(c == 0x205F);                  // Medium Mathematical Space
+		}
+
+		static char32_t decodeuni(const char* text, size_t& width, size_t max_len)
+		{
+			if (!text || max_len == 0)
+			{
+				width = 0;
+				return 0xFFFD;
+			}
+
+			uint8_t c1 = static_cast<uint8_t>(text[0]);
+
+			if (c1 <= 0x7F)
+			{
+				width = 1;
+				return c1;
+			}
+
+			if ((c1 >> 5) == 0x6)
+			{
+				if (max_len < 2)
+				{
+					width = 1;
+					return 0xFFFD;
+				}
+
+				width = 2;
+				return ((c1 & 0x1F) << 6) | (static_cast<uint8_t>(text[1]) & 0x3F);
+			}
+
+			if ((c1 >> 4) == 0xE)
+			{
+				if (max_len < 3)
+				{
+					width = 1;
+					return 0xFFFD;
+				}
+
+				width = 3;
+				return ((c1 & 0x0F) << 12) | ((static_cast<uint8_t>(text[1]) & 0x3F) << 6) | (static_cast<uint8_t>(text[2]) & 0x3F);
+			}
+
+			if ((c1 >> 3) == 0x1E)
+			{
+				if (max_len < 4)
+				{
+					width = 1;
+					return 0xFFFD;
+				}
+
+				width = 4;
+				return ((c1 & 0x07) << 18) | ((static_cast<uint8_t>(text[1]) & 0x3F) << 12) | ((static_cast<uint8_t>(text[2]) & 0x3F) << 6) | (static_cast<uint8_t>(text[3]) & 0x3F);
+			}
+
+			width = 1;
+			return 0xFFFD;
+		}
+
 		Token TokenizeStep(LexerState& state, LexerConfig* config)
 		{
 			size_t i = state.Index;
@@ -121,37 +189,63 @@ namespace HXSL
 				return {};
 			}
 
-			const char* pCurrent = state.Current();
-			char current = *pCurrent;
-
-			if (config->enableNewline && (current == '\n' || current == '\r'))
+			const char* current = state.Current();
+			if (std::isspace(*current))
 			{
-				int width = 1;
-				const char* next = pCurrent + 1;
-				if (i + 1 < state.Length && *next == '\n')
+				auto end = state.End();
+				while (current < end)
 				{
-					width++;
+					char c = *current;
+					bool isCR = c == '\r';
+					if (isCR || c == '\n')
+					{
+						size_t width = 1;
+						const char* next = current + 1;
+						if (isCR && next < end && *next == '\n')
+						{
+							width++;
+						}
+
+						state.NewLine();
+
+						if (config->enableNewline)
+						{
+							size_t idx = current - state.Text;
+							state.IndexNext = idx + width;
+							return Token(state.AsTextSpan(idx, width), TokenType_NewLine);
+						}
+
+						current = current + width;
+					}
+					else if (std::isspace(c))
+					{
+						const char* next = current + 1;
+						while (next < end)
+						{
+							c = *next;
+							if (!std::isspace(c) || c == '\n' || c == '\r')
+							{
+								break;
+							}
+							next++;
+						}
+						size_t width = next - current;
+						if (config->enableWhitespace)
+						{
+							size_t idx = current - state.Text;
+							state.IndexNext = idx + width;
+							return Token(state.AsTextSpan(idx, width), TokenType_Whitespace);
+						}
+
+						current = next;
+					}
+					else
+					{
+						break;
+					}
 				}
 
-				state.NewLine();
-
-				state.IndexNext = i + width;
-				return Token(state.AsTextSpan(i, width), TokenType_NewLine);
-			}
-			else
-			{
-				state.SkipNewLines();
-			}
-
-			if (config->enableWhitespace && std::isspace(current))
-			{
-				size_t length = TextHelper::CountLeadingWhitespace(pCurrent + 1) + 1;
-				state.IndexNext = i + length;
-				return Token(state.AsTextSpan(i, length), TokenType_Whitespace);
-			}
-			else
-			{
-				state.SkipWhitespace();
+				state.Jump(current - state.Text);
 			}
 
 			if (state.IsEOF())

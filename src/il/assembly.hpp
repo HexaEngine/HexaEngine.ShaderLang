@@ -41,9 +41,9 @@ namespace HXSL
 
 		bool IsSealed() const noexcept { return sealed; }
 
-		SymbolHandle AddSymbol(const TextSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
+		SymbolHandle AddSymbol(const StringSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
 
-		SymbolHandle AddSymbolScope(const TextSpan& name, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
+		SymbolHandle AddSymbolScope(const StringSpan& name, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
 
 		static std::unique_ptr<Assembly> Create(const std::string& path);
 

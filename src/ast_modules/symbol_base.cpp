@@ -4,31 +4,33 @@
 
 namespace HXSL
 {
+	void SymbolDef::UpdateName()
+	{
+		std::string_view fqnView = *fullyQualifiedName.get();
+		auto end = fqnView.find('(');
+		if (end != std::string::npos)
+		{
+			fqnView = fqnView.substr(0, end);
+		}
+
+		auto pos = fqnView.find_last_of(QUALIFIER_SEP);
+		if (pos != std::string::npos)
+		{
+			pos++;
+			name = fqnView.substr(pos);
+		}
+		else
+		{
+			name = fqnView;
+		}
+	}
+
 	void SymbolDef::SetAssembly(const Assembly* assembly, const SymbolHandle& handle)
 	{
 		this->assembly = assembly;
 		this->symbolHandle = handle;
 		fullyQualifiedName = std::make_unique<std::string>(symbolHandle.GetFullyQualifiedName());
-		if (isExtern)
-		{
-			TextSpan fqnView = *fullyQualifiedName.get();
-			auto end = fqnView.indexOf('(');
-			if (end != std::string::npos)
-			{
-				fqnView = fqnView.slice(0, end);
-			}
-
-			auto pos = fqnView.lastIndexOf(QUALIFIER_SEP);
-			if (pos != std::string::npos)
-			{
-				pos++;
-				name = fqnView.slice(pos);
-			}
-			else
-			{
-				name = fqnView;
-			}
-		}
+		UpdateName();
 	}
 
 	const SymbolMetadata* SymbolDef::GetMetadata() const
@@ -39,9 +41,20 @@ namespace HXSL
 
 	std::unique_ptr<SymbolRef> SymbolDef::MakeSymbolRef() const
 	{
-		auto ref = std::make_unique<SymbolRef>(GetName(), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
+		auto ref = std::make_unique<SymbolRef>(std::string(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
 		ref->SetTable(GetSymbolHandle());
 		return ref;
+	}
+
+	void SymbolRef::UpdateName()
+	{
+		name = *fullyQualifiedName.get();
+		auto pos = name.find_last_of(QUALIFIER_SEP);
+		if (pos != std::string::npos)
+		{
+			pos++;
+			name = name.substr(pos);
+		}
 	}
 
 	void SymbolRef::SetTable(const SymbolHandle& handle)
@@ -121,12 +134,6 @@ namespace HXSL
 	{
 		type = static_cast<SymbolRefType>(stream.ReadUInt());
 		fullyQualifiedName = std::make_unique<std::string>(stream.ReadString().c_str());
-		span = TextSpan(*fullyQualifiedName.get());
-		auto pos = span.lastIndexOf(QUALIFIER_SEP);
-		if (pos != std::string::npos)
-		{
-			pos++;
-			span = span.slice(pos);
-		}
+		UpdateName();
 	}
 }

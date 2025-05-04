@@ -6,7 +6,8 @@ namespace HXSL
 	{
 		auto refType = ref->GetType();
 		auto defType = metadata->symbolType;
-		auto& span = ref->GetName();
+		auto& name = ref->GetName();
+		auto& span = ref->GetSpan();
 
 		switch (refType)
 		{
@@ -19,7 +20,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_NAMESPACE_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_NAMESPACE_SYMBOL, span, name, ToString(defType));
 				}
 
 				return false;
@@ -31,7 +32,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_FUNC_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_FUNC_SYMBOL, span, name, ToString(defType));
 				}
 
 				return false;
@@ -43,7 +44,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_OP_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_OP_SYMBOL, span, name, ToString(defType));
 				}
 
 				return false;
@@ -55,7 +56,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_CTOR_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_CTOR_SYMBOL, span, name, ToString(defType));
 				}
 
 				return false;
@@ -67,7 +68,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_CTOR_OR_FUNC_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_CTOR_OR_FUNC_SYMBOL, span, name, ToString(defType));
 				}
 
 				return false;
@@ -79,7 +80,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_STRUCT_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_STRUCT_SYMBOL, span, name, ToString(defType));
 				}
 				return false;
 			}
@@ -90,7 +91,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_ENUM_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_ENUM_SYMBOL, span, name, ToString(defType));
 				}
 				return false;
 			}
@@ -101,7 +102,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_IDENTIFIER_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_IDENTIFIER_SYMBOL, span, name, ToString(defType));
 				}
 				return false;
 			}
@@ -112,7 +113,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_ATTRIBUTE_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_ATTRIBUTE_SYMBOL, span, name, ToString(defType));
 				}
 				return false;
 			}
@@ -123,7 +124,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_MEMBER_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_MEMBER_SYMBOL, span, name, ToString(defType));
 				}
 				return false;
 			}
@@ -134,7 +135,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_TYPE_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_TYPE_SYMBOL, span, name, ToString(defType));
 				}
 				return false;
 			}
@@ -145,7 +146,7 @@ namespace HXSL
 			{
 				if (!silent)
 				{
-					analyzer.Log(EXPECTED_ARRAY_SYMBOL, span, span.toString(), ToString(defType));
+					analyzer.Log(EXPECTED_ARRAY_SYMBOL, span, name, ToString(defType));
 				}
 				return false;
 			}
@@ -190,7 +191,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool SymbolResolver::TryResolve(const SymbolTable* table, const TextSpan& name, const SymbolHandle& lookup, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
+	bool SymbolResolver::TryResolve(const SymbolTable* table, const StringSpan& name, const SymbolHandle& lookup, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
 	{
 		auto handle = lookup.FindFullPath(name, table);
 		if (handle.valid())
@@ -203,7 +204,7 @@ namespace HXSL
 		return false;
 	}
 
-	bool SymbolResolver::TryResolveFromRoot(const SymbolTable* table, const TextSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
+	bool SymbolResolver::TryResolveFromRoot(const SymbolTable* table, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
 	{
 		auto handle = table->FindNodeIndexFullPath(name);
 		if (handle.valid())
@@ -216,7 +217,7 @@ namespace HXSL
 		return false;
 	}
 
-	bool SymbolResolver::TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const TextSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
+	bool SymbolResolver::TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
 	{
 		for (auto& ref : references)
 		{
@@ -231,7 +232,7 @@ namespace HXSL
 		return false;
 	}
 
-	SymbolDef* SymbolResolver::ResolveSymbol(const TextSpan& name, bool isFullyQualified, SymbolHandle& outHandle, bool silent) const
+	SymbolDef* SymbolResolver::ResolveSymbol(const TextSpan& span, const StringSpan& name, bool isFullyQualified, SymbolHandle& outHandle, bool silent) const
 	{
 		SymbolDef* def;
 		if (isFullyQualified)
@@ -267,7 +268,7 @@ namespace HXSL
 
 			if (!silent)
 			{
-				analyzer.Log(SYMBOL_NOT_FOUND, name, name.toString());
+				analyzer.Log(SYMBOL_NOT_FOUND, span, name.str());
 			}
 			return nullptr;
 		}
@@ -318,7 +319,7 @@ namespace HXSL
 
 		if (!silent)
 		{
-			analyzer.Log(SYMBOL_NOT_FOUND, name, name.toString());
+			analyzer.Log(SYMBOL_NOT_FOUND, span, name.str());
 		}
 
 		return nullptr;
@@ -337,11 +338,11 @@ namespace HXSL
 		return nullptr;
 	}
 
-	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, bool silent) const
+	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<StringSpan> name, bool silent) const
 	{
 		if (ref->IsResolved()) return true;
 		bool isFQN;
-		TextSpan span;
+		StringSpan span;
 		if (name.has_value())
 		{
 			isFQN = false;
@@ -354,7 +355,7 @@ namespace HXSL
 		}
 
 		SymbolHandle handle;
-		auto def = ResolveSymbol(span, isFQN, handle, silent);
+		auto def = ResolveSymbol(ref->GetSpan(), span, isFQN, handle, silent);
 		if (!def)
 		{
 			ref->SetNotFound(true);
@@ -366,7 +367,7 @@ namespace HXSL
 			if (!arrayManager->TryGetOrCreateArrayType(ref, def, handle, def))
 			{
 				ref->SetNotFound(true);
-				analyzer.Log(INVALID_ARRAY_TYPE, ref->GetName(), def->ToString());
+				analyzer.Log(INVALID_ARRAY_TYPE, ref->GetSpan(), def->ToString());
 				return false;
 			}
 		}
@@ -382,7 +383,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent) const
+	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<StringSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent) const
 	{
 		auto& span = ref->GetName();
 		auto actualName = name.value_or(span);
@@ -394,7 +395,7 @@ namespace HXSL
 			ref->SetNotFound(true);
 			if (!silent)
 			{
-				analyzer.Log(SYMBOL_NOT_FOUND, span, actualName.toString());
+				analyzer.Log(SYMBOL_NOT_FOUND, ref->GetSpan(), actualName.str());
 			}
 			return false;
 		}
@@ -410,7 +411,7 @@ namespace HXSL
 		return true;
 	}
 
-	void SymbolResolver::PushScope(ASTNode* parent, const TextSpan& span, bool external)
+	void SymbolResolver::PushScope(ASTNode* parent, const StringSpan& span, bool external)
 	{
 		stack.push(current);
 		current.Parent = parent;
@@ -668,7 +669,10 @@ namespace HXSL
 			auto metadata = type->GetMetadata();
 			if (metadata && metadata->declaration->GetType() == NodeType_Primitive)
 			{
-				return swizzleManager->VerifySwizzle(metadata->declaration->As<Primitive>(), refInner);
+				if (swizzleManager->VerifySwizzle(metadata->declaration->As<Primitive>(), refInner))
+				{
+					return 0;
+				}
 			}
 			return -1;
 		}
@@ -704,7 +708,7 @@ namespace HXSL
 			SymbolRef* type = GetResolvedTypeFromDecl(ref);
 			if (!type)
 			{
-				analyzer.Log(CANNOT_RESOLVE_MEMBER_TYPE, ref->GetName(), ref->ToString());
+				analyzer.Log(CANNOT_RESOLVE_MEMBER_TYPE, ref->GetSpan(), ref->ToString());
 				return TraversalBehavior_Keep;
 			}
 
@@ -721,7 +725,7 @@ namespace HXSL
 			if (result == -1)
 			{
 				auto refInner = chain->GetSymbolRef().get();
-				analyzer.Log(MEMBER_NOT_FOUND_IN, refInner->GetName(), refInner->ToString(), ref->ToString());
+				analyzer.Log(MEMBER_NOT_FOUND_IN, refInner->GetSpan(), refInner->ToString(), ref->ToString());
 				return TraversalBehavior_Keep;
 			}
 			else if (result == 1)

@@ -1,5 +1,5 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef PARSER_HPP
+#define PARSER_HPP
 
 #include "lexical/token_stream.h"
 #include "utils/text_span.h"
@@ -92,13 +92,12 @@ namespace HXSL
 
 	struct ParserScopeContext
 	{
-		TextSpan Name;
 		ScopeType Type;
 		ASTNode* Parent;
 		ScopeFlags Flags;
 
-		ParserScopeContext() : Name({ }), Type(ScopeType_Global), Parent(nullptr), Flags(ScopeFlags_None) {}
-		ParserScopeContext(TextSpan name, ScopeType type, ASTNode* parent, ScopeFlags flags) : Name(name), Type(type), Parent(parent), Flags(flags) {}
+		ParserScopeContext() : Type(ScopeType_Global), Parent(nullptr), Flags(ScopeFlags_None) {}
+		ParserScopeContext(ScopeType type, ASTNode* parent, ScopeFlags flags) : Type(type), Parent(parent), Flags(flags) {}
 	};
 
 	static TextSpan ParseQualifiedName(TokenStream& stream, bool& hasDot)
@@ -191,12 +190,12 @@ namespace HXSL
 		ASTNode* ParentNode;
 		ParserScopeContext CurrentScope;
 		std::stack<ParserScopeContext> ScopeStack;
-		std::stack<ASTNode*> ParentStack;
 		TakeHandle<AttributeDeclaration> attribute;
 		ModifierList modifierList;
+		size_t lastRecovery;
 
 		Parser() = default;
-		Parser(TokenStream& stream, Compilation* compilation) : stream(&stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext({}, ScopeType_Global, compilation, ScopeFlags_None)), modifierList({})
+		Parser(TokenStream& stream, Compilation* compilation) : stream(&stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext(ScopeType_Global, compilation, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
 		{
 		}
 
@@ -210,13 +209,9 @@ namespace HXSL
 
 		ScopeType scopeType() const noexcept { return CurrentScope.Type; }
 
-		TextSpan scopeName() const noexcept { return CurrentScope.Name; }
-
 		ASTNode* scopeParent() const noexcept { return CurrentScope.Parent; }
 
 		ScopeFlags scopeFlags() const noexcept { return CurrentScope.Flags; }
-
-		ASTNode* parentNode() const noexcept { return ParentNode; }
 
 		template<typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
@@ -251,24 +246,6 @@ namespace HXSL
 			return true;
 		}
 
-		void pushParentNode(ASTNode* parent)
-		{
-			HXSL_ASSERT(parent != nullptr, "Parent node cannot be null.");
-			ParentStack.push(ParentNode);
-			ParentNode = parent;
-		}
-
-		void popParentNode()
-		{
-			if (ParentStack.empty())
-			{
-				HXSL_ASSERT(false, "Attempted to pop parent stack, but it's empty.");
-				return;
-			}
-			ParentNode = ParentStack.top();
-			ParentStack.pop();
-		}
-
 		bool IsInNamespaceScope(bool strict = false) const
 		{
 			return strict ? ScopeLevel == NamespaceScope : ScopeLevel >= NamespaceScope;
@@ -279,28 +256,27 @@ namespace HXSL
 			return ScopeLevel == NamespaceScope || ScopeLevel == 0;
 		}
 
-		void EnterScopeInternal(TextSpan name, ScopeType type, ASTNode* userdata);
-		void ExitScopeInternal();
-		bool TryEnterScope(TextSpan name, ScopeType type, ASTNode* parent);
+		void EnterScopeInternal(ScopeType type, ASTNode* userdata);
+		void ExitScopeInternal(ASTNode* parent);
+		bool TryEnterScope(ScopeType type, ASTNode* parent);
 
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretentOnError);
+		bool EnterScope(ScopeType type, ASTNode* parent, Token& token, bool pretentOnError);
 
 		template<typename... Args>
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretentOnError, DiagnosticCode code, Args&&... args)
+		bool EnterScope(ScopeType type, ASTNode* parent, Token& token, bool pretentOnError, DiagnosticCode code, Args&&... args)
 		{
 			if (!stream->ExpectDelimiter('{', token, code, std::forward<Args>(args)...) && !pretentOnError)
 			{
 				return false;
 			}
-			EnterScopeInternal(name, type, parent);
+			EnterScopeInternal(type, parent);
 			return true;
 		}
 
 		void RestoreFromPoint();
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, bool pretendOnError);
-		bool SkipScope(Token& token);
-		bool IterateScope();
-		bool TryRecoverScope(bool exitScope);
+		bool EnterScope(ScopeType type, ASTNode* parent, bool pretendOnError);
+		bool IterateScope(ASTNode* parent);
+		bool TryRecoverScope(ASTNode* parent, bool exitScope);
 		bool TryRecoverParameterList();
 		void TryRecoverStatement();
 		UsingDeclaration ParseUsingDeclaration();
@@ -482,10 +458,8 @@ namespace HXSL
 		Compilation* GetCompilation() const noexcept { return parser.Compilation(); }
 		int GetScopeLevel() const noexcept { return parser.scopeLevel(); }
 		ScopeType GetScopeType() const noexcept { return parser.scopeType(); }
-		TextSpan GetScopeName() const noexcept { return parser.scopeName(); }
 		ASTNode* GetScopeParent() const noexcept { return parser.scopeParent(); }
 		ScopeFlags GetScopeFlags() const noexcept { return parser.scopeFlags(); }
-		ASTNode* GetParentNode() const noexcept { return parser.parentNode(); }
 
 		// Logging
 		template<typename... Args>
@@ -512,33 +486,29 @@ namespace HXSL
 			return parser.inScope(flags, std::forward<Args>(args)...);
 		}
 
-		void PushParentNode(ASTNode* parent) { parser.pushParentNode(parent); }
-		void PopParentNode() { parser.popParentNode(); }
-
 		bool IsInNamespaceScope(bool strict = false) const { return parser.IsInNamespaceScope(strict); }
 		bool IsInGlobalOrNamespaceScope() const { return parser.IsInGlobalOrNamespaceScope(); }
 
 		void RestoreFromPoint() { parser.RestoreFromPoint(); }
 
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, bool pretendOnError)
+		bool EnterScope(ScopeType type, ASTNode* parent, bool pretendOnError)
 		{
-			return parser.EnterScope(name, type, parent, pretendOnError);
+			return parser.EnterScope(type, parent, pretendOnError);
 		}
 
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretendOnError)
+		bool EnterScope(ScopeType type, ASTNode* parent, Token& token, bool pretendOnError)
 		{
-			return parser.EnterScope(name, type, parent, token, pretendOnError);
+			return parser.EnterScope(type, parent, token, pretendOnError);
 		}
 
 		template<typename... Args>
-		bool EnterScope(TextSpan name, ScopeType type, ASTNode* parent, Token& token, bool pretendOnError, const std::string& message, Args&&... args)
+		bool EnterScope(ScopeType type, ASTNode* parent, Token& token, bool pretendOnError, const std::string& message, Args&&... args)
 		{
-			return parser.EnterScope(name, type, parent, token, pretendOnError, message, std::forward<Args>(args)...);
+			return parser.EnterScope(type, parent, token, pretendOnError, message, std::forward<Args>(args)...);
 		}
 
-		bool SkipScope(Token& token) { return parser.SkipScope(token); }
-		bool IterateScope() { return parser.IterateScope(); }
-		bool TryRecoverScope(bool exitScope) { return parser.TryRecoverScope(exitScope); }
+		bool IterateScope(ASTNode* parent) { return parser.IterateScope(parent); }
+		bool TryRecoverScope(ASTNode* parent, bool exitScope) { return parser.TryRecoverScope(parent, exitScope); }
 		bool TryRecoverParameterList() { return parser.TryRecoverParameterList(); }
 		void TryRecoverStatement() { parser.TryRecoverStatement(); }
 

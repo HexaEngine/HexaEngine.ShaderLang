@@ -6,12 +6,18 @@ add_executable(HXSLCompiler main.cpp)
 
 target_link_libraries(HXSLCompiler CompilerStatic)
 
-set(SOURCE_FILES
-    ${CMAKE_SOURCE_DIR}/compiler/intrinsics.txt
-    ${CMAKE_SOURCE_DIR}/compiler/library.txt
-    ${CMAKE_SOURCE_DIR}/compiler/shader.txt
-    ${CMAKE_SOURCE_DIR}/compiler/shader2.txt
+file(GLOB_RECURSE EXAMPLE_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}example/*.txt")
+
+set(DEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/example")
+
+add_custom_command(
+    OUTPUT ${DEST_DIR}/dummy.txt 
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/example"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/example" ${DEST_DIR}
+    DEPENDS ${EXAMPLE_FILES} 
+    COMMENT "Copying all .txt files from 'example' to the output directory"
 )
 
-set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/compiler)
-file(COPY ${SOURCE_FILES} DESTINATION ${OUTPUT_DIR})
+add_custom_target(copy_example_files ALL DEPENDS ${DEST_DIR}/dummy.txt)
+
+add_dependencies(HXSLCompiler copy_example_files)

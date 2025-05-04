@@ -1,7 +1,7 @@
 #ifndef SUB_PARSER_H
 #define SUB_PARSER_H
 
-#include "parsers/parser.h"
+#include "parsers/parser.hpp"
 #include "lexical/token_stream.h"
 #include <memory>
 #include <iostream>

@@ -8,7 +8,7 @@ namespace HXSL
 		auto _class = prim->GetClass();
 		if (_class == PrimitiveClass_Matrix) return false;
 		auto& pattern = ref->GetName();
-		if (pattern.Length < 1 || pattern.Length > 4)
+		if (pattern.size() < 1 || pattern.size() > 4)
 			return false;
 
 		auto handle = swizzleTable->FindNodeIndexPart(pattern);
@@ -31,7 +31,11 @@ namespace HXSL
 			}
 		}
 
-		std::string typeName = ToString(prim->GetKind()) + std::to_string(pattern.Length);
+		std::string typeName = ToString(prim->GetKind());
+		if (pattern.size() > 1)
+		{
+			typeName += std::to_string(pattern.size());
+		}
 
 		auto primitivesTable = primitives.GetSymbolTable();
 		auto primitiveHandle = primitivesTable->FindNodeIndexPart(typeName);

@@ -70,19 +70,19 @@ namespace HXSL
 
 		bool SymbolVisibilityChecks(const SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const;
 
-		bool TryResolve(const SymbolTable* table, const TextSpan& name, const SymbolHandle& lookup, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
+		bool TryResolve(const SymbolTable* table, const StringSpan& name, const SymbolHandle& lookup, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
-		bool TryResolveFromRoot(const SymbolTable* table, const TextSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
+		bool TryResolveFromRoot(const SymbolTable* table, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
-		bool TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const TextSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
+		bool TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
-		SymbolDef* ResolveSymbol(const TextSpan& name, bool isFullyQualified, SymbolHandle& outHandle, bool silent = false) const;
+		SymbolDef* ResolveSymbol(const TextSpan& span, const StringSpan& name, bool isFullyQualified, SymbolHandle& outHandle, bool silent = false) const;
 
 		SymbolDef* ResolvePrimitiveSymbol(const std::string& str) const;
 
-		bool ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name = std::nullopt, bool silent = false) const;
+		bool ResolveSymbol(SymbolRef* ref, std::optional<StringSpan> name = std::nullopt, bool silent = false) const;
 
-		bool ResolveSymbol(SymbolRef* ref, std::optional<TextSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent = false) const;
+		bool ResolveSymbol(SymbolRef* ref, std::optional<StringSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent = false) const;
 
 		/// <summary>
 		///
@@ -100,7 +100,7 @@ namespace HXSL
 			return ResolveMember(chainExprRoot, next, true);
 		}
 
-		void PushScope(ASTNode* parent, const TextSpan& span, bool external = false);
+		void PushScope(ASTNode* parent, const StringSpan& span, bool external = false);
 
 		void VisitClose(ASTNode* node, size_t depth) override;
 

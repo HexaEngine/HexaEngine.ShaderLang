@@ -106,7 +106,7 @@ namespace HXSL
 	public:
 		FunctionOverload()
 			: ASTNode(TextSpan(), NodeType_FunctionOverload, true),
-			SymbolDef(TextSpan(), NodeType_FunctionOverload, name, true),
+			SymbolDef(TextSpan(), NodeType_FunctionOverload, TextSpan(), true),
 			AttributeContainer(this),
 			accessModifiers(AccessModifier_Private),
 			functionFlags(FunctionFlags_None),
@@ -165,7 +165,7 @@ namespace HXSL
 			}
 
 			std::ostringstream oss;
-			oss << name.toString() << "(";
+			oss << name << "(";
 			bool first = true;
 			for (auto& param : parameters)
 			{
@@ -215,12 +215,11 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " << name;
 			return oss.str();
 		}
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 			DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, ReturnSymbol, returnSymbol)
-			DEFINE_GETTER_SETTER(TextSpan, Name, name)
 			DEFINE_GET_SET_MOVE_CHILDREN(std::vector<std::unique_ptr<Parameter>>, Parameters, parameters)
 			DEFINE_GETTER_SETTER(TextSpan, Semantic, semantic)
 
@@ -447,7 +446,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " << name;
 			return oss.str();
 		}
 
@@ -488,7 +487,7 @@ namespace HXSL
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " + name.toString();
+			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " << name;
 			return oss.str();
 		}
 

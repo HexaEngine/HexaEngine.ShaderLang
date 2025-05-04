@@ -141,6 +141,14 @@ namespace HXSL
 		Keyword_Protected,
 		Keyword_Internal,
 		Keyword_Public,
+		Keyword_PrepDefine,
+		Keyword_PrepIf,
+		Keyword_PrepElif,
+		Keyword_PrepElse,
+		Keyword_PrepEndif,
+		Keyword_PrepInclude,
+		Keyword_PrepError,
+		Keyword_PrepPragma
 	};
 
 	static std::string ToString(Keyword keyword)
@@ -280,6 +288,14 @@ namespace HXSL
 		case Keyword_Protected: return "protected";
 		case Keyword_Internal: return "internal";
 		case Keyword_Public: return "public";
+		case Keyword_PrepDefine: return "#define";
+		case Keyword_PrepIf: return "#if";
+		case Keyword_PrepElif: return "#elif";
+		case Keyword_PrepElse: return "#else";
+		case Keyword_PrepEndif: return "#endif";
+		case Keyword_PrepInclude: return "#include";
+		case Keyword_PrepError: return "#error";
+		case Keyword_PrepPragma: return "#pragma";
 		default: return "Unknown";
 		}
 	}
@@ -418,6 +434,14 @@ namespace HXSL
 		tst->Insert("protected", Keyword_Protected);
 		tst->Insert("internal", Keyword_Internal);
 		tst->Insert("public", Keyword_Public);
+		tst->Insert("#define", Keyword_PrepDefine);
+		tst->Insert("#if", Keyword_PrepIf);
+		tst->Insert("#elif", Keyword_PrepElif);
+		tst->Insert("#else", Keyword_PrepElse);
+		tst->Insert("#endif", Keyword_PrepEndif);
+		tst->Insert("#include", Keyword_PrepInclude);
+		tst->Insert("#error", Keyword_PrepError);
+		tst->Insert("#pragma", Keyword_PrepPragma);
 	}
 }
 #endif

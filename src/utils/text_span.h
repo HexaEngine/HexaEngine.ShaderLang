@@ -31,14 +31,6 @@ namespace HXSL
 			return Start + Length;
 		}
 
-		const char& operator[](size_t index) const
-		{
-			if (index < 0 || index >= Length) {
-				throw std::out_of_range("Index out of range in TextSpan");
-			}
-			return Text[Start + index];
-		}
-
 		TextSpan merge(TextSpan other) const
 		{
 			if (Text != other.Text)
@@ -71,61 +63,6 @@ namespace HXSL
 			return TextSpan(Text, newStart, newLength, newLine, newColumn);
 		}
 
-		TextSpan slice(size_t start)
-		{
-			return TextSpan(Text, Start + start, Length - start, Line, Column);
-		}
-
-		TextSpan slice(size_t start, size_t length)
-		{
-			return TextSpan(Text, Start + start, length, Line, Column);
-		}
-
-		size_t find(const char& c) const noexcept
-		{
-			for (int i = 0; i < Length; i++)
-			{
-				if (Text[Start + i] == c)
-				{
-					return i;
-				}
-			}
-			return std::string::npos;
-		}
-
-		size_t find(const std::string& c) const noexcept
-		{
-			size_t len = c.length();
-			if (len == 0) return 0;
-			if (len > Length) return std::string::npos;
-
-			size_t x = 0;
-			for (size_t i = 0; i < Length; i++)
-			{
-				if (Text[Start + i] == c[x])
-				{
-					x++;
-					if (x == len)
-					{
-						return i - x + 1;
-					}
-				}
-				else
-				{
-					x = 0;
-				}
-			}
-			return std::string::npos;
-		}
-
-		const char* begin() const {
-			return Text + Start;
-		}
-
-		const char* end() const {
-			return Text + Start + Length;
-		}
-
 		uint64_t fnv1a_64bit_hash() const noexcept
 		{
 			uint64_t hash = 14695981039346656037U;
@@ -145,54 +82,6 @@ namespace HXSL
 		std::string toString() const
 		{
 			return std::string(Text + Start, Length);
-		}
-
-		size_t indexOf(char c) const
-		{
-			for (size_t i = 0; i < Length; i++)
-			{
-				if (Text[Start + i] == c)
-				{
-					return i;
-				}
-			}
-			return std::string::npos;
-		}
-
-		size_t lastIndexOf(char c) const
-		{
-			if (Length == 0) return std::string::npos;
-			for (size_t i = Length; i-- > 0; )
-			{
-				if (Text[Start + i] == c)
-				{
-					return i;
-				}
-			}
-			return std::string::npos;
-		}
-
-		bool operator==(const TextSpan& other) const
-		{
-			if (this->Length != other.Length) return false;
-			return std::memcmp(this->begin(), other.begin(), this->Length) == 0;
-		}
-	};
-
-	struct TextSpanHash
-	{
-		size_t operator()(const TextSpan& span) const noexcept
-		{
-			return static_cast<size_t>(span.hash());
-		}
-	};
-
-	struct TextSpanEqual
-	{
-		bool operator()(const TextSpan& a, const TextSpan& b) const noexcept
-		{
-			if (a.Length != b.Length) return false;
-			return std::memcmp(a.begin(), b.begin(), a.Length) == 0;
 		}
 	};
 }

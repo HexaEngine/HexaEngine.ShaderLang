@@ -112,7 +112,7 @@ namespace HXSL
 			rows(0),
 			columns(0)
 		{
-			this->name = TextSpan(backingName);
+			this->name = backingName;
 		}
 		Primitive(TextSpan span, PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
 			: Type(span, NodeType_Primitive, TextSpan()),
@@ -123,7 +123,7 @@ namespace HXSL
 			rows(rows),
 			columns(columns)
 		{
-			this->name = TextSpan(backingName);
+			this->name = backingName;
 		}
 
 		Primitive(PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
@@ -135,7 +135,7 @@ namespace HXSL
 			rows(rows),
 			columns(columns)
 		{
-			this->name = TextSpan(backingName);
+			this->name = backingName;
 		}
 
 		void AddOperator(std::unique_ptr<OperatorOverload> value) noexcept

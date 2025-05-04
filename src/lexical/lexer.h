@@ -10,6 +10,7 @@
 #include "numbers.h"
 #include "lang/language.h"
 #include "diagnostic_code.hpp"
+#include "lexer_input_stream.hpp"
 
 namespace HXSL
 {
@@ -42,6 +43,11 @@ namespace HXSL
 			const char* Current() const noexcept
 			{
 				return Text + Index;
+			}
+
+			const char* End() const noexcept
+			{
+				return Text + Length;
 			}
 
 			bool IsEOF() const noexcept
@@ -205,6 +211,7 @@ namespace HXSL
 				if (!initialized)
 				{
 					instance = new LexerConfig();
+					instance->enableNewline = true;
 					BuildKeywordTST(&instance->keywords);
 					BuildOperatorTST(&instance->operators);
 					instance->delimiters = { '{', '}', '[', ']', '(', ')', ',', ';', '#', '@' };

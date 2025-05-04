@@ -150,7 +150,7 @@ namespace HXSL
 		classPtr->SetName(table->GetStringPool().add(name.toString()));
 
 		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, classPtr);
-		auto handle = table->Insert(TextSpan(classPtr->GetName()), meta);
+		auto handle = table->Insert(classPtr->GetName(), meta);
 		if (outClass)
 		{
 			*outClass = classPtr;

@@ -65,17 +65,30 @@ namespace HXSL
 			return true;
 		}
 		*/
+
+		int result = 0;
 		do
 		{
-			if (IsEndOfTokens() || lexerState.HasCriticalErrors())
+			do
 			{
-				currentToken = {};
-				return false;
-			}
+				if (IsEndOfTokens() || lexerState.HasCriticalErrors())
+				{
+					currentToken = {};
+					return false;
+				}
 
-			currentToken = TokenizeStep(lexerState, config);
-			lexerState.Advance();
-		} while (currentToken.Type == TokenType_Comment);
+				currentToken = TokenizeStep(lexerState, config);
+				lexerState.Advance();
+			} while (currentToken.Type == TokenType_Comment || currentToken.Type == TokenType_Unknown);
+
+			if (!transforming)
+			{
+				transforming = true;
+				Token out;
+				result = transformer.Transform(currentToken, *this, out);
+				transforming = false;
+			}
+		} while (result == 2);
 
 		if (currentStack == 0)
 		{

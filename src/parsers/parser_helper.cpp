@@ -1,7 +1,7 @@
 #include "parser_helper.hpp"
 #include "sub_parser_registry.hpp"
 #include "pratt_parser.hpp"
-#include "parser.h"
+#include "parser.hpp"
 #include "member_path_parser.hpp"
 
 #include <memory>
@@ -141,14 +141,14 @@ namespace HXSL
 	bool ParserHelper::TryParseInitializationExpression(Parser& parser, TokenStream& stream, std::unique_ptr<InitializationExpression>& expressionOut)
 	{
 		auto root = std::make_unique<InitializationExpression>(stream.Current().Span);
-		parser.EnterScope(TextSpan(), ScopeType_Initialization, root.get(), true);
+		parser.EnterScope(ScopeType_Initialization, root.get(), true);
 		std::stack<InitializationExpression*> stack;
 		InitializationExpression* current = root.get();
 
 		while (true)
 		{
 			bool isFirst = true;
-			while (parser.IterateScope())
+			while (parser.IterateScope(root.get()))
 			{
 				if (!isFirst)
 				{
@@ -160,7 +160,7 @@ namespace HXSL
 				if (token.isDelimiterOf('{'))
 				{
 					auto node = std::make_unique<InitializationExpression>(token.Span);
-					parser.EnterScope(TextSpan(), ScopeType_Initialization, node.get(), true);
+					parser.EnterScope(ScopeType_Initialization, node.get(), true);
 					stack.push(current);
 					auto next = node.get();
 					current->AddParameter(std::move(node));

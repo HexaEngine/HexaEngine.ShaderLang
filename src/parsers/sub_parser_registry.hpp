@@ -20,22 +20,19 @@ namespace HXSL
 		{
 			do
 			{
-				parser.pushParentNode(parent);
 				for (auto& subParser : parsers)
 				{
 					stream.PushState();
 					if (subParser->TryParse(parser, stream, compilation))
 					{
-						parser.popParentNode();
 						stream.PopState(false);
 						return true;
 					}
 					stream.PopState();
 				}
-				parser.popParentNode();
 
 				auto current = stream.Current();
-				if (stream.IsEndOfTokens() || (current.Type == TokenType_Delimiter && current.Span[0] == '}'))
+				if (stream.IsEndOfTokens() || (current.Type == TokenType_Delimiter && current.Value == '}'))
 				{
 					return false;
 				}
@@ -77,7 +74,7 @@ namespace HXSL
 			if (!leaveOpen)
 			{
 				auto current = stream.Current();
-				if (!stream.IsEndOfTokens() && (current.Type != TokenType_Delimiter || current.Span[0] != '}'))
+				if (!stream.IsEndOfTokens() && (current.Type != TokenType_Delimiter || current.Value != '}'))
 				{
 					parser.Log(UNEXPECTED_TOKEN, stream.Current());
 					return false;
@@ -123,24 +120,24 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseStatementBody(TextSpan name, ScopeType type, Parser& parser, TokenStream& stream, std::unique_ptr<BlockStatement>& statement)
+	static bool ParseStatementBody(ScopeType type, Parser& parser, TokenStream& stream, std::unique_ptr<BlockStatement>& statement)
 	{
-		Token first;
-		parser.EnterScope(name, type, nullptr, first, true);
-
 		auto blockStatement = std::make_unique<BlockStatement>(TextSpan());
-		while (parser.IterateScope())
+		Token first;
+		parser.EnterScope(type, blockStatement.get(), first, true);
+
+		while (parser.IterateScope(blockStatement.get()))
 		{
 			parser.ParseInnerBegin();
 
-			if (ParseStatementBodyInner(parser, stream, blockStatement.get(), blockStatement.get()))
+			if (ParseStatementBodyInner(parser, stream, blockStatement.get()))
 			{
 				HXSL_ASSERT(parser.modifierList.Empty(), "Modifier list was not empty, forgot to accept/reject it?.");
 				HXSL_ASSERT(!parser.attribute.HasResource(), "Attribute list was not empty, forgot to accept/reject it?.");
 			}
 			else
 			{
-				if (!parser.TryRecoverScope(true))
+				if (!parser.TryRecoverScope(blockStatement.get(), true))
 				{
 					break;
 				}
@@ -177,7 +174,7 @@ namespace HXSL
 			}
 
 			auto current = stream.Current();
-			if (!stream.IsEndOfTokens() && current.Type != TokenType_Delimiter && current.Span[0] != ';')
+			if (!stream.IsEndOfTokens() && current.Type != TokenType_Delimiter && current.Value != ';')
 			{
 				parser.Log(UNEXPECTED_TOKEN, stream.Current());
 				return false;

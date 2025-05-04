@@ -1,12 +1,10 @@
-#ifndef PRATT_PARSER_H
-#define PRATT_PARSER_H
+#ifndef PRATT_PARSER_HPP
+#define PRATT_PARSER_HPP
 
-#include "sub_parser_registry.hpp"
+#include "parser.hpp"
 
 namespace HXSL
 {
-	using ExpressionPtr = std::unique_ptr<Expression>;
-
 	class PrattParser
 	{
 	public:

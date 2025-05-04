@@ -10,10 +10,10 @@ namespace HXSL
 	struct NamespaceDeclaration
 	{
 		TextSpan Span;
-		TextSpan Name;
+		std::string Name;
 
 		NamespaceDeclaration() = default;
-		NamespaceDeclaration(TextSpan span, TextSpan name) : Span(span), Name(name) {}
+		NamespaceDeclaration(TextSpan span, std::string name) : Span(span), Name(name) {}
 	};
 
 	struct AssemblySymbolRef

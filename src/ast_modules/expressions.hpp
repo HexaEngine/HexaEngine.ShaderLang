@@ -456,7 +456,7 @@ namespace HXSL
 		std::string BuildOverloadSignature()
 		{
 			std::ostringstream oss;
-			oss << symbol->GetName().toString() << "(";
+			oss << symbol->GetName() << "(";
 			bool first = true;
 			for (auto& param : parameters)
 			{

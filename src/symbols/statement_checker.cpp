@@ -39,7 +39,7 @@ namespace HXSL
 		std::unique_ptr<Expression> expr = std::move(statement->DetachReturnValueExpression());
 		if (!checker.AreTypesCompatible(expr, retType, exprType))
 		{
-			analyzer.Log(RETURN_TYPE_DOES_NOT_MATCH, statement->GetSpan(), retType->ToString(), exprType->ToString());
+			analyzer.Log(RETURN_TYPE_DOES_NOT_MATCH, statement->GetSpan(), exprType->ToString(), retType->ToString());
 		}
 		statement->SetReturnValueExpression(std::move(expr));
 	}

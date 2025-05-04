@@ -5,6 +5,7 @@
 #include "utils/text_span.h"
 #include "config.h"
 #include "c/stream.h"
+#include "utils/endianness.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -12,55 +13,6 @@
 #include <stdint.h>
 #include <string>
 
-namespace EndianUtils
-{
-	inline bool IsLittleEndian()
-	{
-		const int value{ 0x01 };
-		const void* address{ static_cast<const void*>(&value) };
-		const unsigned char* least_significant_address{ static_cast<const unsigned char*>(address) };
-
-		return (*least_significant_address == 0x01);
-	}
-
-	template <typename T>
-	T ToLittleEndian(T value)
-	{
-		static_assert(std::is_integral<T>::value, "Integral type required.");
-		if (!IsLittleEndian()) {
-			if constexpr (sizeof(T) == 1) {
-				return value;
-			}
-			else if constexpr (sizeof(T) == 2) {
-				return static_cast<T>((static_cast<uint16_t>(value) >> 8) | (static_cast<uint16_t>(value) << 8));
-			}
-			else if constexpr (sizeof(T) == 4) {
-				return static_cast<T>((static_cast<uint32_t>(value) >> 24) |
-					((static_cast<uint32_t>(value) & 0x00FF0000) >> 8) |
-					((static_cast<uint32_t>(value) & 0x0000FF00) << 8) |
-					((static_cast<uint32_t>(value) & 0x000000FF) << 24));
-			}
-			else if constexpr (sizeof(T) == 8) {
-				return static_cast<T>((static_cast<uint64_t>(value) >> 56) |
-					((static_cast<uint64_t>(value) & 0x00FF000000000000) >> 40) |
-					((static_cast<uint64_t>(value) & 0x0000FF0000000000) >> 24) |
-					((static_cast<uint64_t>(value) & 0x000000FF00000000) >> 8) |
-					((static_cast<uint64_t>(value) & 0x00000000FF000000) << 8) |
-					((static_cast<uint64_t>(value) & 0x0000000000FF0000) << 24) |
-					((static_cast<uint64_t>(value) & 0x000000000000FF00) << 40) |
-					((static_cast<uint64_t>(value) & 0x00000000000000FF) << 56));
-			}
-		}
-		return value;
-	}
-
-	template <typename T>
-	T FromLittleEndian(T value)
-	{
-		static_assert(std::is_integral<T>::value, "Integral type required.");
-		return ToLittleEndian(value);
-	}
-}
 namespace HXSL
 {
 	struct Stream

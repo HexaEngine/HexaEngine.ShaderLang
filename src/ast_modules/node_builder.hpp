@@ -39,14 +39,14 @@ namespace HXSL
 
 		FunctionBuilder& WithName(const std::string& name)
 		{
-			func->SetName(TextSpan(table->GetStringPool().add(name)));
+			func->SetName(name);
 			return *this;
 		}
 
 		FunctionBuilder& WithParam(const std::string& paramName, const std::string& paramType)
 		{
 			auto param = std::make_unique<Parameter>();
-			param->SetName(TextSpan(table->GetStringPool().add(paramName)));
+			param->SetName(paramName);
 
 			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(paramType)), SymbolRefType_Type, false);
 			ResolveInternal(paramRef.get());
@@ -110,7 +110,7 @@ namespace HXSL
 		OperatorBuilder& WithParam(const std::string& paramName, const std::string& paramType)
 		{
 			auto param = std::make_unique<Parameter>();
-			param->SetName(TextSpan(table->GetStringPool().add(paramName)));
+			param->SetName(paramName);
 
 			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(paramType)), SymbolRefType_Type, false);
 			param->SetSymbolRef(std::move(paramRef));
@@ -140,8 +140,8 @@ namespace HXSL
 		{
 			auto operatorPtr = _operator.get();
 			auto& op = _operator->GetOperator();
-			auto& name = _operator->GetOperator() == Operator_Cast ? table->GetStringPool().add("operator") : table->GetStringPool().add("operator" + ToString(op));
-			operatorPtr->SetName(TextSpan(name));
+			std::string name = _operator->GetOperator() == Operator_Cast ? "operator" : "operator" + ToString(op);
+			operatorPtr->SetName(name);
 			container->AddOperator(std::move(_operator));
 
 			for (size_t i = 0; i < parameters.size(); i++)
@@ -159,8 +159,8 @@ namespace HXSL
 		{
 			auto operatorPtr = _operator.get();
 			auto& op = _operator->GetOperator();
-			auto& name = _operator->GetOperator() == Operator_Cast ? table->GetStringPool().add("operator") : table->GetStringPool().add("operator" + ToString(op));
-			operatorPtr->SetName(TextSpan(name));
+			std::string name = _operator->GetOperator() == Operator_Cast ? "operator" : "operator" + ToString(op);
+			operatorPtr->SetName(name);
 			container->AddOperator(std::move(_operator));
 
 			for (size_t i = 0; i < parameters.size(); i++)
@@ -189,7 +189,7 @@ namespace HXSL
 
 		ClassBuilder& WithName(const std::string& name)
 		{
-			_class->SetName(TextSpan(table->GetStringPool().add(name)));
+			_class->SetName(name);
 			return *this;
 		}
 
@@ -204,7 +204,7 @@ namespace HXSL
 		ClassBuilder& WithField(const std::string& name, const std::string& type)
 		{
 			auto param = std::make_unique<Field>();
-			param->SetName(TextSpan(table->GetStringPool().add(name)));
+			param->SetName(name);
 
 			auto paramRef = std::make_unique<SymbolRef>(TextSpan(table->GetStringPool().add(type)), SymbolRefType_Type, false);
 			ResolveInternal(paramRef.get());
@@ -235,7 +235,7 @@ namespace HXSL
 
 		PrimitiveBuilder& WithName(const std::string& name)
 		{
-			primitive->SetName(TextSpan(table->GetStringPool().add(name)));
+			primitive->SetName(name);
 			return *this;
 		}
 

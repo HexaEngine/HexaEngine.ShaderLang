@@ -66,7 +66,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL0021</para>
-	/// <para>Message: expected '{'</para>
+	/// <para>Message: expected '{{'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Syntax Error</para>
 	/// <para>Severity: Error</para>
@@ -75,7 +75,7 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL0022</para>
-	/// <para>Message: expected '}'</para>
+	/// <para>Message: expected '}}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Syntax Error</para>
 	/// <para>Severity: Error</para>

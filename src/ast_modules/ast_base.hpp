@@ -329,6 +329,13 @@ namespace HXSL
 		void SetParent(ASTNode* newParent) noexcept
 		{
 			if (parent == newParent) return;
+			if (newParent == this)
+			{
+#if HXSL_DEBUG
+				HXSL_ASSERT(false, "This should never happen.");
+#endif
+				return;
+			}
 
 			if (parent)
 			{

@@ -87,6 +87,8 @@ namespace HXSL
 		}
 	};
 
+	class TokenTransformer;
+
 	struct TokenStream
 	{
 	private:
@@ -106,16 +108,18 @@ namespace HXSL
 			bool IsEndOfTokens() const { return state.IsEOF(); }
 		};
 
+		TokenTransformer& transformer;
 		TokenStreamState streamState;
 		TokenStreamState restorePoint;
 		LexerConfig* config;
 		std::stack<TokenStreamState> stack;
 		size_t currentStack;
 		TokenCache cache;
+		bool transforming;
 
 	public:
 		TokenStream() = default;
-		TokenStream(LexerState lexerState, LexerConfig* config) : streamState(TokenStreamState(lexerState)), config(config), currentStack(0)
+		TokenStream(TokenTransformer& transformer, LexerState lexerState, LexerConfig* config) : transformer(transformer), streamState(TokenStreamState(lexerState)), config(config), currentStack(0), transforming(false)
 		{
 		}
 
@@ -124,6 +128,8 @@ namespace HXSL
 		{
 			streamState.state.LogFormatted(code, std::forward<Args>(args)...);
 		}
+
+		size_t TokenPosition() const noexcept { return streamState.tokenPosition; }
 
 		bool HasCriticalErrors() const noexcept { return streamState.state.HasCriticalErrors(); }
 
@@ -202,7 +208,7 @@ namespace HXSL
 			{
 				return false;
 			}
-			if (current.Span[0] == delimiter)
+			if (current.Value == delimiter)
 			{
 				TryAdvance();
 				return true;
@@ -401,7 +407,7 @@ namespace HXSL
 		bool ExpectDelimiter(char delimiter, Token& token, DiagnosticCode code, Args&&... args)
 		{
 			auto result = Expect(TokenType_Delimiter, token, false);
-			if (!result || token.Span[0] != delimiter)
+			if (!result || token.Value != delimiter)
 			{
 				streamState.state.LogFormatted(code, std::forward<Args>(args)...);
 				return false;
@@ -582,6 +588,13 @@ namespace HXSL
 		{
 			return tokenStream.ExpectNoDelimiters(delimiters, code, std::forward<Args>(args)...);
 		}
+	};
+
+	class TokenTransformer
+	{
+	public:
+		virtual int Transform(const Token& current, TokenStream& stream, Token& outToken) = 0;
+		virtual ~TokenTransformer() = default;
 	};
 }
 #endif

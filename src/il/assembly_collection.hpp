@@ -14,7 +14,7 @@ namespace HXSL
 	{
 	private:
 		std::vector<std::unique_ptr<Assembly>> assemblies;
-		std::unordered_map<TextSpan, Assembly*, TextSpanHash, TextSpanEqual> nameToAssemblies;
+		std::unordered_map<StringSpan, Assembly*, StringSpanHash, StringSpanEqual> nameToAssemblies;
 	public:
 		void AddAssembly(std::unique_ptr<Assembly> assembly)
 		{
@@ -39,7 +39,7 @@ namespace HXSL
 			return assemblies;
 		}
 
-		void FindAssembliesByNamespace(const TextSpan& target, std::vector<AssemblySymbolRef>& assemblyRefs, size_t lookupIndex = 0) const
+		void FindAssembliesByNamespace(const StringSpan& target, std::vector<AssemblySymbolRef>& assemblyRefs, size_t lookupIndex = 0) const
 		{
 			for (auto& assembly : assemblies)
 			{

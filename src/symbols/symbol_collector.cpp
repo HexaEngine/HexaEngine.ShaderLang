@@ -2,13 +2,13 @@
 
 namespace HXSL
 {
-	inline bool SymbolCollector::Push(const TextSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
+	inline bool SymbolCollector::Push(const StringSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		stack.push(current);
 		SymbolHandle handle = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
 		if (handle.invalid())
 		{
-			analyzer.Log(SYMBOL_REDEFINITION, span, span.toString());
+			analyzer.Log(SYMBOL_REDEFINITION, def->GetSpan(), span.str());
 			return false;
 		}
 
@@ -18,13 +18,13 @@ namespace HXSL
 		return true;
 	}
 
-	bool SymbolCollector::PushScope(const ASTNode* parent, const TextSpan& span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
+	bool SymbolCollector::PushScope(const ASTNode* parent, const StringSpan& span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		stack.push(current);
 		SymbolHandle handle = targetAssembly->AddSymbolScope(span, metadata, current.NodeIndex);
 		if (handle.invalid())
 		{
-			analyzer.Log(SYMBOL_REDEFINITION, span, span.toString());
+			analyzer.Log(SYMBOL_REDEFINITION, parent->GetSpan(), span.str());
 			return false;
 		}
 		current.NodeIndex = handle.GetIndex();
@@ -39,7 +39,7 @@ namespace HXSL
 		SymbolHandle handle = targetAssembly->AddSymbol(span, def, metadata, current.NodeIndex);
 		if (handle.invalid())
 		{
-			analyzer.Log(SYMBOL_REDEFINITION, span, span.toString());
+			analyzer.Log(SYMBOL_REDEFINITION, def->GetSpan(), span);
 			return false;
 		}
 		return true;
@@ -152,7 +152,7 @@ namespace HXSL
 				auto& index = s->GetSymbolHandle();
 				if (!table->RenameNode(signature, index))
 				{
-					analyzer.Log(SYMBOL_REDEFINITION, s->GetName(), signature);
+					analyzer.Log(SYMBOL_REDEFINITION, s->GetSpan(), signature);
 				}
 			}
 			break;
@@ -164,7 +164,7 @@ namespace HXSL
 				auto& index = s->GetSymbolHandle();
 				if (!table->RenameNode(signature, index))
 				{
-					analyzer.Log(SYMBOL_REDEFINITION, s->GetName(), signature);
+					analyzer.Log(SYMBOL_REDEFINITION, s->GetSpan(), signature);
 				}
 			}
 			break;

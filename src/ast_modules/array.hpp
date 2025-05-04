@@ -21,7 +21,7 @@ namespace HXSL
 			backingName(std::move(name)),
 			arraySize(arraySize)
 		{
-			this->name = TextSpan(backingName);
+			this->name = backingName;
 		}
 
 		SymbolDef* GetElementType() const

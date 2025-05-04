@@ -2,7 +2,7 @@
 #include "parser_helper.hpp"
 #include "sub_parser_registry.hpp"
 #include "pratt_parser.hpp"
-#include "parser.h"
+#include "parser.hpp"
 
 namespace HXSL
 {

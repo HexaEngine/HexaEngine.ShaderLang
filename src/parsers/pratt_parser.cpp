@@ -1,5 +1,6 @@
 #include "pratt_parser.hpp"
 #include "parser_helper.hpp"
+#include "sub_parser_registry.hpp"
 
 namespace HXSL
 {
@@ -14,6 +15,7 @@ namespace HXSL
 	auto result = expr; \
 	if (result == 0) return true; else if (result == -1) return false;
 
+	using ExpressionPtr = std::unique_ptr<Expression>;
 	using BinaryExpressionPtr = std::unique_ptr<BinaryExpression>;
 	using OperatorPtr = std::unique_ptr<OperatorExpression>;
 

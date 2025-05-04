@@ -2,7 +2,7 @@
 
 #include "sub_parser_registry.hpp"
 #include "statement_parser.hpp"
-#include "parsers/parser.h"
+#include "parsers/parser.hpp"
 #include "ast.hpp"
 #include "parser_helper.hpp"
 #include "pratt_parser.hpp"

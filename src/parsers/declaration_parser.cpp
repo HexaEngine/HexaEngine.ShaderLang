@@ -117,7 +117,7 @@ namespace HXSL
 		if (!stream.TryGetDelimiter(';'))
 		{
 			std::unique_ptr<BlockStatement> statement;
-			IF_ERR_RET_FALSE(ParseStatementBody(name, ScopeType_Function, parser, stream, statement));
+			IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_Function, parser, stream, statement));
 			function->SetBody(std::move(statement));
 		}
 
@@ -216,7 +216,7 @@ namespace HXSL
 		if (!stream.TryGetDelimiter(';'))
 		{
 			std::unique_ptr<BlockStatement> statement;
-			ParseStatementBody(name, ScopeType_Function, parser, stream, statement);
+			ParseStatementBody(ScopeType_Function, parser, stream, statement);
 			_operator->SetBody(std::move(statement));
 		}
 
@@ -334,12 +334,12 @@ namespace HXSL
 		auto _struct = std::make_unique<Struct>(TextSpan(), list.accessModifiers, name);
 
 		Token t;
-		parser.EnterScope(name, ScopeType_Struct, _struct.get(), t, true, EXPECTED_LEFT_BRACE);
-		while (parser.IterateScope())
+		parser.EnterScope(ScopeType_Struct, _struct.get(), t, true, EXPECTED_LEFT_BRACE);
+		while (parser.IterateScope(_struct.get()))
 		{
 			if (!parser.ParseSubStepInner(_struct.get()))
 			{
-				if (!parser.TryRecoverScope(true))
+				if (!parser.TryRecoverScope(_struct.get(), true))
 				{
 					break;
 				}

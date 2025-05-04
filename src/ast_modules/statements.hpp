@@ -28,6 +28,8 @@ namespace HXSL
 		StatementContainer(ASTNode* self) :self(self) {}
 		virtual ~StatementContainer() = default;
 
+		ASTNode* GetSelf() const noexcept { return self; }
+
 		void AddStatement(std::unique_ptr<Statement> statement)
 		{
 			statement->SetParent(self);

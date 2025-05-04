@@ -41,5 +41,7 @@ namespace TextHelper
 	void SkipTrailingWhitespace(const char* text, size_t& length);
 
 	bool TryParseIdentifier(const char* text, size_t offset, size_t length, size_t& trackedLength);
+
+	bool ConvertToUTF8(const char* data, size_t length, std::string& result);
 }
 #endif

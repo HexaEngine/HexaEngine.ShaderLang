@@ -68,6 +68,8 @@ namespace HXSL
 			return  static_cast<Operator>(Value);
 		}
 
+		bool isNewLine() const noexcept { return Type == TokenType_NewLine; }
+
 		bool isKeyword() const noexcept { return Type == TokenType_Keyword; }
 
 		bool isKeywordOf(const Keyword& keyword) const
@@ -88,13 +90,13 @@ namespace HXSL
 		bool isDelimiterOf(const char& delimiter) const
 		{
 			if (!isDelimiter()) return false;
-			return Span[0] == delimiter;
+			return Value == delimiter;
 		}
 
 		bool isDelimiterOf(const std::unordered_set<char>& delimiters) const
 		{
 			if (!isDelimiter()) return false;
-			char k = Span[0];
+			char k = Value;
 			return delimiters.find(k) != delimiters.end();
 		}
 
