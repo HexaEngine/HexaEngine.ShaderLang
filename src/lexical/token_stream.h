@@ -3,6 +3,7 @@
 
 #include "lexical/lexer.h"
 #include "io/logger.hpp"
+#include "generated/localization.hpp"
 
 #include <string>
 #include <stack>
@@ -361,7 +362,7 @@ namespace HXSL
 		}
 
 		template <typename... Args>
-		bool ExpectIdentifier(TextSpan& identifier, DiagnosticCode code, Args&&... args)
+		bool ExpectIdentifier(TextSpan& identifier, DiagnosticCode code = EXPECTED_IDENTIFIER, Args&&... args)
 		{
 			Token token;
 			auto result = Expect(TokenType_Identifier, token);

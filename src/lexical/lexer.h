@@ -29,14 +29,13 @@ namespace HXSL
 			size_t IndexNext;
 			uint32_t Line;
 			uint32_t Column;
-			bool TreatIdentiferAsLiteral;
 
 			LexerState()
-				: logger(nullptr), source(nullptr), Text(nullptr), Length(0), Index(0), IndexNext(0), Line(1), Column(1), TreatIdentiferAsLiteral(false) {
+				: logger(nullptr), source(nullptr), Text(nullptr), Length(0), Index(0), IndexNext(0), Line(1), Column(1) {
 			}
 
 			LexerState(ILogger* logger, SourceFile* source, const char* text, size_t length)
-				: logger(logger), source(source), Text(text), Length(length), Index(0), IndexNext(0), Line(1), Column(1), TreatIdentiferAsLiteral(false) {
+				: logger(logger), source(source), Text(text), Length(length), Index(0), IndexNext(0), Line(1), Column(1) {
 			}
 
 			ILogger* GetLogger() const noexcept { return logger; }
@@ -192,17 +191,16 @@ namespace HXSL
 		public:
 			bool enableNewline;
 			bool enableWhitespace;
-			bool specialParseTreatIdentiferAsLiteral;
 			std::unordered_set<char> delimiters;
 			TernarySearchTreeDictionary<int> keywords;
 			TernarySearchTreeDictionary<int> operators;
 
-			LexerConfig() : enableNewline(false), enableWhitespace(false), specialParseTreatIdentiferAsLiteral(false)
+			LexerConfig() : enableNewline(false), enableWhitespace(false)
 			{
 			}
 
 			LexerConfig(bool enableNewline, bool enableWhitespace, bool specialParseTreatIdentiferAsLiteral, const std::unordered_set<char>& delimiters, const TernarySearchTreeDictionary<int>& keywords, const TernarySearchTreeDictionary<int>& operators)
-				: enableNewline(enableNewline), enableWhitespace(enableWhitespace), specialParseTreatIdentiferAsLiteral(specialParseTreatIdentiferAsLiteral), delimiters(delimiters), keywords(keywords), operators(operators)
+				: enableNewline(enableNewline), enableWhitespace(enableWhitespace), delimiters(delimiters), keywords(keywords), operators(operators)
 			{
 			}
 		};

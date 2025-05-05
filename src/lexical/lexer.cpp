@@ -57,14 +57,6 @@ namespace HXSL
 
 			if (config->delimiters.find(current) != config->delimiters.end())
 			{
-				if (current == ':')
-				{
-					state.TreatIdentiferAsLiteral = config->specialParseTreatIdentiferAsLiteral;
-				}
-				else
-				{
-					state.TreatIdentiferAsLiteral = false;
-				}
 				state.IndexNext += 1;
 				return Token(state.AsTextSpan(i, 1), TokenType_Delimiter, current);
 			}
@@ -105,79 +97,11 @@ namespace HXSL
 			if (state.TryParseIdentifier(identifierLength))
 			{
 				state.IndexNext += identifierLength;
-				return Token(state.AsTextSpan(i, identifierLength), state.TreatIdentiferAsLiteral ? TokenType_Literal : TokenType_Identifier);
+				return Token(state.AsTextSpan(i, identifierLength), TokenType_Identifier);
 			}
 
 			state.LogFormatted(INVALID_TOKEN);
 			return {};
-		}
-
-		static bool isspace(char32_t c)
-		{
-			if (c <= 0x20) {
-				return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
-			}
-
-			return (c >= 0x2000 && c <= 0x200A) || // Range for common space characters
-				(c == 0x202F) ||                // Narrow no-break space
-				(c == 0x3000) ||                // Ideographic space
-				(c == 0x205F);                  // Medium Mathematical Space
-		}
-
-		static char32_t decodeuni(const char* text, size_t& width, size_t max_len)
-		{
-			if (!text || max_len == 0)
-			{
-				width = 0;
-				return 0xFFFD;
-			}
-
-			uint8_t c1 = static_cast<uint8_t>(text[0]);
-
-			if (c1 <= 0x7F)
-			{
-				width = 1;
-				return c1;
-			}
-
-			if ((c1 >> 5) == 0x6)
-			{
-				if (max_len < 2)
-				{
-					width = 1;
-					return 0xFFFD;
-				}
-
-				width = 2;
-				return ((c1 & 0x1F) << 6) | (static_cast<uint8_t>(text[1]) & 0x3F);
-			}
-
-			if ((c1 >> 4) == 0xE)
-			{
-				if (max_len < 3)
-				{
-					width = 1;
-					return 0xFFFD;
-				}
-
-				width = 3;
-				return ((c1 & 0x0F) << 12) | ((static_cast<uint8_t>(text[1]) & 0x3F) << 6) | (static_cast<uint8_t>(text[2]) & 0x3F);
-			}
-
-			if ((c1 >> 3) == 0x1E)
-			{
-				if (max_len < 4)
-				{
-					width = 1;
-					return 0xFFFD;
-				}
-
-				width = 4;
-				return ((c1 & 0x07) << 18) | ((static_cast<uint8_t>(text[1]) & 0x3F) << 12) | ((static_cast<uint8_t>(text[2]) & 0x3F) << 6) | (static_cast<uint8_t>(text[3]) & 0x3F);
-			}
-
-			width = 1;
-			return 0xFFFD;
 		}
 
 		Token TokenizeStep(LexerState& state, LexerConfig* config)

@@ -56,6 +56,15 @@ namespace HXSL
 	constexpr DiagnosticCode UNEXPECTED_EOS = 9223373187906027524;
 	
 	/// <summary>
+	/// <para>Code: HL0005</para>
+	/// <para>Message: expected preprocessor directive after '#'</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Syntax Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode EXPECTED_PREP_DIRECTIVE = 9223373187906027525;
+	
+	/// <summary>
 	/// <para>Code: HL0020</para>
 	/// <para>Message: expected ';'</para>
 	/// <para>Description: Desc</para>

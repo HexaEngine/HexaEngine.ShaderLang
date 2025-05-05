@@ -1,36 +1,5 @@
 import os
-
-class CodeWriter:
-    def __init__(self, f):
-        self.f = f
-        self.indentLevel = 0
-        self.indentStr = "\t"
-        self.indentCache = ""
-
-    def indent(self):
-        self.indentLevel += 1
-        self.indentCache = self.indentStr * self.indentLevel
-
-    def unindent(self):
-        self.indentLevel = max(0, self.indentLevel - 1)
-        self.indentCache = self.indentStr * self.indentLevel
-
-    def write(self, text: str):
-        self.f.write(self.indentCache + text)
-
-    def writeln(self, text = ""):
-        self.write(text + "\n")
-
-    def beginblock(self, text: str, delimiter = '{'):
-        self.writeln(text)
-        self.writeln(delimiter)
-        self.indent()
-
-    def endblock(self, text = '}'):
-        self.unindent()
-        self.writeln(text)
-
-def extract_test_name:
+from code_writer import CodeWriter
 
 def generate_test_suite(test_directory: str, output_file: str, includes: list[str], base_class: str, test_group: str) -> None:
     with open(output_file, "w") as f:

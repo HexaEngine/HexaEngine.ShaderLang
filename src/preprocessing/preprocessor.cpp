@@ -11,7 +11,7 @@ namespace HXSL
 		}
 		if (current.isDelimiterOf('#'))
 		{
-			//stream.LogFormatted();
+			stream.LogFormatted(EXPECTED_PREP_DIRECTIVE);
 			stream.Advance();
 			return 0;
 		}
@@ -29,7 +29,7 @@ namespace HXSL
 		{
 			stream.Advance();
 			TextSpan name;
-			stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER);
+			stream.ExpectIdentifier(name);
 			while (!stream.Current().isNewLine())
 			{
 				stream.TryAdvance();

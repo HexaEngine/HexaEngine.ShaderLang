@@ -1,28 +1,33 @@
-from genericpath import isdir
-import zstandard as zstd
 import os
-import struct
 import argparse
-import ctypes
+from typing import Optional
+from ctypes import c_uint64
+from code_writer import CodeWriter
+from diag_message import DiagMessage, Severity, encode_code_id
+from transl_writer import write_translations
+
 
 class RangeLookup:
+    range_map: dict[int, str]
+
     def __init__(self):
-        self.range_map = {}
+        self.range_map = dict[int, str]()
 
-    def add_range(self, range_begin, range_end, text):
-        range_begin_converted = encode_code_id("", range_begin)
-        range_end_converted = encode_code_id("", range_end)
+    def add_range(self, range_begin: str, range_end: str, text: str):
+        range_begin_converted = encode_code_id(Severity.Info, range_begin)
+        range_end_converted = encode_code_id(Severity.Info, range_end)
 
-        for value in range(range_begin_converted, range_end_converted + 1):
+        for value in range(range_begin_converted.value, range_end_converted.value + 1):
             self.range_map[value] = text
 
-    def value_in_range(self, value):
-        value_converted = encode_code_id("", value)
-
-        return self.range_map.get(value_converted, None)
+    def value_in_range(self, value: int) -> Optional[str]:
+        return self.range_map.get(value, None)
+    
+    def get_value(self, value: c_uint64) -> Optional[str]:
+        return self.range_map.get(value.value, None)
 
 def strip_markdown_formatting(text: str) -> str:
-    result = []
+    result = list[str]()
     skip_chars = {'`', '*', '_', '~'}
     i = 0
     while i < len(text):
@@ -36,24 +41,25 @@ def strip_markdown_formatting(text: str) -> str:
             continue
         result.append(c)
         i += 1
-    return ''.join(result)
+    return ''.join(result).strip()
 
-def parse_range_label(lookup: RangeLookup, input_string):
+def parse_range_label(lookup: RangeLookup, input_string: str):
     label, text = input_string.split(', ')
     _, range_part = label.split(': ')
     range_begin, range_end = range_part.split('-')
     
-    lookup.add_range(strip_markdown_formatting(range_begin), strip_markdown_formatting(range_end), text);
+    lookup.add_range(strip_markdown_formatting(range_begin), strip_markdown_formatting(range_end), text)
 
-def parse_markdown_file(file_path):
-    messages = []
+def parse_markdown_file(file_path: str, seen_codes: set[int]) -> list[DiagMessage]:
+    messages = list[DiagMessage]()
     header = None
     lookupCategory = RangeLookup()
     lookupSeverity = RangeLookup()
 
-
+    line_index = 0
     with open(file_path, 'r') as f:
         for line in f:
+            line_index += 1
             line = line.strip()
 
             if line.startswith('-'):
@@ -81,28 +87,43 @@ def parse_markdown_file(file_path):
                 if len(columns) != len(header):
                     continue
 
-                msg = {}
+                msg = DiagMessage()
                 for idx, column in enumerate(columns):
                     label = header[idx]
 
                     if label == 'code':
-                        msg['code'] = strip_markdown_formatting(column)
+                        msg.code = strip_markdown_formatting(column)
                     elif label == 'name':
-                        msg['name'] = column
+                        msg.name = column
                     elif label == 'message':
-                        msg['message'] = column
+                        msg.message = column
                     elif label == 'description':
-                        msg['description'] = column
+                        msg.description = column
                     elif label == 'category':
-                        msg['category'] = column
+                        msg.category = column
                     elif label == 'severity':
-                        msg['severity'] = column
+                        msg.severity = Severity[column.capitalize()]
 
-                if not 'category' in msg:
-                    msg['category'] = lookupCategory.value_in_range(msg['code']);
+                msg.populate_lookup_id()
 
-                if not 'severity' in msg:
-                    msg['severity'] = lookupSeverity.value_in_range(msg['code']);
+                if not msg.category:
+                    msg.category = lookupCategory.get_value(msg.lookup_id)
+
+                if not msg.severity:
+                    result = lookupSeverity.get_value(msg.lookup_id)
+                    if result:
+                        msg.severity = Severity[result.capitalize()]
+                        
+                msg.populate_code_id()
+
+                if not msg.validate(file_path, line_index):
+                    continue
+
+                if msg.lookup_id.value in seen_codes:
+                    print(f"[Warning]: Duplicate code id {msg.code} in diagnostic message (Line: {line_index}) {file_path}")
+                    continue
+
+                seen_codes.add(msg.lookup_id.value)
 
                 messages.append(msg)
             else:
@@ -110,82 +131,8 @@ def parse_markdown_file(file_path):
 
     return messages
 
-import math
 
-base10Tobase2Digit = 3.321928094887362;
-
-def encode_with_leading(input_str: str, start: int, length: int) -> int:
-    number = 0
-
-    for i in range(start, length):
-        c = input_str[i]
-        if c.isdigit():
-            number = number * 10 + int(c)
-        else:
-            raise ValueError("Unexpected character in analyzer code id.")
-
-    width = length - start;
-    starting_bit = min(math.ceil(width * base10Tobase2Digit), 31)
-    return number | (1 << starting_bit)
-
-def encode_code_id(severity: str, input_str: str) -> int:
-    severity = severity.lower()
-    sevValue = 0
-    if severity == "info":
-        sevValue = 0
-    if severity == "warning":
-        sevValue = 1
-    if severity == "error":
-        sevValue = 2
-    if severity == "critical":
-        sevValue = 3
-    prefix = 0
-    i = 0
-    length = min(len(input_str), 6)
-
-    while i < length:
-        c = input_str[i]
-        if c.isalpha():
-            prefix = (prefix << 5) | (ord(c.upper()) - ord('A') + 1)
-            i += 1
-        else:
-            break
-
-    prefix |= sevValue << 30
-    combined_value = (prefix << 32) | encode_with_leading(input_str, i, length)
-    return ctypes.c_uint64(combined_value & 0xFFFFFFFFFFFFFFFF).value
-
-class CodeWriter:
-    def __init__(self, f):
-        self.f = f
-        self.indentLevel = 0
-        self.indentStr = "\t"
-        self.indentCache = ""
-
-    def indent(self):
-        self.indentLevel += 1
-        self.indentCache = self.indentStr * self.indentLevel
-
-    def unindent(self):
-        self.indentLevel = max(0, self.indentLevel - 1)
-        self.indentCache = self.indentStr * self.indentLevel
-
-    def write(self, text):
-        self.f.write(self.indentCache + text)
-
-    def writeln(self, text = ""):
-        self.write(text + "\n")
-
-    def beginblock(self, text):
-        self.writeln(text)
-        self.writeln('{')
-        self.indent()
-
-    def endblock(self, text = '}'):
-        self.unindent()
-        self.writeln(text)
-
-def generate_header_file(output_file, messages):
+def generate_header_file(output_file: str, messages: list[DiagMessage]):
     with open(output_file, 'w') as f:
         writer = CodeWriter(f)
         writer.writeln("#ifndef LOCALIZATION_HPP")
@@ -216,45 +163,34 @@ def generate_header_file(output_file, messages):
 
         for msg in messages:
             writer.writeln("/// <summary>")
-            writer.writeln(f"/// <para>Code: {msg['code']}</para>")
-            writer.writeln(f"/// <para>Message: {msg['message']}</para>")
-            writer.writeln(f"/// <para>Description: {msg['description']}</para>")
-            writer.writeln(f"/// <para>Category: {msg['category']}</para>")
-            writer.writeln(f"/// <para>Severity: {msg['severity']}</para>")
+            writer.writeln(f"/// <para>Code: {msg.code}</para>")
+            writer.writeln(f"/// <para>Message: {msg.message}</para>")
+            writer.writeln(f"/// <para>Description: {msg.description}</para>")
+            writer.writeln(f"/// <para>Category: {msg.category}</para>")
+            writer.writeln(f"/// <para>Severity: {(msg.severity or Severity.Info).name}</para>")
             writer.writeln("/// </summary>")
-            writer.writeln(f"constexpr DiagnosticCode {msg['name']} = {int(encode_code_id(msg['severity'], msg['code']))};")
+            writer.writeln(f"constexpr DiagnosticCode {msg.name} = {int(msg.code_id.value)};")
             writer.writeln()
 
         writer.endblock()
      
         writer.writeln("#endif // LOCALIZATION_HPP")
 
-MAGIC_STRING = "TRANSL" 
-CURRENT_VERSION = 1  
-
-def write_translations(filename, messages):
-    with open(filename, 'wb') as f:
-        f.write(MAGIC_STRING.encode('utf-8'))
-        f.write(struct.pack('I', CURRENT_VERSION))
-        f.write(struct.pack('Q', len(messages)))
-
-        cctx = zstd.ZstdCompressor(level=3)
-        with cctx.stream_writer(f) as writer:
-            for msg in messages:
-                value_bytes = msg['message'].encode('utf-8') 
-                str_length = struct.pack('I', len(value_bytes)) 
-        
-                writer.write(struct.pack('Q', encode_code_id("", msg['code'])))
-                writer.write(str_length)
-                writer.write(value_bytes)
-            writer.flush(zstd.FLUSH_FRAME)
-
-def extract_language_code(filename):
+def extract_language_code(filename: str) -> Optional[str]:
     first_dot_index = filename.find('.')
     if first_dot_index != -1:
         lang_code = filename[:first_dot_index]
         return lang_code
     return None
+
+def parse_locale_messages(messages: list[DiagMessage], messages_locale: list[DiagMessage], dir_path: str):
+    seen_codes = set[int]()
+    for root, _, files in os.walk(dir_path):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            msgs = parse_markdown_file(file_path, seen_codes)
+            messages_locale.extend(msgs)
+            messages.extend(msgs)
 
 def main():
     parser = argparse.ArgumentParser(description="Generate .hpp files for localization")
@@ -265,31 +201,20 @@ def main():
 
     input_dir = f'resources/diagnostic_messages/'
     
+    messages = list[DiagMessage]()
 
     if args.locale == "all":
         os.makedirs(args.out_locales, exist_ok=True)
-        messages = []
-        for d in os.listdir(input_dir):
-            dir_path = os.path.join(input_dir, d)
-            if not d.startswith('.') and os.path.isdir(dir_path):
-                messages_locale = []
-                lang_code = d
-                for root, _, files in os.walk(dir_path):
-                    for filename in files:
-                        file_path = os.path.join(root, filename)
-                        msgs = parse_markdown_file(file_path);
-                        messages_locale.extend(msgs)
-                        messages.extend(msgs)
-
-                write_translations(os.path.join(args.out_locales, f"{lang_code}.transl"), messages_locale)
+        for dir_name in os.listdir(input_dir):
+            dir_path = os.path.join(input_dir, dir_name)
+            if not dir_name.startswith('.') and os.path.isdir(dir_path):
+                messages_locale = list[DiagMessage]()
+                parse_locale_messages(messages, messages_locale, dir_path)
+                write_translations(os.path.join(args.out_locales, f"{dir_name}.transl"), messages_locale)
     else:
-        messages = []
-        dir_path = os.path.join(input_dir, args.locale)
-        for root, _, files in os.walk(dir_path):
-            for filename in files:
-                file_path = os.path.join(root, filename)
-                messages.extend( parse_markdown_file(file_path))      
         os.makedirs(os.path.dirname(args.out_hpp), exist_ok=True)
+        dir_path = os.path.join(input_dir, args.locale)
+        parse_locale_messages(messages, [], dir_path)
         generate_header_file(args.out_hpp, messages)
 
 if __name__ == '__main__':
