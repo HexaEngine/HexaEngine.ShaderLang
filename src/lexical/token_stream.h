@@ -108,19 +108,17 @@ namespace HXSL
 
 			bool IsEndOfTokens() const { return state.IsEOF(); }
 		};
-
+		LexerContext* context;
 		TokenTransformer& transformer;
 		TokenStreamState streamState;
 		TokenStreamState restorePoint;
-		LexerConfig* config;
 		std::stack<TokenStreamState> stack;
 		size_t currentStack;
 		TokenCache cache;
 		bool transforming;
 
 	public:
-		TokenStream() = default;
-		TokenStream(TokenTransformer& transformer, LexerState lexerState, LexerConfig* config) : transformer(transformer), streamState(TokenStreamState(lexerState)), config(config), currentStack(0), transforming(false)
+		TokenStream(LexerContext* context, TokenTransformer& transformer) : context(context), transformer(transformer), streamState(TokenStreamState(context->MakeState())), currentStack(0), transforming(false)
 		{
 		}
 
@@ -130,9 +128,11 @@ namespace HXSL
 			streamState.state.LogFormatted(code, std::forward<Args>(args)...);
 		}
 
+		const LexerState& GetLexerState() const noexcept { return streamState.state; }
+
 		size_t TokenPosition() const noexcept { return streamState.tokenPosition; }
 
-		bool HasCriticalErrors() const noexcept { return streamState.state.HasCriticalErrors(); }
+		bool HasCriticalErrors() const noexcept { return context->HasCriticalErrors(); }
 
 		Token LastToken() const { return streamState.lastToken; }
 
@@ -594,7 +594,7 @@ namespace HXSL
 	class TokenTransformer
 	{
 	public:
-		virtual int Transform(const Token& current, TokenStream& stream, Token& outToken) = 0;
+		virtual int Transform(Token& current, TokenStream& stream) = 0;
 		virtual ~TokenTransformer() = default;
 	};
 }

@@ -86,23 +86,6 @@ namespace TextHelper
 		return length - offset;
 	}
 
-	size_t FindWhitespaceWordBoundary(const char* text, size_t offset, size_t length)
-	{
-		const char* current = text + offset;
-		const char* end = text + length;
-
-		while (current != end)
-		{
-			if (std::isspace(*current))
-			{
-				return (size_t)(current - text - offset);
-			}
-			current++;
-		}
-
-		return length - offset;
-	}
-
 	bool LookAhead(const char* text, size_t offset, size_t length, char target, size_t& trackedLength)
 	{
 		const char* current = text + offset;
@@ -161,29 +144,6 @@ namespace TextHelper
 		}
 		trackedLength = 0;
 		return false;
-	}
-
-	bool StartsWith(const char* text, size_t offset, size_t length, const std::string& value)
-	{
-		size_t valueLength = value.length();
-		if (length - offset < valueLength)
-			return false;
-
-		const char* pat = value.c_str();
-		const char* current = text + offset;
-		const char* end = pat + valueLength;
-		const char* patCurrent = pat;
-		while (patCurrent != end)
-		{
-			if (*current != *patCurrent)
-			{
-				return false;
-			}
-			current++;
-			patCurrent++;
-		}
-
-		return true;
 	}
 
 	size_t CountLeadingWhitespace(const char* text, size_t length)

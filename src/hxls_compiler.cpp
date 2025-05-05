@@ -16,26 +16,28 @@ namespace HXSL
 		std::vector<std::unique_ptr<SourceFile>> sources;
 		for (auto& file : files)
 		{
-			std::ifstream fs = std::ifstream(file);
+			auto fs = FileStream::OpenRead(file.c_str());
 
-			if (!fs) {
+			if (!fs)
+			{
 				std::cerr << "Error opening file." << std::endl;
-				return;
+				continue;
 			}
 
-			std::stringstream buffer;
-			buffer << fs.rdbuf();
+			sources.push_back(std::make_unique<SourceFile>(fs.release(), true));
+			auto& source = sources.back();
 
-			sources.push_back(std::make_unique<SourceFile>(std::move(buffer.str())));
-			auto& c = sources.back();
+			if (!source->PrepareInputStream())
+			{
+				std::cerr << "Error reading file." << std::endl;
+				continue;
+			}
 
-			LexerState state = LexerState(compilation.get(), c.get(), c->GetContent().data(), c->GetContent().length());
-
+			LexerContext context = LexerContext(source.get(), source->GetInputStream(), compilation.get(), HXSLLexerConfig::Instance());
 			Preprocessor preprocessor = Preprocessor();
+			TokenStream tokenStream = TokenStream(&context, preprocessor);
 
-			TokenStream stream = TokenStream(preprocessor, state, HXSLLexerConfig::Instance());
-
-			Parser parser = Parser(stream, compilation.get());
+			Parser parser = Parser(tokenStream, compilation.get());
 
 			parser.Parse();
 		}

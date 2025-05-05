@@ -1,7 +1,7 @@
 #ifndef SYMBOL_HANDLE_HPP
 #define SYMBOL_HANDLE_HPP
 
-#include "utils/span.h"
+#include "utils/span.hpp"
 
 #include <iostream>
 #include <memory>

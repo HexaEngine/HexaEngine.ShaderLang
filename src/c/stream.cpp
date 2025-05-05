@@ -9,38 +9,17 @@ HXSL_API HXSLStream* HXSL_CreateStream(HXSLStreamDesc* desc)
 
 HXSL_API HXSLStream* HXSL_CreateFileStream(const char* path)
 {
-	FILE* file;
-	auto error = fopen_s(&file, path, "wb+");
-	if (error != 0 || file == nullptr)
-	{
-		return nullptr;
-	}
-	HXSL::Stream* stream = new HXSL::FileStream(file);
-	return reinterpret_cast<HXSLStream*>(stream);
+	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::OpenCreate(path).release());
 }
 
 HXSL_API HXSLStream* HXSL_ReadFileStream(const char* path)
 {
-	FILE* file;
-	auto error = fopen_s(&file, path, "r");
-	if (error != 0 || file == nullptr)
-	{
-		return nullptr;
-	}
-	HXSL::Stream* stream = new HXSL::FileStream(file);
-	return reinterpret_cast<HXSLStream*>(stream);
+	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::OpenRead(path).release());
 }
 
 HXSL_API HXSLStream* HXSL_OpenFileStream(const char* path, const char* mode)
 {
-	FILE* file;
-	auto error = fopen_s(&file, path, mode);
-	if (error != 0 || file == nullptr)
-	{
-		return nullptr;
-	}
-	HXSL::Stream* stream = new HXSL::FileStream(file);
-	return reinterpret_cast<HXSLStream*>(stream);
+	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::Open(path, mode).release());
 }
 
 HXSL_API HXSLStream* HXSL_CreateMemoryStream(size_t capacity)
@@ -86,4 +65,12 @@ HXSL_API int64_t HXSL_MemoryStreamGetBufferCapacity(HXSLStream* self)
 	}
 	auto* ms = static_cast<HXSL::MemoryStream*>(base);
 	return static_cast<int64_t>(ms->GetBufferCapacity());
+}
+
+HXSL_API void HXSL_CloseStream(HXSLStream* self)
+{
+	if (self == nullptr)
+		return;
+	HXSL::Stream* base = reinterpret_cast<HXSL::Stream*>(self);
+	delete base;
 }

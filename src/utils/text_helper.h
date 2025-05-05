@@ -18,13 +18,9 @@ namespace TextHelper
 
 	size_t FindOperatorBoundary(const char* text, size_t offset, size_t length, const std::unordered_set<char>& delimiter);
 
-	size_t FindWhitespaceWordBoundary(const char* text, size_t offset, size_t length);
-
 	bool LookAhead(const char* text, size_t offset, size_t length, char target, size_t& trackedLength);
 
 	bool LookAhead(const char* text, size_t offset, size_t length, const std::string& target, size_t& trackedLength);
-
-	bool StartsWith(const char* text, size_t offset, size_t length, const std::string& value);
 
 	size_t CountLeadingWhitespace(const char* text, size_t length);
 

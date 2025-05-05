@@ -6,7 +6,7 @@
 
 #include "io/stream.hpp"
 #include "utils/string_pool.hpp"
-#include "utils/span.h"
+#include "utils/span.hpp"
 
 #include <vector>
 #include <memory>

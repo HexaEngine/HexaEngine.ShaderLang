@@ -118,6 +118,8 @@ HXSL_API int64_t HXSL_MemoryStreamGetBufferSize(HXSLStream* self);
  */
 HXSL_API int64_t HXSL_MemoryStreamGetBufferCapacity(HXSLStream* self);
 
+HXSL_API void HXSL_CloseStream(HXSLStream* self);
+
 C_API_END
 #endif
 

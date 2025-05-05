@@ -2,7 +2,7 @@
 #define TERNARY_SEARCH_TREE_DICTIONARY_H
 
 #include "allocator.h"
-#include "span.h"
+#include "span.hpp"
 
 #include <functional>
 #include <utility>
@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace HXSL 
+namespace HXSL
 {
 	template <typename T, typename Equals = std::equal_to<T>>
 	class TernarySearchTreeDictionary
@@ -116,7 +116,7 @@ namespace HXSL
 			}
 		}
 
-		bool LookupNode(const StringSpan& key, size_t& nodeIndex, size_t& matchedLength)
+		bool LookupNode(const StringSpan& key, size_t& nodeIndex, size_t& matchedLength) const
 		{
 			size_t index = 0;
 			size_t lastMatchedIndex = TST_INVALID_INDEX;
@@ -264,7 +264,7 @@ namespace HXSL
 			nodes[index].Value = value;
 		}
 
-		bool MatchLongestPrefix(const StringSpan& text, T& value, size_t& matchedLength)
+		bool MatchLongestPrefix(const StringSpan& text, T& value, size_t& matchedLength) const
 		{
 			if (Count() == 1)
 			{
@@ -284,7 +284,7 @@ namespace HXSL
 			return false;
 		}
 
-		T operator[](const StringSpan& key)
+		T operator[](const StringSpan& key) const
 		{
 			size_t index;
 			size_t len;

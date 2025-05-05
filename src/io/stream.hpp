@@ -4,7 +4,7 @@
 #include "allocator.h"
 #include "config.h"
 #include "c/stream.h"
-#include "utils/span.h"
+#include "utils/span.hpp"
 #include "utils/endianness.hpp"
 
 #include <fstream>
@@ -32,55 +32,62 @@ namespace HXSL
 		{
 		}
 
-		void Read(void* buffer, size_t size)
+		virtual ~Stream()
+		{
+			Close();
+		}
+
+		size_t Read(void* buffer, size_t size) const
 		{
 			if (readFunc)
 			{
-				readFunc(userdata, buffer, size);
+				return readFunc(userdata, buffer, size);
 			}
+			return EOF;
 		}
 
-		void Write(const void* buffer, size_t size)
+		size_t Write(const void* buffer, size_t size) const
 		{
 			if (writeFunc)
 			{
-				writeFunc(userdata, buffer, size);
+				return writeFunc(userdata, buffer, size);
 			}
+			return EOF;
 		}
 
-		int64_t Seek(int64_t offset, SeekOrigin origin)
+		int64_t Seek(int64_t offset, SeekOrigin origin) const
 		{
 			if (seekFunc)
 			{
 				return seekFunc(userdata, offset, origin);
 			}
-			return -1;
+			return EOF;
 		}
 
-		int64_t Position()
+		int64_t Position() const
 		{
 			if (getPositionFunc)
 			{
 				return getPositionFunc(userdata);
 			}
-			return -1;
+			return EOF;
 		}
 
-		void Position(int64_t position)
+		void Position(int64_t position) const
 		{
 			Seek(position, SeekOrigin_Begin);
 		}
 
-		int64_t Length()
+		int64_t Length() const
 		{
 			if (getPositionFunc)
 			{
 				return getLengthFunc(userdata);
 			}
-			return -1;
+			return EOF;
 		}
 
-		void Flush()
+		void Flush() const
 		{
 			if (flushFunc)
 			{
@@ -153,32 +160,79 @@ namespace HXSL
 			Read(result.data(), len);
 			return result;
 		}
+
+		std::string ReadAllText()
+		{
+			auto len = Length();
+			if (len <= 0) return {};
+
+			size_t lenU = static_cast<size_t>(len);
+			std::string result;
+			result.resize(lenU);
+			Read(result.data(), lenU);
+			return result;
+		}
 	};
 
 	struct FileStream : public Stream
 	{
 		FILE* file;
 		FileStream(FILE* file)
-			: Stream(sizeof(FileStream), file, FileStreamRead, FileStreamWrite, FileStreamSeek, FileStreamPosition, FileStreamLength, FileStreamFlush, FileStreamClose),
+			: Stream(sizeof(FileStream), this, FileStreamRead, FileStreamWrite, FileStreamSeek, FileStreamPosition, FileStreamLength, FileStreamFlush, FileStreamClose),
 			file(file)
 		{
 		}
 
+		static std::unique_ptr<FileStream> OpenRead(const char* path)
+		{
+			FILE* file;
+			auto error = fopen_s(&file, path, "rb");
+			if (error != 0 || file == nullptr)
+			{
+				return nullptr;
+			}
+			return std::make_unique<FileStream>(file);
+		}
+
+		static std::unique_ptr<FileStream> OpenCreate(const char* path)
+		{
+			FILE* file;
+			auto error = fopen_s(&file, path, "wb+");
+			if (error != 0 || file == nullptr)
+			{
+				return nullptr;
+			}
+			return std::make_unique<FileStream>(file);
+		}
+
+		static std::unique_ptr<FileStream> Open(const char* path, const char* mode)
+		{
+			FILE* file;
+			auto error = fopen_s(&file, path, mode);
+			if (error != 0 || file == nullptr)
+			{
+				return nullptr;
+			}
+			return std::make_unique<FileStream>(file);
+		}
+
+	private:
+
 		static size_t FileStreamRead(void* userdata, void* buffer, size_t size)
 		{
-			FILE* file = static_cast<FILE*>(userdata);
-			return fread(buffer, 1, size, file);
+			FileStream* fs = static_cast<FileStream*>(userdata);
+			return fread(buffer, 1, size, fs->file);
 		}
 
 		static size_t FileStreamWrite(void* userdata, const void* buffer, size_t size)
 		{
-			FILE* file = static_cast<FILE*>(userdata);
-			return fwrite(buffer, 1, size, file);
+			FileStream* fs = static_cast<FileStream*>(userdata);
+			return fwrite(buffer, 1, size, fs->file);
 		}
 
 		static int64_t FileStreamSeek(void* userdata, int64_t offset, SeekOrigin origin)
 		{
-			FILE* file = static_cast<FILE*>(userdata);
+			FileStream* fs = static_cast<FileStream*>(userdata);
 			int originFlag = SEEK_SET;
 			switch (origin)
 			{
@@ -186,37 +240,41 @@ namespace HXSL
 			case SeekOrigin_Current: originFlag = SEEK_CUR; break;
 			case SeekOrigin_End: originFlag = SEEK_END; break;
 			}
-			if (fseek(file, static_cast<long>(offset), originFlag) != 0)
+			if (fseek(fs->file, static_cast<long>(offset), originFlag) != 0)
 				return -1;
-			return ftell(file);
+			return ftell(fs->file);
 		}
 
 		static int64_t FileStreamPosition(void* userdata)
 		{
-			FILE* file = static_cast<FILE*>(userdata);
-			return ftell(file);
+			FileStream* fs = static_cast<FileStream*>(userdata);
+			return ftell(fs->file);
 		}
 
 		static int64_t FileStreamLength(void* userdata)
 		{
-			FILE* file = static_cast<FILE*>(userdata);
-			long current = ftell(file);
-			fseek(file, 0, SEEK_END);
-			long length = ftell(file);
-			fseek(file, current, SEEK_SET);
+			FileStream* fs = static_cast<FileStream*>(userdata);
+			long current = ftell(fs->file);
+			fseek(fs->file, 0, SEEK_END);
+			long length = ftell(fs->file);
+			fseek(fs->file, current, SEEK_SET);
 			return length;
 		}
 
 		static void FileStreamFlush(void* userdata)
 		{
-			FILE* file = static_cast<FILE*>(userdata);
-			fflush(file);
+			FileStream* fs = static_cast<FileStream*>(userdata);
+			fflush(fs->file);
 		}
 
 		static void FileStreamClose(void* userdata)
 		{
-			FILE* file = static_cast<FILE*>(userdata);
-			fclose(file);
+			FileStream* fs = static_cast<FileStream*>(userdata);
+			if (fs->file != nullptr)
+			{
+				fclose(fs->file);
+				fs->file = nullptr;
+			}
 		}
 	};
 

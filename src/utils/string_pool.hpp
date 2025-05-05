@@ -1,7 +1,7 @@
 #ifndef STRING_POOL_H
 #define STRING_POOL_H
 
-#include "span.h"
+#include "span.hpp"
 
 #include <memory>
 #include <string>

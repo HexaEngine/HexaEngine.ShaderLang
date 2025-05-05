@@ -12,12 +12,17 @@ namespace HXSL
 {
 	namespace Lexer
 	{
-		static Token TokenizeStepInner(LexerState& state, LexerConfig* config)
+		LexerState LexerContext::MakeState()
+		{
+			return LexerState(this);
+		}
+
+		static Token TokenizeStepInner(LexerState& state, const LexerConfig* config)
 		{
 			const char* pCurrent = state.Current();
 			char current = *pCurrent;
 			size_t i = state.Index;
-			size_t len = state.Length;
+			size_t len = state.GetLength();
 
 			int keyword;
 			size_t keywordLength;
@@ -50,7 +55,7 @@ namespace HXSL
 			{
 				size_t numberLength;
 				Number num;
-				ParseNumber(state.Text, len, i, isHex, isBinary, false, num, numberLength);
+				ParseNumber(state.GetBuffer(), len, i, isHex, isBinary, false, num, numberLength);
 				state.IndexNext += numberLength;
 				return Token(state.AsTextSpan(i, numberLength), TokenType_Numeric, num);
 			}
@@ -104,15 +109,16 @@ namespace HXSL
 			return {};
 		}
 
-		Token TokenizeStep(LexerState& state, LexerConfig* config)
+		Token TokenizeStep(LexerState& state)
 		{
 			size_t i = state.Index;
-			if (i >= state.Length)
+			if (i >= state.GetLength())
 			{
 				state.IndexNext++;
 				return {};
 			}
 
+			auto config = state.GetConfig();
 			const char* current = state.Current();
 			if (std::isspace(*current))
 			{
@@ -134,7 +140,7 @@ namespace HXSL
 
 						if (config->enableNewline)
 						{
-							size_t idx = current - state.Text;
+							size_t idx = current - state.GetBuffer();
 							state.IndexNext = idx + width;
 							return Token(state.AsTextSpan(idx, width), TokenType_NewLine);
 						}
@@ -156,7 +162,7 @@ namespace HXSL
 						size_t width = next - current;
 						if (config->enableWhitespace)
 						{
-							size_t idx = current - state.Text;
+							size_t idx = current - state.GetBuffer();
 							state.IndexNext = idx + width;
 							return Token(state.AsTextSpan(idx, width), TokenType_Whitespace);
 						}
@@ -169,7 +175,7 @@ namespace HXSL
 					}
 				}
 
-				state.Jump(current - state.Text);
+				state.Jump(current - state.GetBuffer());
 			}
 
 			if (state.IsEOF())

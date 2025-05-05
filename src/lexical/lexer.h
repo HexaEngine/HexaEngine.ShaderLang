@@ -10,54 +10,81 @@
 #include "numbers.h"
 #include "lang/language.h"
 #include "diagnostic_code.hpp"
-#include "lexer_input_stream.hpp"
+#include "input_stream.hpp"
 
 namespace HXSL
 {
 	namespace Lexer
 	{
-		struct LexerState
-		{
-		private:
-			ILogger* logger;
+		struct LexerState;
+		class LexerConfig;
 
+		class LexerContext
+		{
 		public:
 			SourceFile* source;
-			const char* Text;
-			size_t Length;
+			InputStream* stream;
+			ILogger* logger;
+			const LexerConfig* config;
+
+			LexerContext(SourceFile* source, InputStream* stream, ILogger* logger, const LexerConfig* config) : source(source), stream(stream), logger(logger), config(config)
+			{
+			}
+
+			LexerState MakeState();
+
+			const char* GetBuffer() const noexcept { return stream->GetBuffer(); }
+
+			size_t GetLength() const noexcept { return stream->GetLength(); }
+
+			bool HasCriticalErrors() const noexcept
+			{
+				return logger->HasCriticalErrors();
+			}
+		};
+
+		struct LexerState
+		{
+		public:
+			LexerContext* context;
 			size_t Index;
 			size_t IndexNext;
 			uint32_t Line;
 			uint32_t Column;
 
-			LexerState()
-				: logger(nullptr), source(nullptr), Text(nullptr), Length(0), Index(0), IndexNext(0), Line(1), Column(1) {
+			LexerState() : context(nullptr), Index(0), IndexNext(0), Line(1), Column(1)
+			{
 			}
 
-			LexerState(ILogger* logger, SourceFile* source, const char* text, size_t length)
-				: logger(logger), source(source), Text(text), Length(length), Index(0), IndexNext(0), Line(1), Column(1) {
+			LexerState(LexerContext* context) : context(context), Index(0), IndexNext(0), Line(1), Column(1)
+			{
 			}
 
-			ILogger* GetLogger() const noexcept { return logger; }
+			const char* GetBuffer() const noexcept { return context->GetBuffer(); }
+
+			size_t GetLength() const noexcept { return context->GetLength(); }
+
+			const LexerConfig* GetConfig() const noexcept { return context->config; }
+
+			template <typename... Args>
+			void LogFormatted(DiagnosticCode code, Args&&... args) const
+			{
+				context->logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., Line, Column);
+			}
 
 			const char* Current() const noexcept
 			{
-				return Text + Index;
+				return GetBuffer() + Index;
 			}
 
 			const char* End() const noexcept
 			{
-				return Text + Length;
+				return GetBuffer() + GetLength();
 			}
 
 			bool IsEOF() const noexcept
 			{
-				return Index >= Length;
-			}
-
-			bool HasCriticalErrors() const noexcept
-			{
-				return logger->HasCriticalErrors();
+				return Index >= GetLength();
 			}
 
 			void Advance()
@@ -65,46 +92,6 @@ namespace HXSL
 				size_t diff = IndexNext - Index;
 				Index = IndexNext;
 				Column += static_cast<uint32_t>(diff);
-			}
-
-			void SkipWhitespace()
-			{
-				size_t start = Index;
-				TextHelper::SkipLeadingWhitespace(Text, Index, Length);
-				size_t skipped = Index - start;
-				Column += static_cast<uint32_t>(skipped);
-				IndexNext = Index;
-			}
-
-			void SkipNewLines()
-			{
-				const char* start = Text + Index;
-				const char* current = start;
-				const char* end = Text + Length;
-				char c;
-				while (current != end)
-				{
-					c = *current;
-					bool isLF = c == '\n';
-					if (!isLF && c != '\r')
-					{
-						break;
-					}
-
-					int width = 1;
-					const char* next = current + 1;
-					if (!isLF && next < end && *next == '\n')
-					{
-						width++;
-					}
-
-					NewLine();
-					current = current + width;
-				}
-
-				size_t skipped = current - start;
-				Index += skipped;
-				IndexNext = Index;
 			}
 
 			void Jump(size_t index)
@@ -121,68 +108,52 @@ namespace HXSL
 
 			bool MatchPair(char current, char first, char second) const
 			{
-				return TextHelper::MatchPair(Text, Index, Length, current, first, second);
+				return TextHelper::MatchPair(GetBuffer(), Index, GetLength(), current, first, second);
 			}
 
 			size_t FindEndOfLine(size_t start) const
 			{
-				return TextHelper::FindEndOfLine(Text, start, Length);
+				return TextHelper::FindEndOfLine(GetBuffer(), start, GetLength());
 			}
 
 			size_t FindWordBoundary(size_t start) const
 			{
-				return TextHelper::FindWordBoundary(Text, start, Length);
+				return TextHelper::FindWordBoundary(GetBuffer(), start, GetLength());
 			}
 
 			size_t FindOperatorBoundary(size_t start, const std::unordered_set<char>& delimiters) const
 			{
-				return TextHelper::FindOperatorBoundary(Text, start, Length, delimiters);
-			}
-
-			size_t FindWhitespaceWordBoundary(size_t start) const
-			{
-				return TextHelper::FindWhitespaceWordBoundary(Text, start, Length);
+				return TextHelper::FindOperatorBoundary(GetBuffer(), start, GetLength(), delimiters);
 			}
 
 			bool LookAhead(size_t start, char target, size_t& trackedLength) const
 			{
-				return TextHelper::LookAhead(Text, start, Length, target, trackedLength);
+				return TextHelper::LookAhead(GetBuffer(), start, GetLength(), target, trackedLength);
 			}
 
 			bool LookAhead(size_t start, const std::string& target, size_t& trackedLength) const
 			{
-				return TextHelper::LookAhead(Text, start, Length, target, trackedLength);
-			}
-
-			bool StartsWith(const std::string& value) const
-			{
-				return TextHelper::StartsWith(Text, Index, Length, value);
+				return TextHelper::LookAhead(GetBuffer(), start, GetLength(), target, trackedLength);
 			}
 
 			bool TryParseIdentifier(size_t& trackedLength) const
 			{
-				return TextHelper::TryParseIdentifier(Text, Index, Length, trackedLength);
+				return TextHelper::TryParseIdentifier(GetBuffer(), Index, GetLength(), trackedLength);
 			}
 
 			TextSpan AsTextSpan(size_t start, size_t length) const
 			{
-				return TextSpan(source, start, length, Line, Column);
+				return TextSpan(context->source, start, length, Line, Column);
 			}
 
 			TextSpan AsTextSpan() const
 			{
-				return TextSpan(source, Index, Length - Index, Line, Column);
+				return TextSpan(context->source, Index, GetLength() - Index, Line, Column);
 			}
 
 			StringSpan AsSpan() const
 			{
-				return StringSpan(Text, Index, Length - Index);
-			}
-
-			template <typename... Args>
-			void LogFormatted(DiagnosticCode code, Args&&... args) const
-			{
-				logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., Line, Column);
+				return StringSpan(GetBuffer(), Index, GetLength() - Index);
 			}
 		};
 
@@ -231,7 +202,7 @@ namespace HXSL
 			HXSLLexerConfig& operator=(const HXSLLexerConfig&) = delete;
 		};
 
-		Token TokenizeStep(LexerState& state, LexerConfig* config);
+		Token TokenizeStep(LexerState& state);
 	}
 }
 

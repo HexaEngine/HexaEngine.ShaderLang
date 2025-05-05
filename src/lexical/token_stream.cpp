@@ -71,13 +71,13 @@ namespace HXSL
 		{
 			do
 			{
-				if (IsEndOfTokens() || lexerState.HasCriticalErrors())
+				if (IsEndOfTokens() || context->HasCriticalErrors())
 				{
 					currentToken = {};
 					return false;
 				}
 
-				currentToken = TokenizeStep(lexerState, config);
+				currentToken = TokenizeStep(lexerState);
 				lexerState.Advance();
 			} while (currentToken.Type == TokenType_Comment || currentToken.Type == TokenType_Unknown);
 
@@ -85,7 +85,7 @@ namespace HXSL
 			{
 				transforming = true;
 				Token out;
-				result = transformer.Transform(currentToken, *this, out);
+				result = transformer.Transform(currentToken, *this);
 				transforming = false;
 			}
 		} while (result == 2);

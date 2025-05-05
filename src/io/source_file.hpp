@@ -1,20 +1,45 @@
 #ifndef SOURCE_FILE_HPP
 #define SOURCE_FILE_HPP
 
+#include "io/stream.hpp"
+#include "lexical/input_stream.hpp"
+
 #include <string>
+#include <memory>
 
 namespace HXSL
 {
+	using LexerInputStream = Lexer::InputStream;
+
 	class SourceFile
 	{
-		std::string content;
+		Stream* stream;
+		bool closeStream;
+		std::unique_ptr<LexerInputStream> inputStream;
 
 	public:
-		SourceFile(const std::string& content) : content(content)
+		SourceFile(Stream* stream, bool closeStream) : stream(stream), closeStream(closeStream), inputStream(std::make_unique<LexerInputStream>())
 		{
 		}
 
-		const std::string& GetContent() const { return content; }
+		~SourceFile()
+		{
+			if (stream)
+			{
+				if (closeStream)
+				{
+					delete stream;
+				}
+				stream = nullptr;
+			}
+		}
+
+		bool PrepareInputStream();
+
+		LexerInputStream* GetInputStream() const noexcept
+		{
+			return inputStream.get();
+		}
 
 		std::string GetString(size_t start, size_t length);
 	};
