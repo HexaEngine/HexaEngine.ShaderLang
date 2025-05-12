@@ -1,7 +1,7 @@
 #include "member_path_parser.hpp"
 #include "parser_helper.hpp"
 #include "sub_parser_registry.hpp"
-#include "pratt_parser.hpp"
+#include "hybrid_expr_parser.hpp"
 #include "parser.hpp"
 
 namespace HXSL
@@ -42,7 +42,7 @@ namespace HXSL
 			{
 				auto indexerAccessExpression = std::make_unique<IndexerAccessExpression>(TextSpan(), std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier, !wantsIdentifier)));
 				std::unique_ptr<Expression> indexExpression;
-				PrattParser::ParseExpression(parser, stream, indexExpression);
+				HybridExpressionParser::ParseExpression(parser, stream, indexExpression);
 				stream.ExpectDelimiter(']', EXPECTED_RIGHT_BRACKET);
 				indexerAccessExpression->SetIndexExpression(std::move(indexExpression));
 				indexerAccessExpression->SetSpan(stream.MakeFromLast(start));

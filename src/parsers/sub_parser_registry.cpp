@@ -27,6 +27,7 @@ namespace HXSL
 	{
 		std::call_once(initFlag, []()
 			{
+				Register<BlockStatementParser>();
 				Register<MiscKeywordStatementParser>();
 				Register<SwitchStatementParser>();
 				Register<ForStatementParser>();

@@ -1,7 +1,7 @@
 #include "preprocessor.hpp"
 #include "generated/localization.hpp"
 #include "parsers/parser.hpp"
-#include "parsers/pratt_parser.hpp"
+#include "parsers/hybrid_expr_parser.hpp"
 #include "evaluator.hpp"
 namespace HXSL
 {

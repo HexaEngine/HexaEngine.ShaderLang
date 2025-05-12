@@ -66,25 +66,25 @@ namespace HXSL
 		NodeType_SwizzleDefinition,
 		NodeType_AttributeDeclaration,
 
-		NodeType_BlockStatement, // type-check: yes
-		NodeType_DeclarationStatement,
-		NodeType_AssignmentStatement,
-		NodeType_CompoundAssignmentStatement,
-		NodeType_FunctionCallStatement,
-		NodeType_ReturnStatement, // type-check: yes
-		NodeType_IfStatement,
-		NodeType_ElseStatement,
-		NodeType_ElseIfStatement,
-		NodeType_WhileStatement,
-		NodeType_ForStatement,
-		NodeType_BreakStatement,
-		NodeType_ContinueStatement,
-		NodeType_DiscardStatement,
+		NodeType_BlockStatement, // type-check: done
+		NodeType_DeclarationStatement, // type-check: done
+		NodeType_AssignmentStatement, // type-check: done
+		NodeType_CompoundAssignmentStatement, // type-check: done
+		NodeType_FunctionCallStatement, // type-check: done
+		NodeType_ReturnStatement, // type-check: done
+		NodeType_IfStatement, // type-check: done
+		NodeType_ElseStatement, // type-check: done
+		NodeType_ElseIfStatement, // type-check: done
+		NodeType_WhileStatement, // type-check: done
+		NodeType_ForStatement, // type-check: done
+		NodeType_BreakStatement, // type-check: done
+		NodeType_ContinueStatement, // type-check: done
+		NodeType_DiscardStatement, // type-check: done
 		NodeType_SwitchStatement,
 		NodeType_CaseStatement,
-		NodeType_DefaultCaseStatement,
+		NodeType_DefaultCaseStatement, // type-check: done
 
-		NodeType_EmptyExpression,
+		NodeType_EmptyExpression, // type-check: done
 		NodeType_BinaryExpression, // type-check: yes
 		NodeType_LiteralExpression, // type-check: yes
 		NodeType_MemberReferenceExpression, // type-check: yes
@@ -98,6 +98,7 @@ namespace HXSL
 		NodeType_PrefixExpression, // type-check: yes
 		NodeType_PostfixExpression, // type-check: yes
 		NodeType_AssignmentExpression, // type-check: yes
+		NodeType_CompoundAssignmentExpression, // type-check: yes
 		NodeType_InitializationExpression,
 
 		NodeType_Count,
@@ -105,11 +106,11 @@ namespace HXSL
 
 	constexpr int NodeType_FirstStatement = NodeType_BlockStatement;
 	constexpr int NodeType_LastStatement = NodeType_DefaultCaseStatement;
-	constexpr int NodeType_StatementCount = NodeType_LastStatement - NodeType_FirstStatement;
+	constexpr int NodeType_StatementCount = NodeType_LastStatement - NodeType_FirstStatement + 1;
 
 	constexpr int NodeType_FirstExpression = NodeType_EmptyExpression;
 	constexpr int NodeType_LastExpression = NodeType_InitializationExpression;
-	constexpr int NodeType_ExpressionCount = NodeType_LastExpression - NodeType_FirstExpression;
+	constexpr int NodeType_ExpressionCount = NodeType_LastExpression - NodeType_FirstExpression + 1;
 
 	static bool IsDataType(NodeType nodeType)
 	{
@@ -140,6 +141,7 @@ namespace HXSL
 		case NodeType_PrefixExpression:
 		case NodeType_PostfixExpression:
 		case NodeType_AssignmentExpression:
+		case NodeType_CompoundAssignmentExpression:
 		case NodeType_InitializationExpression:
 			return true;
 		default:
@@ -178,52 +180,54 @@ namespace HXSL
 	{
 		switch (nodeType)
 		{
-		case NodeType_Unknown: return "NodeType_Unknown";
-		case NodeType_Compilation: return "NodeType_Compilation";
-		case NodeType_Namespace: return "NodeType_Namespace";
-		case NodeType_Enum: return "NodeType_Enum";
-		case NodeType_Primitive: return "NodeType_Primitive";
-		case NodeType_Struct: return "NodeType_Struct";
-		case NodeType_Class: return "NodeType_Class";
-		case NodeType_Array: return "NodeType_Array";
-		case NodeType_Field: return "NodeType_Field";
-		case NodeType_IntrinsicFunction: return "NodeType_IntrinsicFunction";
-		case NodeType_FunctionOverload: return "NodeType_Function";
-		case NodeType_OperatorOverload: return "NodeType_Operator";
-		case NodeType_Constructor: return "NodeType_Constructor";
-		case NodeType_Parameter: return "NodeType_Parameter";
-		case NodeType_AttributeDeclaration: return "NodeType_AttributeDeclaration";
-		case NodeType_BinaryExpression: return "NodeType_BinaryExpression";
-		case NodeType_EmptyExpression: return "NodeType_EmptyExpression";
-		case NodeType_LiteralExpression: return "NodeType_ConstantExpression";
-		case NodeType_MemberReferenceExpression: return "NodeType_MemberReferenceExpression";
-		case NodeType_FunctionCallExpression: return "NodeType_FunctionCallExpression";
-		case NodeType_FunctionCallParameter: return "NodeType_FunctionCallParameter";
-		case NodeType_MemberAccessExpression: return "NodeType_MemberAccessExpression";
-		case NodeType_IndexerAccessExpression: return "NodeType_IndexerAccessExpression";
-		case NodeType_BlockStatement: return "NodeType_BlockStatement";
-		case NodeType_DeclarationStatement: return "NodeType_DeclarationStatement";
-		case NodeType_AssignmentStatement: return "NodeType_AssignmentStatement";
-		case NodeType_FunctionCallStatement: return "NodeType_FunctionCallStatement";
-		case NodeType_ReturnStatement: return "NodeType_ReturnStatement";
-		case NodeType_IfStatement: return "NodeType_IfStatement";
-		case NodeType_ElseStatement: return "NodeType_ElseStatement";
-		case NodeType_ElseIfStatement: return "NodeType_ElseIfStatement";
-		case NodeType_WhileStatement: return "NodeType_WhileStatement";
-		case NodeType_ForStatement: return "NodeType_ForStatement";
-		case NodeType_BreakStatement: return "NodeType_BreakStatement";
-		case NodeType_ContinueStatement: return "NodeType_ContinueStatement";
-		case NodeType_DiscardStatement: return "NodeType_DiscardStatement";
-		case NodeType_SwitchStatement: return "NodeType_SwitchStatement";
-		case NodeType_CaseStatement: return "NodeType_CaseStatement";
-		case NodeType_DefaultCaseStatement: return "NodeType_DefaultCaseStatement";
-		case NodeType_CastExpression: return "NodeType_CastExpression";
-		case NodeType_TernaryExpression: return "NodeType_TernaryExpression";
-		case NodeType_UnaryExpression: return "NodeType_UnaryExpression";
-		case NodeType_PrefixExpression: return "NodeType_PrefixExpression";
-		case NodeType_PostfixExpression: return "NodeType_PostfixExpression";
-		case NodeType_AssignmentExpression: return "NodeType_AssignmentExpression";
-		case NodeType_InitializationExpression: return "NodeType_InitializationExpression";
+		case NodeType_Unknown: return "Unknown";
+		case NodeType_Compilation: return "Compilation";
+		case NodeType_Namespace: return "Namespace";
+		case NodeType_Enum: return "Enum";
+		case NodeType_Primitive: return "Primitive";
+		case NodeType_Struct: return "Struct";
+		case NodeType_Class: return "Class";
+		case NodeType_Array: return "Array";
+		case NodeType_Field: return "Field";
+		case NodeType_IntrinsicFunction: return "IntrinsicFunction";
+		case NodeType_FunctionOverload: return "Function";
+		case NodeType_OperatorOverload: return "Operator";
+		case NodeType_Constructor: return "Constructor";
+		case NodeType_Parameter: return "Parameter";
+		case NodeType_AttributeDeclaration: return "AttributeDeclaration";
+		case NodeType_BinaryExpression: return "BinaryExpression";
+		case NodeType_EmptyExpression: return "EmptyExpression";
+		case NodeType_LiteralExpression: return "ConstantExpression";
+		case NodeType_MemberReferenceExpression: return "MemberReferenceExpression";
+		case NodeType_FunctionCallExpression: return "FunctionCallExpression";
+		case NodeType_FunctionCallParameter: return "FunctionCallParameter";
+		case NodeType_MemberAccessExpression: return "MemberAccessExpression";
+		case NodeType_IndexerAccessExpression: return "IndexerAccessExpression";
+		case NodeType_BlockStatement: return "BlockStatement";
+		case NodeType_DeclarationStatement: return "DeclarationStatement";
+		case NodeType_AssignmentStatement: return "AssignmentStatement";
+		case NodeType_CompoundAssignmentStatement: return "CompoundAssignmentStatement";
+		case NodeType_FunctionCallStatement: return "FunctionCallStatement";
+		case NodeType_ReturnStatement: return "ReturnStatement";
+		case NodeType_IfStatement: return "IfStatement";
+		case NodeType_ElseStatement: return "ElseStatement";
+		case NodeType_ElseIfStatement: return "ElseIfStatement";
+		case NodeType_WhileStatement: return "WhileStatement";
+		case NodeType_ForStatement: return "ForStatement";
+		case NodeType_BreakStatement: return "BreakStatement";
+		case NodeType_ContinueStatement: return "ContinueStatement";
+		case NodeType_DiscardStatement: return "DiscardStatement";
+		case NodeType_SwitchStatement: return "SwitchStatement";
+		case NodeType_CaseStatement: return "CaseStatement";
+		case NodeType_DefaultCaseStatement: return "DefaultCaseStatement";
+		case NodeType_CastExpression: return "CastExpression";
+		case NodeType_TernaryExpression: return "TernaryExpression";
+		case NodeType_UnaryExpression: return "UnaryExpression";
+		case NodeType_PrefixExpression: return "PrefixExpression";
+		case NodeType_PostfixExpression: return "PostfixExpression";
+		case NodeType_AssignmentExpression: return "AssignmentExpression";
+		case NodeType_CompoundAssignmentExpression: return "CompoundAssignmentExpression";
+		case NodeType_InitializationExpression: return "InitializationExpression";
 		default: return "Unknown NodeType";
 		}
 	}

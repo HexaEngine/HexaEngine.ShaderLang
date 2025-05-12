@@ -30,6 +30,8 @@ namespace HXSL
 
 		bool BinaryOperatorCheck(BinaryExpression* binary, std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result);
 
+		bool BinaryCompoundOperatorCheck(CompoundAssignmentExpression* binary, const std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result);
+
 		bool UnaryOperatorCheck(UnaryExpression* binary, const Expression* operand, SymbolDef*& result);
 
 		bool CastOperatorCheck(CastExpression* cast, const SymbolDef* type, const Expression* operand, SymbolDef*& result, bool explicitCast);

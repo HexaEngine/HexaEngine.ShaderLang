@@ -16,7 +16,7 @@ protected:
 		stream.TryAdvance();
 
 		ExpressionPtr expr;
-		PrattParser::ParseExpression(parser, stream, expr);
+		ExpressionParser::ParseExpression(parser, stream, expr);
 		if (expr)
 		{
 			expr->SetParent(compilation.get());

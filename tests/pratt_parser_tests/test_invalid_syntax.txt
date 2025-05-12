@@ -2,9 +2,9 @@
 #in
 2 + * 3;
 #ast
-[NodeType_BinaryExpression] ID: 1 Span: 2 + * 3 (Line: 1 Column: 1)
-  [NodeType_ConstantExpression] ID: 2 Span: 2 (Line: 1 Column: 1)
-  [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
+[BinaryExpression] ID: 1 Span: 2 + * 3 (Line: 1 Column: 1)
+  [ConstantExpression] ID: 2 Span: 2 (Line: 1 Column: 1)
+  [ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
 #logs
 [Error] HL00041: expected an operand after operator (Line: 1, Column: 5)
 
@@ -12,10 +12,10 @@
 #in
 5 ? 3 : : 4;
 #ast
-[NodeType_TernaryExpression] ID: 1 Span: 5 ? 3 : : 4 (Line: 1 Column: 1)
-  [NodeType_ConstantExpression] ID: 2 Span: 5 (Line: 1 Column: 1)
-  [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 5)
-  [NodeType_ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 11)
+[TernaryExpression] ID: 1 Span: 5 ? 3 : : 4 (Line: 1 Column: 1)
+  [ConstantExpression] ID: 2 Span: 5 (Line: 1 Column: 1)
+  [ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 5)
+  [ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 11)
 
 #logs
 [Error] HL00039: expected expression after ternary ':' (Line: 1, Column: 9)
@@ -24,10 +24,10 @@
 #in
 5 ? ? 3 : 4;
 #ast
-[NodeType_TernaryExpression] ID: 1 Span: 5 ? ? 3 : 4 (Line: 1 Column: 1)
-  [NodeType_ConstantExpression] ID: 2 Span: 5 (Line: 1 Column: 1)
-  [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
-  [NodeType_ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 11)
+[TernaryExpression] ID: 1 Span: 5 ? ? 3 : 4 (Line: 1 Column: 1)
+  [ConstantExpression] ID: 2 Span: 5 (Line: 1 Column: 1)
+  [ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
+  [ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 11)
 #logs
 [Error] HL00041: expected an operand after operator (Line: 1, Column: 5)
 
@@ -35,10 +35,10 @@
 #in
 5 ? ? 3 : : 4;
 #ast
-[NodeType_TernaryExpression] ID: 1 Span: 5 ? ? 3 : : 4 (Line: 1 Column: 1)
-  [NodeType_ConstantExpression] ID: 2 Span: 5 (Line: 1 Column: 1)
-  [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
-  [NodeType_ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 13)
+[TernaryExpression] ID: 1 Span: 5 ? ? 3 : : 4 (Line: 1 Column: 1)
+  [ConstantExpression] ID: 2 Span: 5 (Line: 1 Column: 1)
+  [ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 7)
+  [ConstantExpression] ID: 4 Span: 4 (Line: 1 Column: 13)
 #logs
 [Error] HL00041: expected an operand after operator (Line: 1, Column: 5)
 [Error] HL00039: expected expression after ternary ':' (Line: 1, Column: 11)
@@ -56,8 +56,8 @@
 #in
 object. .member();
 #ast
-[NodeType_MemberAccessExpression] ID: 1 Span: object. (Line: 1 Column: 1)
-  [NodeType_FunctionCallExpression] ID: 2 Span: member() (Line: 1 Column: 10)
+[MemberAccessExpression] ID: 1 Span: object. (Line: 1 Column: 1)
+  [FunctionCallExpression] ID: 2 Span: member() (Line: 1 Column: 10)
 #logs
 [Error] HL00030: unexpected token encountered (Line: 1, Column: 9)
 
@@ -65,10 +65,10 @@ object. .member();
 #in
 object.member(5 . );
 #ast
-[NodeType_MemberAccessExpression] ID: 1 Span: object. (Line: 1 Column: 1)
-  [NodeType_FunctionCallExpression] ID: 2 Span: member(5 . ) (Line: 1 Column: 8)
-    [NodeType_FunctionCallParameter] ID: 3 Span: 5 (Line: 1 Column: 15)
-      [NodeType_ConstantExpression] ID: 4 Span: 5 (Line: 1 Column: 15)
+[MemberAccessExpression] ID: 1 Span: object. (Line: 1 Column: 1)
+  [FunctionCallExpression] ID: 2 Span: member(5 . ) (Line: 1 Column: 8)
+    [FunctionCallParameter] ID: 3 Span: 5 (Line: 1 Column: 15)
+      [ConstantExpression] ID: 4 Span: 5 (Line: 1 Column: 15)
 #logs
 [Error] HL00030: unexpected token encountered (Line: 1, Column: 17)
 
@@ -76,13 +76,13 @@ object.member(5 . );
 #in
 func(3, 5, 6;
 #ast
-[NodeType_FunctionCallExpression] ID: 1 Span: func(3, 5, 6 (Line: 1 Column: 1)
-  [NodeType_FunctionCallParameter] ID: 2 Span: 3 (Line: 1 Column: 6)
-    [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 6)
-  [NodeType_FunctionCallParameter] ID: 4 Span: 5 (Line: 1 Column: 9)
-    [NodeType_ConstantExpression] ID: 5 Span: 5 (Line: 1 Column: 9)
-  [NodeType_FunctionCallParameter] ID: 6 Span: 6 (Line: 1 Column: 12)
-    [NodeType_ConstantExpression] ID: 7 Span: 6 (Line: 1 Column: 12)
+[FunctionCallExpression] ID: 1 Span: func(3, 5, 6 (Line: 1 Column: 1)
+  [FunctionCallParameter] ID: 2 Span: 3 (Line: 1 Column: 6)
+    [ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 6)
+  [FunctionCallParameter] ID: 4 Span: 5 (Line: 1 Column: 9)
+    [ConstantExpression] ID: 5 Span: 5 (Line: 1 Column: 9)
+  [FunctionCallParameter] ID: 6 Span: 6 (Line: 1 Column: 12)
+    [ConstantExpression] ID: 7 Span: 6 (Line: 1 Column: 12)
 #logs
 [Error] HL00025: expected ',' (Line: 1, Column: 14)
 
@@ -90,12 +90,12 @@ func(3, 5, 6;
 #in
 func(3,4,,5);
 #ast
-[NodeType_FunctionCallExpression] ID: 1 Span: func(3,4,,5) (Line: 1 Column: 1)
-  [NodeType_FunctionCallParameter] ID: 2 Span: 3 (Line: 1 Column: 6)
-    [NodeType_ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 6)
-  [NodeType_FunctionCallParameter] ID: 4 Span: 4 (Line: 1 Column: 8)
-    [NodeType_ConstantExpression] ID: 5 Span: 4 (Line: 1 Column: 8)
-  [NodeType_FunctionCallParameter] ID: 6 Span: 5 (Line: 1 Column: 11)
-    [NodeType_ConstantExpression] ID: 7 Span: 5 (Line: 1 Column: 11)
+[FunctionCallExpression] ID: 1 Span: func(3,4,,5) (Line: 1 Column: 1)
+  [FunctionCallParameter] ID: 2 Span: 3 (Line: 1 Column: 6)
+    [ConstantExpression] ID: 3 Span: 3 (Line: 1 Column: 6)
+  [FunctionCallParameter] ID: 4 Span: 4 (Line: 1 Column: 8)
+    [ConstantExpression] ID: 5 Span: 4 (Line: 1 Column: 8)
+  [FunctionCallParameter] ID: 6 Span: 5 (Line: 1 Column: 11)
+    [ConstantExpression] ID: 7 Span: 5 (Line: 1 Column: 11)
 #logs
 [Error] HL00030: unexpected token encountered (Line: 1, Column: 10)

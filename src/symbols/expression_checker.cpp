@@ -10,6 +10,7 @@ namespace HXSL
 	{
 		std::call_once(initFlag, []()
 			{
+				Register<DummyExpressionChecker, NodeType_EmptyExpression>();
 				Register<BinaryExpressionChecker, NodeType_BinaryExpression>();
 				Register<UnaryExpressionChecker, NodeType_UnaryExpression>();
 				Register<CastExpressionChecker, NodeType_CastExpression>();
@@ -22,6 +23,7 @@ namespace HXSL
 				Register<PrefixPostfixExpressionChecker, NodeType_PostfixExpression>();
 				Register<IndexerExpressionChecker, NodeType_IndexerAccessExpression>();
 				Register<AssignmentChecker, NodeType_AssignmentExpression>();
+				Register<CompoundAssignmentChecker, NodeType_CompoundAssignmentExpression>();
 			});
 	}
 
@@ -406,7 +408,11 @@ namespace HXSL
 			if (!checker.AreTypesCompatible(assignment, targetType, assignmentType))
 			{
 				analyzer.Log(TYPE_CONVERSION_NOT_FOUND, assignment->GetSpan(), assignmentType->ToString(), targetType->ToString());
+				return;
 			}
+
+			expression->SetInferredType(targetType);
+			expression->SetTraits({});
 		}
 		else
 		{
@@ -414,6 +420,44 @@ namespace HXSL
 			stack.push(expression);
 			stack.push(assignment.get());
 			stack.push(target);
+		}
+	}
+
+	void CompoundAssignmentChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CompoundAssignmentExpression* expression, std::stack<Expression*>& stack)
+	{
+		auto& target = expression->GetTarget();
+		auto& assignment = expression->GetExpressionMut();
+
+		if (expression->GetLazyEvalState())
+		{
+			auto targetType = target->GetInferredType();
+			auto assignmentType = assignment->GetInferredType();
+			if (targetType == nullptr || assignmentType == nullptr)
+			{
+				return;
+			}
+
+			SymbolDef* result;
+			if (!checker.BinaryCompoundOperatorCheck(expression, target, assignment, result))
+			{
+				return;
+			}
+
+			if (!checker.AreTypesCompatible(assignment, targetType, result))
+			{
+				analyzer.Log(TYPE_CONVERSION_NOT_FOUND, assignment->GetSpan(), result->ToString(), targetType->ToString());
+				return;
+			}
+
+			expression->SetInferredType(result);
+			expression->SetTraits({});
+		}
+		else
+		{
+			expression->IncrementLazyEvalState();
+			stack.push(expression);
+			stack.push(assignment.get());
+			stack.push(target.get());
 		}
 	}
 }

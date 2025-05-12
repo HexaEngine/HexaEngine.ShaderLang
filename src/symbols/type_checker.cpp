@@ -109,7 +109,7 @@ namespace HXSL
 		const Operator& op = binary->GetOperator();
 		if (!Operators::IsValidOverloadOperator(op))
 		{
-			HXSL_ASSERT(result, "Operator was not an valid overload operator, this should never happen.");
+			HXSL_ASSERT(false, "Operator was not an valid overload operator, this should never happen.");
 			return false;
 		}
 		auto leftType = left->GetInferredType();
@@ -151,6 +151,71 @@ namespace HXSL
 			}
 
 			if (!found && ImplicitBinaryOperatorCheck(ref.get(), rightType, leftType, op, castMatch))
+			{
+				InjectCast(right, castMatch, leftType);
+				found = true;
+			}
+		}
+
+		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
+		if (!found || !operatorDecl)
+		{
+			analyzer.Log(OP_OVERLOAD_NOT_FOUND_BINARY,
+				binary->GetSpan(),
+				ToString(op),
+				leftType->ToString(),
+				rightType->ToString());
+			return false;
+		}
+
+		result = operatorDecl->GetReturnSymbolRef()->GetDeclaration();
+
+		HXSL_ASSERT(result, "Operator return type declaration was nullptr, this should never happen.");
+
+		return true;
+	}
+
+	bool TypeChecker::BinaryCompoundOperatorCheck(CompoundAssignmentExpression* binary, const std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result)
+	{
+		const Operator& op = binary->GetOperator();
+		if (!Operators::IsValidOverloadOperator(op))
+		{
+			HXSL_ASSERT(false, "Operator was not an valid overload operator, this should never happen.");
+			return false;
+		}
+		auto leftType = left->GetInferredType();
+		auto rightType = right->GetInferredType();
+		auto signature = binary->BuildOverloadSignature();
+
+		auto& ref = binary->GetOperatorSymbolRef();
+
+		bool found = false;
+
+		{
+			auto table = leftType->GetTable();
+			auto& index = leftType->GetSymbolHandle();
+			found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
+		}
+
+		if (!leftType->IsEquivalentTo(rightType))
+		{
+			auto table = rightType->GetTable();
+			auto& index = rightType->GetSymbolHandle();
+			if (resolver.ResolveSymbol(ref.get(), signature, table, index, true))
+			{
+				if (found)
+				{
+					analyzer.Log(AMBIGUOUS_OP_OVERLOAD, binary->GetSpan(), signature);
+					return false;
+				}
+				found = true;
+			}
+		}
+
+		if (!found)
+		{
+			OperatorOverload* castMatch;
+			if (ImplicitBinaryOperatorCheck(ref.get(), rightType, leftType, op, castMatch))
 			{
 				InjectCast(right, castMatch, leftType);
 				found = true;

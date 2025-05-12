@@ -2,8 +2,8 @@
 #define COMMON_HPP
 
 #include <gtest/gtest.h>
-#include "parsers/parser.h"
-#include "parsers/pratt_parser.hpp"
+#include "parsers/parser.hpp"
+#include "parsers/hybrid_expr_parser.hpp"
 #include "ast_analyzers.hpp"
 #include "expect_file.hpp"
 

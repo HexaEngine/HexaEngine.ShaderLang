@@ -21,8 +21,17 @@ struct PS_INPUT
         float result = 0;
         for (int i = 0; i < 10; i++)
         {
-            result = square(i + 1);
+            result += square(i + 1);
         }
+
+        int a = 1;
+        switch (a)
+        {
+            case 1:
+                a = 10;
+                break;
+        }
+
         return input.position;
     }
 

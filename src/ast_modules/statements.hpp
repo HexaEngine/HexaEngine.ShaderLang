@@ -148,49 +148,66 @@ namespace HXSL
 	class AssignmentStatement : public Statement, public IHasExpressions
 	{
 	private:
-		std::unique_ptr<Expression> target;
-		std::unique_ptr<Expression> expression;
 
 	protected:
-		AssignmentStatement(TextSpan span, NodeType type, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+		std::unique_ptr<AssignmentExpression> expr;
+
+		AssignmentStatement(TextSpan span, NodeType type, std::unique_ptr<AssignmentExpression> expr)
 			: Statement(span, type),
 			ASTNode(span, type),
-			target(std::move(target)),
-			expression(std::move(expression))
+			expr(std::move(expr))
 		{
-			REGISTER_EXPR(target);
-			REGISTER_EXPR(expression);
+			REGISTER_EXPR(expr);
 		}
 
 	public:
 		AssignmentStatement(TextSpan span, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
 			: Statement(span, NodeType_AssignmentStatement),
 			ASTNode(span, NodeType_AssignmentStatement),
-			target(std::move(target)),
-			expression(std::move(expression))
+			expr(std::make_unique<AssignmentExpression>(span, std::move(target), std::move(expression)))
 		{
-			REGISTER_EXPR(target);
-			REGISTER_EXPR(expression);
+			REGISTER_EXPR(expr);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Target, target)
+		const std::unique_ptr<Expression>& GetTarget() const noexcept
+		{
+			return expr->GetTarget();
+		}
 
-			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
+		void SetTarget(std::unique_ptr<Expression>&& value) noexcept
+		{
+			expr->SetTarget(std::move(value));
+		}
+
+		const std::unique_ptr<Expression>& GetExpression() const noexcept
+		{
+			return expr->GetExpression();
+		}
+
+		void SetExpression(std::unique_ptr<Expression>&& value) noexcept
+		{
+			expr->SetExpression(std::move(value));
+		}
 	};
 
-	class CompoundAssignmentStatement : public AssignmentStatement {
-	private:
-		Operator _operator;
-
+	class CompoundAssignmentStatement : public AssignmentStatement
+	{
 	public:
 		CompoundAssignmentStatement(TextSpan span, Operator op, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: AssignmentStatement(span, NodeType_CompoundAssignmentStatement, std::move(target), std::move(expression)),
-			ASTNode(span, NodeType_CompoundAssignmentStatement),
-			_operator(op)
+			: AssignmentStatement(span, NodeType_CompoundAssignmentStatement, std::make_unique<CompoundAssignmentExpression>(span, op, std::move(target), std::move(expression))),
+			ASTNode(span, NodeType_CompoundAssignmentStatement)
 		{
 		}
 
-		DEFINE_GETTER_SETTER(Operator, Operator, _operator)
+		const Operator& GetOperator() const noexcept
+		{
+			return expr->GetOperator();
+		}
+
+		void SetOperator(const Operator& value) noexcept
+		{
+			expr->SetOperator(value);
+		}
 	};
 
 	class FunctionCallStatement : public Statement, public IHasExpressions
@@ -293,7 +310,14 @@ namespace HXSL
 			REGISTER_EXPR(expression);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
+		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression);
+
+		std::string DebugName() const override
+		{
+			std::ostringstream oss;
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Header: " + expression->GetSpan().str();
+			return oss.str();
+		}
 	};
 
 	class DefaultCaseStatement : public Statement, public StatementContainer
@@ -325,6 +349,7 @@ namespace HXSL
 			defaultCase(std::move(defaultCase))
 		{
 			REGISTER_EXPR(expression);
+			REGISTER_CHILDREN(cases);
 			REGISTER_CHILD(defaultCase);
 		}
 
@@ -335,11 +360,18 @@ namespace HXSL
 		{
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
+		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression);
 
-			void AddCase(std::unique_ptr<CaseStatement> _case) { cases.push_back(std::move(_case)); }
+		void AddCase(std::unique_ptr<CaseStatement> _case) { RegisterChild(_case); cases.push_back(std::move(_case)); }
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<DefaultCaseStatement>, DefaultCase, defaultCase)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<DefaultCaseStatement>, DefaultCase, defaultCase);
+
+		std::string DebugName() const override
+		{
+			std::ostringstream oss;
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Header: " + expression->GetSpan().str();
+			return oss.str();
+		}
 	};
 
 	class ForStatement : public ConditionalStatement, public AttributeContainer

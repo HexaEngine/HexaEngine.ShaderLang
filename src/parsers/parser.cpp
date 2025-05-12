@@ -1,7 +1,7 @@
 #include "parser.hpp"
 #include "sub_parser_registry.hpp"
 #include "parsers/parser_helper.hpp"
-#include "pratt_parser.hpp"
+#include "hybrid_expr_parser.hpp"
 namespace HXSL
 {
 #define ERR_RETURN_FALSE_INTERNAL(code) \
@@ -863,7 +863,7 @@ namespace HXSL
 				}
 				firstParam = false;
 				std::unique_ptr<Expression> parameter;
-				if (!PrattParser::ParseExpression(*this, *stream, parameter))
+				if (!HybridExpressionParser::ParseExpression(*this, *stream, parameter))
 				{
 					return;
 				}

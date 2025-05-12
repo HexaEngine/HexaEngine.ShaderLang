@@ -2,7 +2,7 @@
 #include "sub_parser_registry.hpp"
 #include "expression_parser.hpp"
 #include "parser_helper.hpp"
-#include "pratt_parser.hpp"
+#include "hybrid_expr_parser.hpp"
 
 #include <memory>
 #include <optional>
@@ -79,12 +79,12 @@ namespace HXSL
 		forStatement->SetInit(std::move(init));
 
 		std::unique_ptr<Expression> condition;
-		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, condition));
+		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, condition));
 		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 		forStatement->SetCondition(std::move(condition));
 
 		std::unique_ptr<Expression> iteration;
-		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, iteration));
+		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, iteration));
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		forStatement->SetIteration(std::move(iteration));
 
@@ -136,17 +136,17 @@ namespace HXSL
 			return false;
 		}
 
-		TakeHandle<AttributeDeclaration>* attribute;
+		TakeHandle<AttributeDeclaration>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 		auto switchStatement = std::make_unique<SwitchStatement>(TextSpan());
-		if (attribute->HasResource())
+		if (attribute != nullptr && attribute->HasResource())
 		{
 			switchStatement->AddAttribute(std::move(attribute->Take()));
 		}
 		std::unique_ptr<Expression> expression;
-		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
+		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		switchStatement->SetExpression(std::move(expression));
 
@@ -158,16 +158,16 @@ namespace HXSL
 		{
 			Keyword keyword;
 			auto caseStart = stream.Current();
-			IF_ERR_RET_FALSE(stream.ExpectKeywords(keywords, keyword, EXPECTED_CASE_OR_DEFAULT));
+			stream.ExpectKeywords(keywords, keyword, EXPECTED_CASE_OR_DEFAULT);
 
 			if (keyword == Keyword_Case)
 			{
 				auto caseStatement = std::make_unique<CaseStatement>(TextSpan(), nullptr);
 				std::unique_ptr<Expression> caseExpression;
-				IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, caseExpression));
+				HybridExpressionParser::ParseExpression(parser, stream, caseExpression, ExpressionParserFlags_SwitchCase);
 				caseStatement->SetExpression(std::move(caseExpression));
-				IF_ERR_RET_FALSE(stream.ExpectOperator(Operator_Colon, EXPECTED_COLON));
-				IF_ERR_RET_FALSE(ParseCaseInner(parser, stream, caseStatement.get()));
+				stream.ExpectOperator(Operator_Colon, EXPECTED_COLON);
+				ParseCaseInner(parser, stream, caseStatement.get());
 				caseStatement->SetSpan(stream.MakeFromLast(caseStart));
 				switchStatement->AddCase(std::move(caseStatement));
 			}
@@ -175,12 +175,12 @@ namespace HXSL
 			{
 				if (switchStatement->GetDefaultCase())
 				{
-					ERR_RETURN_FALSE(parser, DUPLICATE_DEFAULT_CASE);
+					parser.Log(DUPLICATE_DEFAULT_CASE, caseStart);
 				}
 
-				IF_ERR_RET_FALSE(stream.ExpectOperator(Operator_Colon, EXPECTED_COLON));
+				stream.ExpectOperator(Operator_Colon, EXPECTED_COLON);
 				auto defaultCaseStatement = std::make_unique<DefaultCaseStatement>(TextSpan());
-				IF_ERR_RET_FALSE(ParseCaseInner(parser, stream, defaultCaseStatement.get()));
+				ParseCaseInner(parser, stream, defaultCaseStatement.get());
 				defaultCaseStatement->SetSpan(stream.MakeFromLast(caseStart));
 				switchStatement->SetDefaultCase(std::move(defaultCaseStatement));
 			}
@@ -210,7 +210,7 @@ namespace HXSL
 			ifStatement->AddAttribute(std::move(attribute->Take()));
 		}
 		std::unique_ptr<Expression> expression;
-		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
+		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		ifStatement->SetCondition(std::move(expression));
 
@@ -236,7 +236,7 @@ namespace HXSL
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 			auto elseIfStatement = std::make_unique<ElseIfStatement>(TextSpan(), nullptr, nullptr);
 			std::unique_ptr<Expression> expression;
-			IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
+			IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 			elseIfStatement->SetCondition(std::move(expression));
 
@@ -280,7 +280,7 @@ namespace HXSL
 		}
 
 		std::unique_ptr<Expression> expression;
-		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
+		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
 		whileStatement->SetCondition(std::move(expression));
 
@@ -302,7 +302,7 @@ namespace HXSL
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 		auto returnStatement = std::make_unique<ReturnStatement>(TextSpan(), nullptr);
 		std::unique_ptr<Expression> expression;
-		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
+		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 		returnStatement->SetReturnValueExpression(std::move(expression));
 		returnStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
@@ -344,7 +344,7 @@ namespace HXSL
 		}
 		else
 		{
-			if (!PrattParser::ParseExpression(parser, stream, expression))
+			if (!HybridExpressionParser::ParseExpression(parser, stream, expression))
 			{
 				parser.TryRecoverStatement();
 			}
@@ -402,7 +402,7 @@ namespace HXSL
 		else if (!stream.TryGetDelimiter(';'))
 		{
 			std::unique_ptr<Expression> expression;
-			if (!PrattParser::ParseExpression(parser, stream, expression))
+			if (!HybridExpressionParser::ParseExpression(parser, stream, expression))
 			{
 				parser.TryRecoverStatement();
 			}

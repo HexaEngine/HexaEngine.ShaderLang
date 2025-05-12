@@ -546,14 +546,23 @@ namespace HXSL
 	class AssignmentExpression : public OperatorExpression
 	{
 	private:
-		Operator _operator;
+
+	protected:
 		std::unique_ptr<Expression> target;
 		std::unique_ptr<Expression> expression;
 
+		AssignmentExpression(TextSpan span, NodeType type, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+			: OperatorExpression(span, type),
+			target(std::move(target)),
+			expression(std::move(expression))
+		{
+			REGISTER_CHILD(target);
+			REGISTER_CHILD(expression);
+		}
+
 	public:
-		AssignmentExpression(TextSpan span, Operator _operator, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+		AssignmentExpression(TextSpan span, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
 			: OperatorExpression(span, NodeType_AssignmentExpression),
-			_operator(_operator),
 			target(std::move(target)),
 			expression(std::move(expression))
 		{
@@ -563,17 +572,54 @@ namespace HXSL
 
 		const Operator& GetOperator() const noexcept override
 		{
-			return _operator;
+			return Operator_Assign;
 		}
 
-		void SetOperator(const Operator& value) noexcept
+		virtual void SetOperator(const Operator& value)
 		{
-			_operator = value;
+			throw std::runtime_error("setting the operator is not supported on assignment nodes.");
 		}
 
 		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Target, target)
 
 			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Expression, expression)
+	};
+
+	class CompoundAssignmentExpression : public AssignmentExpression
+	{
+	private:
+		Operator _operator;
+		std::unique_ptr<SymbolRef> operatorSymbol;
+	public:
+		CompoundAssignmentExpression(TextSpan span, Operator _operator, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+			: AssignmentExpression(span, NodeType_CompoundAssignmentExpression, std::move(target), std::move(expression)),
+			_operator(Operators::compoundToBinary(_operator)),
+			operatorSymbol(std::make_unique<SymbolRef>(TextSpan(), SymbolRefType_OperatorOverload, false))
+		{
+		}
+
+		std::string BuildOverloadSignature() const
+		{
+			std::string str;
+			BinaryExpression::PrepareOverloadSignature(str, _operator);
+			BinaryExpression::BuildOverloadSignature(str, target->GetInferredType(), expression->GetInferredType());
+			return str;
+		}
+
+		std::unique_ptr<SymbolRef>& GetOperatorSymbolRef()
+		{
+			return operatorSymbol;
+		}
+
+		const Operator& GetOperator() const noexcept override
+		{
+			return _operator;
+		}
+
+		void SetOperator(const Operator& value) noexcept override
+		{
+			_operator = value;
+		}
 	};
 
 	class InitializationExpression : public Expression

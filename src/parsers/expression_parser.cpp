@@ -5,7 +5,7 @@
 #include "parsers/parser.hpp"
 #include "ast.hpp"
 #include "parser_helper.hpp"
-#include "pratt_parser.hpp"
+#include "hybrid_expr_parser.hpp"
 namespace HXSL
 {
 	bool SymbolExpressionParser::TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)

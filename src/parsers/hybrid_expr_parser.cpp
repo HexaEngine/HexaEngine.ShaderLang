@@ -1,4 +1,4 @@
-#include "pratt_parser.hpp"
+#include "hybrid_expr_parser.hpp"
 #include "parser_helper.hpp"
 #include "sub_parser_registry.hpp"
 
@@ -111,20 +111,6 @@ namespace HXSL
 			ExpressionPtr target = popFromStack(operandStack);
 			auto span = target->GetSpan().merge(assignment->GetSpan());
 
-			auto assignmentOp = assignment->GetOperator();
-
-			if (Operators::isCompoundAssignment(assignmentOp))
-			{
-				auto binaryOp = Operators::compoundToBinary(assignmentOp);
-				auto binary = std::make_unique<BinaryExpression>(TextSpan(), binaryOp, nullptr, nullptr);
-				binary->SetLeft(UNIQUE_PTR_CAST(target->Clone(), Expression));
-				ExpressionPtr expression = std::move(assignment->GetExpressionMut());
-				expression->SetParent(binary.get());
-				binary->SetRight(std::move(expression));
-
-				assignment->SetExpression(std::move(binary));
-			}
-
 			target->SetParent(assignment);
 			assignment->SetTarget(std::move(target));
 			assignment->SetSpan(span);
@@ -145,6 +131,7 @@ namespace HXSL
 		std::stack<OperatorPtr> operatorStack;
 		TaskFrame currentTask;
 		std::stack<size_t> ternaryStack;
+		ExpressionParserFlags flags;
 
 		ParseContext(Parser& parser, TokenStream& stream) : TokenStreamAdapter(stream), ParserAdapter(parser)
 		{
@@ -354,6 +341,10 @@ namespace HXSL
 			{
 				if (!context.IsInTernary())
 				{
+					if ((context.flags & ExpressionParserFlags_SwitchCase) != 0)
+					{
+						break;
+					}
 					context.Advance();
 					context.Log(UNEXPECTED_COLON_OUTSIDE_TERNARY, current);
 					continue;
@@ -404,7 +395,14 @@ namespace HXSL
 				}
 				else if (Operators::isAssignment(op))
 				{
-					context.PushSubExpressionTask<AssignmentExpression>(TaskType_Assignment, current.Span, op, nullptr, nullptr);
+					if (Operators::isCompoundAssignment(op))
+					{
+						context.PushSubExpressionTask<CompoundAssignmentExpression>(TaskType_Assignment, current.Span, Operators::compoundToBinary(op), nullptr, nullptr);
+					}
+					else
+					{
+						context.PushSubExpressionTask<AssignmentExpression>(TaskType_Assignment, current.Span, nullptr, nullptr);
+					}
 					return true;
 				}
 				else if (Operators::isBinaryOperator(op))
@@ -473,9 +471,10 @@ namespace HXSL
 		return true;
 	}
 
-	bool PrattParser::ParseExpressionInnerIterGen2(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
+	static bool ParseExpressionInner(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut, ExpressionParserFlags flags)
 	{
 		ParseContext context = ParseContext(parser, stream);
+		context.flags = flags;
 		context.PushParseExpressionTask();
 
 		while (context.NextTask())
@@ -567,14 +566,11 @@ namespace HXSL
 		return context.GetResult(expressionOut);
 	}
 
-	bool PrattParser::ParseExpression(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expression)
+	bool HybridExpressionParser::ParseExpression(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expression, ExpressionParserFlags flags)
 	{
 		auto start = stream.Current();
 		stream.PushState();
-		if (!ParseExpressionInnerIterGen2(parser, stream, expression))
-		{
-		}
-		if (!expression.get())
+		if (!ParseExpressionInner(parser, stream, expression, flags))
 		{
 			stream.PopState();
 			return false;

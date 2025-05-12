@@ -52,6 +52,13 @@ namespace HXSL
 		}
 	};
 
+	class DummyExpressionChecker : public ExpressionCheckerBase
+	{
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Expression* node, std::stack<Expression*>& stack) override
+		{
+		}
+	};
+
 	class BinaryExpressionChecker : public ExpressionChecker<BinaryExpression>
 	{
 		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, BinaryExpression* expression, std::stack<Expression*>& stack);
@@ -105,6 +112,11 @@ namespace HXSL
 	class AssignmentChecker : public ExpressionChecker<AssignmentExpression>
 	{
 		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, AssignmentExpression* expression, std::stack<Expression*>& stack);
+	};
+
+	class CompoundAssignmentChecker : public ExpressionChecker<CompoundAssignmentExpression>
+	{
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CompoundAssignmentExpression* expression, std::stack<Expression*>& stack);
 	};
 }
 

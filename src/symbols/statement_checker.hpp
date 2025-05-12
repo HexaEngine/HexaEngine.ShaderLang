@@ -69,29 +69,19 @@ namespace HXSL
 		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, DeclarationStatement* statement) override;
 	};
 
-	class AssignmentStatementChecker : public StatementChecker<AssignmentStatement>
-	{
-		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, AssignmentStatement* statement) override;
-	};
-
 	class ConditionalStatementChecker : public StatementChecker<ConditionalStatement>
 	{
 		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ConditionalStatement* statement) override;
 	};
 
-	class WhileStatementChecker : public StatementChecker<WhileStatement>
+	class SwitchStatementChecker : public StatementChecker<SwitchStatement>
 	{
-		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, WhileStatement* statement) override;
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, SwitchStatement* statement) override;
 	};
 
-	class IfStatementChecker : public StatementChecker<IfStatement>
+	class CaseStatementChecker : public StatementChecker<CaseStatement>
 	{
-		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, IfStatement* statement) override;
-	};
-
-	class ElseIfStatementChecker : public StatementChecker<ElseIfStatement>
-	{
-		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ElseIfStatement* statement) override;
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CaseStatement* statement) override;
 	};
 }
 

@@ -1,6 +1,6 @@
 #include "parser_helper.hpp"
 #include "sub_parser_registry.hpp"
-#include "pratt_parser.hpp"
+#include "hybrid_expr_parser.hpp"
 #include "parser.hpp"
 #include "member_path_parser.hpp"
 
@@ -32,7 +32,7 @@ namespace HXSL
 	{
 		auto callParameter = std::make_unique<FunctionCallParameter>(TextSpan(), nullptr);
 		std::unique_ptr<Expression> expression;
-		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
+		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		callParameter->SetSpan(expression->GetSpan());
 		callParameter->SetExpression(std::move(expression));
 		parameter = std::move(callParameter);
@@ -170,7 +170,7 @@ namespace HXSL
 				else
 				{
 					std::unique_ptr<Expression> expression;
-					IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
+					IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 					current->AddParameter(std::move(expression));
 				}
 			}
