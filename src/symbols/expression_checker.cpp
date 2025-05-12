@@ -47,6 +47,12 @@ namespace HXSL
 			}
 
 			expression->SetInferredType(result);
+
+			//if (left->GetTraits().IsConstant() && right->GetTraits().IsConstant())
+			{
+				//left.reset();
+				//right.reset();
+			}
 		}
 		else
 		{

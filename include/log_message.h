@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-#if __cplusplus
+#if defined(__cplusplus)
 #include <string>
 namespace HXSL
 {
@@ -18,7 +18,7 @@ namespace HXSL
 		LogLevel_Critical
 	};
 
-#if __cplusplus
+#if defined(__cplusplus)
 
 	static std::string ToString(LogLevel level)
 	{
@@ -47,7 +47,7 @@ namespace HXSL
 		LogLevel Level;
 		char Message[MAX_LOG_LENGTH];
 
-#if __cplusplus
+#if defined(__cplusplus)
 		LogMessage(LogLevel level, const char* message) : Level(level)
 		{
 			strncpy_s(Message, message, MAX_LOG_LENGTH - 1);
@@ -67,7 +67,7 @@ namespace HXSL
 #endif
 	};
 
-#if __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

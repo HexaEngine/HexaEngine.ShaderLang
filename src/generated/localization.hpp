@@ -65,6 +65,33 @@ namespace HXSL
 	constexpr DiagnosticCode EXPECTED_PREP_DIRECTIVE = 9223373187906027525;
 	
 	/// <summary>
+	/// <para>Code: HL0006</para>
+	/// <para>Message: parameter count does not match for macro usage</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Syntax Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode MACRO_PARAM_COUNT_MISMATCH = 9223373187906027526;
+	
+	/// <summary>
+	/// <para>Code: HL0007</para>
+	/// <para>Message: #if unclosed at end of file</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Syntax Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode PREP_MISSING_ENDIF = 9223373187906027527;
+	
+	/// <summary>
+	/// <para>Code: HL0008</para>
+	/// <para>Message: the #if for this directive is missing</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Syntax Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode PREP_MISSING_IF = 9223373187906027528;
+	
+	/// <summary>
 	/// <para>Code: HL0020</para>
 	/// <para>Message: expected ';'</para>
 	/// <para>Description: Desc</para>

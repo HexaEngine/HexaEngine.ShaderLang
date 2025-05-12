@@ -1,7 +1,7 @@
-#ifndef TOKEN_STREAM_H
-#define TOKEN_STREAM_H
+#ifndef TOKEN_STREAM_HPP
+#define TOKEN_STREAM_HPP
 
-#include "lexical/lexer.h"
+#include "lexical/lexer.hpp"
 #include "io/logger.hpp"
 #include "generated/localization.hpp"
 
@@ -11,8 +11,6 @@
 
 namespace HXSL
 {
-	using namespace HXSL::Lexer;
-
 	struct TokenCache
 	{
 		std::deque<Token> tokens;
@@ -88,11 +86,9 @@ namespace HXSL
 		}
 	};
 
-	class TokenTransformer;
-
 	struct TokenStream
 	{
-	private:
+	protected:
 		struct TokenStreamState
 		{
 			LexerState state;
@@ -106,19 +102,18 @@ namespace HXSL
 			{
 			}
 
-			bool IsEndOfTokens() const { return state.IsEOF(); }
+			bool IsEndOfTokens() const noexcept { return state.IsEOF(); }
 		};
 		LexerContext* context;
-		TokenTransformer& transformer;
 		TokenStreamState streamState;
 		TokenStreamState restorePoint;
 		std::stack<TokenStreamState> stack;
 		size_t currentStack;
 		TokenCache cache;
-		bool transforming;
+		bool skipWhitespace;
 
 	public:
-		TokenStream(LexerContext* context, TokenTransformer& transformer) : context(context), transformer(transformer), streamState(TokenStreamState(context->MakeState())), currentStack(0), transforming(false)
+		TokenStream(LexerContext* context) : context(context), streamState(TokenStreamState(context->MakeState())), currentStack(0), skipWhitespace(false)
 		{
 		}
 
@@ -128,7 +123,9 @@ namespace HXSL
 			streamState.state.LogFormatted(code, std::forward<Args>(args)...);
 		}
 
-		const LexerState& GetLexerState() const noexcept { return streamState.state; }
+		LexerContext* GetLexerContext() const noexcept { return context; }
+
+		LexerState& GetLexerState() noexcept { return streamState.state; }
 
 		size_t TokenPosition() const noexcept { return streamState.tokenPosition; }
 
@@ -138,7 +135,9 @@ namespace HXSL
 
 		Token Current() const { return streamState.currentToken; }
 
-		bool IsEndOfTokens() const { return streamState.IsEndOfTokens(); }
+		bool IsEndOfTokens() const noexcept { return streamState.IsEndOfTokens(); }
+
+		bool CanAdvance() const noexcept { return !IsEndOfTokens() && !HasCriticalErrors(); }
 
 		TextSpan MakeFromLast(const TextSpan& span) const
 		{
@@ -166,7 +165,22 @@ namespace HXSL
 
 		void Advance();
 
-		bool TryAdvance();
+		virtual bool TryAdvance();
+
+		void SkipWhitespace(bool skip)
+		{
+			skipWhitespace = skip;
+		}
+
+		void SkipWhitespacesOnce()
+		{
+			skipWhitespace = true;
+			if (Current().isWhitespace())
+			{
+				TryAdvance();
+			}
+			skipWhitespace = false;
+		}
 
 		bool TryGetToken(TokenType type, Token& current) const
 		{
@@ -589,13 +603,6 @@ namespace HXSL
 		{
 			return tokenStream.ExpectNoDelimiters(delimiters, code, std::forward<Args>(args)...);
 		}
-	};
-
-	class TokenTransformer
-	{
-	public:
-		virtual int Transform(Token& current, TokenStream& stream) = 0;
-		virtual ~TokenTransformer() = default;
 	};
 }
 #endif

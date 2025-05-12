@@ -99,7 +99,7 @@ if (BUILD_SHARED)
 endif()
 
 if (BUILD_STATIC)
-    add_library(CompilerStatic STATIC ${SOURCES})
+    add_library(CompilerStatic STATIC ${SOURCES} "src/preprocessing/evaluator.cpp")
 
     target_link_libraries(CompilerStatic PRIVATE libzstd_static)
     target_link_libraries(CompilerStatic PUBLIC fmt::fmt)
@@ -123,7 +123,7 @@ if(BUILD_TESTS)
 
     file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
 
-    add_executable(unit_tests ${TEST_SOURCES})
+    add_executable(unit_tests ${TEST_SOURCES} "src/preprocessing/evaluator.cpp")
 
     target_link_libraries(unit_tests
         PRIVATE

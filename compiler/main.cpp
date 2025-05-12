@@ -1,4 +1,5 @@
 #include "hxls_compiler.hpp"
+#include "preprocessing/evaluator.hpp"
 
 using namespace HXSL;
 
@@ -7,7 +8,7 @@ int main()
 	SetLocale("en_US");
 
 	AssemblyCollection collection;
-	HXSLCompiler* compiler = new HXSLCompiler();
+	Compiler* compiler = new Compiler();
 	compiler->Compile({ "example/library.txt" }, "library.module", collection);
 	delete compiler;
 	//collection.LoadAssemblyFromFile("library.module");

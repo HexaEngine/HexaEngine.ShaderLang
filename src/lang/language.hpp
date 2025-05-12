@@ -1,8 +1,8 @@
-#ifndef LANGUAGE_H
-#define LANGUAGE_H
+#ifndef LANGUAGE_HPP
+#define LANGUAGE_HPP
 
-#include "keyword.h"
-#include "operator.h"
+#include "keyword.hpp"
+#include "operator.hpp"
 
 namespace HXSL
 {

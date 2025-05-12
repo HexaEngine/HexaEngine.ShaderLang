@@ -37,17 +37,17 @@ namespace HXSL
 	{
 		switch (type)
 		{
-		case NumberType_Char:
-		case NumberType_SByte:
-		case NumberType_Short:
-		case NumberType_UShort:
-		case NumberType_Int:
+		case NumberType_UInt8:
+		case NumberType_Int8:
+		case NumberType_Int16:
+		case NumberType_UInt16:
+		case NumberType_Int32:
 			return resolver.ResolvePrimitiveSymbol("int");
-		case NumberType_UInt:
+		case NumberType_UInt32:
 			return resolver.ResolvePrimitiveSymbol("uint");
-		case NumberType_LongLong:
+		case NumberType_Int64:
 			return resolver.ResolvePrimitiveSymbol("int64_t");
-		case NumberType_ULongLong:
+		case NumberType_UInt64:
 			return resolver.ResolvePrimitiveSymbol("uint64_t");
 		case NumberType_Half:
 			return resolver.ResolvePrimitiveSymbol("half");

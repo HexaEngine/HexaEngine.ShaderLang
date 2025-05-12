@@ -32,7 +32,7 @@ namespace HXSL
 		{
 			if (source != other.source)
 			{
-				//HXSL_ASSERT(false, "Cannot merge TextSpan based of a different string pointer.");
+				HXSL_ASSERT(false, "Cannot merge TextSpan based of a different string pointer.");
 				return {};
 			}
 
@@ -63,6 +63,16 @@ namespace HXSL
 		std::string str() const
 		{
 			return source ? source->GetString(start, length) : "";
+		}
+
+		/*
+		 * @brief Warning: The returned span has a very short lifetime.
+		 * If any other code calls `span()` or advances the stream,
+		 * the span may become invalid.
+		 */
+		StringSpan span() const
+		{
+			return source ? source->GetSpan(start, length) : StringSpan();
 		}
 	};
 }

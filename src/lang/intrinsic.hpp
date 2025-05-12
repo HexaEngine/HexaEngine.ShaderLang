@@ -1,11 +1,11 @@
-#ifndef INTRINSICS_H
-#define INTRINSICS_H
+#ifndef INTRINSICS_HPP
+#define INTRINSICS_HPP
 
 #include <unordered_set>
 #include <string>
 #include "nodes.hpp"
 
-namespace HXSL 
+namespace HXSL
 {
 	class IntrinsicFunction : Function
 	{

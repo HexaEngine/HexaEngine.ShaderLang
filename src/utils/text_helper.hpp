@@ -1,5 +1,5 @@
-#ifndef TEXT_HELPER_H
-#define TEXT_HELPER_H
+#ifndef TEXT_HELPER_HPP
+#define TEXT_HELPER_HPP
 #include <cctype>
 #include <unordered_set>
 #include <string>
@@ -18,9 +18,9 @@ namespace TextHelper
 
 	size_t FindOperatorBoundary(const char* text, size_t offset, size_t length, const std::unordered_set<char>& delimiter);
 
-	bool LookAhead(const char* text, size_t offset, size_t length, char target, size_t& trackedLength);
+	bool LookAhead(const char* text, size_t offset, size_t length, char target, size_t& trackedLength, size_t& lines);
 
-	bool LookAhead(const char* text, size_t offset, size_t length, const std::string& target, size_t& trackedLength);
+	bool LookAhead(const char* text, size_t offset, size_t length, const std::string& target, size_t& trackedLength, size_t& lines);
 
 	size_t CountLeadingWhitespace(const char* text, size_t length);
 

@@ -1,8 +1,9 @@
+#include "text_helper.hpp"
+#include "endianness.hpp"
+
+#include <unordered_set>
 #include <cctype>
 #include <string>
-#include "text_helper.h"
-#include <unordered_set>
-#include "endianness.hpp"
 
 namespace TextHelper
 {
@@ -34,8 +35,8 @@ namespace TextHelper
 		while (current != end)
 		{
 			char c = *current;
-			bool cr = c == '\n';
-			if (cr || c == '\r')
+			bool cr = c == '\r';
+			if (cr || c == '\n')
 			{
 				size_t width = 1;
 				if (cr && current + 1 != end && current[1] == '\n')
@@ -86,7 +87,7 @@ namespace TextHelper
 		return length - offset;
 	}
 
-	bool LookAhead(const char* text, size_t offset, size_t length, char target, size_t& trackedLength)
+	bool LookAhead(const char* text, size_t offset, size_t length, char target, size_t& trackedLength, size_t& lines)
 	{
 		const char* current = text + offset;
 		const char* end = text + length;
@@ -100,6 +101,20 @@ namespace TextHelper
 				trackedLength = (size_t)(current - text - offset);
 				return true;
 			}
+
+			bool cr = c == '\r';
+			if (cr || c == '\n')
+			{
+				size_t width = 1;
+				if (cr && current + 1 != end && current[1] == '\n')
+				{
+					width++;
+				}
+				current += width;
+				lines++;
+				continue;
+			}
+
 			escaped = false;
 			if (c == '\\')
 			{
@@ -111,7 +126,7 @@ namespace TextHelper
 		return false;
 	}
 
-	bool LookAhead(const char* text, size_t offset, size_t length, const std::string& target, size_t& trackedLength)
+	bool LookAhead(const char* text, size_t offset, size_t length, const std::string& target, size_t& trackedLength, size_t& lines)
 	{
 		const char* current = text + offset;
 		const char* end = text + length;
@@ -133,6 +148,19 @@ namespace TextHelper
 			else
 			{
 				ix = 0;
+			}
+
+			bool cr = c == '\r';
+			if (cr || c == '\n')
+			{
+				size_t width = 1;
+				if (cr && current + 1 != end && current[1] == '\n')
+				{
+					width++;
+				}
+				current += width;
+				lines++;
+				continue;
 			}
 
 			escaped = false;

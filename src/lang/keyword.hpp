@@ -1,5 +1,5 @@
-#ifndef KEYWORD_H
-#define KEYWORD_H
+#ifndef KEYWORD_HPP
+#define KEYWORD_HPP
 
 #include <string>
 #include "utils/tst.hpp"
@@ -146,6 +146,8 @@ namespace HXSL
 		Keyword_PrepElif,
 		Keyword_PrepElse,
 		Keyword_PrepEndif,
+		Keyword_PrepIfdef,
+		Keyword_PrepIfndef,
 		Keyword_PrepInclude,
 		Keyword_PrepError,
 		Keyword_PrepPragma
@@ -293,6 +295,8 @@ namespace HXSL
 		case Keyword_PrepElif: return "#elif";
 		case Keyword_PrepElse: return "#else";
 		case Keyword_PrepEndif: return "#endif";
+		case Keyword_PrepIfdef: return "#ifdef";
+		case Keyword_PrepIfndef: return "#ifndef";
 		case Keyword_PrepInclude: return "#include";
 		case Keyword_PrepError: return "#error";
 		case Keyword_PrepPragma: return "#pragma";
@@ -439,6 +443,8 @@ namespace HXSL
 		tst->Insert("#elif", Keyword_PrepElif);
 		tst->Insert("#else", Keyword_PrepElse);
 		tst->Insert("#endif", Keyword_PrepEndif);
+		tst->Insert("#ifdef", Keyword_PrepIfdef);
+		tst->Insert("#ifndef", Keyword_PrepIfndef);
 		tst->Insert("#include", Keyword_PrepInclude);
 		tst->Insert("#error", Keyword_PrepError);
 		tst->Insert("#pragma", Keyword_PrepPragma);

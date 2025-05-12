@@ -2,23 +2,23 @@
 #define SOURCE_FILE_HPP
 
 #include "io/stream.hpp"
-#include "lexical/input_stream.hpp"
+#include "utils/span.hpp"
 
 #include <string>
 #include <memory>
 
 namespace HXSL
 {
-	using LexerInputStream = Lexer::InputStream;
+	class LexerStream;
 
 	class SourceFile
 	{
 		Stream* stream;
 		bool closeStream;
-		std::unique_ptr<LexerInputStream> inputStream;
+		std::unique_ptr<LexerStream> inputStream;
 
 	public:
-		SourceFile(Stream* stream, bool closeStream) : stream(stream), closeStream(closeStream), inputStream(std::make_unique<LexerInputStream>())
+		SourceFile(Stream* stream, bool closeStream) : stream(stream), closeStream(closeStream), inputStream(std::make_unique<LexerStream>())
 		{
 		}
 
@@ -36,12 +36,13 @@ namespace HXSL
 
 		bool PrepareInputStream();
 
-		LexerInputStream* GetInputStream() const noexcept
-		{
-			return inputStream.get();
-		}
+		const std::unique_ptr<LexerStream>& GetInputStream() const noexcept;
+
+		void SetInputStream(std::unique_ptr<LexerStream>&& value) noexcept;
 
 		std::string GetString(size_t start, size_t length);
+
+		StringSpan GetSpan(size_t start, size_t length);
 	};
 }
 

@@ -1,4 +1,4 @@
-#include "token_stream.h"
+#include "token_stream.hpp"
 #include <generated/localization.hpp>
 
 namespace HXSL
@@ -66,30 +66,19 @@ namespace HXSL
 		}
 		*/
 
-		int result = 0;
 		do
 		{
-			do
+			if (IsEndOfTokens() || context->HasCriticalErrors())
 			{
-				if (IsEndOfTokens() || context->HasCriticalErrors())
-				{
-					currentToken = {};
-					return false;
-				}
-
-				currentToken = TokenizeStep(lexerState);
-				lexerState.Advance();
-			} while (currentToken.Type == TokenType_Comment || currentToken.Type == TokenType_Unknown);
-
-			if (!transforming)
-			{
-				transforming = true;
-				Token out;
-				result = transformer.Transform(currentToken, *this);
-				transforming = false;
+				currentToken = {};
+				return false;
 			}
-		} while (result == 2);
 
+			currentToken = Lexer::TokenizeStep(lexerState);
+			lexerState.Advance();
+		} while (currentToken.Type == TokenType_Comment || currentToken.Type == TokenType_Unknown || (skipWhitespace && currentToken.Type == TokenType_Whitespace));
+
+		/*
 		if (currentStack == 0)
 		{
 			cache.IncrementPosition();
@@ -98,6 +87,7 @@ namespace HXSL
 		{
 			cache.AddToken(currentToken);
 		}
+		*/
 
 		state.tokenPosition++;
 		return true;

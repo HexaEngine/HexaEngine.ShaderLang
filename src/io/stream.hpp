@@ -302,7 +302,7 @@ namespace HXSL
 		}
 
 		MemoryStream(size_t capacity) : Stream(sizeof(MemoryStream), this, MemoryStreamRead, MemoryStreamWrite, MemoryStreamSeek, MemoryStreamPosition, MemoryStreamLength, MemoryStreamFlush, MemoryStreamClose),
-			buffer((uint8_t*)Alloc(capacity)), position(0), length(capacity), capacity(capacity), isDynamic(true)
+			buffer((uint8_t*)HXSL_Alloc(capacity)), position(0), length(capacity), capacity(capacity), isDynamic(true)
 		{
 		}
 
@@ -310,7 +310,7 @@ namespace HXSL
 		{
 			if (isDynamic && buffer)
 			{
-				Free(buffer);
+				HXSL_Free(buffer);
 				Reset();
 			}
 		}
@@ -355,7 +355,7 @@ namespace HXSL
 			if (stream->isDynamic && newPosition > capacity)
 			{
 				auto newCapacity = std::max(capacity * 2, newPosition);
-				auto newBuffer = (uint8_t*)ReAlloc(stream->buffer, newCapacity);
+				auto newBuffer = (uint8_t*)HXSL_ReAlloc(stream->buffer, newCapacity);
 
 				if (newBuffer == nullptr)
 				{

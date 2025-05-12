@@ -1,5 +1,5 @@
-#ifndef OPERATOR_H
-#define OPERATOR_H
+#ifndef OPERATOR_HPP
+#define OPERATOR_HPP
 
 #include <string>
 
@@ -40,10 +40,10 @@ namespace HXSL
 		Operator_MultiplyAssign,    // *=
 		Operator_DivideAssign,      // /=
 		Operator_ModulusAssign,     // %=
-		Operator_BitwiseShiftLeftAssign,  // <<= 
-		Operator_BitwiseShiftRightAssign, // >>= 
-		Operator_BitwiseAndAssign, // &= 
-		Operator_BitwiseOrAssign,  // |= 
+		Operator_BitwiseShiftLeftAssign,  // <<=
+		Operator_BitwiseShiftRightAssign, // >>=
+		Operator_BitwiseAndAssign, // &=
+		Operator_BitwiseOrAssign,  // |=
 		Operator_BitwiseXorAssign, // ^=
 
 		Operator_Increment,         // ++
@@ -272,6 +272,8 @@ namespace HXSL
 			}
 		}
 
+		constexpr int UNARY_PRECEDENCE = 8;
+
 		static int GetOperatorPrecedence(Operator op)
 		{
 			switch (op)
@@ -290,7 +292,7 @@ namespace HXSL
 				return 1;
 
 			case Operator_Ternary:
-				return 5;
+				return 1;
 
 			case Operator_LessThan:
 			case Operator_GreaterThan:
@@ -298,42 +300,47 @@ namespace HXSL
 			case Operator_NotEqual:
 			case Operator_LessThanOrEqual:
 			case Operator_GreaterThanOrEqual:
-				return 10;
+				return 2;
 
 			case Operator_OrOr:
-				return 15;
+				return 3;
 
 			case Operator_AndAnd:
-				return 20;
+				return 4;
 
 			case Operator_BitwiseShiftLeft:
 			case Operator_BitwiseShiftRight:
 			case Operator_BitwiseAnd:
 			case Operator_BitwiseOr:
 			case Operator_BitwiseXor:
-				return 25;
+				return 5;
 
 			case Operator_Add:
 			case Operator_Subtract:
-				return 30;
+				return 6;
 
 			case Operator_Multiply:
 			case Operator_Divide:
 			case Operator_Modulus:
-				return 35;
+				return 7;
 
 			case Operator_LogicalNot:
 			case Operator_BitwiseNot:
 			case Operator_Increment:
 			case Operator_Decrement:
-				return 40;
+				return UNARY_PRECEDENCE;
 
 			case Operator_MemberAccess:
-				return 45;
+				return 9;
 
 			default:
 				return -1;
 			}
+		}
+
+		static bool isPreprocessorAllowedOperator(const Operator& op)
+		{
+			return op >= Operator_BinaryRangeStart && op <= Operator_BinaryRangeEnd || op == Operator_LogicalNot || op == Operator_BitwiseNot;
 		}
 
 		static bool isBinaryOperator(Operator op)

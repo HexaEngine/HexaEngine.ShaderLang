@@ -1,6 +1,6 @@
-#include "numbers.h"
+#include "numbers.hpp"
 
-namespace HXSL 
+namespace HXSL
 {
 	static const std::unordered_set<char> postfixes = { 'f', 'd', 'u', 'l', 'h', 'F', 'D', 'U', 'L', 'H' };
 
@@ -12,35 +12,35 @@ namespace HXSL
 	static NumberType Classify(long long value)
 	{
 		if (value >= std::numeric_limits<signed char>::min() && value <= std::numeric_limits<signed char>::max())
-			return NumberType_SByte;
+			return NumberType_Int8;
 		if (value >= std::numeric_limits<short>::min() && value <= std::numeric_limits<short>::max())
-			return NumberType_Short;
+			return NumberType_Int16;
 		if (value >= std::numeric_limits<int>::min() && value <= std::numeric_limits<int>::max())
-			return NumberType_Int;
-		return NumberType_LongLong;
+			return NumberType_Int32;
+		return NumberType_Int64;
 	}
 
 	static NumberType Classify(unsigned long long value)
 	{
 		if (value <= std::numeric_limits<unsigned char>::max())
-			return NumberType_UShort;
+			return NumberType_UInt16;
 		if (value <= std::numeric_limits<unsigned int>::max())
-			return NumberType_UInt;
-		return NumberType_ULongLong;
+			return NumberType_UInt32;
+		return NumberType_UInt64;
 	}
 
 	static NumberType MakeUnsigned(NumberType type)
 	{
 		switch (type)
 		{
-		case NumberType_LongLong:
-			return NumberType_ULongLong;
-		case NumberType_Int:
-			return NumberType_UInt;
-		case NumberType_Short:
-			return NumberType_UShort;
-		case NumberType_SByte:
-			return NumberType_Char;
+		case NumberType_Int64:
+			return NumberType_UInt64;
+		case NumberType_Int32:
+			return NumberType_UInt32;
+		case NumberType_Int16:
+			return NumberType_UInt16;
+		case NumberType_Int8:
+			return NumberType_UInt8;
 		default:
 			return type;
 		}
@@ -66,7 +66,7 @@ namespace HXSL
 			switch (current)
 			{
 			case 'L':
-				type = (type == NumberType_LongLong) ? NumberType_LongLong : NumberType_Int;
+				type = (type == NumberType_Int64) ? NumberType_Int64 : NumberType_Int32;
 				break;
 			case 'U':
 				type = MakeUnsigned(type);
@@ -92,7 +92,7 @@ namespace HXSL
 			innerEnd--;
 		}
 
-		if (isHex && isBinary || isFloat && (isHex || isBinary || type == NumberType_LongLong || isUnsigned))
+		if (isHex && isBinary || isFloat && (isHex || isBinary || type == NumberType_Int64 || isUnsigned))
 		{
 			return false;
 		}
@@ -130,16 +130,16 @@ namespace HXSL
 		if (isHex)
 		{
 			unsigned long long value = std::stoull(numberSpan, &converted, 16);
-			number.Kind = NumberType_ULongLong;
-			number.ulongLongValue = value;
+			number.Kind = NumberType_UInt64;
+			number.u64 = value;
 			tokenLength = position - start;
 			return converted == spanLength;
 		}
 		else if (isBinary)
 		{
 			unsigned long long value = std::stoull(numberSpan, &converted, 2);
-			number.Kind = NumberType_ULongLong;
-			number.ulongLongValue = value;
+			number.Kind = NumberType_UInt64;
+			number.u64 = value;
 			tokenLength = position - start;
 			return converted == spanLength;
 		}
@@ -149,7 +149,7 @@ namespace HXSL
 			{
 				float result = std::stof(numberSpan, &converted);
 				number.Kind = NumberType_Float;
-				number.floatValue = result;
+				number.float_ = result;
 				tokenLength = position - start;
 				return converted == spanLength;
 			}
@@ -157,7 +157,7 @@ namespace HXSL
 			{
 				double result = std::stod(numberSpan, &converted);
 				number.Kind = NumberType_Double;
-				number.doubleValue = result;
+				number.double_ = result;
 				tokenLength = position - start;
 				return converted == spanLength;
 			}
@@ -167,7 +167,7 @@ namespace HXSL
 			long long result = std::stoll(numberSpan, &converted);
 			type = type == NumberType_Unknown ? Classify(result) : type;
 			number.Kind = type;
-			number.longLongValue = result;
+			number.i64 = result;
 			tokenLength = position - start;
 			return converted == spanLength;
 		}
@@ -176,7 +176,7 @@ namespace HXSL
 			unsigned long long result = std::stoull(numberSpan, &converted);
 			type = type == NumberType_Unknown ? Classify(result) : type;
 			number.Kind = type;
-			number.longLongValue = result;
+			number.i64 = result;
 			tokenLength = position - start;
 			return converted == spanLength;
 		}

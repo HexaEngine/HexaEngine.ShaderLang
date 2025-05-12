@@ -1,7 +1,7 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include "lexical/token_stream.h"
+#include "lexical/token_stream.hpp"
 #include "lexical/text_span.hpp"
 #include "ast.hpp"
 #include "lazy.hpp"
@@ -9,6 +9,7 @@
 
 #include <stack>
 #include <string>
+
 namespace HXSL
 {
 #define ERR_RETURN_FALSE(state, code) \
@@ -278,6 +279,7 @@ namespace HXSL
 		bool IterateScope(ASTNode* parent);
 		bool TryRecoverScope(ASTNode* parent, bool exitScope);
 		bool TryRecoverParameterList();
+		bool TryRecoverParameterListMacro(bool inDefinition);
 		void TryRecoverStatement();
 		UsingDeclaration ParseUsingDeclaration();
 		NamespaceDeclaration ParseNamespaceDeclaration(bool& scoped);

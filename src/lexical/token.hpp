@@ -2,8 +2,8 @@
 #define TOKEN_H
 
 #include "lexical/text_span.hpp"
-#include "numbers.h"
-#include "lang/language.h"
+#include "numbers.hpp"
+#include "lang/language.hpp"
 
 namespace HXSL
 {
@@ -21,24 +21,6 @@ namespace HXSL
 		TokenType_NewLine,
 		TokenType_Whitespace
 	};
-
-	static std::string ToString(TokenType type)
-	{
-		switch (type) {
-		case TokenType_Unknown: return "Unknown";
-		case TokenType_Keyword: return "Keyword";
-		case TokenType_Identifier: return "Identifier";
-		case TokenType_Literal: return "Literal";
-		case TokenType_Numeric: return "Numeric";
-		case TokenType_Codeblock: return "Codeblock";
-		case TokenType_Delimiter: return "Delimiter";
-		case TokenType_Operator: return "Operator";
-		case TokenType_Comment: return "Comment";
-		case TokenType_NewLine: return "New Line";
-		case TokenType_Whitespace: return "Whitespace";
-		default: return "Invalid TokenType";
-		}
-	}
 
 	struct Token
 	{
@@ -102,6 +84,8 @@ namespace HXSL
 
 		bool isOperator() const noexcept { return Type == TokenType_Operator; }
 
+		bool isWhitespace() const noexcept { return Type == TokenType_Whitespace; }
+
 		bool isOperator(Operator& opOut) const noexcept
 		{
 			opOut = static_cast<Operator>(Value);
@@ -154,6 +138,29 @@ namespace HXSL
 		bool isLiteral() const noexcept { return Type == TokenType_Literal; }
 
 		bool isNumeric() const noexcept { return Type == TokenType_Numeric; }
+	};
+
+	static std::string ToString(TokenType type)
+	{
+		switch (type) {
+		case TokenType_Unknown: return "Unknown";
+		case TokenType_Keyword: return "Keyword";
+		case TokenType_Identifier: return "Identifier";
+		case TokenType_Literal: return "Literal";
+		case TokenType_Numeric: return "Numeric";
+		case TokenType_Codeblock: return "Codeblock";
+		case TokenType_Delimiter: return "Delimiter";
+		case TokenType_Operator: return "Operator";
+		case TokenType_Comment: return "Comment";
+		case TokenType_NewLine: return "New Line";
+		case TokenType_Whitespace: return "Whitespace";
+		default: return "Invalid TokenType";
+		}
+	}
+
+	struct TokenOutput
+	{
+		virtual void AddToken(const Token& token) = 0;
 	};
 }
 

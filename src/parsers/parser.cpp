@@ -260,7 +260,12 @@ namespace HXSL
 
 	static const std::unordered_set<char> parameterListExitRecoveryPoints =
 	{
-		'{', '}', ';', ')', '.', '$'
+		'{', '}', ';',  '.', '$', '#', '('
+	};
+
+	static const std::unordered_set<char> parameterListContinueRecoveryPoints =
+	{
+		')', ','
 	};
 
 	bool Parser::TryRecoverParameterList()
@@ -283,7 +288,37 @@ namespace HXSL
 				return false;
 			}
 			stream->Advance();
-			if (stream->Current().isDelimiterOf(','))
+			if (stream->Current().isDelimiterOf(parameterListContinueRecoveryPoints))
+			{
+				lastRecovery = stream->TokenPosition();
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool Parser::TryRecoverParameterListMacro(bool inDefinition)
+	{
+		if (lastRecovery == stream->TokenPosition())
+		{
+			stream->Advance();
+		}
+
+		while (!stream->IsEndOfTokens() && !stream->HasCriticalErrors())
+		{
+			auto current = stream->Current();
+			if (current.isIdentifier() || (current.isNumeric() && !inDefinition))
+			{
+				lastRecovery = stream->TokenPosition();
+				return true;
+			}
+			if (current.isKeyword() || current.isOperator() || current.isDelimiterOf(parameterListExitRecoveryPoints) || current.isNewLine())
+			{
+				return false;
+			}
+			stream->Advance();
+			if (stream->Current().isDelimiterOf(parameterListContinueRecoveryPoints))
 			{
 				lastRecovery = stream->TokenPosition();
 				return true;

@@ -2,10 +2,12 @@
 #define AST_BASE_HPP
 
 #include "config.h"
-#include "lang/language.h"
-#include "lexical/token.h"
+#include "lang/language.hpp"
+#include "lexical/token.hpp"
 #include "lexical/text_span.hpp"
+#include "lexical/input_stream.hpp"
 #include "utils/string_pool.hpp"
+#include "io/source_file.hpp"
 #include "io/stream.hpp"
 #include "macros.hpp"
 

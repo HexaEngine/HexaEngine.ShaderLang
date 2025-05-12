@@ -7,7 +7,7 @@
 
 namespace HXSL
 {
-	void HXSLCompiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
+	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
 	{
 		Parser::InitializeSubSystems();
 
@@ -33,9 +33,11 @@ namespace HXSL
 				continue;
 			}
 
-			LexerContext context = LexerContext(source.get(), source->GetInputStream(), compilation.get(), HXSLLexerConfig::Instance());
-			Preprocessor preprocessor = Preprocessor();
-			TokenStream tokenStream = TokenStream(&context, preprocessor);
+			Preprocessor preprocessor = Preprocessor(compilation.get());
+			preprocessor.Process(source.get());
+
+			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), compilation.get(), HXSLLexerConfig::Instance());
+			TokenStream tokenStream = TokenStream(&context);
 
 			Parser parser = Parser(tokenStream, compilation.get());
 
@@ -52,5 +54,11 @@ namespace HXSL
 
 			assembly->WriteToFile(output);
 		}
+	}
+
+	void Compiler::SetIncludeHandler(IncludeOpen includeOpen, IncludeClose includeClose)
+	{
+		includeOpen_ = includeOpen;
+		includeClose_ = includeClose;
 	}
 }
