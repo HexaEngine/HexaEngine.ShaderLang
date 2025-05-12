@@ -212,7 +212,7 @@ namespace HXSL
 		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
-		ifStatement->SetExpression(std::move(expression));
+		ifStatement->SetCondition(std::move(expression));
 
 		std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
 		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_If, parser, stream, statement));
@@ -238,7 +238,7 @@ namespace HXSL
 			std::unique_ptr<Expression> expression;
 			IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
-			elseIfStatement->SetExpression(std::move(expression));
+			elseIfStatement->SetCondition(std::move(expression));
 
 			std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
 			IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_ElseIf, parser, stream, statement));
@@ -282,7 +282,7 @@ namespace HXSL
 		std::unique_ptr<Expression> expression;
 		IF_ERR_RET_FALSE(PrattParser::ParseExpression(parser, stream, expression));
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
-		whileStatement->SetExpression(std::move(expression));
+		whileStatement->SetCondition(std::move(expression));
 
 		std::unique_ptr<BlockStatement> statement; // TODO: single line statements.
 		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_While, parser, stream, statement));

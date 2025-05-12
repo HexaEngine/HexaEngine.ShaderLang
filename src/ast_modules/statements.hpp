@@ -42,6 +42,28 @@ namespace HXSL
 		}
 	};
 
+	class ConditionalStatement : public Statement, public IHasExpressions
+	{
+	protected:
+		std::unique_ptr<Expression> condition;
+	public:
+		ConditionalStatement(TextSpan span, NodeType type, bool isExtern = false)
+			: Statement(span, type, isExtern),
+			ASTNode(span, type, isExtern)
+		{
+		}
+
+		ConditionalStatement(TextSpan span, NodeType type, bool isExtern, std::unique_ptr<Expression>&& condition)
+			: Statement(span, type, isExtern),
+			ASTNode(span, type, isExtern),
+			condition(std::move(condition))
+		{
+			REGISTER_EXPR(condition);
+		}
+
+		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Condition, condition)
+	};
+
 	class BlockStatement : public Statement, public StatementContainer
 	{
 	public:
@@ -205,27 +227,22 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, ReturnValueExpression, returnValueExpression)
 	};
 
-	class IfStatement : public Statement, public AttributeContainer, public IHasExpressions
+	class IfStatement : public ConditionalStatement, public AttributeContainer
 	{
 	private:
-		std::unique_ptr<Expression> expression;
 		std::unique_ptr<BlockStatement> body;
 
 	public:
-		IfStatement(TextSpan span, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
-			: Statement(span, NodeType_IfStatement),
+		IfStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
+			: ConditionalStatement(span, NodeType_IfStatement, false, std::move(condition)),
 			ASTNode(span, NodeType_IfStatement),
 			AttributeContainer(this),
-			expression(std::move(expression)),
 			body(std::move(body))
 		{
-			REGISTER_EXPR(expression);
 			REGISTER_CHILD(body);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
-
-			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
 	class ElseStatement : public Statement
@@ -245,26 +262,21 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
-	class ElseIfStatement : public Statement, public IHasExpressions
+	class ElseIfStatement : public ConditionalStatement
 	{
 	private:
-		std::unique_ptr<Expression> expression;
 		std::unique_ptr<BlockStatement> body;
 
 	public:
-		ElseIfStatement(TextSpan span, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
-			: Statement(span, NodeType_ElseIfStatement),
+		ElseIfStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
+			: ConditionalStatement(span, NodeType_ElseIfStatement, false, std::move(condition)),
 			ASTNode(span, NodeType_ElseIfStatement),
-			expression(std::move(expression)),
 			body(std::move(body))
 		{
-			REGISTER_EXPR(expression);
 			REGISTER_CHILD(body);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
-
-			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
 	class CaseStatement : public Statement, public StatementContainer, public IHasExpressions
@@ -330,31 +342,28 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<DefaultCaseStatement>, DefaultCase, defaultCase)
 	};
 
-	class ForStatement : public Statement, public AttributeContainer, public IHasExpressions
+	class ForStatement : public ConditionalStatement, public AttributeContainer
 	{
 	private:
 		std::unique_ptr<Statement> init;
-		std::unique_ptr<Expression> condition;
 		std::unique_ptr<Expression> iteration;
 		std::unique_ptr<BlockStatement> body;
 	public:
 		ForStatement(TextSpan span, std::unique_ptr<Statement> init, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> iteration, std::unique_ptr<BlockStatement> body)
-			: Statement(span, NodeType_ForStatement),
+			: ConditionalStatement(span, NodeType_ForStatement, false, std::move(condition)),
 			ASTNode(span, NodeType_ForStatement),
 			AttributeContainer(this),
 			init(std::move(init)),
-			condition(std::move(condition)),
 			iteration(std::move(iteration)),
 			body(std::move(body))
 		{
 			REGISTER_CHILD(init);
-			REGISTER_EXPR(condition);
 			REGISTER_EXPR(iteration);
 			REGISTER_CHILD(body);
 		}
 
 		ForStatement(TextSpan span)
-			: Statement(span, NodeType_ForStatement),
+			: ConditionalStatement(span, NodeType_ForStatement),
 			ASTNode(span, NodeType_ForStatement),
 			AttributeContainer(this)
 		{
@@ -368,7 +377,6 @@ namespace HXSL
 		}
 
 		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Statement>, Init, init)
-			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Condition, condition)
 			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Iteration, iteration)
 			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
@@ -403,34 +411,29 @@ namespace HXSL
 		}
 	};
 
-	class WhileStatement : public Statement, public IHasExpressions, public AttributeContainer
+	class WhileStatement : public ConditionalStatement, public AttributeContainer
 	{
 	private:
-		std::unique_ptr<Expression> expression;
 		std::unique_ptr<BlockStatement> body;
 
 	public:
-		WhileStatement(TextSpan span, std::unique_ptr<Expression> expression, std::unique_ptr<BlockStatement> body)
-			: Statement(span, NodeType_WhileStatement),
+		WhileStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
+			: ConditionalStatement(span, NodeType_WhileStatement, false, std::move(condition)),
 			ASTNode(span, NodeType_WhileStatement),
 			AttributeContainer(this),
-			expression(std::move(expression)),
 			body(std::move(body))
 		{
-			REGISTER_EXPR(expression);
 			REGISTER_CHILD(body);
 		}
 
 		WhileStatement(TextSpan span)
-			: Statement(span, NodeType_WhileStatement),
+			: ConditionalStatement(span, NodeType_WhileStatement),
 			ASTNode(span, NodeType_WhileStatement),
 			AttributeContainer(this)
 		{
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
-
-			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 }
 

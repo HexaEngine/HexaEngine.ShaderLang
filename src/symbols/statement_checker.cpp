@@ -14,7 +14,10 @@ namespace HXSL
 				Register<ReturnStatementChecker, NodeType_ReturnStatement>();
 				Register<DeclarationStatementChecker, NodeType_DeclarationStatement>();
 				Register<AssignmentStatementChecker, NodeType_AssignmentStatement>();
-				Register<ForStatementChecker, NodeType_ForStatement>();
+				Register<ConditionalStatementChecker, NodeType_ForStatement>();
+				Register<ConditionalStatementChecker, NodeType_WhileStatement>();
+				Register<ConditionalStatementChecker, NodeType_IfStatement>();
+				Register<ConditionalStatementChecker, NodeType_ElseIfStatement>();
 			});
 	}
 
@@ -86,7 +89,7 @@ namespace HXSL
 		statement->SetExpression(std::move(expr));
 	}
 
-	void ForStatementChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ForStatement* statement)
+	void ConditionalStatementChecker::HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ConditionalStatement* statement)
 	{
 		auto conditionType = statement->GetCondition()->GetInferredType();
 
@@ -94,7 +97,12 @@ namespace HXSL
 		{
 			return;
 		}
-		int i = 0, j = 0;
-		i++, j++;
+
+		std::unique_ptr<Expression> expr = std::move(statement->DetachCondition());
+		if (!checker.IsBooleanType(expr, conditionType))
+		{
+			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), conditionType->ToString(), "bool");
+		}
+		statement->SetCondition(std::move(expr));
 	}
 }

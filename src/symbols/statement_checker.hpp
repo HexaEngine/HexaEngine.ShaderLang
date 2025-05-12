@@ -54,9 +54,9 @@ namespace HXSL
 
 	class DummyStatementChecker : public StatementCheckerBase
 	{
-		 void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Statement* node) override
-		 {
-		 }
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Statement* node) override
+		{
+		}
 	};
 
 	class ReturnStatementChecker : public StatementChecker<ReturnStatement>
@@ -74,9 +74,24 @@ namespace HXSL
 		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, AssignmentStatement* statement) override;
 	};
 
-	class ForStatementChecker : public StatementChecker<ForStatement>
+	class ConditionalStatementChecker : public StatementChecker<ConditionalStatement>
 	{
-		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ForStatement* statement) override;
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ConditionalStatement* statement) override;
+	};
+
+	class WhileStatementChecker : public StatementChecker<WhileStatement>
+	{
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, WhileStatement* statement) override;
+	};
+
+	class IfStatementChecker : public StatementChecker<IfStatement>
+	{
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, IfStatement* statement) override;
+	};
+
+	class ElseIfStatementChecker : public StatementChecker<ElseIfStatement>
+	{
+		void HandleExpression(Analyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ElseIfStatement* statement) override;
 	};
 }
 
