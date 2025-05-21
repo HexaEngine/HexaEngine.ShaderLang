@@ -16,7 +16,7 @@ namespace HXSL
 	class IHasSymbolRef
 	{
 	public:
-		virtual const std::unique_ptr<SymbolRef>& GetSymbolRef() = 0;
+		virtual const ast_ptr<SymbolRef>& GetSymbolRef() = 0;
 		virtual ~IHasSymbolRef() = default;
 	};
 
@@ -29,7 +29,7 @@ namespace HXSL
 		void RegisterExpression(ASTNode* parent, Expression* expr);
 
 		template<class T>
-		void RegisterExpressions(ASTNode* parent, const std::vector<std::unique_ptr<T>>& expressions)
+		void RegisterExpressions(ASTNode* parent, const std::vector<ast_ptr<T>>& expressions)
 		{
 			for (auto& expr : expressions)
 			{
@@ -40,7 +40,7 @@ namespace HXSL
 		void UnregisterExpression(Expression* expr);
 
 		template<class T>
-		void UnregisterExpression(const std::vector<std::unique_ptr<T>>& expressions)
+		void UnregisterExpression(const std::vector<ast_ptr<T>>& expressions)
 		{
 			for (auto& expr : expressions)
 			{
@@ -60,21 +60,21 @@ namespace HXSL
 	class IHasOperatorOverloads
 	{
 	public:
-		virtual const std::vector<std::unique_ptr<OperatorOverload>>& GetOperators() const = 0;
+		virtual const std::vector<ast_ptr<OperatorOverload>>& GetOperators() const = 0;
 		virtual ~IHasOperatorOverloads() = default;
 	};
 
 	class ICloneable
 	{
 	public:
-		virtual std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept = 0;
+		virtual ast_ptr<ASTNode> Clone(ASTNode* parent) const noexcept = 0;
 		virtual ~ICloneable() = default;
 	};
 
 	class IHasBody
 	{
 	public:
-		virtual const std::unique_ptr<BlockStatement>& GetBody() const noexcept = 0;
+		virtual const ast_ptr<BlockStatement>& GetBody() const noexcept = 0;
 		virtual ~IHasBody() = default;
 	};
 }

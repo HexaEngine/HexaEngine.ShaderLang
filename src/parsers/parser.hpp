@@ -119,10 +119,10 @@ namespace HXSL
 	struct TakeHandle
 	{
 	private:
-		std::unique_ptr<T> ptr;
+		ast_ptr<T> ptr;
 
 	public:
-		explicit TakeHandle(std::unique_ptr<T> resource)
+		explicit TakeHandle(ast_ptr<T> resource)
 			: ptr(std::move(resource))
 		{
 		}
@@ -143,7 +143,7 @@ namespace HXSL
 			return ptr.get();
 		}
 
-		std::unique_ptr<T> Take() {
+		ast_ptr<T> Take() {
 			return std::move(ptr);
 		}
 
@@ -151,7 +151,7 @@ namespace HXSL
 			ptr.reset();
 		}
 
-		void Reset(std::unique_ptr<T> new_ptr)
+		void Reset(ast_ptr<T> new_ptr)
 		{
 			ptr = std::move(new_ptr);
 		}
@@ -434,7 +434,7 @@ namespace HXSL
 
 		std::tuple<ParameterFlags, InterpolationModifier> ParseParameterFlags();
 		bool TryParseSymbol(const SymbolRefType& type, LazySymbol& symbol);
-		bool ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type);
+		bool ParseSymbol(SymbolRefType expectedType, ast_ptr<SymbolRef>& type);
 
 		bool TryParseArraySizes(std::vector<size_t>& arraySizes);
 		void ParseArraySizes(std::vector<size_t>& arraySizes);
@@ -561,7 +561,7 @@ namespace HXSL
 
 		bool TryParseSymbol(const SymbolRefType& type, LazySymbol& symbol) { return parser.TryParseSymbol(type, symbol); }
 
-		bool ParseSymbol(SymbolRefType expectedType, std::unique_ptr<SymbolRef>& type) { return parser.ParseSymbol(expectedType, type); }
+		bool ParseSymbol(SymbolRefType expectedType, ast_ptr<SymbolRef>& type) { return parser.ParseSymbol(expectedType, type); }
 
 		bool TryParseArraySizes(std::vector<size_t>& arraySizes) { return parser.TryParseArraySizes(arraySizes); }
 

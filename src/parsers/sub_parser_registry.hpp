@@ -56,7 +56,7 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut, bool leaveOpen = false)
+		static bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut, bool leaveOpen = false)
 		{
 			for (auto& subParser : parsers)
 			{
@@ -96,7 +96,7 @@ namespace HXSL
 		{
 			return true;
 		}
-		std::unique_ptr<Statement> outStatement;
+		ast_ptr<Statement> outStatement;
 		bool success = StatementParserRegistry::TryParse(parser, stream, outStatement, leaveOpen);
 
 		if (!success)
@@ -118,10 +118,10 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseStatementBody(ScopeType type, Parser& parser, TokenStream& stream, std::unique_ptr<BlockStatement>& statement)
+	static bool ParseStatementBody(ScopeType type, Parser& parser, TokenStream& stream, ast_ptr<BlockStatement>& statement)
 	{
 		// TODO: single line statements.
-		auto blockStatement = std::make_unique<BlockStatement>(TextSpan());
+		auto blockStatement = make_ast_ptr<BlockStatement>(TextSpan());
 		Token first;
 		parser.EnterScope(type, blockStatement.get(), first, true);
 
@@ -158,7 +158,7 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
+		static bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
 		{
 			auto first = stream.Current();
 			for (auto& subParser : parsers)
@@ -181,7 +181,7 @@ namespace HXSL
 
 			if (!expressionOut.get())
 			{
-				expressionOut = std::make_unique<EmptyExpression>(first.Span.merge(stream.LastToken().Span));
+				expressionOut = make_ast_ptr<EmptyExpression>(first.Span.merge(stream.LastToken().Span));
 				return true;
 			}
 

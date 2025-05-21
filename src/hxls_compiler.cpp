@@ -6,6 +6,9 @@
 #include "semantics/semantic_analyzer.hpp"
 #include "il/il_generator.hpp"
 #include "utils/ast_flattener.hpp"
+#include "utils/ast_allocator.hpp"
+
+#include <chrono>
 
 namespace HXSL
 {
@@ -13,40 +16,53 @@ namespace HXSL
 	{
 		Parser::InitializeSubSystems();
 
-		std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
-		std::unique_ptr<CompilationUnit> compilation = std::make_unique<CompilationUnit>();
-
-		std::vector<std::unique_ptr<SourceFile>> sources;
-		for (auto& file : files)
+		for (size_t i = 0; i < 1000; i++)
 		{
-			auto fs = FileStream::OpenRead(file.c_str());
+			astAllocator.Reset();
+			auto start = std::chrono::high_resolution_clock::now();
 
-			if (!fs)
+			std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
+			ast_ptr<CompilationUnit> compilation = make_ast_ptr<CompilationUnit>();
+
+			std::vector<std::unique_ptr<SourceFile>> sources;
+			for (auto& file : files)
 			{
-				std::cerr << "Error opening file." << std::endl;
-				continue;
+				auto fs = FileStream::OpenRead(file.c_str());
+
+				if (!fs)
+				{
+					std::cerr << "Error opening file." << std::endl;
+					continue;
+				}
+
+				sources.push_back(std::make_unique<SourceFile>(fs.release(), true));
+				auto& source = sources.back();
+
+				if (!source->PrepareInputStream())
+				{
+					std::cerr << "Error reading file." << std::endl;
+					continue;
+				}
+
+				Preprocessor preprocessor = Preprocessor(logger.get());
+				preprocessor.Process(source.get());
+
+				LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger.get(), HXSLLexerConfig::Instance());
+				TokenStream tokenStream = TokenStream(&context);
+
+				Parser parser = Parser(logger.get(), tokenStream, compilation.get()); // here
+
+				parser.Parse();
 			}
 
-			sources.push_back(std::make_unique<SourceFile>(fs.release(), true));
-			auto& source = sources.back();
+			auto end = std::chrono::high_resolution_clock::now();
 
-			if (!source->PrepareInputStream())
-			{
-				std::cerr << "Error reading file." << std::endl;
-				continue;
-			}
-
-			Preprocessor preprocessor = Preprocessor(logger.get());
-			preprocessor.Process(source.get());
-
-			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger.get(), HXSLLexerConfig::Instance());
-			TokenStream tokenStream = TokenStream(&context);
-
-			Parser parser = Parser(logger.get(), tokenStream, compilation.get());
-
-			parser.Parse();
+			std::chrono::duration<double, std::milli> elapsed = end - start;
+			std::cout << "Elapsed time: " << elapsed.count() << " ms\n";
 		}
 
+		return;
+		/*
 		SemanticAnalyzer::InitializeSubSystems();
 		SemanticAnalyzer analyzer = SemanticAnalyzer(logger.get(), compilation.get(), references);
 		analyzer.Analyze();
@@ -63,7 +79,7 @@ namespace HXSL
 			auto assembly = analyzer.GetOutputAssembly().get();
 
 			assembly->WriteToFile(output);
-		}
+		}*/
 	}
 
 	void Compiler::SetIncludeHandler(IncludeOpen includeOpen, IncludeClose includeClose)

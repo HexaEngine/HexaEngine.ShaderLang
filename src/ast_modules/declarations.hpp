@@ -14,7 +14,7 @@ namespace HXSL
 	private:
 		ParameterFlags flags;
 		InterpolationModifier interpolationModifiers;
-		std::unique_ptr<SymbolRef> symbol;
+		ast_ptr<SymbolRef> symbol;
 		std::string semantic;
 
 	public:
@@ -25,7 +25,7 @@ namespace HXSL
 			interpolationModifiers(InterpolationModifier_Linear)
 		{
 		}
-		Parameter(TextSpan span, ParameterFlags flags, InterpolationModifier interpolationModifiers, std::unique_ptr<SymbolRef> symbol, TextSpan name, TextSpan semantic)
+		Parameter(TextSpan span, ParameterFlags flags, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef> symbol, TextSpan name, TextSpan semantic)
 			: ASTNode(span, NodeType_Parameter),
 			SymbolDef(span, NodeType_Parameter, name),
 			flags(flags),
@@ -35,12 +35,12 @@ namespace HXSL
 		{
 		}
 
-		void SetSymbolRef(std::unique_ptr<SymbolRef> ref)
+		void SetSymbolRef(ast_ptr<SymbolRef> ref)
 		{
 			symbol = std::move(ref);
 		}
 
-		std::unique_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef() override
 		{
 			return symbol;
 		}
@@ -59,7 +59,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
 		~Parameter() override
 		{
@@ -72,10 +72,10 @@ namespace HXSL
 		std::string cachedSignature;
 		AccessModifier accessModifiers;
 		FunctionFlags functionFlags;
-		std::unique_ptr<SymbolRef> returnSymbol;
-		std::vector<std::unique_ptr<Parameter>> parameters;
+		ast_ptr<SymbolRef> returnSymbol;
+		std::vector<ast_ptr<Parameter>> parameters;
 		std::string semantic;
-		std::unique_ptr<BlockStatement> body;
+		ast_ptr<BlockStatement> body;
 
 		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name)
 			: ASTNode(span, type),
@@ -85,7 +85,7 @@ namespace HXSL
 			functionFlags(functionFlags)
 		{
 		}
-		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
+		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol, std::vector<ast_ptr<Parameter>> parameters, TextSpan semantic)
 			: ASTNode(span, type),
 			SymbolDef(span, type, name),
 			AttributeContainer(this),
@@ -97,7 +97,7 @@ namespace HXSL
 		{
 			RegisterChildren(this->parameters);
 		}
-		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol)
+		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol)
 			: ASTNode(span, type),
 			SymbolDef(span, type, name),
 			AttributeContainer(this),
@@ -116,7 +116,7 @@ namespace HXSL
 			functionFlags(FunctionFlags_None)
 		{
 		}
-		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
+		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol, std::vector<ast_ptr<Parameter>> parameters, TextSpan semantic)
 			: ASTNode(span, NodeType_FunctionOverload),
 			SymbolDef(span, NodeType_FunctionOverload, name),
 			AttributeContainer(this),
@@ -129,7 +129,7 @@ namespace HXSL
 			RegisterChildren(this->parameters);
 		}
 
-		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol)
+		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol)
 			: ASTNode(span, NodeType_FunctionOverload),
 			SymbolDef(span, NodeType_FunctionOverload, name),
 			AttributeContainer(this),
@@ -139,13 +139,13 @@ namespace HXSL
 		{
 		}
 
-		void AddParameter(std::unique_ptr<Parameter> parameter)
+		void AddParameter(ast_ptr<Parameter> parameter)
 		{
 			parameter->SetParent(this);
 			parameters.push_back(std::move(parameter));
 		}
 
-		std::unique_ptr<SymbolRef>& GetReturnSymbolRef()
+		ast_ptr<SymbolRef>& GetReturnSymbolRef()
 		{
 			return returnSymbol;
 		}
@@ -213,7 +213,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
 		std::string DebugName() const override
 		{
@@ -222,15 +222,15 @@ namespace HXSL
 			return oss.str();
 		}
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
-			DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, ReturnSymbol, returnSymbol)
-			DEFINE_GET_SET_MOVE_CHILDREN(std::vector<std::unique_ptr<Parameter>>, Parameters, parameters)
+			DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, ReturnSymbol, returnSymbol)
+			DEFINE_GET_SET_MOVE_CHILDREN(std::vector<ast_ptr<Parameter>>, Parameters, parameters)
 			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
 
-			const std::unique_ptr<BlockStatement>& GetBody() const noexcept;
+			const ast_ptr<BlockStatement>& GetBody() const noexcept;
 
-		void SetBody(std::unique_ptr<BlockStatement>&& value) noexcept;
+		void SetBody(ast_ptr<BlockStatement>&& value) noexcept;
 
-		std::unique_ptr<BlockStatement>& GetBodyMut() noexcept;
+		ast_ptr<BlockStatement>& GetBodyMut() noexcept;
 	};
 
 	class OperatorOverload : public FunctionOverload
@@ -246,7 +246,7 @@ namespace HXSL
 			operatorFlags(OperatorFlags_None)
 		{
 		}
-		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, std::unique_ptr<SymbolRef> returnSymbol, std::vector<std::unique_ptr<Parameter>> parameters, TextSpan semantic)
+		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, ast_ptr<SymbolRef> returnSymbol, std::vector<ast_ptr<Parameter>> parameters, TextSpan semantic)
 			: FunctionOverload(span, NodeType_OperatorOverload, accessModifiers, functionFlags, name, std::move(returnSymbol), std::move(parameters), semantic),
 			ASTNode(span, NodeType_OperatorOverload),
 			_operator(_operator),
@@ -262,7 +262,7 @@ namespace HXSL
 		{
 		}
 
-		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, std::unique_ptr<SymbolRef> returnSymbol)
+		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, ast_ptr<SymbolRef> returnSymbol)
 			: FunctionOverload(span, NodeType_OperatorOverload, accessModifiers, functionFlags, name, std::move(returnSymbol)),
 			ASTNode(span, NodeType_OperatorOverload),
 			_operator(_operator),
@@ -360,7 +360,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 	};
 
 	class Field : public SymbolDef, public IHasSymbolRef
@@ -369,7 +369,7 @@ namespace HXSL
 		AccessModifier accessModifiers;
 		StorageClass storageClass;
 		InterpolationModifier interpolationModifiers;
-		std::unique_ptr<SymbolRef> symbol;
+		ast_ptr<SymbolRef> symbol;
 		std::string semantic;
 	public:
 		Field()
@@ -380,7 +380,7 @@ namespace HXSL
 			interpolationModifiers(InterpolationModifier_Linear)
 		{
 		}
-		Field(TextSpan span, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic)
+		Field(TextSpan span, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, TextSpan name, ast_ptr<SymbolRef> symbol, TextSpan semantic)
 			: ASTNode(span, NodeType_Field),
 			SymbolDef(span, NodeType_Field, name),
 			accessModifiers(access),
@@ -391,12 +391,12 @@ namespace HXSL
 		{
 		}
 
-		void SetSymbolRef(std::unique_ptr<SymbolRef> ref)
+		void SetSymbolRef(ast_ptr<SymbolRef> ref)
 		{
 			symbol = std::move(ref);
 		}
 
-		std::unique_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef() override
 		{
 			return symbol;
 		}
@@ -420,7 +420,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
@@ -463,7 +463,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
@@ -506,7 +506,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};

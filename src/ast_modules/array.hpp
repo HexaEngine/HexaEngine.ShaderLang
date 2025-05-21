@@ -10,11 +10,11 @@ namespace HXSL
 	class Array : public Type, public IHasSymbolRef
 	{
 	private:
-		std::unique_ptr<SymbolRef> elementType;
+		ast_ptr<SymbolRef> elementType;
 		std::string backingName;
 		size_t arraySize;
 	public:
-		Array(std::string& name, std::unique_ptr<SymbolRef>& elementType, size_t arraySize)
+		Array(std::string& name, ast_ptr<SymbolRef>& elementType, size_t arraySize)
 			: Type(TextSpan(), NodeType_Array, TextSpan()),
 			ASTNode(TextSpan(), NodeType_Array),
 			elementType(std::move(elementType)),
@@ -29,7 +29,7 @@ namespace HXSL
 			return elementType->GetDeclaration();
 		}
 
-		std::unique_ptr<SymbolRef>& GetSymbolRef()
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return elementType;
 		}
@@ -56,7 +56,7 @@ namespace HXSL
 			HXSL_ASSERT(false, "Cannot read array types")
 		}
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override
 		{
 			HXSL_ASSERT(false, "Cannot build array types")
 		}

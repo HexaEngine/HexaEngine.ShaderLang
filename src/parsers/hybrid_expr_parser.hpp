@@ -5,9 +5,9 @@
 
 namespace HXSL
 {
-	using ExpressionPtr = std::unique_ptr<Expression>;
-	using BinaryExpressionPtr = std::unique_ptr<BinaryExpression>;
-	using OperatorPtr = std::unique_ptr<OperatorExpression>;
+	using ExpressionPtr = ast_ptr<Expression>;
+	using BinaryExpressionPtr = ast_ptr<BinaryExpression>;
+	using OperatorPtr = ast_ptr<OperatorExpression>;
 
 	enum ExpressionParserFlags
 	{
@@ -20,8 +20,8 @@ namespace HXSL
 	struct ExpressionParserOptions
 	{
 		ExpressionParserFlags flags;
-		std::vector<std::unique_ptr<Expression>> operands;
-		std::vector<std::unique_ptr<OperatorExpression>> operators;
+		std::vector<ast_ptr<Expression>> operands;
+		std::vector<ast_ptr<OperatorExpression>> operators;
 	};
 
 	enum TaskType
@@ -134,7 +134,7 @@ namespace HXSL
 		template<typename ExpressionType, typename... Args>
 		void PushSubExpressionTask(TaskType type, Args&&... args)
 		{
-			PushSubExpressionTask(type, std::make_unique<ExpressionType>(std::forward<Args>(args)...));
+			PushSubExpressionTask(type, make_ast_ptr<ExpressionType>(std::forward<Args>(args)...));
 		}
 
 		void InjectTask(TaskType type, ExpressionPtr&& expr);
@@ -152,7 +152,7 @@ namespace HXSL
 		template<typename ExpressionType, typename... Args>
 		void PushOperator(Args&&... args)
 		{
-			PushOperator(std::make_unique<ExpressionType>(std::forward<Args>(args)...));
+			PushOperator(make_ast_ptr<ExpressionType>(std::forward<Args>(args)...));
 		}
 
 		ExpressionPtr PopOperand();
@@ -185,9 +185,9 @@ namespace HXSL
 	class HybridExpressionParser
 	{
 	public:
-		static bool ParseExpression(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expression, ExpressionParserFlags flags = ExpressionParserFlags_None);
+		static bool ParseExpression(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expression, ExpressionParserFlags flags = ExpressionParserFlags_None);
 
-		static bool ParseExpression(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expression, ParseContext& context);
+		static bool ParseExpression(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expression, ParseContext& context);
 	};
 }
 

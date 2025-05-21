@@ -9,11 +9,11 @@ namespace HXSL
 	class Container : virtual public ASTNode, public IHasOperatorOverloads
 	{
 	protected:
-		std::vector<std::unique_ptr<FunctionOverload>> functions;
-		std::vector<std::unique_ptr<OperatorOverload>> operators;
-		std::vector<std::unique_ptr<Struct>> structs;
-		std::vector<std::unique_ptr<Class>> classes;
-		std::vector<std::unique_ptr<Field>> fields;
+		std::vector<ast_ptr<FunctionOverload>> functions;
+		std::vector<ast_ptr<OperatorOverload>> operators;
+		std::vector<ast_ptr<Struct>> structs;
+		std::vector<ast_ptr<Class>> classes;
+		std::vector<ast_ptr<Field>> fields;
 
 	public:
 		Container(TextSpan span, NodeType type, bool isExtern = false) : ASTNode(span, type, isExtern)
@@ -24,62 +24,62 @@ namespace HXSL
 
 		virtual ~Container() {}
 
-		void AddFunction(std::unique_ptr<FunctionOverload> function);
+		void AddFunction(ast_ptr<FunctionOverload> function);
 
-		void AddOperator(std::unique_ptr<OperatorOverload> _operator);
+		void AddOperator(ast_ptr<OperatorOverload> _operator);
 
-		void AddStruct(std::unique_ptr<Struct> _struct);
+		void AddStruct(ast_ptr<Struct> _struct);
 
-		void AddClass(std::unique_ptr<Class> _class);
+		void AddClass(ast_ptr<Class> _class);
 
-		void AddField(std::unique_ptr<Field> field);
+		void AddField(ast_ptr<Field> field);
 
-		const std::vector<std::unique_ptr<FunctionOverload>>& GetFunctions() const noexcept
+		const std::vector<ast_ptr<FunctionOverload>>& GetFunctions() const noexcept
 		{
 			return functions;
 		}
 
-		const std::vector<std::unique_ptr<OperatorOverload>>& GetOperators() const noexcept override
+		const std::vector<ast_ptr<OperatorOverload>>& GetOperators() const noexcept override
 		{
 			return operators;
 		}
 
-		const std::vector<std::unique_ptr<Struct>>& GetStructs() const noexcept
+		const std::vector<ast_ptr<Struct>>& GetStructs() const noexcept
 		{
 			return structs;
 		}
 
-		const std::vector<std::unique_ptr<Class>>& GetClasses() const noexcept
+		const std::vector<ast_ptr<Class>>& GetClasses() const noexcept
 		{
 			return classes;
 		}
 
-		const std::vector<std::unique_ptr<Field>>& GetFields() const noexcept
+		const std::vector<ast_ptr<Field>>& GetFields() const noexcept
 		{
 			return fields;
 		}
 
-		std::vector<std::unique_ptr<FunctionOverload>>& GetFunctionsMut() noexcept
+		std::vector<ast_ptr<FunctionOverload>>& GetFunctionsMut() noexcept
 		{
 			return functions;
 		}
 
-		std::vector<std::unique_ptr<OperatorOverload>>& GetOperatorsMut() noexcept
+		std::vector<ast_ptr<OperatorOverload>>& GetOperatorsMut() noexcept
 		{
 			return operators;
 		}
 
-		std::vector<std::unique_ptr<Struct>>& GetStructsMut() noexcept
+		std::vector<ast_ptr<Struct>>& GetStructsMut() noexcept
 		{
 			return structs;
 		}
 
-		std::vector<std::unique_ptr<Class>>& GetClassesMut() noexcept
+		std::vector<ast_ptr<Class>>& GetClassesMut() noexcept
 		{
 			return classes;
 		}
 
-		std::vector<std::unique_ptr<Field>>& GetFieldsMut() noexcept
+		std::vector<ast_ptr<Field>>& GetFieldsMut() noexcept
 		{
 			return fields;
 		}

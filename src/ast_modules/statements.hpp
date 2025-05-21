@@ -22,7 +22,7 @@ namespace HXSL
 	{
 		ASTNode* self;
 	protected:
-		std::vector<std::unique_ptr<Statement>> statements;
+		std::vector<ast_ptr<Statement>> statements;
 
 	public:
 		StatementContainer(ASTNode* self) :self(self) {}
@@ -30,13 +30,13 @@ namespace HXSL
 
 		ASTNode* GetSelf() const noexcept { return self; }
 
-		void AddStatement(std::unique_ptr<Statement> statement)
+		void AddStatement(ast_ptr<Statement> statement)
 		{
 			statement->SetParent(self);
 			statements.push_back(std::move(statement));
 		}
 
-		const std::vector<std::unique_ptr<Statement>>& GetStatements() const
+		const std::vector<ast_ptr<Statement>>& GetStatements() const
 		{
 			return statements;
 		}
@@ -63,7 +63,7 @@ namespace HXSL
 	class BodyStatement : public Statement, public IHasBody
 	{
 	protected:
-		std::unique_ptr<BlockStatement> body;
+		ast_ptr<BlockStatement> body;
 
 		BodyStatement(TextSpan span, NodeType type, bool isExtern = false)
 			: Statement(span, type, isExtern),
@@ -71,7 +71,7 @@ namespace HXSL
 		{
 		}
 
-		BodyStatement(TextSpan span, NodeType type, std::unique_ptr<BlockStatement>&& body)
+		BodyStatement(TextSpan span, NodeType type, ast_ptr<BlockStatement>&& body)
 			: Statement(span, type, false),
 			ASTNode(span, type, false),
 			body(std::move(body))
@@ -80,17 +80,17 @@ namespace HXSL
 		}
 
 	public:
-		const std::unique_ptr<BlockStatement>& GetBody() const noexcept override
+		const ast_ptr<BlockStatement>& GetBody() const noexcept override
 		{
 			return body;
 		}
 
-		void SetBody(std::unique_ptr<BlockStatement>&& value) noexcept
+		void SetBody(ast_ptr<BlockStatement>&& value) noexcept
 		{
 			UnregisterChild(body.get()); body = std::move(value); RegisterChild(body.get());
 		}
 
-		std::unique_ptr<BlockStatement>& GetBodyMut() noexcept
+		ast_ptr<BlockStatement>& GetBodyMut() noexcept
 		{
 			return body;
 		};
@@ -99,7 +99,7 @@ namespace HXSL
 	class ConditionalStatement : public BodyStatement, public IHasExpressions
 	{
 	protected:
-		std::unique_ptr<Expression> condition;
+		ast_ptr<Expression> condition;
 
 		ConditionalStatement(TextSpan span, NodeType type, bool isExtern = false)
 			: BodyStatement(span, type, isExtern),
@@ -107,7 +107,7 @@ namespace HXSL
 		{
 		}
 
-		ConditionalStatement(TextSpan span, NodeType type, std::unique_ptr<Expression>&& condition, std::unique_ptr<BlockStatement>&& body)
+		ConditionalStatement(TextSpan span, NodeType type, ast_ptr<Expression>&& condition, ast_ptr<BlockStatement>&& body)
 			: BodyStatement(span, type, std::move(body)),
 			ASTNode(span, type, isExtern),
 			condition(std::move(condition))
@@ -116,15 +116,15 @@ namespace HXSL
 		}
 
 	public:
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Condition, condition);
+		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Condition, condition);
 	};
 
 	class DeclarationStatement : public Statement, public SymbolDef, public IHasSymbolRef, public IHasExpressions
 	{
 	private:
 		StorageClass storageClass;
-		std::unique_ptr<SymbolRef> symbol;
-		std::unique_ptr<Expression> initializer;
+		ast_ptr<SymbolRef> symbol;
+		ast_ptr<Expression> initializer;
 
 	public:
 		DeclarationStatement()
@@ -135,7 +135,7 @@ namespace HXSL
 		{
 		}
 
-		DeclarationStatement(TextSpan span, std::unique_ptr<SymbolRef> symbol, StorageClass storageClass, TextSpan name, std::unique_ptr<Expression> initializer)
+		DeclarationStatement(TextSpan span, ast_ptr<SymbolRef> symbol, StorageClass storageClass, TextSpan name, ast_ptr<Expression> initializer)
 			: Statement(span, NodeType_DeclarationStatement),
 			SymbolDef(span, NodeType_DeclarationStatement, name),
 			ASTNode(span, NodeType_DeclarationStatement),
@@ -146,7 +146,7 @@ namespace HXSL
 			REGISTER_EXPR(initializer);
 		}
 
-		std::unique_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef() override
 		{
 			return symbol;
 		}
@@ -175,11 +175,11 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
+		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, Symbol, symbol)
 
-			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Initializer, initializer)
+			DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Initializer, initializer)
 	};
 
 	class AssignmentStatement : public Statement, public IHasExpressions
@@ -187,9 +187,9 @@ namespace HXSL
 	private:
 
 	protected:
-		std::unique_ptr<AssignmentExpression> expr;
+		ast_ptr<AssignmentExpression> expr;
 
-		AssignmentStatement(TextSpan span, NodeType type, std::unique_ptr<AssignmentExpression> expr)
+		AssignmentStatement(TextSpan span, NodeType type, ast_ptr<AssignmentExpression> expr)
 			: Statement(span, type),
 			ASTNode(span, type),
 			expr(std::move(expr))
@@ -198,35 +198,35 @@ namespace HXSL
 		}
 
 	public:
-		AssignmentStatement(TextSpan span, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
+		AssignmentStatement(TextSpan span, ast_ptr<Expression> target, ast_ptr<Expression> expression)
 			: Statement(span, NodeType_AssignmentStatement),
 			ASTNode(span, NodeType_AssignmentStatement),
-			expr(std::make_unique<AssignmentExpression>(span, std::move(target), std::move(expression)))
+			expr(make_ast_ptr<AssignmentExpression>(span, std::move(target), std::move(expression)))
 		{
 			REGISTER_EXPR(expr);
 		}
 
-		const std::unique_ptr<AssignmentExpression>& GetAssignmentExpression() const noexcept
+		const ast_ptr<AssignmentExpression>& GetAssignmentExpression() const noexcept
 		{
 			return expr;
 		}
 
-		const std::unique_ptr<Expression>& GetTarget() const noexcept
+		const ast_ptr<Expression>& GetTarget() const noexcept
 		{
 			return expr->GetTarget();
 		}
 
-		void SetTarget(std::unique_ptr<Expression>&& value) noexcept
+		void SetTarget(ast_ptr<Expression>&& value) noexcept
 		{
 			expr->SetTarget(std::move(value));
 		}
 
-		const std::unique_ptr<Expression>& GetExpression() const noexcept
+		const ast_ptr<Expression>& GetExpression() const noexcept
 		{
 			return expr->GetExpression();
 		}
 
-		void SetExpression(std::unique_ptr<Expression>&& value) noexcept
+		void SetExpression(ast_ptr<Expression>&& value) noexcept
 		{
 			expr->SetExpression(std::move(value));
 		}
@@ -235,8 +235,8 @@ namespace HXSL
 	class CompoundAssignmentStatement : public AssignmentStatement
 	{
 	public:
-		CompoundAssignmentStatement(TextSpan span, Operator op, std::unique_ptr<Expression> target, std::unique_ptr<Expression> expression)
-			: AssignmentStatement(span, NodeType_CompoundAssignmentStatement, std::make_unique<CompoundAssignmentExpression>(span, op, std::move(target), std::move(expression))),
+		CompoundAssignmentStatement(TextSpan span, Operator op, ast_ptr<Expression> target, ast_ptr<Expression> expression)
+			: AssignmentStatement(span, NodeType_CompoundAssignmentStatement, make_ast_ptr<CompoundAssignmentExpression>(span, op, std::move(target), std::move(expression))),
 			ASTNode(span, NodeType_CompoundAssignmentStatement)
 		{
 		}
@@ -255,10 +255,10 @@ namespace HXSL
 	class ExpressionStatement : public Statement, public IHasExpressions
 	{
 	private:
-		std::unique_ptr<Expression> expression;
+		ast_ptr<Expression> expression;
 
 	public:
-		ExpressionStatement(TextSpan span, std::unique_ptr<Expression> expression)
+		ExpressionStatement(TextSpan span, ast_ptr<Expression> expression)
 			: Statement(span, NodeType_ExpressionStatement),
 			ASTNode(span, NodeType_ExpressionStatement),
 			expression(std::move(expression))
@@ -266,16 +266,16 @@ namespace HXSL
 			REGISTER_EXPR(expression);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression);
+		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Expression, expression);
 	};
 
 	class ReturnStatement : public Statement, public IHasExpressions
 	{
 	private:
-		std::unique_ptr<Expression> returnValueExpression;
+		ast_ptr<Expression> returnValueExpression;
 
 	public:
-		ReturnStatement(TextSpan span, std::unique_ptr<Expression> returnValueExpression)
+		ReturnStatement(TextSpan span, ast_ptr<Expression> returnValueExpression)
 			: Statement(span, NodeType_ReturnStatement),
 			ASTNode(span, NodeType_ReturnStatement),
 			returnValueExpression(std::move(returnValueExpression))
@@ -283,13 +283,13 @@ namespace HXSL
 			REGISTER_EXPR(returnValueExpression);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, ReturnValueExpression, returnValueExpression)
+		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, ReturnValueExpression, returnValueExpression)
 	};
 
 	class ElseStatement : public BodyStatement
 	{
 	public:
-		ElseStatement(TextSpan span, std::unique_ptr<BlockStatement>&& body)
+		ElseStatement(TextSpan span, ast_ptr<BlockStatement>&& body)
 			: BodyStatement(span, NodeType_ElseStatement, std::move(body)),
 			ASTNode(span, NodeType_ElseStatement)
 		{
@@ -306,7 +306,7 @@ namespace HXSL
 	class ElseIfStatement : public ConditionalStatement
 	{
 	public:
-		ElseIfStatement(TextSpan span, std::unique_ptr<Expression>&& condition, std::unique_ptr<BlockStatement>&& body)
+		ElseIfStatement(TextSpan span, ast_ptr<Expression>&& condition, ast_ptr<BlockStatement>&& body)
 			: ConditionalStatement(span, NodeType_ElseIfStatement, std::move(condition), std::move(body)),
 			ASTNode(span, NodeType_ElseIfStatement)
 		{
@@ -323,28 +323,28 @@ namespace HXSL
 	class IfStatement : public ConditionalStatement, public AttributeContainer
 	{
 	private:
-		std::vector<std::unique_ptr<ElseIfStatement>> elseIfStatements;
-		std::unique_ptr<ElseStatement> elseStatement;
+		std::vector<ast_ptr<ElseIfStatement>> elseIfStatements;
+		ast_ptr<ElseStatement> elseStatement;
 	public:
-		IfStatement(TextSpan span, std::unique_ptr<Expression>&& condition, std::unique_ptr<BlockStatement>&& body)
+		IfStatement(TextSpan span, ast_ptr<Expression>&& condition, ast_ptr<BlockStatement>&& body)
 			: ConditionalStatement(span, NodeType_IfStatement, std::move(condition), std::move(body)),
 			ASTNode(span, NodeType_IfStatement),
 			AttributeContainer(this)
 		{
 		}
 
-		void AddElseIf(std::unique_ptr<ElseIfStatement>&& value) noexcept
+		void AddElseIf(ast_ptr<ElseIfStatement>&& value) noexcept
 		{
 			RegisterChild(value.get());
 			elseIfStatements.push_back(std::move(value));
 		}
 
-		const std::vector<std::unique_ptr<ElseIfStatement>>& GetElseIfStatements() const noexcept
+		const std::vector<ast_ptr<ElseIfStatement>>& GetElseIfStatements() const noexcept
 		{
 			return elseIfStatements;
 		}
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<ElseStatement>, ElseStatement, elseStatement);
+		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<ElseStatement>, ElseStatement, elseStatement);
 
 		std::string DebugName() const override
 		{
@@ -357,9 +357,9 @@ namespace HXSL
 	class CaseStatement : public Statement, public StatementContainer, public IHasExpressions
 	{
 	private:
-		std::unique_ptr<Expression> expression;
+		ast_ptr<Expression> expression;
 	public:
-		CaseStatement(TextSpan span, std::unique_ptr<Expression> expression)
+		CaseStatement(TextSpan span, ast_ptr<Expression> expression)
 			: Statement(span, NodeType_CaseStatement),
 			ASTNode(span, NodeType_CaseStatement),
 			StatementContainer(this),
@@ -368,7 +368,7 @@ namespace HXSL
 			REGISTER_EXPR(expression);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression);
+		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Expression, expression);
 
 		std::string DebugName() const override
 		{
@@ -394,11 +394,11 @@ namespace HXSL
 	class SwitchStatement : public Statement, public AttributeContainer, public IHasExpressions
 	{
 	private:
-		std::unique_ptr<Expression> expression;
-		std::vector<std::unique_ptr<CaseStatement>> cases;
-		std::unique_ptr<DefaultCaseStatement> defaultCase;
+		ast_ptr<Expression> expression;
+		std::vector<ast_ptr<CaseStatement>> cases;
+		ast_ptr<DefaultCaseStatement> defaultCase;
 	public:
-		SwitchStatement(TextSpan span, std::unique_ptr<Expression> expression, std::vector<std::unique_ptr<CaseStatement>> cases, std::unique_ptr<DefaultCaseStatement> defaultCase)
+		SwitchStatement(TextSpan span, ast_ptr<Expression> expression, std::vector<ast_ptr<CaseStatement>> cases, ast_ptr<DefaultCaseStatement> defaultCase)
 			: Statement(span, NodeType_SwitchStatement),
 			ASTNode(span, NodeType_SwitchStatement),
 			AttributeContainer(this),
@@ -418,11 +418,11 @@ namespace HXSL
 		{
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression);
+		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Expression, expression);
 
-		void AddCase(std::unique_ptr<CaseStatement> _case) { RegisterChild(_case); cases.push_back(std::move(_case)); }
+		void AddCase(ast_ptr<CaseStatement> _case) { RegisterChild(_case); cases.push_back(std::move(_case)); }
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<DefaultCaseStatement>, DefaultCase, defaultCase);
+		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<DefaultCaseStatement>, DefaultCase, defaultCase);
 
 		std::string DebugName() const override
 		{
@@ -435,10 +435,10 @@ namespace HXSL
 	class ForStatement : public ConditionalStatement, public AttributeContainer
 	{
 	private:
-		std::unique_ptr<Statement> init;
-		std::unique_ptr<Expression> iteration;
+		ast_ptr<Statement> init;
+		ast_ptr<Expression> iteration;
 	public:
-		ForStatement(TextSpan span, std::unique_ptr<Statement> init, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> iteration, std::unique_ptr<BlockStatement> body)
+		ForStatement(TextSpan span, ast_ptr<Statement> init, ast_ptr<Expression> condition, ast_ptr<Expression> iteration, ast_ptr<BlockStatement> body)
 			: ConditionalStatement(span, NodeType_ForStatement, std::move(condition), std::move(body)),
 			ASTNode(span, NodeType_ForStatement),
 			AttributeContainer(this),
@@ -456,8 +456,8 @@ namespace HXSL
 		{
 		}
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Statement>, Init, init);
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Iteration, iteration);
+		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<Statement>, Init, init);
+		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Iteration, iteration);
 
 		std::string DebugName() const override
 		{
@@ -500,7 +500,7 @@ namespace HXSL
 	class WhileStatement : public ConditionalStatement, public AttributeContainer
 	{
 	public:
-		WhileStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
+		WhileStatement(TextSpan span, ast_ptr<Expression> condition, ast_ptr<BlockStatement> body)
 			: ConditionalStatement(span, NodeType_WhileStatement, std::move(condition), std::move(body)),
 			ASTNode(span, NodeType_WhileStatement),
 			AttributeContainer(this)
@@ -525,7 +525,7 @@ namespace HXSL
 	class DoWhileStatement : public ConditionalStatement, public AttributeContainer
 	{
 	public:
-		DoWhileStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
+		DoWhileStatement(TextSpan span, ast_ptr<Expression> condition, ast_ptr<BlockStatement> body)
 			: ConditionalStatement(span, NodeType_DoWhileStatement, std::move(condition), std::move(body)),
 			ASTNode(span, NodeType_DoWhileStatement),
 			AttributeContainer(this)

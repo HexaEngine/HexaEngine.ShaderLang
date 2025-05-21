@@ -32,23 +32,23 @@ namespace HXSL
 
 		bool ImplicitBinaryOperatorCheck(SymbolRef* opRef, SymbolDef* a, SymbolDef* b, Operator op, OperatorOverload*& castMatchOut);
 
-		bool BinaryOperatorCheck(BinaryExpression* binary, std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result);
+		bool BinaryOperatorCheck(BinaryExpression* binary, ast_ptr<Expression>& left, ast_ptr<Expression>& right, SymbolDef*& result);
 
-		bool BinaryCompoundOperatorCheck(CompoundAssignmentExpression* binary, const std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result);
+		bool BinaryCompoundOperatorCheck(CompoundAssignmentExpression* binary, const ast_ptr<Expression>& left, ast_ptr<Expression>& right, SymbolDef*& result);
 
 		bool UnaryOperatorCheck(UnaryExpression* binary, const Expression* operand, SymbolDef*& result);
 
 		bool CastOperatorCheck(CastExpression* cast, const SymbolDef* type, const Expression* operand, SymbolDef*& result, bool explicitCast);
 
-		bool CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, std::unique_ptr<SymbolRef>& result);
+		bool CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, ast_ptr<SymbolRef>& result);
 
-		bool AreTypesCompatible(std::unique_ptr<Expression>& insertPoint, SymbolDef* target, SymbolDef* source);
+		bool AreTypesCompatible(ast_ptr<Expression>& insertPoint, SymbolDef* target, SymbolDef* source);
 
-		bool AreTypesCompatible(std::unique_ptr<Expression>& insertPointA, SymbolDef* a, std::unique_ptr<Expression>& insertPointB, SymbolDef* b);
+		bool AreTypesCompatible(ast_ptr<Expression>& insertPointA, SymbolDef* a, ast_ptr<Expression>& insertPointB, SymbolDef* b);
 
-		bool IsBooleanType(std::unique_ptr<Expression>& insertPoint, SymbolDef* source);
+		bool IsBooleanType(ast_ptr<Expression>& insertPoint, SymbolDef* source);
 
-		bool IsIndexerType(std::unique_ptr<Expression>& insertPoint, SymbolDef* source);
+		bool IsIndexerType(ast_ptr<Expression>& insertPoint, SymbolDef* source);
 
 		void TypeCheckExpression(Expression* node);
 

@@ -98,7 +98,7 @@ namespace HXSL
 
 		void UpdateName();
 	protected:
-		std::unique_ptr<std::string> fullyQualifiedName;
+		ast_ptr<std::string> fullyQualifiedName;
 		std::string_view name;
 		std::vector<SymbolRef*> references;
 		const Assembly* assembly;
@@ -108,7 +108,7 @@ namespace HXSL
 			: ASTNode(span, type, isExtern),
 			assembly(nullptr)
 		{
-			fullyQualifiedName = std::make_unique<std::string>(name.str());
+			fullyQualifiedName = make_ast_ptr<std::string>(name.str());
 			UpdateName();
 		}
 
@@ -116,7 +116,7 @@ namespace HXSL
 			: ASTNode(span, type, isExtern),
 			assembly(nullptr)
 		{
-			fullyQualifiedName = std::make_unique<std::string>(name);
+			fullyQualifiedName = make_ast_ptr<std::string>(name);
 			UpdateName();
 		}
 	public:
@@ -166,11 +166,11 @@ namespace HXSL
 
 		virtual void Read(Stream& stream, StringPool& container) = 0;
 
-		virtual void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) = 0;
+		virtual void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) = 0;
 
 		virtual ~SymbolDef() = default;
 
-		std::unique_ptr<SymbolRef> MakeSymbolRef() const;
+		ast_ptr<SymbolRef> MakeSymbolRef() const;
 
 		std::string_view ToString() const noexcept
 		{
@@ -210,7 +210,7 @@ namespace HXSL
 	struct SymbolRef
 	{
 	private:
-		std::unique_ptr<std::string> fullyQualifiedName;
+		ast_ptr<std::string> fullyQualifiedName;
 		std::string_view name;
 		bool isFullyQualified;
 		TextSpan span;
@@ -225,13 +225,13 @@ namespace HXSL
 	public:
 		SymbolRef(TextSpan span, SymbolRefType type, bool isFullyQualified) : span(span), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
-			fullyQualifiedName = std::make_unique<std::string>(span.str());
+			fullyQualifiedName = make_ast_ptr<std::string>(span.str());
 			UpdateName();
 		}
 
 		SymbolRef(std::string name, SymbolRefType type, bool isFullyQualified) : span(TextSpan()), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
-			fullyQualifiedName = std::make_unique<std::string>(name);
+			fullyQualifiedName = make_ast_ptr<std::string>(name);
 			UpdateName();
 		}
 
@@ -307,11 +307,11 @@ namespace HXSL
 
 		const bool& IsDeferred() const noexcept { return isDeferred; }
 
-		std::unique_ptr<SymbolRef> Clone() const
+		ast_ptr<SymbolRef> Clone() const
 		{
-			auto cloned = std::make_unique<SymbolRef>();
+			auto cloned = make_ast_ptr<SymbolRef>();
 			if (fullyQualifiedName)
-				cloned->fullyQualifiedName = std::make_unique<std::string>(*fullyQualifiedName);
+				cloned->fullyQualifiedName = make_ast_ptr<std::string>(*fullyQualifiedName);
 			cloned->span = span;
 			cloned->type = type;
 			cloned->symbolHandle = symbolHandle;

@@ -47,9 +47,9 @@ namespace HXSL
 		auto primitiveHandle = primitivesTable->FindNodeIndexPart(typeName);
 		auto& resultingType = primitiveHandle.GetMetadata()->declaration;
 
-		auto symbolRef = std::make_unique<SymbolRef>(TextSpan(), SymbolRefType_Member, false);
+		auto symbolRef = make_ast_ptr<SymbolRef>(TextSpan(), SymbolRefType_Member, false);
 		symbolRef->SetTable(primitiveHandle);
-		auto swizzleDef = std::make_unique<SwizzleDefinition>(resultingType->GetSpan(), mask, prim, std::move(symbolRef));
+		auto swizzleDef = make_ast_ptr<SwizzleDefinition>(resultingType->GetSpan(), mask, prim, std::move(symbolRef));
 		auto metaField = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, AccessModifier_Public, 0, swizzleDef.get());
 
 		if (primHandle.invalid())

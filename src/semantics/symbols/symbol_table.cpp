@@ -22,7 +22,7 @@ namespace HXSL
 		}
 	}
 
-	void SymbolMetadata::Read(Stream& stream, std::unique_ptr<SymbolDef>& node, StringPool& container)
+	void SymbolMetadata::Read(Stream& stream, ast_ptr<SymbolDef>& node, StringPool& container)
 	{
 		symbolType = static_cast<SymbolType>(stream.ReadUInt());
 		scope = static_cast<SymbolScopeType>(stream.ReadUInt());
@@ -309,7 +309,7 @@ namespace HXSL
 		std::vector<size_t> Children;
 	};
 
-	static void ReadNode(Stream& stream, DiskSymbolTableNode& diskNode, std::vector<std::unique_ptr<SymbolDef>>& nodes, StringPool& container, size_t& index)
+	static void ReadNode(Stream& stream, DiskSymbolTableNode& diskNode, std::vector<ast_ptr<SymbolDef>>& nodes, StringPool& container, size_t& index)
 	{
 		auto& node = diskNode.Node;
 		index = stream.ReadUInt();
@@ -324,7 +324,7 @@ namespace HXSL
 		auto metadata = stream.ReadValue<bool>();
 		if (metadata)
 		{
-			std::unique_ptr<SymbolDef> astNode;
+			ast_ptr<SymbolDef> astNode;
 			node.Metadata = std::make_shared<SymbolMetadata>();
 			node.Metadata->Read(stream, astNode, container);
 			nodes[index] = std::move(astNode);
@@ -340,7 +340,7 @@ namespace HXSL
 		nodes.resize(nodeCount);
 		compilation->Clear();
 
-		std::vector<std::unique_ptr<SymbolDef>> externalAstNodes;
+		std::vector<ast_ptr<SymbolDef>> externalAstNodes;
 		externalAstNodes.resize(nodeCount);
 
 		for (size_t i = 0; i < nodeCount; i++)
@@ -381,7 +381,7 @@ namespace HXSL
 				if (auto ns = dynamic_cast<Namespace*>(decl))
 				{
 					auto actual = std::move(externalAstNodes[idx]).release();
-					compilation->AddNamespace(std::unique_ptr<Namespace>(dynamic_cast<Namespace*>(actual)));
+					compilation->AddNamespace(ast_ptr<Namespace>(dynamic_cast<Namespace*>(actual)));
 				}
 
 				decl->Build(*this, idx, compilation.get(), externalAstNodes);

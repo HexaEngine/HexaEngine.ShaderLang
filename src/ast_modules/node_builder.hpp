@@ -30,10 +30,10 @@ namespace HXSL
 
 	class FunctionBuilder : ASTNodeBuilder
 	{
-		std::unique_ptr<FunctionOverload> func;
-		std::vector<std::unique_ptr<Parameter>> parameters;
+		ast_ptr<FunctionOverload> func;
+		std::vector<ast_ptr<Parameter>> parameters;
 	public:
-		FunctionBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), func(std::make_unique<FunctionOverload>())
+		FunctionBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), func(make_ast_ptr<FunctionOverload>())
 		{
 		}
 
@@ -45,10 +45,10 @@ namespace HXSL
 
 		FunctionBuilder& WithParam(const std::string& paramName, const std::string& paramType)
 		{
-			auto param = std::make_unique<Parameter>();
+			auto param = make_ast_ptr<Parameter>();
 			param->SetName(paramName);
 
-			auto paramRef = std::make_unique<SymbolRef>(paramType, SymbolRefType_Type, false);
+			auto paramRef = make_ast_ptr<SymbolRef>(paramType, SymbolRefType_Type, false);
 			ResolveInternal(paramRef.get());
 			param->SetSymbolRef(std::move(paramRef));
 
@@ -58,7 +58,7 @@ namespace HXSL
 
 		FunctionBuilder& Returns(const std::string& returnType)
 		{
-			auto returnRef = std::make_unique<SymbolRef>(returnType, SymbolRefType_Type, false);
+			auto returnRef = make_ast_ptr<SymbolRef>(returnType, SymbolRefType_Type, false);
 			ResolveInternal(returnRef.get());
 			func->SetReturnSymbol(std::move(returnRef));
 			return *this;
@@ -93,10 +93,10 @@ namespace HXSL
 
 	class OperatorBuilder : ASTNodeBuilder
 	{
-		std::unique_ptr<OperatorOverload> _operator;
-		std::vector<std::unique_ptr<Parameter>> parameters;
+		ast_ptr<OperatorOverload> _operator;
+		std::vector<ast_ptr<Parameter>> parameters;
 	public:
-		OperatorBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), _operator(std::make_unique<OperatorOverload>())
+		OperatorBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), _operator(make_ast_ptr<OperatorOverload>())
 		{
 		}
 
@@ -109,10 +109,10 @@ namespace HXSL
 
 		OperatorBuilder& WithParam(const std::string& paramName, const std::string& paramType)
 		{
-			auto param = std::make_unique<Parameter>();
+			auto param = make_ast_ptr<Parameter>();
 			param->SetName(paramName);
 
-			auto paramRef = std::make_unique<SymbolRef>(paramType, SymbolRefType_Type, false);
+			auto paramRef = make_ast_ptr<SymbolRef>(paramType, SymbolRefType_Type, false);
 			param->SetSymbolRef(std::move(paramRef));
 
 			parameters.push_back(std::move(param));
@@ -121,7 +121,7 @@ namespace HXSL
 
 		OperatorBuilder& Returns(const std::string& returnType)
 		{
-			auto returnRef = std::make_unique<SymbolRef>(returnType, SymbolRefType_Type, false);
+			auto returnRef = make_ast_ptr<SymbolRef>(returnType, SymbolRefType_Type, false);
 			_operator->SetReturnSymbol(std::move(returnRef));
 			return *this;
 		}
@@ -178,12 +178,12 @@ namespace HXSL
 
 	class ClassBuilder : ASTNodeBuilder
 	{
-		std::unique_ptr<Class> _class;
-		std::vector<std::unique_ptr<FunctionBuilder>> functions;
-		std::vector<std::unique_ptr<Field>> fields;
-		std::vector<std::unique_ptr<OperatorBuilder>> operators;
+		ast_ptr<Class> _class;
+		std::vector<ast_ptr<FunctionBuilder>> functions;
+		std::vector<ast_ptr<Field>> fields;
+		std::vector<ast_ptr<OperatorBuilder>> operators;
 	public:
-		ClassBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), _class(std::make_unique<Class>())
+		ClassBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), _class(make_ast_ptr<Class>())
 		{
 		}
 
@@ -195,7 +195,7 @@ namespace HXSL
 
 		FunctionBuilder& WithFunction()
 		{
-			auto builder = std::make_unique<FunctionBuilder>(assembly);
+			auto builder = make_ast_ptr<FunctionBuilder>(assembly);
 			auto ptr = builder.get();
 			functions.push_back(std::move(builder));
 			return *ptr;
@@ -203,10 +203,10 @@ namespace HXSL
 
 		ClassBuilder& WithField(const std::string& name, const std::string& type)
 		{
-			auto param = std::make_unique<Field>();
+			auto param = make_ast_ptr<Field>();
 			param->SetName(name);
 
-			auto paramRef = std::make_unique<SymbolRef>(type, SymbolRefType_Type, false);
+			auto paramRef = make_ast_ptr<SymbolRef>(type, SymbolRefType_Type, false);
 			ResolveInternal(paramRef.get());
 			param->SetSymbolRef(std::move(paramRef));
 
@@ -216,7 +216,7 @@ namespace HXSL
 
 		OperatorBuilder& WithOperator(const std::string& name, const std::string& type)
 		{
-			auto builder = std::make_unique<OperatorBuilder>(assembly);
+			auto builder = make_ast_ptr<OperatorBuilder>(assembly);
 			auto ptr = builder.get();
 			operators.push_back(std::move(builder));
 			return *ptr;
@@ -225,11 +225,11 @@ namespace HXSL
 
 	class PrimitiveBuilder : ASTNodeBuilder
 	{
-		std::unique_ptr<Primitive> primitive;
-		std::vector<std::unique_ptr<OperatorBuilder>> operators;
+		ast_ptr<Primitive> primitive;
+		std::vector<ast_ptr<OperatorBuilder>> operators;
 		Primitive* prim;
 	public:
-		PrimitiveBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), primitive(std::make_unique<Primitive>()), prim(nullptr)
+		PrimitiveBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), primitive(make_ast_ptr<Primitive>()), prim(nullptr)
 		{
 		}
 
@@ -255,7 +255,7 @@ namespace HXSL
 
 		OperatorBuilder& WithOperator()
 		{
-			auto builder = std::make_unique<OperatorBuilder>(assembly);
+			auto builder = make_ast_ptr<OperatorBuilder>(assembly);
 			auto ptr = builder.get();
 			operators.push_back(std::move(builder));
 			return *ptr;
@@ -265,7 +265,7 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = std::make_unique<OperatorBuilder>(assembly);
+				auto builder = make_ast_ptr<OperatorBuilder>(assembly);
 
 				builder->WithOp(flags, op)
 					.WithParam("left", str)
@@ -281,7 +281,7 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = std::make_unique<OperatorBuilder>(assembly);
+				auto builder = make_ast_ptr<OperatorBuilder>(assembly);
 
 				builder->WithOp(flags, op)
 					.WithParam("left", strA)
@@ -297,7 +297,7 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = std::make_unique<OperatorBuilder>(assembly);
+				auto builder = make_ast_ptr<OperatorBuilder>(assembly);
 
 				builder->WithOp(flags, op)
 					.WithParam("value", str)
@@ -312,7 +312,7 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = std::make_unique<OperatorBuilder>(assembly);
+				auto builder = make_ast_ptr<OperatorBuilder>(assembly);
 
 				builder->WithOp(OperatorFlags_None, op)
 					.WithParam("value", str)
@@ -325,7 +325,7 @@ namespace HXSL
 
 		void WithImplicitCast(const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
-			auto builder = std::make_unique<OperatorBuilder>(assembly);
+			auto builder = make_ast_ptr<OperatorBuilder>(assembly);
 
 			builder->WithOp(OperatorFlags_Implicit | flags, Operator_Cast)
 				.WithParam("value", str)
@@ -337,7 +337,7 @@ namespace HXSL
 
 		void WithExplicitCast(const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
-			auto builder = std::make_unique<OperatorBuilder>(assembly);
+			auto builder = make_ast_ptr<OperatorBuilder>(assembly);
 
 			builder->WithOp(OperatorFlags_Explicit | flags, Operator_Cast)
 				.WithParam("value", str)

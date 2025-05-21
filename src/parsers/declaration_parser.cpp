@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	static bool ParseField(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
+	static bool ParseField(const Token& start, TextSpan name, ast_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
 	{
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
@@ -18,7 +18,7 @@ namespace HXSL
 		}
 
 		auto span = start.Span.merge(stream.LastToken().Span);
-		auto field = std::make_unique<Field>(span, list.accessModifiers, list.storageClasses, list.interpolationModifiers, name, std::move(symbol), semantic);
+		auto field = make_ast_ptr<Field>(span, list.accessModifiers, list.storageClasses, list.interpolationModifiers, name, std::move(symbol), semantic);
 
 		ASTNode* parent = parser.scopeParent();
 		auto parentType = parent->GetType();
@@ -40,7 +40,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseParameter(Parser& parser, TokenStream& stream, std::unique_ptr<Parameter>& parameter)
+	static bool ParseParameter(Parser& parser, TokenStream& stream, ast_ptr<Parameter>& parameter)
 	{
 		auto startingToken = stream.Current();
 
@@ -59,11 +59,11 @@ namespace HXSL
 
 		auto span = startingToken.Span.merge(stream.LastToken().Span);
 
-		parameter = std::make_unique<Parameter>(span, std::get<0>(flags), std::get<1>(flags), std::move(symbol.make()), name, semantic);
+		parameter = make_ast_ptr<Parameter>(span, std::get<0>(flags), std::get<1>(flags), std::move(symbol.make()), name, semantic);
 		return true;
 	}
 
-	static bool ParseFunction(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
+	static bool ParseFunction(const Token& start, TextSpan name, ast_ptr<SymbolRef> returnSymbol, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
 	{
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
@@ -79,13 +79,13 @@ namespace HXSL
 		}
 
 		auto parent = parser.scopeParent();
-		auto function = std::make_unique<FunctionOverload>(TextSpan(), list.accessModifiers, list.functionFlags, name, std::move(returnSymbol));
+		auto function = make_ast_ptr<FunctionOverload>(TextSpan(), list.accessModifiers, list.functionFlags, name, std::move(returnSymbol));
 		if (attribute && attribute->HasResource())
 		{
 			function->AddAttribute(std::move(attribute->Take()));
 		}
 
-		std::vector<std::unique_ptr<Parameter>> parameters;
+		std::vector<ast_ptr<Parameter>> parameters;
 
 		bool firstParameter = true;
 		while (!stream.TryGetDelimiter(')'))
@@ -96,7 +96,7 @@ namespace HXSL
 			}
 			firstParameter = false;
 
-			std::unique_ptr<Parameter> parameter;
+			ast_ptr<Parameter> parameter;
 
 			IF_ERR_RET_FALSE(ParseParameter(parser, stream, parameter));
 
@@ -114,7 +114,7 @@ namespace HXSL
 
 		if (!stream.TryGetDelimiter(';'))
 		{
-			std::unique_ptr<BlockStatement> statement;
+			ast_ptr<BlockStatement> statement;
 			IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_Function, parser, stream, statement));
 			function->SetBody(std::move(statement));
 		}
@@ -164,7 +164,7 @@ namespace HXSL
 			op = Operator_Cast;
 		}
 
-		std::unique_ptr<SymbolRef> symbol;
+		ast_ptr<SymbolRef> symbol;
 		IF_ERR_RET_FALSE(parser.ParseSymbol(SymbolRefType_Type, symbol));
 
 		auto scopeType = parser.scopeType();
@@ -175,13 +175,13 @@ namespace HXSL
 
 		auto name = opKeywordToken.Span.merge(opToken.Span);
 
-		auto _operator = std::make_unique<OperatorOverload>(TextSpan(), list.accessModifiers, list.functionFlags, flags, name, op, std::move(symbol));
+		auto _operator = make_ast_ptr<OperatorOverload>(TextSpan(), list.accessModifiers, list.functionFlags, flags, name, op, std::move(symbol));
 		if (attribute && attribute->HasResource())
 		{
 			_operator->AddAttribute(std::move(attribute->Take()));
 		}
 
-		std::vector<std::unique_ptr<Parameter>> parameters;
+		std::vector<ast_ptr<Parameter>> parameters;
 
 		stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
 
@@ -194,7 +194,7 @@ namespace HXSL
 			}
 			firstParameter = false;
 
-			std::unique_ptr<Parameter> parameter;
+			ast_ptr<Parameter> parameter;
 
 			if (ParseParameter(parser, stream, parameter))
 			{
@@ -213,7 +213,7 @@ namespace HXSL
 
 		if (!stream.TryGetDelimiter(';'))
 		{
-			std::unique_ptr<BlockStatement> statement;
+			ast_ptr<BlockStatement> statement;
 			ParseStatementBody(ScopeType_Function, parser, stream, statement);
 			_operator->SetBody(std::move(statement));
 		}
@@ -329,7 +329,7 @@ namespace HXSL
 		ModifierList allowed = ModifierList(AccessModifier_All, true);
 		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_STRUCT);
 
-		auto _struct = std::make_unique<Struct>(TextSpan(), list.accessModifiers, name);
+		auto _struct = make_ast_ptr<Struct>(TextSpan(), list.accessModifiers, name);
 
 		Token t;
 		parser.EnterScope(ScopeType_Struct, _struct.get(), t, true, EXPECTED_LEFT_BRACE);

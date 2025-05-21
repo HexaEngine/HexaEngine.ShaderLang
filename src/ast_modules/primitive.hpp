@@ -75,7 +75,7 @@ namespace HXSL
 	class Primitive : public Type, public IHasOperatorOverloads
 	{
 	private:
-		std::vector<std::unique_ptr<OperatorOverload>> operators;
+		std::vector<ast_ptr<OperatorOverload>> operators;
 		PrimitiveKind kind;
 		PrimitiveClass _class;
 		std::string backingName;
@@ -116,13 +116,13 @@ namespace HXSL
 			this->name = backingName;
 		}
 
-		void AddOperator(std::unique_ptr<OperatorOverload> value) noexcept
+		void AddOperator(ast_ptr<OperatorOverload> value) noexcept
 		{
 			RegisterChild(value);
 			operators.push_back(std::move(value));
 		}
 
-		const std::vector<std::unique_ptr<OperatorOverload>>& GetOperators() const noexcept
+		const std::vector<ast_ptr<OperatorOverload>>& GetOperators() const noexcept
 		{
 			return operators;
 		}
@@ -187,7 +187,7 @@ namespace HXSL
 			HXSL_ASSERT(false, "Cannot read primitive types")
 		}
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override
 		{
 			HXSL_ASSERT(false, "Cannot build primitive types")
 		}

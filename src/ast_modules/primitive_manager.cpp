@@ -128,7 +128,7 @@ namespace HXSL
 	{
 		auto table = GetMutableSymbolTable();
 		auto compilation = table->GetCompilation();
-		auto _class = std::make_unique<Class>();
+		auto _class = make_ast_ptr<Class>();
 
 		auto classPtr = _class.get();
 		compilation->primitiveClasses.push_back(std::move(_class));

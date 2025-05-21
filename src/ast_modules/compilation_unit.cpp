@@ -17,7 +17,7 @@ namespace HXSL
 		lock.unlock();
 		std::unique_lock<std::shared_mutex> uniqueLock(_mutex);
 
-		auto ns = std::make_unique<Namespace>(declaration);
+		auto ns = make_ast_ptr<Namespace>(declaration);
 		ns->SetParent(this);
 		auto pNs = ns.get();
 		namespaces.push_back(std::move(ns));

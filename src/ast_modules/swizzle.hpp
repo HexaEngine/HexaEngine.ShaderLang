@@ -14,9 +14,9 @@ namespace HXSL
 		TextSpan expression;
 		Primitive* basePrim;
 		uint8_t mask;
-		std::unique_ptr<SymbolRef> symbol;
+		ast_ptr<SymbolRef> symbol;
 	public:
-		SwizzleDefinition(TextSpan expression, uint8_t mask, Primitive* basePrim, std::unique_ptr<SymbolRef> symbol)
+		SwizzleDefinition(TextSpan expression, uint8_t mask, Primitive* basePrim, ast_ptr<SymbolRef> symbol)
 			: ASTNode(expression, NodeType_SwizzleDefinition),
 			SymbolDef(expression, NodeType_SwizzleDefinition, expression),
 			expression(expression),
@@ -38,7 +38,7 @@ namespace HXSL
 			return symbol->GetDeclaration()->As<Primitive>();
 		}
 
-		const std::unique_ptr<SymbolRef>& GetSymbolRef()
+		const ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -58,7 +58,7 @@ namespace HXSL
 			HXSL_ASSERT(false, "Cannot read swizzle types")
 		}
 
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override
 		{
 			HXSL_ASSERT(false, "Cannot build swizzle types")
 		}

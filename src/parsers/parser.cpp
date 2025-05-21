@@ -822,12 +822,12 @@ namespace HXSL
 		auto start = stream->Current();
 		IF_ERR_RET(stream->TryGetDelimiter('['));
 
-		std::unique_ptr<SymbolRef> symbol;
+		ast_ptr<SymbolRef> symbol;
 		IF_ERR_RET(ParseSymbol(SymbolRefType_Attribute, symbol));
 
-		auto attribute = std::make_unique<AttributeDeclaration>(TextSpan());
+		auto attribute = make_ast_ptr<AttributeDeclaration>(TextSpan());
 
-		std::vector<std::unique_ptr<Expression>> parameters;
+		std::vector<ast_ptr<Expression>> parameters;
 		if (stream->TryGetDelimiter('('))
 		{
 			bool firstParam = true;
@@ -838,7 +838,7 @@ namespace HXSL
 					IF_ERR_RET(stream->ExpectDelimiter(',', EXPECTED_COMMA));
 				}
 				firstParam = false;
-				std::unique_ptr<Expression> parameter;
+				ast_ptr<Expression> parameter;
 				if (!HybridExpressionParser::ParseExpression(*this, *stream, parameter))
 				{
 					return;

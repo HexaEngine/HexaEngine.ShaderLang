@@ -5,24 +5,24 @@
 
 namespace HXSL
 {
-	static std::unique_ptr<SymbolDef> CreateInstance(NodeType type)
+	static ast_ptr<SymbolDef> CreateInstance(NodeType type)
 	{
 		switch (type)
 		{
 		case NodeType_Namespace:
-			return std::make_unique<Namespace>();
+			return make_ast_ptr<Namespace>();
 		case NodeType_Field:
-			return std::make_unique<Field>();
+			return make_ast_ptr<Field>();
 		case NodeType_FunctionOverload:
-			return std::make_unique<FunctionOverload>();
+			return make_ast_ptr<FunctionOverload>();
 		case NodeType_OperatorOverload:
-			return std::make_unique<OperatorOverload>();
+			return make_ast_ptr<OperatorOverload>();
 		case NodeType_Struct:
-			return std::make_unique<Struct>();
+			return make_ast_ptr<Struct>();
 		case NodeType_Parameter:
-			return std::make_unique<Parameter>();
+			return make_ast_ptr<Parameter>();
 		case NodeType_DeclarationStatement:
-			return std::make_unique<DeclarationStatement>();
+			return make_ast_ptr<DeclarationStatement>();
 		default:
 			return nullptr;
 		}

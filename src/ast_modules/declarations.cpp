@@ -23,7 +23,7 @@ namespace HXSL
 	{
 	}
 
-	void Struct::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Struct::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -33,19 +33,19 @@ namespace HXSL
 			switch (meta->symbolType)
 			{
 			case SymbolType_Field:
-				AddField(UNIQUE_PTR_CAST(nodes[childIdx], Field));
+				AddField(UNIQUE_PTR_CAST_AST(nodes[childIdx], Field));
 				break;
 			case SymbolType_Function:
-				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], FunctionOverload));
+				AddFunction(UNIQUE_PTR_CAST_AST(nodes[childIdx], FunctionOverload));
 				break;
 			case SymbolType_Struct:
-				AddStruct(UNIQUE_PTR_CAST(nodes[childIdx], Struct));
+				AddStruct(UNIQUE_PTR_CAST_AST(nodes[childIdx], Struct));
 				break;
 			case SymbolType_Class:
-				AddClass(UNIQUE_PTR_CAST(nodes[childIdx], Class));
+				AddClass(UNIQUE_PTR_CAST_AST(nodes[childIdx], Class));
 				break;
 			case SymbolType_Operator:
-				AddOperator(UNIQUE_PTR_CAST(nodes[childIdx], OperatorOverload));
+				AddOperator(UNIQUE_PTR_CAST_AST(nodes[childIdx], OperatorOverload));
 				break;
 			}
 		}
@@ -64,11 +64,11 @@ namespace HXSL
 		flags = static_cast<ParameterFlags>(stream.ReadUInt());
 		interpolationModifiers = static_cast<InterpolationModifier>(stream.ReadUInt());
 		semantic = stream.ReadString();
-		symbol = std::make_unique<SymbolRef>();
+		symbol = make_ast_ptr<SymbolRef>();
 		symbol->Read(stream);
 	}
 
-	void Parameter::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Parameter::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
 	{
 	}
 
@@ -85,11 +85,11 @@ namespace HXSL
 		storageClass = static_cast<StorageClass>(stream.ReadUInt());
 		interpolationModifiers = static_cast<InterpolationModifier>(stream.ReadUInt());
 		semantic = stream.ReadString();
-		symbol = std::make_unique<SymbolRef>();
+		symbol = make_ast_ptr<SymbolRef>();
 		symbol->Read(stream);
 	}
 
-	void Field::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Field::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
 	{
 	}
 
@@ -104,11 +104,11 @@ namespace HXSL
 	{
 		functionFlags = static_cast<FunctionFlags>(stream.ReadUInt());
 		semantic = stream.ReadString();
-		returnSymbol = std::make_unique<SymbolRef>();
+		returnSymbol = make_ast_ptr<SymbolRef>();
 		returnSymbol->Read(stream);
 	}
 
-	void FunctionOverload::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void FunctionOverload::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -118,23 +118,23 @@ namespace HXSL
 			switch (meta->symbolType)
 			{
 			case SymbolType_Parameter:
-				AddParameter(UNIQUE_PTR_CAST(nodes[childIdx], Parameter));
+				AddParameter(UNIQUE_PTR_CAST_AST(nodes[childIdx], Parameter));
 				break;
 			}
 		}
 	}
 
-	const std::unique_ptr<BlockStatement>& FunctionOverload::GetBody() const noexcept
+	const ast_ptr<BlockStatement>& FunctionOverload::GetBody() const noexcept
 	{
 		return body;
 	}
 
-	void FunctionOverload::SetBody(std::unique_ptr<BlockStatement>&& value) noexcept
+	void FunctionOverload::SetBody(ast_ptr<BlockStatement>&& value) noexcept
 	{
 		UnregisterChild(body.get()); body = std::move(value); RegisterChild(body.get());
 	}
 
-	std::unique_ptr<BlockStatement>& FunctionOverload::GetBodyMut() noexcept
+	ast_ptr<BlockStatement>& FunctionOverload::GetBodyMut() noexcept
 	{
 		return body;
 	}
@@ -152,11 +152,11 @@ namespace HXSL
 		functionFlags = static_cast<FunctionFlags>(stream.ReadUInt());
 		operatorFlags = static_cast<OperatorFlags>(stream.ReadUInt());
 		_operator = static_cast<Operator>(stream.ReadUInt());
-		returnSymbol = std::make_unique<SymbolRef>();
+		returnSymbol = make_ast_ptr<SymbolRef>();
 		returnSymbol->Read(stream);
 	}
 
-	void OperatorOverload::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void OperatorOverload::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
 	{
 		FunctionOverload::Build(table, index, compilation, nodes);
 	}
@@ -181,7 +181,7 @@ namespace HXSL
 	{
 	}
 
-	void Class::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Class::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -191,19 +191,19 @@ namespace HXSL
 			switch (meta->symbolType)
 			{
 			case SymbolType_Field:
-				AddField(UNIQUE_PTR_CAST(nodes[childIdx], Field));
+				AddField(UNIQUE_PTR_CAST_AST(nodes[childIdx], Field));
 				break;
 			case SymbolType_Function:
-				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], FunctionOverload));
+				AddFunction(UNIQUE_PTR_CAST_AST(nodes[childIdx], FunctionOverload));
 				break;
 			case SymbolType_Struct:
-				AddStruct(UNIQUE_PTR_CAST(nodes[childIdx], Struct));
+				AddStruct(UNIQUE_PTR_CAST_AST(nodes[childIdx], Struct));
 				break;
 			case SymbolType_Class:
-				AddClass(UNIQUE_PTR_CAST(nodes[childIdx], Class));
+				AddClass(UNIQUE_PTR_CAST_AST(nodes[childIdx], Class));
 				break;
 			case SymbolType_Operator:
-				AddOperator(UNIQUE_PTR_CAST(nodes[childIdx], OperatorOverload));
+				AddOperator(UNIQUE_PTR_CAST_AST(nodes[childIdx], OperatorOverload));
 				break;
 			}
 		}

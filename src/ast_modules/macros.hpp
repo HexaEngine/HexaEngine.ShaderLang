@@ -36,6 +36,9 @@
 #define UNIQUE_PTR_CAST(ptr, type) \
     std::move(std::unique_ptr<type>(static_cast<type*>(std::move(ptr).release())))
 
+#define UNIQUE_PTR_CAST_AST(ptr, type) \
+    std::move(ast_ptr<type>(static_cast<type*>(std::move(ptr).release())))
+
 #define DEFINE_FLAGS_OPERATORS(EnumName, BackingType) \
 	inline static EnumName operator~(EnumName value) { return (EnumName)~(BackingType)value; } \
 	inline static EnumName operator|(EnumName lhs, EnumName rhs) { return (EnumName)((BackingType)lhs | (BackingType)rhs); } \

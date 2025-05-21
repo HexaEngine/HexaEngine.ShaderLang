@@ -13,7 +13,7 @@ namespace HXSL
 		//HXSL_ASSERT(false, "Cannot read declaration statements.");
 	}
 
-	void DeclarationStatement::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void DeclarationStatement::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
 	{
 		//HXSL_ASSERT(false, "Cannot build declaration statements.");
 	}

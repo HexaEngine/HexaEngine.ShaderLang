@@ -47,7 +47,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut)
+		virtual bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
 		{
 			return false;
 		}
@@ -60,7 +60,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
+		virtual bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
 		{
 			return false;
 		}

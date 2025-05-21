@@ -10,13 +10,13 @@ namespace HXSL
 		TextSpan span;
 		SymbolRefType type;
 		bool fqn;
-		std::unique_ptr<SymbolRef> ptr;
+		ast_ptr<SymbolRef> ptr;
 
 		LazySymbol() : span({}), type(SymbolRefType_Unknown), fqn(false)
 		{
 		}
 
-		LazySymbol(std::unique_ptr<SymbolRef> ptr) : span({}), type(SymbolRefType_Unknown), ptr(std::move(ptr)), fqn(false)
+		LazySymbol(ast_ptr<SymbolRef> ptr) : span({}), type(SymbolRefType_Unknown), ptr(std::move(ptr)), fqn(false)
 		{
 		}
 
@@ -24,7 +24,7 @@ namespace HXSL
 		{
 		}
 
-		std::unique_ptr<SymbolRef> make(SymbolRefType overwrite, bool force = false)
+		ast_ptr<SymbolRef> make(SymbolRefType overwrite, bool force = false)
 		{
 			if (ptr.get())
 			{
@@ -36,13 +36,13 @@ namespace HXSL
 				HXSL_ASSERT(false, "Attempted to double create a LazySymbol");
 				return {};
 			}
-			auto result = std::make_unique<SymbolRef>(span, overwrite, fqn);
+			auto result = make_ast_ptr<SymbolRef>(span, overwrite, fqn);
 			span = {};
 			type = {};
 			return std::move(result);
 		};
 
-		std::unique_ptr<SymbolRef> make(bool force = false)
+		ast_ptr<SymbolRef> make(bool force = false)
 		{
 			return std::move(make(type, force));
 		};

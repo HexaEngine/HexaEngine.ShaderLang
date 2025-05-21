@@ -177,14 +177,14 @@ namespace HXSL
 		return false;
 	}
 
-	static void InjectCast(std::unique_ptr<Expression>& target, OperatorOverload* cast, SymbolDef* targetType)
+	static void InjectCast(ast_ptr<Expression>& target, OperatorOverload* cast, SymbolDef* targetType)
 	{
-		auto castExpr = std::make_unique<CastExpression>(TextSpan(), cast->MakeSymbolRef(), targetType->MakeSymbolRef(), nullptr);
+		auto castExpr = make_ast_ptr<CastExpression>(TextSpan(), cast->MakeSymbolRef(), targetType->MakeSymbolRef(), nullptr);
 		castExpr->SetInferredType(targetType);
 		InjectNode(target, std::move(castExpr), &CastExpression::SetOperand);
 	}
 
-	bool TypeChecker::BinaryOperatorCheck(BinaryExpression* binary, std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result)
+	bool TypeChecker::BinaryOperatorCheck(BinaryExpression* binary, ast_ptr<Expression>& left, ast_ptr<Expression>& right, SymbolDef*& result)
 	{
 		const Operator& op = binary->GetOperator();
 		if (!Operators::IsValidOverloadOperator(op))
@@ -267,7 +267,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool TypeChecker::BinaryCompoundOperatorCheck(CompoundAssignmentExpression* binary, const std::unique_ptr<Expression>& left, std::unique_ptr<Expression>& right, SymbolDef*& result)
+	bool TypeChecker::BinaryCompoundOperatorCheck(CompoundAssignmentExpression* binary, const ast_ptr<Expression>& left, ast_ptr<Expression>& right, SymbolDef*& result)
 	{
 		const Operator& op = binary->GetOperator();
 		if (!Operators::IsValidOverloadOperator(op))
@@ -392,11 +392,11 @@ namespace HXSL
 		return true;
 	}
 
-	bool TypeChecker::CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, std::unique_ptr<SymbolRef>& result)
+	bool TypeChecker::CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, ast_ptr<SymbolRef>& result)
 	{
 		auto signature = CastExpression::BuildOverloadSignature(target, source);
 
-		auto ref = std::make_unique<SymbolRef>(signature, SymbolRefType_OperatorOverload, false);
+		auto ref = make_ast_ptr<SymbolRef>(signature, SymbolRefType_OperatorOverload, false);
 
 		auto table = source->GetTable();
 		auto& index = source->GetSymbolHandle();
@@ -419,7 +419,7 @@ namespace HXSL
 	}
 
 	// for unary-like operations.
-	bool TypeChecker::AreTypesCompatible(std::unique_ptr<Expression>& insertPoint, SymbolDef* target, SymbolDef* source)
+	bool TypeChecker::AreTypesCompatible(ast_ptr<Expression>& insertPoint, SymbolDef* target, SymbolDef* source)
 	{
 		if (source->IsEquivalentTo(target))
 		{
@@ -432,20 +432,20 @@ namespace HXSL
 		}
 
 		// implicit cast handling.
-		std::unique_ptr<SymbolRef> opRef;
+		ast_ptr<SymbolRef> opRef;
 		if (!CastOperatorCheck(target, source, opRef))
 		{
 			return false;
 		}
 
-		auto castExpr = std::make_unique<CastExpression>(TextSpan(), std::move(opRef), target->MakeSymbolRef(), nullptr);
+		auto castExpr = make_ast_ptr<CastExpression>(TextSpan(), std::move(opRef), target->MakeSymbolRef(), nullptr);
 		InjectNode(insertPoint, std::move(castExpr), &CastExpression::SetOperand);
 
 		return true;
 	}
 
 	// for binary-like operations.
-	bool TypeChecker::AreTypesCompatible(std::unique_ptr<Expression>& insertPointA, SymbolDef* a, std::unique_ptr<Expression>& insertPointB, SymbolDef* b)
+	bool TypeChecker::AreTypesCompatible(ast_ptr<Expression>& insertPointA, SymbolDef* a, ast_ptr<Expression>& insertPointB, SymbolDef* b)
 	{
 		if (a->IsEquivalentTo(b))
 		{
@@ -455,12 +455,12 @@ namespace HXSL
 		return false; // TODO: set me true later.
 	}
 
-	bool TypeChecker::IsBooleanType(std::unique_ptr<Expression>& insertPoint, SymbolDef* source)
+	bool TypeChecker::IsBooleanType(ast_ptr<Expression>& insertPoint, SymbolDef* source)
 	{
 		return AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("bool"), source);
 	}
 
-	bool TypeChecker::IsIndexerType(std::unique_ptr<Expression>& insertPoint, SymbolDef* source)
+	bool TypeChecker::IsIndexerType(ast_ptr<Expression>& insertPoint, SymbolDef* source)
 	{
 		return AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("int"), source) || AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("uint"), source);
 	}

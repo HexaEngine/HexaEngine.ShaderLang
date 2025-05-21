@@ -58,7 +58,7 @@ namespace HXSL
 			return;
 		}
 
-		std::unique_ptr<Expression> expr = std::move(statement->DetachReturnValueExpression());
+		ast_ptr<Expression> expr = std::move(statement->DetachReturnValueExpression());
 		if (!checker.AreTypesCompatible(expr, retType, exprType))
 		{
 			analyzer.Log(RETURN_TYPE_DOES_NOT_MATCH, statement->GetSpan(), exprType->ToString(), retType->ToString());
@@ -82,7 +82,7 @@ namespace HXSL
 			return;
 		}
 
-		std::unique_ptr<Expression> expr = std::move(statement->DetachInitializer());
+		ast_ptr<Expression> expr = std::move(statement->DetachInitializer());
 		if (!checker.AreTypesCompatible(expr, declType, initType))
 		{
 			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), initType->ToString(), declType->ToString());
@@ -99,7 +99,7 @@ namespace HXSL
 			return;
 		}
 
-		std::unique_ptr<Expression> expr = std::move(statement->DetachCondition());
+		ast_ptr<Expression> expr = std::move(statement->DetachCondition());
 		if (!checker.IsBooleanType(expr, conditionType))
 		{
 			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), conditionType->ToString(), "bool");
@@ -116,7 +116,7 @@ namespace HXSL
 			return;
 		}
 
-		std::unique_ptr<Expression> expr = std::move(statement->DetachExpression());
+		ast_ptr<Expression> expr = std::move(statement->DetachExpression());
 		if (!checker.IsIndexerType(expr, exprType))
 		{
 			analyzer.Log(EXPR_MUST_BE_INTEGRAL, expr->GetSpan());

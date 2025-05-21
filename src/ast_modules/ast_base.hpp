@@ -3,6 +3,8 @@
 
 #include "pch/std.hpp"
 
+#include "utils/ast_allocator.hpp"
+
 #include "config.h"
 #include "lang/language.hpp"
 #include "lexical/token.hpp"
@@ -271,13 +273,13 @@ namespace HXSL
 		}
 
 		template<class T>
-		void RegisterChild(const std::unique_ptr<T>& child)
+		void RegisterChild(const ast_ptr<T>& child)
 		{
 			RegisterChild(child.get());
 		}
 
 		template<class T>
-		void RegisterChildren(const std::vector<std::unique_ptr<T>>& children)
+		void RegisterChildren(const std::vector<ast_ptr<T>>& children)
 		{
 			for (auto& child : children)
 			{
@@ -292,13 +294,13 @@ namespace HXSL
 		}
 
 		template<class T>
-		void UnregisterChild(const std::unique_ptr<T>& child)
+		void UnregisterChild(const ast_ptr<T>& child)
 		{
 			UnregisterChild(child.get());
 		}
 
 		template<class T>
-		void UnregisterChildren(const std::vector<std::unique_ptr<T>>& children)
+		void UnregisterChildren(const std::vector<ast_ptr<T>>& children)
 		{
 			for (auto& child : children)
 			{
@@ -438,32 +440,32 @@ namespace HXSL
 		template <typename T>
 		T* Cast() { return static_cast<T*>(this); };
 
-		virtual std::unique_ptr<ASTNode> Clone() const noexcept
+		virtual ast_ptr<ASTNode> Clone() const noexcept
 		{
 			return {};
 		}
 
 		template <class T>
-		std::unique_ptr<T> CloneNode(const std::unique_ptr<T>& ptr) const noexcept
+		ast_ptr<T> CloneNode(const ast_ptr<T>& ptr) const noexcept
 		{
-			return ptr ? std::unique_ptr<T>(static_cast<T*>(ptr->Clone().release())) : nullptr;
+			return ptr ? ast_ptr<T>(static_cast<T*>(ptr->Clone().release())) : nullptr;
 		}
 
 		template <typename T>
-		std::vector<std::unique_ptr<T>> CloneNodes(const std::vector<std::unique_ptr<T>>& ptr) const noexcept
+		std::vector<ast_ptr<T>> CloneNodes(const std::vector<ast_ptr<T>>& ptr) const noexcept
 		{
-			std::vector<std::unique_ptr<T>> result;
+			std::vector<ast_ptr<T>> result;
 			for (auto& pt : ptr)
 			{
-				result.push_back(std::unique_ptr<T>(static_cast<T*>(ptr->Clone().release())));
+				result.push_back(ast_ptr<T>(static_cast<T*>(ptr->Clone().release())));
 			}
 			return result;
 		}
 
 		template <typename T>
-		std::unique_ptr<T> CloneExtern(const std::unique_ptr<T>& ptr) const noexcept
+		ast_ptr<T> CloneExtern(const ast_ptr<T>& ptr) const noexcept
 		{
-			return ptr ? std::unique_ptr<T>(static_cast<T*>(ptr->Clone())) : nullptr;
+			return ptr ? ast_ptr<T>(static_cast<T*>(ptr->Clone())) : nullptr;
 		}
 
 		virtual ~ASTNode()
@@ -472,7 +474,7 @@ namespace HXSL
 	};
 
 	template <class Target, class Injector, class InsertFunc>
-	static void	InjectNode(std::unique_ptr<Target>& target, std::unique_ptr<Injector> inject, InsertFunc func)
+	static void	InjectNode(ast_ptr<Target>& target, ast_ptr<Injector> inject, InsertFunc func)
 	{
 		static_assert(std::is_base_of<ASTNode, Target>::value, "Target must derive from ASTNode");
 		static_assert(std::is_base_of<Target, Injector>::value, "Injector must derive from Target");

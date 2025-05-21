@@ -29,7 +29,7 @@ namespace HXSL
 	{
 		this->assembly = assembly;
 		this->symbolHandle = handle;
-		fullyQualifiedName = std::make_unique<std::string>(symbolHandle.GetFullyQualifiedName());
+		fullyQualifiedName = make_ast_ptr<std::string>(symbolHandle.GetFullyQualifiedName());
 		UpdateName();
 	}
 
@@ -39,9 +39,9 @@ namespace HXSL
 		return node.Metadata.get();
 	}
 
-	std::unique_ptr<SymbolRef> SymbolDef::MakeSymbolRef() const
+	ast_ptr<SymbolRef> SymbolDef::MakeSymbolRef() const
 	{
-		auto ref = std::make_unique<SymbolRef>(std::string(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
+		auto ref = make_ast_ptr<SymbolRef>(std::string(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
 		ref->SetTable(GetSymbolHandle());
 		return ref;
 	}
@@ -70,7 +70,7 @@ namespace HXSL
 		this->symbolHandle = handle;
 		auto meta = GetMetadata();
 		GetDeclaration()->AddRef(this);
-		fullyQualifiedName = std::make_unique<std::string>(handle.GetFullyQualifiedName().c_str());
+		fullyQualifiedName = make_ast_ptr<std::string>(handle.GetFullyQualifiedName().c_str());
 	}
 
 	void SymbolRef::SetDeclaration(const SymbolDef* node)
@@ -141,7 +141,7 @@ namespace HXSL
 	void SymbolRef::Read(Stream& stream)
 	{
 		type = static_cast<SymbolRefType>(stream.ReadUInt());
-		fullyQualifiedName = std::make_unique<std::string>(stream.ReadString().c_str());
+		fullyQualifiedName = make_ast_ptr<std::string>(stream.ReadString().c_str());
 		UpdateName();
 	}
 }

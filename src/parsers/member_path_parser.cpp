@@ -34,14 +34,14 @@ namespace HXSL
 
 			if (stream.TryGetOperator(Operator_MemberAccess))
 			{
-				auto memberAccessExpression = std::make_unique<MemberAccessExpression>(start.Span, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)), nullptr);
+				auto memberAccessExpression = make_ast_ptr<MemberAccessExpression>(start.Span, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)), nullptr);
 				memberAccessExpression->SetSpan(stream.MakeFromLast(start));
 				Chain(std::move(memberAccessExpression));
 			}
 			else if (stream.TryGetDelimiter('['))
 			{
-				auto indexerAccessExpression = std::make_unique<IndexerAccessExpression>(TextSpan(), std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier, !wantsIdentifier)));
-				std::unique_ptr<Expression> indexExpression;
+				auto indexerAccessExpression = make_ast_ptr<IndexerAccessExpression>(TextSpan(), std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier, !wantsIdentifier)));
+				ast_ptr<Expression> indexExpression;
 				HybridExpressionParser::ParseExpression(parser, stream, indexExpression);
 				stream.ExpectDelimiter(']', EXPECTED_RIGHT_BRACKET);
 				indexerAccessExpression->SetIndexExpression(std::move(indexExpression));
@@ -50,8 +50,8 @@ namespace HXSL
 			}
 			else if (stream.TryGetDelimiter('('))
 			{
-				auto functionExpression = std::make_unique<FunctionCallExpression>(TextSpan(), std::move(baseSymbol.make(root ? SymbolRefType_FunctionOverload : SymbolRefType_FunctionOrConstructor)));
-				std::vector<std::unique_ptr<FunctionCallParameter>> parameters;
+				auto functionExpression = make_ast_ptr<FunctionCallExpression>(TextSpan(), std::move(baseSymbol.make(root ? SymbolRefType_FunctionOverload : SymbolRefType_FunctionOrConstructor)));
+				std::vector<ast_ptr<FunctionCallParameter>> parameters;
 				IF_ERR_RET_FALSE(ParserHelper::ParseFunctionCallInner(parser, stream, parameters));
 				functionExpression->SetParameters(std::move(parameters));
 				functionExpression->SetSpan(stream.MakeFromLast(start));
@@ -59,7 +59,7 @@ namespace HXSL
 			}
 			else
 			{
-				auto symbolExpression = std::make_unique<MemberReferenceExpression>(start.Span, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)));
+				auto symbolExpression = make_ast_ptr<MemberReferenceExpression>(start.Span, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)));
 				ChainEnd(std::move(symbolExpression));
 				break;
 			}

@@ -11,7 +11,7 @@ namespace HXSL
 	{
 	private:
 		std::unique_ptr<SymbolTable> swizzleTable;
-		std::vector<std::unique_ptr<SwizzleDefinition>> definitions;
+		std::vector<ast_ptr<SwizzleDefinition>> definitions;
 		PrimitiveManager& primitives;
 
 		static char NormalizeSwizzleChar(const char& c)

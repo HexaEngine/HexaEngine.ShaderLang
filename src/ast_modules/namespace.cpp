@@ -19,7 +19,7 @@ namespace HXSL
 	{
 	}
 
-	void Namespace::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Namespace::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -29,19 +29,19 @@ namespace HXSL
 			switch (meta->symbolType)
 			{
 			case SymbolType_Field:
-				AddField(UNIQUE_PTR_CAST(nodes[childIdx], Field));
+				AddField(UNIQUE_PTR_CAST_AST(nodes[childIdx], Field));
 				break;
 			case SymbolType_Function:
-				AddFunction(UNIQUE_PTR_CAST(nodes[childIdx], FunctionOverload));
+				AddFunction(UNIQUE_PTR_CAST_AST(nodes[childIdx], FunctionOverload));
 				break;
 			case SymbolType_Struct:
-				AddStruct(UNIQUE_PTR_CAST(nodes[childIdx], Struct));
+				AddStruct(UNIQUE_PTR_CAST_AST(nodes[childIdx], Struct));
 				break;
 			case SymbolType_Class:
-				AddClass(UNIQUE_PTR_CAST(nodes[childIdx], Class));
+				AddClass(UNIQUE_PTR_CAST_AST(nodes[childIdx], Class));
 				break;
 			case SymbolType_Operator:
-				AddOperator(UNIQUE_PTR_CAST(nodes[childIdx], OperatorOverload));
+				AddOperator(UNIQUE_PTR_CAST_AST(nodes[childIdx], OperatorOverload));
 				break;
 			}
 		}

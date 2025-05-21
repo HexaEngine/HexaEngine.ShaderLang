@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	void LowerCompilationUnit::AddMiscDef(std::unique_ptr<SymbolDef> def)
+	void LowerCompilationUnit::AddMiscDef(ast_ptr<SymbolDef> def)
 	{
 		def->SetParent(this);
 		miscDefs.push_back(std::move(def));
