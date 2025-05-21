@@ -7,45 +7,48 @@
 #include "lexical/input_stream.hpp"
 #include "io/source_file.hpp"
 
-class LoggerExtension
+namespace HXSL
 {
-	ILogger* loggerBase;
-	std::string stage;
-public:
-	LoggerExtension(ILogger* logger, const std::string& stage) : loggerBase(logger), stage(stage)
+	class LoggerAdapter
 	{
-	}
+	protected:
+		ILogger* logger;
+	public:
+		LoggerAdapter(ILogger* logger) : logger(logger)
+		{
+		}
 
-	template <typename... Args>
-	void LogFormatted(LogLevel level, const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
-	{
-		std::string format = "[" + stage + "]: " + message + " (Line: %i, Column: %i)";
-		loggerBase->LogFormatted(level, format, std::forward<Args>(args)..., span.line, span.column);
-	}
+		virtual ~LoggerAdapter() = default;
 
-	template <typename... Args>
-	void LogCritical(const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
-	{
-		LogFormatted(LogLevel_Critical, message, file, span, std::forward<Args>(args)...);
-	}
+		ILogger* GetLogger() const noexcept { return logger; }
 
-	template <typename... Args>
-	void LogError(const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
-	{
-		LogFormatted(LogLevel_Error, message, file, span, std::forward<Args>(args)...);
-	}
+		template <typename... Args>
+		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
+		{
+			logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
+		}
 
-	template <typename... Args>
-	void LogWarn(const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
-	{
-		LogFormatted(LogLevel_Warn, message, file, span, std::forward<Args>(args)...);
-	}
+		template<typename... Args>
+		void Log(DiagnosticCode code, const Token& token, Args&&... args) const
+		{
+			Log(code, token.Span, std::forward<Args>(args)...);
+		}
 
-	template <typename... Args>
-	void LogInfo(const std::string& message, const std::string& file, const TextSpan& span, Args&&... args) const
-	{
-		LogFormatted(LogLevel_Info, message, file, span, std::forward<Args>(args)...);
-	}
-};
+		template<typename... Args>
+		void LogIf(bool condition, DiagnosticCode code, const TextSpan& span, Args&&... args) const
+		{
+			if (condition)
+			{
+				Log(code, span, std::forward<Args>(args)...);
+			}
+		}
+
+		template<typename... Args>
+		void LogIf(bool condition, DiagnosticCode code, const Token& token, Args&&... args) const
+		{
+			LogIf(condition, code, token.Span, std::forward<Args>(args)...);
+		}
+	};
+}
 
 #endif

@@ -1,17 +1,9 @@
 #include "il_generator.hpp"
 
-#include "il/il_context.hpp"
-#include "il/func_call_graph.hpp"
-#include "utils/ast_flattener.hpp"
-
 namespace HXSL
 {
 	bool ILGenerator::Emit()
 	{
-		std::vector<std::unique_ptr<ILContext>> contexts;
-		std::unordered_map<SymbolDef*, size_t> defMap;
-		FuncCallGraph<ILContext*> callGraph;
-
 		for (auto& func : compilation->GetFunctions())
 		{
 			auto ctx = std::make_unique<ILContext>(logger, func.get());
@@ -42,34 +34,6 @@ namespace HXSL
 		}
 
 		auto scc = callGraph.ComputeSCCs();
-
-		return true;
-
-		for (auto& ctx : contexts)
-		{
-			std::cout << "Post first pass fold: " << ctx->overload->GetName() << std::endl;
-			ctx->Print();
-
-			auto& funcRefs = ctx->builder.GetMetadata().functions;
-			for (size_t i = 0; i < funcRefs.size(); ++i)
-			{
-				auto& funcRef = funcRefs[i];
-				auto it = defMap.find(funcRef.func);
-				if (it != defMap.end())
-				{
-					auto other = contexts[it->second].get();
-					ctx->TryInline(*other, i);
-				}
-			}
-
-			std::cout << "Post inline: " << ctx->overload->GetName() << std::endl;
-			ctx->Print();
-
-			ctx->Fold();
-
-			std::cout << "Post second-pass fold: " << ctx->overload->GetName() << std::endl;
-			ctx->Print();
-		}
 
 		return true;
 	}

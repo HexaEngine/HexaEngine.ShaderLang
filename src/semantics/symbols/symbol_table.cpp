@@ -9,6 +9,11 @@ namespace HXSL
 		stream.WriteUInt((uint32_t)scope);
 		stream.WriteUInt((uint32_t)accessModifier);
 		stream.WriteUInt((uint32_t)size);
+		if (symbolType == SymbolType_Namespace)
+		{
+			stream.WriteValue<bool>(false);
+			return;
+		}
 		stream.WriteValue<bool>(declaration);
 		if (declaration)
 		{

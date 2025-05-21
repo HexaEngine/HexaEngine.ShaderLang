@@ -4,7 +4,6 @@
 #include "lexical/token_stream.hpp"
 #include "lexical/text_mapping.hpp"
 #include "parsers/parser.hpp"
-#include "preprocessor_stream.hpp"
 #include "utils/span.hpp"
 
 namespace HXSL

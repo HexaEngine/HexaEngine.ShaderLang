@@ -134,12 +134,6 @@ namespace HXSL
 
 		~ILogger()
 		{
-			std::string	 a = "";
-			fmt::vformat(a, fmt::make_format_args(""));
-			for (auto& message : messages)
-			{
-				message.~LogMessage();
-			}
 		}
 	};
 }

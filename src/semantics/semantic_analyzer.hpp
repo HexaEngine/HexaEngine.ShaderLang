@@ -2,6 +2,7 @@
 #define SEMANTIC_ANALYZER_HPP
 
 #include "pch/ast_analyzers.hpp"
+#include "io/logger_interface.hpp"
 
 namespace HXSL
 {
@@ -10,10 +11,9 @@ if (!expr) { \
 	return TraversalBehavior_Break; \
 }
 
-	struct SemanticAnalyzer
+	struct SemanticAnalyzer : public LoggerAdapter
 	{
 	private:
-		ILogger* logger;
 		CompilationUnit* compilation;
 		PrimitiveManager& primitives;
 
@@ -39,7 +39,7 @@ if (!expr) { \
 
 	public:
 		SemanticAnalyzer(ILogger* logger, CompilationUnit* compilation, const AssemblyCollection& references) :
-			logger(logger),
+			LoggerAdapter(logger),
 			compilation(compilation),
 			references(references),
 			outputAssembly(Assembly::Create("")),
@@ -58,12 +58,6 @@ if (!expr) { \
 		void WarmupCache();
 
 		bool Analyze();
-
-		template <typename... Args>
-		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
-		{
-			logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
-		}
 	};
 
 	inline static std::string MakeScopeId(long num)

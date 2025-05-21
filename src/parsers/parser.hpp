@@ -4,6 +4,7 @@
 #include "lexical/token_stream.hpp"
 #include "lexical/text_span.hpp"
 #include "pch/ast.hpp"
+#include "io/logger_interface.hpp"
 #include "lazy.hpp"
 #include "utils/object_pool.hpp"
 
@@ -208,10 +209,9 @@ namespace HXSL
 		Keyword_False,
 	};
 
-	class Parser
+	class Parser : public LoggerAdapter
 	{
 	public:
-		ILogger* logger;
 		TokenStream* stream;
 		int ScopeLevel;
 		int NamespaceScope;
@@ -225,7 +225,7 @@ namespace HXSL
 		size_t lastRecovery;
 
 		Parser() = default;
-		Parser(ILogger* logger, TokenStream& stream, CompilationUnit* compilation) : logger(logger), stream(&stream), ScopeLevel(0), NamespaceScope(0), compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext(ScopeType_Global, compilation, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
+		Parser(ILogger* logger, TokenStream& stream, CompilationUnit* compilation) : LoggerAdapter(logger), stream(&stream), ScopeLevel(0), NamespaceScope(0), compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext(ScopeType_Global, compilation, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
 		{
 		}
 
@@ -242,27 +242,6 @@ namespace HXSL
 		ASTNode* scopeParent() const noexcept { return CurrentScope.Parent; }
 
 		ScopeFlags scopeFlags() const noexcept { return CurrentScope.Flags; }
-
-		template<typename... Args>
-		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
-		{
-			logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
-		}
-
-		template<typename... Args>
-		void LogIf(bool condition, DiagnosticCode code, const TextSpan& span, Args&&... args) const
-		{
-			if (condition)
-			{
-				logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
-			}
-		}
-
-		template<typename... Args>
-		void Log(DiagnosticCode code, const Token& token, Args&&... args) const
-		{
-			Log(code, token.Span, std::forward<Args>(args)...);
-		}
 
 		template<typename... Args>
 		bool inScope(ScopeFlags flags, DiagnosticCode code, Args&&... args) const noexcept

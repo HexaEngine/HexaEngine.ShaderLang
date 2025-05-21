@@ -9,8 +9,10 @@ namespace HXSL
 {
 	class DebugVisitor : public Visitor<EmptyDeferralContext>
 	{
+		size_t size = 0;
 		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override
 		{
+			size += sizeof(*node);
 			std::string indentation(depth * 2, ' ');
 			auto& span = node->GetSpan();
 			std::cout << indentation << node->DebugName() << " (Line: " << span.line << " Column: " << span.column << ")" << std::endl;
