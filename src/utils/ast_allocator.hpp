@@ -29,11 +29,8 @@ class ASTAllocator
 
 	struct AllocHeader
 	{
-		uint32_t magic0 = 0x1953124;
 		AllocHeader* next;
-		uint32_t magic1 = 0x1953124;
 		size_t size;
-		uint32_t magic2 = 0x1953124;
 	};
 
 	struct Block
