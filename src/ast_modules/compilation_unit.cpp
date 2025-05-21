@@ -2,9 +2,25 @@
 
 namespace HXSL
 {
-	void CompilationUnit::AddMiscDef(std::unique_ptr<SymbolDef> def)
+	Namespace* CompilationUnit::AddNamespace(const NamespaceDeclaration& declaration)
 	{
-		def->SetParent(this);
-		miscDefs.push_back(std::move(def));
+		std::shared_lock<std::shared_mutex> lock(_mutex);
+
+		for (auto& ns : namespaces)
+		{
+			if (ns->GetName() == declaration.Name)
+			{
+				return ns.get();
+			}
+		}
+
+		lock.unlock();
+		std::unique_lock<std::shared_mutex> uniqueLock(_mutex);
+
+		auto ns = std::make_unique<Namespace>(declaration);
+		ns->SetParent(this);
+		auto pNs = ns.get();
+		namespaces.push_back(std::move(ns));
+		return pNs;
 	}
 }

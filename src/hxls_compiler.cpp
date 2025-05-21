@@ -1,9 +1,11 @@
 #include "hxls_compiler.hpp"
 
 #include "pch/localization.hpp"
-#include "semantics/semantic_analyzer.hpp"
+#include "preprocessing/preprocessor.hpp"
 #include "parsers/parser.hpp"
-#include <preprocessing/preprocessor.hpp>
+#include "semantics/semantic_analyzer.hpp"
+#include "il/il_generator.hpp"
+#include "utils/ast_flattener.hpp"
 
 namespace HXSL
 {
@@ -11,7 +13,8 @@ namespace HXSL
 	{
 		Parser::InitializeSubSystems();
 
-		pool_ptr<Compilation> compilation = make_pool_ptr<NodeType_Compilation>();
+		std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
+		std::unique_ptr<CompilationUnit> compilation = std::make_unique<CompilationUnit>();
 
 		std::vector<std::unique_ptr<SourceFile>> sources;
 		for (auto& file : files)
@@ -33,22 +36,29 @@ namespace HXSL
 				continue;
 			}
 
-			Preprocessor preprocessor = Preprocessor(compilation.get());
+			Preprocessor preprocessor = Preprocessor(logger.get());
 			preprocessor.Process(source.get());
 
-			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), compilation.get(), HXSLLexerConfig::Instance());
+			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger.get(), HXSLLexerConfig::Instance());
 			TokenStream tokenStream = TokenStream(&context);
 
-			Parser parser = Parser(tokenStream, compilation.get());
+			Parser parser = Parser(logger.get(), tokenStream, compilation.get());
 
 			parser.Parse();
 		}
 
 		SemanticAnalyzer::InitializeSubSystems();
-		SemanticAnalyzer analyzer = SemanticAnalyzer(compilation.get(), references);
-
+		SemanticAnalyzer analyzer = SemanticAnalyzer(logger.get(), compilation.get(), references);
 		analyzer.Analyze();
-		if (!compilation->HasErrors())
+
+		ASTFlattener flattener;
+		auto lowerCompilation = flattener.Flatten(compilation.get());
+		compilation.reset();
+
+		ILGenerator ilGen = ILGenerator(logger.get(), lowerCompilation.get());
+		ilGen.Emit();
+
+		if (!logger->HasErrors())
 		{
 			auto assembly = analyzer.GetOutputAssembly().get();
 

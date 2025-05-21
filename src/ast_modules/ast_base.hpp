@@ -16,7 +16,7 @@
 namespace HXSL
 {
 	class ASTNodeAdapter;
-	class Compilation;
+	class CompilationUnit;
 	class FunctionOverload;
 	class OperatorOverload;
 	class Struct;
@@ -47,8 +47,8 @@ namespace HXSL
 		/// Special node and does not exist as class.
 		/// </summary>
 		NodeType_Unknown,
-		NodeType_Compilation,
-		NodeType_CompilationUnit, // Special kind of Compilation, pruned and lowered Compilation
+		NodeType_CompilationUnit,
+		NodeType_LowerCompilationUnit, // Special kind of Compilation, pruned and lowered Compilation
 		NodeType_Namespace,
 		NodeType_Enum, // Placeholder (Will be added in the future.)
 		NodeType_Primitive,
@@ -181,7 +181,7 @@ namespace HXSL
 		switch (nodeType)
 		{
 		case NodeType_Unknown: return "Unknown";
-		case NodeType_Compilation: return "Compilation";
+		case NodeType_CompilationUnit: return "Compilation";
 		case NodeType_Namespace: return "Namespace";
 		case NodeType_Enum: return "Enum";
 		case NodeType_Primitive: return "Primitive";
@@ -237,7 +237,7 @@ namespace HXSL
 	{
 		friend class ASTNodeAdapter;
 	private:
-		Compilation* compilation = nullptr;
+		CompilationUnit* compilation = nullptr;
 		size_t id = 0;
 
 		void AddChild(ASTNode* node)
@@ -311,7 +311,7 @@ namespace HXSL
 		{
 		}
 
-		virtual	Compilation* GetCompilation()
+		virtual	CompilationUnit* GetCompilation()
 		{
 			if (compilation)
 			{

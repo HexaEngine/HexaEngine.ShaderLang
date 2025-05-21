@@ -94,7 +94,7 @@ namespace HXSL
 	template<> struct NodeTypeToType<enumVal> { using Type = type; };
 
 	//DEFINE_POOL_KEY(NodeType_Unknown, Unknown);
-	DEFINE_POOL_KEY(NodeType_Compilation, Compilation);
+	DEFINE_POOL_KEY(NodeType_CompilationUnit, CompilationUnit);
 	DEFINE_POOL_KEY(NodeType_Namespace, Namespace);
 	//DEFINE_POOL_KEY(NodeType_Enum, Enum);
 	DEFINE_POOL_KEY(NodeType_Primitive, Primitive);

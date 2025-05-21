@@ -78,7 +78,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 
 		void Warmup(const AssemblyCollection& references);
 	};

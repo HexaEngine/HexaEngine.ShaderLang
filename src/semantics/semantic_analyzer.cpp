@@ -20,23 +20,6 @@ namespace HXSL
 
 	TraversalBehavior SemanticAnalyzer::AnalyzerVisitor::Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context)
 	{
-		switch (node->GetType())
-		{
-		case NodeType_FunctionOverload:
-			analyzer.functions.push_back(node->As<FunctionOverload>());
-			break;
-		case NodeType_OperatorOverload:
-			analyzer.operators.push_back(node->As<OperatorOverload>());
-			break;
-		case NodeType_Struct:
-			analyzer.structs.push_back(node->As<Struct>());
-			break;
-		case NodeType_Class:
-			analyzer.classes.push_back(node->As<Class>());
-			break;
-		default:
-			break;
-		}
 		return SubAnalyzerRegistry::TryAnalyze(analyzer, node, analyzer.Compilation());
 	}
 
@@ -81,14 +64,14 @@ namespace HXSL
 		SymbolResolver resolver(*this, references, outputAssembly.get(), arrayManager.get(), swizzleManager.get());
 		resolver.Traverse(compilation);
 
-		compilation->LogFormattedInternal(LogLevel_Verbose, "Symbol resolve initial phase done! %d errors.", compilation->GetErrorCount());
+		logger->LogFormattedInternal(LogLevel_Verbose, "Symbol resolve initial phase done! %d errors.", logger->GetErrorCount());
 
 		collector.LateTraverse();
 
 		TypeChecker checker(*this, resolver);
 		checker.Traverse(compilation);
 
-		compilation->LogFormattedInternal(LogLevel_Verbose, "Type checks done! %d errors.", compilation->GetErrorCount());
+		logger->LogFormattedInternal(LogLevel_Verbose, "Type checks done! %d errors.", logger->GetErrorCount());
 
 		AnalyzerVisitor visitor(*this);
 		visitor.Traverse(compilation);

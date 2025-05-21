@@ -42,7 +42,7 @@ namespace HXSL
 		SwizzleManager* swizzleManager;
 		ResolverScopeContext current;
 		IterStack<ResolverScopeContext> stack;
-		Compilation* compilation;
+		CompilationUnit* compilation;
 
 	public:
 		SymbolResolver(SemanticAnalyzer& analyzer, const AssemblyCollection& references, const Assembly* targetAssembly, ArrayManager* arrayManager, SwizzleManager* swizzleManager)
@@ -54,13 +54,6 @@ namespace HXSL
 			swizzleManager(swizzleManager),
 			compilation(analyzer.Compilation())
 		{
-		}
-
-		template <typename... Args>
-		void LogError(const std::string& message, const TextSpan& span, Args&&... args) const
-		{
-			std::string format = message + " (Line: %i, Column: %i)";
-			compilation->LogFormatted(LogLevel_Error, format, std::forward<Args>(args)..., span.line, span.column);
 		}
 
 		bool SymbolTypeSanityCheck(const SymbolMetadata* metadata, SymbolRef* ref, bool silent = false) const;

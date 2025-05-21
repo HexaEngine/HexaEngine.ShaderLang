@@ -28,17 +28,6 @@ if(MSVC)
     )
 endif()
 
-
-# Add natvis file to the project if using Visual Studio
-if (MSVC)
-    set(NATVIS_FILE "${PROJECT_SOURCE_DIR}/visualizers/text_span.natvis")
-    if (EXISTS ${NATVIS_FILE})
-        set_source_files_properties(${NATVIS_FILE} PROPERTIES HEADER_FILE_ONLY TRUE)
-        source_group("Visualizers" FILES ${NATVIS_FILE})
-        list(APPEND EXTRA_SOURCES ${NATVIS_FILE})
-    endif()
-endif()
-
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE PCH_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/pch/*.hpp")
 

@@ -23,7 +23,7 @@ namespace HXSL
 	{
 	}
 
-	void Struct::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Struct::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -68,7 +68,7 @@ namespace HXSL
 		symbol->Read(stream);
 	}
 
-	void Parameter::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Parameter::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 	}
 
@@ -89,7 +89,7 @@ namespace HXSL
 		symbol->Read(stream);
 	}
 
-	void Field::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Field::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 	}
 
@@ -108,7 +108,7 @@ namespace HXSL
 		returnSymbol->Read(stream);
 	}
 
-	void FunctionOverload::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void FunctionOverload::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)
@@ -156,7 +156,7 @@ namespace HXSL
 		returnSymbol->Read(stream);
 	}
 
-	void OperatorOverload::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void OperatorOverload::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 		FunctionOverload::Build(table, index, compilation, nodes);
 	}
@@ -181,7 +181,7 @@ namespace HXSL
 	{
 	}
 
-	void Class::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Class::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)

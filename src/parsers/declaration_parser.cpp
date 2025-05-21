@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	static bool ParseField(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, Compilation* compilation)
+	static bool ParseField(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
 	{
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
@@ -63,7 +63,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseFunction(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, Parser& parser, TokenStream& stream, Compilation* compilation)
+	static bool ParseFunction(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> returnSymbol, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
 	{
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
@@ -140,7 +140,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseOperator(const Token& start, OperatorFlags flags, Parser& parser, TokenStream& stream, Compilation* compilation)
+	static bool ParseOperator(const Token& start, OperatorFlags flags, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
 	{
 		auto opKeywordToken = stream.Current();
 		stream.ExpectKeyword(Keyword_Operator, EXPECTED_OPERATOR);
@@ -237,7 +237,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool DeclarationParser::TryParse(Parser& parser, TokenStream& stream, Compilation* compilation)
+	bool DeclarationParser::TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation)
 	{
 		auto startingToken = stream.Current();
 
@@ -280,7 +280,7 @@ namespace HXSL
 		return false;
 	}
 
-	bool OperatorParser::TryParse(Parser& parser, TokenStream& stream, Compilation* compilation)
+	bool OperatorParser::TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation)
 	{
 		auto startingToken = stream.Current();
 
@@ -308,7 +308,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool StructParser::TryParse(Parser& parser, TokenStream& stream, Compilation* compilation)
+	bool StructParser::TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation)
 	{
 		auto startingToken = stream.Current();
 

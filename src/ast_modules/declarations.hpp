@@ -59,7 +59,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 
 		~Parameter() override
 		{
@@ -213,7 +213,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 
 		std::string DebugName() const override
 		{
@@ -360,7 +360,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 	};
 
 	class Field : public SymbolDef, public IHasSymbolRef
@@ -420,7 +420,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
@@ -463,7 +463,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
@@ -506,7 +506,7 @@ namespace HXSL
 
 		void Read(Stream& stream, StringPool& container) override;
 
-		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};

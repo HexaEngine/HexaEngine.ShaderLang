@@ -187,7 +187,7 @@ namespace HXSL
 			HXSL_ASSERT(false, "Cannot read primitive types")
 		}
 
-		void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) override
 		{
 			HXSL_ASSERT(false, "Cannot build primitive types")
 		}

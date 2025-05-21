@@ -211,10 +211,11 @@ namespace HXSL
 	class Parser
 	{
 	public:
+		ILogger* logger;
 		TokenStream* stream;
 		int ScopeLevel;
 		int NamespaceScope;
-		Compilation* m_compilation;
+		CompilationUnit* compilation;
 		Namespace* CurrentNamespace;
 		ASTNode* ParentNode;
 		ParserScopeContext CurrentScope;
@@ -224,13 +225,13 @@ namespace HXSL
 		size_t lastRecovery;
 
 		Parser() = default;
-		Parser(TokenStream& stream, Compilation* compilation) : stream(&stream), ScopeLevel(0), NamespaceScope(0), m_compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext(ScopeType_Global, compilation, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
+		Parser(ILogger* logger, TokenStream& stream, CompilationUnit* compilation) : logger(logger), stream(&stream), ScopeLevel(0), NamespaceScope(0), compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext(ScopeType_Global, compilation, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
 		{
 		}
 
 		void static InitializeSubSystems();
 
-		Compilation* Compilation() const noexcept { return m_compilation; }
+		CompilationUnit* Compilation() const noexcept { return compilation; }
 
 		TokenStream& GetStream() noexcept { return *stream; }
 
@@ -245,7 +246,7 @@ namespace HXSL
 		template<typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			m_compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
+			logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
 		}
 
 		template<typename... Args>
@@ -253,7 +254,7 @@ namespace HXSL
 		{
 			if (condition)
 			{
-				m_compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
+				logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
 			}
 		}
 
@@ -485,7 +486,7 @@ namespace HXSL
 
 		// Direct accessors
 		TokenStream& GetStream() noexcept { return parser.GetStream(); }
-		Compilation* GetCompilation() const noexcept { return parser.Compilation(); }
+		CompilationUnit* GetCompilation() const noexcept { return parser.Compilation(); }
 		int GetScopeLevel() const noexcept { return parser.scopeLevel(); }
 		ScopeType GetScopeType() const noexcept { return parser.scopeType(); }
 		ASTNode* GetScopeParent() const noexcept { return parser.scopeParent(); }

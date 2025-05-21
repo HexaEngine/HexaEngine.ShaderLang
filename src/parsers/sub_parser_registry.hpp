@@ -14,7 +14,7 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, Compilation* compilation)
+		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, CompilationUnit* compilation)
 		{
 			do
 			{

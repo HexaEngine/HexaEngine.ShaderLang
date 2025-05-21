@@ -69,7 +69,7 @@ namespace HXSL
 		std::vector<SymbolTableNode> nodes;
 		std::shared_mutex nodeMutex;
 		StringPool stringPool;
-		std::unique_ptr<Compilation> compilation = std::make_unique<Compilation>(true);
+		std::unique_ptr<CompilationUnit> compilation = std::make_unique<CompilationUnit>(true);
 
 		void RemoveRange(const size_t& start, const size_t& end);
 
@@ -173,7 +173,7 @@ namespace HXSL
 			nodes.resize(capacity);
 		}
 
-		Compilation* GetCompilation() const
+		CompilationUnit* GetCompilation() const
 		{
 			return compilation.get();
 		}

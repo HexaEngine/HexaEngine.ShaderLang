@@ -19,7 +19,7 @@ namespace HXSL
 	{
 	}
 
-	void Namespace::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
+	void Namespace::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 		auto& node = table.GetNode(index);
 		for (auto& [span, childIdx] : node.Children)

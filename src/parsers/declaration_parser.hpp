@@ -7,17 +7,17 @@ namespace HXSL
 {
 	class DeclarationParser : public SubParser
 	{
-		bool TryParse(Parser& parser, TokenStream& stream, Compilation* compilation) override;
+		bool TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation) override;
 	};
 
 	class OperatorParser : public SubParser
 	{
-		bool TryParse(Parser& parser, TokenStream& stream, Compilation* compilation) override;
+		bool TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation) override;
 	};
 
 	class StructParser : public SubParser
 	{
-		bool TryParse(Parser& parser, TokenStream& stream, Compilation* compilation) override;
+		bool TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation) override;
 	};
 }
 

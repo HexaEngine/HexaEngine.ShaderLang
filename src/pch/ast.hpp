@@ -15,6 +15,7 @@
 #include "ast_modules/primitive.hpp"
 #include "ast_modules/swizzle.hpp"
 #include "ast_modules/namespace.hpp"
-#include "ast_modules/compilation.hpp"
+#include "ast_modules/compilation_unit.hpp"
+#include "ast_modules/lower_compilation_unit.hpp"
 
 #endif

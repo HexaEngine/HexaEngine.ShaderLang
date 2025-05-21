@@ -166,7 +166,7 @@ namespace HXSL
 
 		virtual void Read(Stream& stream, StringPool& container) = 0;
 
-		virtual void Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) = 0;
+		virtual void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes) = 0;
 
 		virtual ~SymbolDef() = default;
 

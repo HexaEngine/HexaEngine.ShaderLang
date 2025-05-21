@@ -3,7 +3,7 @@
 #include "statements.hpp"
 #include "primitive.hpp"
 #include "array.hpp"
-#include "compilation.hpp"
+#include "compilation_unit.hpp"
 
 namespace HXSL
 {

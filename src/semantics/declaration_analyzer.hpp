@@ -13,7 +13,7 @@ namespace HXSL
 			return node->IsAnyTypeOf(allowedTypes);
 		}
 
-		TraversalBehavior Analyze(SemanticAnalyzer& analyzer, ASTNode* node, Compilation* compilation) override;
+		TraversalBehavior Analyze(SemanticAnalyzer& analyzer, ASTNode* node, CompilationUnit* compilation) override;
 	};
 }
 

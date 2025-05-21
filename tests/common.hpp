@@ -125,7 +125,7 @@ public:
 	}
 };
 
-using CompilationPtr = std::unique_ptr<Compilation>;
+using CompilationPtr = std::unique_ptr<CompilationUnit>;
 using ASTNodePtr = std::unique_ptr<ASTNode>;
 
 class HXSLTestBase
@@ -148,7 +148,7 @@ public:
 	{
 		Parser::InitializeSubSystems();
 
-		compilation = std::make_unique<Compilation>();
+		compilation = std::make_unique<CompilationUnit>();
 
 		LexerState state = LexerState(compilation.get(), data.c_str(), data.length());
 		stream = TokenStream(state, HXSLLexerConfig::Instance());

@@ -13,18 +13,14 @@ if (!expr) { \
 	struct SemanticAnalyzer
 	{
 	private:
-		Compilation* compilation;
+		ILogger* logger;
+		CompilationUnit* compilation;
 		PrimitiveManager& primitives;
 
 		const AssemblyCollection& references;
 		std::unique_ptr<Assembly> outputAssembly;
 		std::unique_ptr<SwizzleManager> swizzleManager;
 		std::unique_ptr<ArrayManager> arrayManager;
-
-		std::vector<FunctionOverload*> functions;
-		std::vector<OperatorOverload*> operators;
-		std::vector<Struct*> structs;
-		std::vector<Class*> classes;
 
 		class AnalyzerVisitor : public Visitor<EmptyDeferralContext>
 		{
@@ -42,7 +38,8 @@ if (!expr) { \
 		friend class SymbolResolver;
 
 	public:
-		SemanticAnalyzer(Compilation* compilation, const AssemblyCollection& references) :
+		SemanticAnalyzer(ILogger* logger, CompilationUnit* compilation, const AssemblyCollection& references) :
+			logger(logger),
 			compilation(compilation),
 			references(references),
 			outputAssembly(Assembly::Create("")),
@@ -56,7 +53,7 @@ if (!expr) { \
 
 		std::unique_ptr<Assembly>& GetOutputAssembly() noexcept { return outputAssembly; }
 
-		Compilation* Compilation() const noexcept { return compilation; }
+		CompilationUnit* Compilation() const noexcept { return compilation; }
 
 		void WarmupCache();
 
@@ -65,7 +62,7 @@ if (!expr) { \
 		template <typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			compilation->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
+			logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
 		}
 	};
 

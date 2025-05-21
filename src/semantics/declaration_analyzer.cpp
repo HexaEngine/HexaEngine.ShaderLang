@@ -60,7 +60,7 @@ namespace HXSL
 		return TraversalBehavior_AnalyzerSkip;
 	}
 
-	TraversalBehavior DeclarationAnalyzer::Analyze(SemanticAnalyzer& analyzer, ASTNode* node, Compilation* compilation)
+	TraversalBehavior DeclarationAnalyzer::Analyze(SemanticAnalyzer& analyzer, ASTNode* node, CompilationUnit* compilation)
 	{
 		auto& type = node->GetType();
 

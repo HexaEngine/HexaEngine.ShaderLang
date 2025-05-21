@@ -17,7 +17,7 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static TraversalBehavior TryAnalyze(SemanticAnalyzer& analyzer, ASTNode* node, Compilation* compilation)
+		static TraversalBehavior TryAnalyze(SemanticAnalyzer& analyzer, ASTNode* node, CompilationUnit* compilation)
 		{
 			for (auto& subAnalyzer : analyzers)
 			{

@@ -380,7 +380,7 @@ namespace HXSL
 				if (ScopeLevel != 0) ERR_RETURN_FALSE_INTERNAL(NAMESPACE_MUST_BE_GLOBAL_SCOPE);
 				if (CurrentNamespace != nullptr) ERR_RETURN_FALSE_INTERNAL(ONLY_ONE_NAMESPACE_ALLOWED);
 				bool scoped;
-				CurrentNamespace = m_compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
+				CurrentNamespace = compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
 				if (!scoped)
 				{
 					CurrentScope = ParserScopeContext(ScopeType_Namespace, CurrentNamespace, ScopeFlags_None);
@@ -397,7 +397,7 @@ namespace HXSL
 				}
 				else
 				{
-					m_compilation->AddUsing(declaration);
+					compilation->AddUsing(declaration);
 				}
 			}
 			else if (stream->TryGetDelimiter('{'))
@@ -434,7 +434,7 @@ namespace HXSL
 		stream->Advance();
 		while (TryAdvance())
 		{
-			if (!ParseSubStepInner(m_compilation))
+			if (!ParseSubStepInner(compilation))
 			{
 				Log(UNEXPECTED_TOKEN, stream->Current());
 				stream->TryAdvance();
@@ -462,7 +462,7 @@ namespace HXSL
 	bool Parser::ParseSubStepInner(ASTNode* parent)
 	{
 		ParseInnerBegin();
-		if (SubParserRegistry::TryParse(*this, *stream, parent, m_compilation))
+		if (SubParserRegistry::TryParse(*this, *stream, parent, compilation))
 		{
 			HXSL_ASSERT(modifierList.Empty(), "Modifier list was not empty, forgot to accept/reject it?.");
 			HXSL_ASSERT(!attribute.HasResource(), "Attribute list was not empty, forgot to accept/reject it?.");

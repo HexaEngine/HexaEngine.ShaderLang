@@ -298,7 +298,7 @@ namespace HXSL
 		{
 		}
 
-		bool TryAdvance() override 
+		bool TryAdvance() override
 		{
 			auto& state = streamState;
 			auto& lexerState = state.state;
@@ -343,7 +343,6 @@ namespace HXSL
 						outputStream->Write("\n", 1);
 					}
 				}
-
 			} while (currentToken.Type == TokenType_Comment || currentToken.Type == TokenType_Unknown || (skipWhitespace && currentToken.Type == TokenType_Whitespace));
 
 			/*
@@ -367,7 +366,7 @@ namespace HXSL
 		state.file = file;
 		LexerContext context = LexerContext(file, file->GetInputStream().get(), logger, HXSLLexerConfig::InstancePreprocess());
 		PrepTokenStream stream = PrepTokenStream(&context, outputStream.get());
-		Parser parser = Parser(stream, nullptr);
+		Parser parser = Parser(logger, stream, nullptr);
 
 		auto result = PrepTransformResult::Keep;
 		auto current = stream.Current();
