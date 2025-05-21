@@ -29,12 +29,12 @@ namespace HXSL
 		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class ElseStatementParser : public StatementParser
+	class WhileStatementParser : public StatementParser
 	{
 		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};
 
-	class WhileStatementParser : public StatementParser
+	class DoWhileStatementParser : public StatementParser
 	{
 		bool TryParse(Parser& parser, TokenStream& stream, std::unique_ptr<Statement>& statementOut) override;
 	};

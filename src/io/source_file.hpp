@@ -4,8 +4,7 @@
 #include "io/stream.hpp"
 #include "utils/span.hpp"
 
-#include <string>
-#include <memory>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

@@ -7,8 +7,6 @@
 #include "lexical/input_stream.hpp"
 #include "io/source_file.hpp"
 
-#include <string>
-
 class LoggerExtension
 {
 	ILogger* loggerBase;

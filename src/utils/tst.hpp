@@ -4,11 +4,7 @@
 #include "allocator.h"
 #include "span.hpp"
 
-#include <functional>
-#include <utility>
-#include <stdexcept>
-#include <string>
-#include <vector>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

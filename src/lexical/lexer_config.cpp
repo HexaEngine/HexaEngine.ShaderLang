@@ -1,6 +1,6 @@
 #include "lexer_config.hpp"
 #include "lang/language.hpp"
-#include <mutex>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

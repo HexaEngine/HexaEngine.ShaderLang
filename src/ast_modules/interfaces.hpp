@@ -70,6 +70,13 @@ namespace HXSL
 		virtual std::unique_ptr<ASTNode> Clone(ASTNode* parent) const noexcept = 0;
 		virtual ~ICloneable() = default;
 	};
+
+	class IHasBody
+	{
+	public:
+		virtual const std::unique_ptr<BlockStatement>& GetBody() const noexcept = 0;
+		virtual ~IHasBody() = default;
+	};
 }
 
 #endif

@@ -1,5 +1,5 @@
 #include "token_stream.hpp"
-#include <generated/localization.hpp>
+#include "pch/localization.hpp"
 
 namespace HXSL
 {

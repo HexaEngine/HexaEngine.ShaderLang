@@ -1,5 +1,5 @@
 #include "assembly.hpp"
-#include "symbols/symbol_table.hpp"
+#include "semantics/symbols/symbol_table.hpp"
 
 namespace HXSL
 {

@@ -2,10 +2,7 @@
 #define NUMBERS_HPP
 
 #include "utils/text_helper.hpp"
-#include <limits>
-#include <cctype>
-#include <cstdlib>
-#include <sstream>
+#include "pch/std.hpp"
 #include <utils/half.hpp>
 
 namespace HXSL
@@ -34,11 +31,47 @@ namespace HXSL
 		{
 		}
 
+		Number(uint8_t value) : Kind(NumberType_UInt8), u8(value)
+		{
+		}
+
+		Number(int8_t value) : Kind(NumberType_Int8), i8(value)
+		{
+		}
+
+		Number(uint16_t value) : Kind(NumberType_UInt16), u16(value)
+		{
+		}
+
+		Number(int16_t value) : Kind(NumberType_Int16), i16(value)
+		{
+		}
+
 		Number(uint32_t value) : Kind(NumberType_UInt32), u32(value)
 		{
 		}
 
 		Number(int32_t value) : Kind(NumberType_Int32), i32(value)
+		{
+		}
+
+		Number(uint64_t value) : Kind(NumberType_UInt64), u64(value)
+		{
+		}
+
+		Number(int64_t value) : Kind(NumberType_Int64), i64(value)
+		{
+		}
+
+		Number(half value) : Kind(NumberType_Half), half_(value)
+		{
+		}
+
+		Number(float value) : Kind(NumberType_Float), float_(value)
+		{
+		}
+
+		Number(double value) : Kind(NumberType_Double), double_(value)
 		{
 		}
 
@@ -397,6 +430,53 @@ namespace HXSL
 			default:
 				return 0;
 			}
+		}
+
+		std::string ToString() const
+		{
+			std::ostringstream oss;
+
+			switch (Kind)
+			{
+			case NumberType_Int8:
+				oss << static_cast<int32_t>(i8);
+				break;
+			case NumberType_UInt8:
+				oss << static_cast<uint32_t>(u8);
+				break;
+			case NumberType_Int16:
+				oss << i16;
+				break;
+			case NumberType_UInt16:
+				oss << u16;
+				break;
+			case NumberType_Int32:
+				oss << i32;
+				break;
+			case NumberType_UInt32:
+				oss << u32;
+				break;
+			case NumberType_Int64:
+				oss << i64;
+				break;
+			case NumberType_UInt64:
+				oss << u64;
+				break;
+			case NumberType_Half:
+				oss << static_cast<float>(half_);
+				break;
+			case NumberType_Float:
+				oss << float_;
+				break;
+			case NumberType_Double:
+				oss << double_;
+				break;
+			default:
+				oss << "Unknown";
+				break;
+			}
+
+			return oss.str();
 		}
 	};
 

@@ -3,8 +3,6 @@
 
 #include "parsers/parser.hpp"
 #include "lexical/token_stream.hpp"
-#include <memory>
-#include <iostream>
 
 namespace HXSL
 {

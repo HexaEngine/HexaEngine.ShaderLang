@@ -1,8 +1,6 @@
 #include "declaration_parser.hpp"
 #include "sub_parser_registry.hpp"
 
-#include <memory>
-
 namespace HXSL
 {
 	static bool ParseField(const Token& start, TextSpan name, std::unique_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, Compilation* compilation)

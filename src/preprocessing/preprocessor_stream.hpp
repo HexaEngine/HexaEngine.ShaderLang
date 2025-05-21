@@ -3,8 +3,6 @@
 
 #include "utils/span.hpp"
 #include "lexical/input_stream.hpp"
-#include <string>
-#include <vector>
 
 namespace HXSL
 {

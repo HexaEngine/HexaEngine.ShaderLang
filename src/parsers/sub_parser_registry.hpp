@@ -1,9 +1,7 @@
-#ifndef SUB_PARSER_REGISTRY_H
-#define SUB_PARSER_REGISTRY_H
+#ifndef SUB_PARSER_REGISTRY_HPP
+#define SUB_PARSER_REGISTRY_HPP
 
 #include "sub_parser.hpp"
-#include <mutex>
-#include <memory>
 
 namespace HXSL
 {
@@ -122,6 +120,7 @@ namespace HXSL
 
 	static bool ParseStatementBody(ScopeType type, Parser& parser, TokenStream& stream, std::unique_ptr<BlockStatement>& statement)
 	{
+		// TODO: single line statements.
 		auto blockStatement = std::make_unique<BlockStatement>(TextSpan());
 		Token first;
 		parser.EnterScope(type, blockStatement.get(), first, true);

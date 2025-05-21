@@ -4,8 +4,6 @@
 #include "io/stream.hpp"
 #include "utils/span.hpp"
 
-#include <vector>
-
 namespace HXSL
 {
 	struct TokenOutput;

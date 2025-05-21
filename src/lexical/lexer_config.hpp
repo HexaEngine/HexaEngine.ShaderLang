@@ -2,8 +2,7 @@
 #define LEXER_CONFIG_HPP
 
 #include "utils/tst.hpp"
-
-#include <unordered_set>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

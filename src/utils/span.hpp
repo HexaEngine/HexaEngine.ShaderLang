@@ -1,8 +1,7 @@
 #ifndef SPAN_H
 #define SPAN_H
 
-#include <stdexcept>
-#include <sstream>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

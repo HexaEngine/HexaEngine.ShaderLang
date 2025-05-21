@@ -3,10 +3,6 @@
 
 #include "lexical/lexer.hpp"
 
-#include <memory>
-#include <vector>
-#include <stack>
-
 namespace HXSL
 {
 	struct EvalItem

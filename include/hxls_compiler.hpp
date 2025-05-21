@@ -3,8 +3,8 @@
 
 #include "c/hxsl_compiler.h"
 #include "parsers/parser.hpp"
-#include "analyzers/analyzer.hpp"
-#include "generated/localization.hpp"
+#include "semantics/semantic_analyzer.hpp"
+#include "pch/localization.hpp"
 
 namespace HXSL
 {

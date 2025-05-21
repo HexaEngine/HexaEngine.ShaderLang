@@ -1,8 +1,20 @@
 #include "declarations.hpp"
-#include "symbols/symbol_table.hpp"
+#include "semantics/symbols/symbol_table.hpp"
 
 namespace HXSL
 {
+	size_t Struct::GetFieldOffset(Field* field) const
+	{
+		for (size_t i = 0; i < fields.size(); i++)
+		{
+			if (fields[i].get() == field)
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
 	void Struct::Write(Stream& stream) const
 	{
 	}
@@ -147,6 +159,18 @@ namespace HXSL
 	void OperatorOverload::Build(SymbolTable& table, size_t index, Compilation* compilation, std::vector<std::unique_ptr<SymbolDef>>& nodes)
 	{
 		FunctionOverload::Build(table, index, compilation, nodes);
+	}
+
+	size_t Class::GetFieldOffset(Field* field) const
+	{
+		for (size_t i = 0; i < fields.size(); i++)
+		{
+			if (fields[i].get() == field)
+			{
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	void Class::Write(Stream& stream) const

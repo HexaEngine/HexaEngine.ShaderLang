@@ -326,6 +326,24 @@ namespace HXSL
 	constexpr DiagnosticCode INVALID_EXPRESSION = 9223373187906027571;
 	
 	/// <summary>
+	/// <para>Code: HL0052</para>
+	/// <para>Message: expected statement</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Syntax Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode EXPECTED_STATEMENT = 9223373187906027572;
+	
+	/// <summary>
+	/// <para>Code: HL0053</para>
+	/// <para>Message: expected while</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Syntax Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode EXPECTED_WHILE = 9223373187906027573;
+	
+	/// <summary>
 	/// <para>Code: HL0100</para>
 	/// <para>Message: namespaces must be at the global scope</para>
 	/// <para>Description: Desc</para>
@@ -1008,6 +1026,15 @@ namespace HXSL
 	/// <para>Severity: Error</para>
 	/// </summary>
 	constexpr DiagnosticCode RECURSIVE_STRUCT_LAYOUT = 9223373187906028720;
+	
+	/// <summary>
+	/// <para>Code: HL1400</para>
+	/// <para>Message: unreachable code detected</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Warning</para>
+	/// <para>Severity: Warn</para>
+	/// </summary>
+	constexpr DiagnosticCode UNREACHABLE_CODE = 4611687169478641016;
 	
 }
 #endif // LOCALIZATION_HPP

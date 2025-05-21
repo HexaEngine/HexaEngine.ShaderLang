@@ -12,14 +12,30 @@ namespace HXSL
 	{
 	private:
 		TextSpan expression;
+		Primitive* basePrim;
+		uint8_t mask;
 		std::unique_ptr<SymbolRef> symbol;
 	public:
-		SwizzleDefinition(TextSpan expression, std::unique_ptr<SymbolRef> symbol)
+		SwizzleDefinition(TextSpan expression, uint8_t mask, Primitive* basePrim, std::unique_ptr<SymbolRef> symbol)
 			: ASTNode(expression, NodeType_SwizzleDefinition),
 			SymbolDef(expression, NodeType_SwizzleDefinition, expression),
 			expression(expression),
+			basePrim(basePrim),
+			mask(mask),
 			symbol(std::move(symbol))
 		{
+		}
+
+		uint8_t GetMask() const noexcept { return mask; }
+
+		Primitive* GetBasePrim() const noexcept
+		{
+			return basePrim;
+		}
+
+		Primitive* GetTargetPrim() const noexcept
+		{
+			return symbol->GetDeclaration()->As<Primitive>();
 		}
 
 		const std::unique_ptr<SymbolRef>& GetSymbolRef()

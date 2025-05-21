@@ -3,9 +3,7 @@
 
 #include "config.h"
 #include "io/source_file.hpp"
-#include <stdexcept>
-#include <string>
-#include <sstream>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

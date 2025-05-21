@@ -1,7 +1,7 @@
 #ifndef NODE_VISITOR_HPP
 #define NODE_VISITOR_HPP
 
-#include "ast.hpp"
+#include "pch/ast.hpp"
 #include <functional>
 
 namespace HXSL

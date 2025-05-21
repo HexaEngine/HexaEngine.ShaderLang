@@ -1,14 +1,7 @@
 #ifndef OBJECT_POOL_HPP
 #define OBJECT_POOL_HPP
 
-#include "ast.hpp"
-
-#include <memory>
-#include <stack>
-#include <stdexcept>
-#include <typeindex>
-#include <unordered_map>
-#include <mutex>
+#include "pch/ast.hpp"
 
 namespace HXSL
 {
@@ -119,7 +112,7 @@ namespace HXSL
 	DEFINE_POOL_KEY(NodeType_DeclarationStatement, DeclarationStatement);
 	DEFINE_POOL_KEY(NodeType_AssignmentStatement, AssignmentStatement);
 	DEFINE_POOL_KEY(NodeType_CompoundAssignmentStatement, CompoundAssignmentStatement);
-	DEFINE_POOL_KEY(NodeType_FunctionCallStatement, FunctionCallStatement);
+	DEFINE_POOL_KEY(NodeType_ExpressionStatement, ExpressionStatement);
 	DEFINE_POOL_KEY(NodeType_ReturnStatement, ReturnStatement);
 	DEFINE_POOL_KEY(NodeType_IfStatement, IfStatement);
 	DEFINE_POOL_KEY(NodeType_ElseStatement, ElseStatement);

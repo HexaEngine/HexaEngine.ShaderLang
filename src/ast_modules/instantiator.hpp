@@ -1,7 +1,7 @@
 #ifndef INSTANTIATOR_HPP
 #define INSTANTIATOR_HPP
 
-#include "ast.hpp"
+#include "pch/ast.hpp"
 
 namespace HXSL
 {

@@ -5,11 +5,7 @@
 #include "diagnostic_code.hpp"
 
 #include <fmt/core.h>
-#include <vector>
-#include <stdexcept>
-#include <string>
-#include <sstream>
-#include <iostream>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

@@ -58,6 +58,33 @@ namespace HXSL
 		{
 			return fields;
 		}
+
+		std::vector<std::unique_ptr<FunctionOverload>>& GetFunctionsMut() noexcept
+		{
+			return functions;
+		}
+
+		std::vector<std::unique_ptr<OperatorOverload>>& GetOperatorsMut() noexcept
+		{
+			return operators;
+		}
+
+		std::vector<std::unique_ptr<Struct>>& GetStructsMut() noexcept
+		{
+			return structs;
+		}
+
+		std::vector<std::unique_ptr<Class>>& GetClassesMut() noexcept
+		{
+			return classes;
+		}
+
+		std::vector<std::unique_ptr<Field>>& GetFieldsMut() noexcept
+		{
+			return fields;
+		}
+
+		void TransferContentsTo(Container& target);
 	};
 }
 

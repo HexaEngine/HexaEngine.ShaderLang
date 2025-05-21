@@ -3,14 +3,10 @@
 #include "utils/tst.hpp"
 #include "io/logger.hpp"
 #include "numbers.hpp"
-#include "generated/localization.hpp"
-
-#include <stdexcept>
-#include <cctype>
+#include "pch/localization.hpp"
 
 namespace HXSL
 {
-
 	LexerState LexerContext::MakeState()
 	{
 		return LexerState(this);
@@ -70,7 +66,7 @@ namespace HXSL
 			size_t lineCommentLen = state.FindEndOfLine(i + 2);
 			state.IndexNext += lineCommentLen + 2;
 
-			auto token = Token(state.AsTextSpan(i, lineCommentLen), TokenType_Comment);		
+			auto token = Token(state.AsTextSpan(i, lineCommentLen), TokenType_Comment);
 			state.NewLine();
 			return token;
 		}
@@ -87,7 +83,7 @@ namespace HXSL
 			state.IndexNext += trackedLength + 4;
 
 			auto token = Token(state.AsTextSpan(i, trackedLength + 3), TokenType_Comment);
-			state.NewLine(lines);	
+			state.NewLine(lines);
 			return token;
 		}
 

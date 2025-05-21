@@ -42,28 +42,6 @@ namespace HXSL
 		}
 	};
 
-	class ConditionalStatement : public Statement, public IHasExpressions
-	{
-	protected:
-		std::unique_ptr<Expression> condition;
-	public:
-		ConditionalStatement(TextSpan span, NodeType type, bool isExtern = false)
-			: Statement(span, type, isExtern),
-			ASTNode(span, type, isExtern)
-		{
-		}
-
-		ConditionalStatement(TextSpan span, NodeType type, bool isExtern, std::unique_ptr<Expression>&& condition)
-			: Statement(span, type, isExtern),
-			ASTNode(span, type, isExtern),
-			condition(std::move(condition))
-		{
-			REGISTER_EXPR(condition);
-		}
-
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Condition, condition)
-	};
-
 	class BlockStatement : public Statement, public StatementContainer
 	{
 	public:
@@ -80,6 +58,65 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] ID: " << GetID();
 			return oss.str();
 		}
+	};
+
+	class BodyStatement : public Statement, public IHasBody
+	{
+	protected:
+		std::unique_ptr<BlockStatement> body;
+
+		BodyStatement(TextSpan span, NodeType type, bool isExtern = false)
+			: Statement(span, type, isExtern),
+			ASTNode(span, type, isExtern)
+		{
+		}
+
+		BodyStatement(TextSpan span, NodeType type, std::unique_ptr<BlockStatement>&& body)
+			: Statement(span, type, false),
+			ASTNode(span, type, false),
+			body(std::move(body))
+		{
+			REGISTER_CHILD(body);
+		}
+
+	public:
+		const std::unique_ptr<BlockStatement>& GetBody() const noexcept override
+		{
+			return body;
+		}
+
+		void SetBody(std::unique_ptr<BlockStatement>&& value) noexcept
+		{
+			UnregisterChild(body.get()); body = std::move(value); RegisterChild(body.get());
+		}
+
+		std::unique_ptr<BlockStatement>& GetBodyMut() noexcept
+		{
+			return body;
+		};
+	};
+
+	class ConditionalStatement : public BodyStatement, public IHasExpressions
+	{
+	protected:
+		std::unique_ptr<Expression> condition;
+
+		ConditionalStatement(TextSpan span, NodeType type, bool isExtern = false)
+			: BodyStatement(span, type, isExtern),
+			ASTNode(span, type, isExtern)
+		{
+		}
+
+		ConditionalStatement(TextSpan span, NodeType type, std::unique_ptr<Expression>&& condition, std::unique_ptr<BlockStatement>&& body)
+			: BodyStatement(span, type, std::move(body)),
+			ASTNode(span, type, isExtern),
+			condition(std::move(condition))
+		{
+			REGISTER_EXPR(condition);
+		}
+
+	public:
+		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Condition, condition);
 	};
 
 	class DeclarationStatement : public Statement, public SymbolDef, public IHasSymbolRef, public IHasExpressions
@@ -169,6 +206,11 @@ namespace HXSL
 			REGISTER_EXPR(expr);
 		}
 
+		const std::unique_ptr<AssignmentExpression>& GetAssignmentExpression() const noexcept
+		{
+			return expr;
+		}
+
 		const std::unique_ptr<Expression>& GetTarget() const noexcept
 		{
 			return expr->GetTarget();
@@ -210,21 +252,21 @@ namespace HXSL
 		}
 	};
 
-	class FunctionCallStatement : public Statement, public IHasExpressions
+	class ExpressionStatement : public Statement, public IHasExpressions
 	{
 	private:
 		std::unique_ptr<Expression> expression;
 
 	public:
-		FunctionCallStatement(TextSpan span, std::unique_ptr<Expression> expression)
-			: Statement(span, NodeType_FunctionCallStatement),
-			ASTNode(span, NodeType_FunctionCallStatement),
+		ExpressionStatement(TextSpan span, std::unique_ptr<Expression> expression)
+			: Statement(span, NodeType_ExpressionStatement),
+			ASTNode(span, NodeType_ExpressionStatement),
 			expression(std::move(expression))
 		{
 			REGISTER_EXPR(expression);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression)
+		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Expression, expression);
 	};
 
 	class ReturnStatement : public Statement, public IHasExpressions
@@ -244,56 +286,72 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, ReturnValueExpression, returnValueExpression)
 	};
 
-	class IfStatement : public ConditionalStatement, public AttributeContainer
+	class ElseStatement : public BodyStatement
 	{
-	private:
-		std::unique_ptr<BlockStatement> body;
-
 	public:
-		IfStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
-			: ConditionalStatement(span, NodeType_IfStatement, false, std::move(condition)),
-			ASTNode(span, NodeType_IfStatement),
-			AttributeContainer(this),
-			body(std::move(body))
+		ElseStatement(TextSpan span, std::unique_ptr<BlockStatement>&& body)
+			: BodyStatement(span, NodeType_ElseStatement, std::move(body)),
+			ASTNode(span, NodeType_ElseStatement)
 		{
-			REGISTER_CHILD(body);
 		}
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
-	};
-
-	class ElseStatement : public Statement
-	{
-	private:
-		std::unique_ptr<BlockStatement> body;
-
-	public:
-		ElseStatement(TextSpan span, std::unique_ptr<BlockStatement> body)
-			: Statement(span, NodeType_ElseStatement),
-			ASTNode(span, NodeType_ElseStatement),
-			body(std::move(body))
+		std::string DebugName() const override
 		{
-			REGISTER_CHILD(body);
+			std::ostringstream oss;
+			oss << "[" << ToString(type) << "] ID: " << GetID();
+			return oss.str();
 		}
-
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
 	class ElseIfStatement : public ConditionalStatement
 	{
-	private:
-		std::unique_ptr<BlockStatement> body;
-
 	public:
-		ElseIfStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
-			: ConditionalStatement(span, NodeType_ElseIfStatement, false, std::move(condition)),
-			ASTNode(span, NodeType_ElseIfStatement),
-			body(std::move(body))
+		ElseIfStatement(TextSpan span, std::unique_ptr<Expression>&& condition, std::unique_ptr<BlockStatement>&& body)
+			: ConditionalStatement(span, NodeType_ElseIfStatement, std::move(condition), std::move(body)),
+			ASTNode(span, NodeType_ElseIfStatement)
 		{
-			REGISTER_CHILD(body);
 		}
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
+		std::string DebugName() const override
+		{
+			std::ostringstream oss;
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Condition: " + condition->GetSpan().str();
+			return oss.str();
+		}
+	};
+
+	class IfStatement : public ConditionalStatement, public AttributeContainer
+	{
+	private:
+		std::vector<std::unique_ptr<ElseIfStatement>> elseIfStatements;
+		std::unique_ptr<ElseStatement> elseStatement;
+	public:
+		IfStatement(TextSpan span, std::unique_ptr<Expression>&& condition, std::unique_ptr<BlockStatement>&& body)
+			: ConditionalStatement(span, NodeType_IfStatement, std::move(condition), std::move(body)),
+			ASTNode(span, NodeType_IfStatement),
+			AttributeContainer(this)
+		{
+		}
+
+		void AddElseIf(std::unique_ptr<ElseIfStatement>&& value) noexcept
+		{
+			RegisterChild(value.get());
+			elseIfStatements.push_back(std::move(value));
+		}
+
+		const std::vector<std::unique_ptr<ElseIfStatement>>& GetElseIfStatements() const noexcept
+		{
+			return elseIfStatements;
+		}
+
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<ElseStatement>, ElseStatement, elseStatement);
+
+		std::string DebugName() const override
+		{
+			std::ostringstream oss;
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Condition: " + condition->GetSpan().str();
+			return oss.str();
+		}
 	};
 
 	class CaseStatement : public Statement, public StatementContainer, public IHasExpressions
@@ -379,19 +437,16 @@ namespace HXSL
 	private:
 		std::unique_ptr<Statement> init;
 		std::unique_ptr<Expression> iteration;
-		std::unique_ptr<BlockStatement> body;
 	public:
 		ForStatement(TextSpan span, std::unique_ptr<Statement> init, std::unique_ptr<Expression> condition, std::unique_ptr<Expression> iteration, std::unique_ptr<BlockStatement> body)
-			: ConditionalStatement(span, NodeType_ForStatement, false, std::move(condition)),
+			: ConditionalStatement(span, NodeType_ForStatement, std::move(condition), std::move(body)),
 			ASTNode(span, NodeType_ForStatement),
 			AttributeContainer(this),
 			init(std::move(init)),
-			iteration(std::move(iteration)),
-			body(std::move(body))
+			iteration(std::move(iteration))
 		{
 			REGISTER_CHILD(init);
 			REGISTER_EXPR(iteration);
-			REGISTER_CHILD(body);
 		}
 
 		ForStatement(TextSpan span)
@@ -401,16 +456,15 @@ namespace HXSL
 		{
 		}
 
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Statement>, Init, init);
+		DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Iteration, iteration);
+
 		std::string DebugName() const override
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] ID: " << GetID() << " Header: " + init->GetSpan().merge(condition->GetSpan()).merge(iteration->GetSpan()).str();
 			return oss.str();
 		}
-
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Statement>, Init, init)
-			DEFINE_GET_SET_MOVE_REG_EXPR(std::unique_ptr<Expression>, Iteration, iteration)
-			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
 	};
 
 	class BreakStatement : public Statement
@@ -445,17 +499,12 @@ namespace HXSL
 
 	class WhileStatement : public ConditionalStatement, public AttributeContainer
 	{
-	private:
-		std::unique_ptr<BlockStatement> body;
-
 	public:
 		WhileStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
-			: ConditionalStatement(span, NodeType_WhileStatement, false, std::move(condition)),
+			: ConditionalStatement(span, NodeType_WhileStatement, std::move(condition), std::move(body)),
 			ASTNode(span, NodeType_WhileStatement),
-			AttributeContainer(this),
-			body(std::move(body))
+			AttributeContainer(this)
 		{
-			REGISTER_CHILD(body);
 		}
 
 		WhileStatement(TextSpan span)
@@ -465,7 +514,37 @@ namespace HXSL
 		{
 		}
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<BlockStatement>, Body, body)
+		std::string DebugName() const override
+		{
+			std::ostringstream oss;
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Condition: " + condition->GetSpan().str();
+			return oss.str();
+		}
+	};
+
+	class DoWhileStatement : public ConditionalStatement, public AttributeContainer
+	{
+	public:
+		DoWhileStatement(TextSpan span, std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
+			: ConditionalStatement(span, NodeType_DoWhileStatement, std::move(condition), std::move(body)),
+			ASTNode(span, NodeType_DoWhileStatement),
+			AttributeContainer(this)
+		{
+		}
+
+		DoWhileStatement(TextSpan span)
+			: ConditionalStatement(span, NodeType_DoWhileStatement),
+			ASTNode(span, NodeType_DoWhileStatement),
+			AttributeContainer(this)
+		{
+		}
+
+		std::string DebugName() const override
+		{
+			std::ostringstream oss;
+			oss << "[" << ToString(type) << "] ID: " << GetID() << " Condition: " + condition->GetSpan().str();
+			return oss.str();
+		}
 	};
 }
 

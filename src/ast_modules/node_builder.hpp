@@ -1,9 +1,9 @@
 #ifndef NODE_BUILDER_HPP
 #define NODE_BUILDER_HPP
 
-#include "ast.hpp"
+#include "pch/ast.hpp"
 #include "il/assembly.hpp"
-#include "symbols/symbol_table.hpp"
+#include "semantics/symbols/symbol_table.hpp"
 
 namespace HXSL
 {
@@ -261,13 +261,13 @@ namespace HXSL
 			return *ptr;
 		}
 
-		void WithBinaryOperators(std::initializer_list<Operator> ops, const std::string& str)
+		void WithBinaryOperators(std::initializer_list<Operator> ops, const std::string& str, OperatorFlags flags)
 		{
 			for (auto op : ops)
 			{
 				auto builder = std::make_unique<OperatorBuilder>(assembly);
 
-				builder->WithOp(OperatorFlags_None, op)
+				builder->WithOp(flags, op)
 					.WithParam("left", str)
 					.WithParam("right", str)
 					.Returns(str);
@@ -277,13 +277,13 @@ namespace HXSL
 			}
 		}
 
-		void WithBinaryOperators(std::initializer_list<Operator> ops, const std::string& strA, const std::string& strB, const std::string& strRet)
+		void WithBinaryOperators(std::initializer_list<Operator> ops, const std::string& strA, const std::string& strB, const std::string& strRet, OperatorFlags flags)
 		{
 			for (auto op : ops)
 			{
 				auto builder = std::make_unique<OperatorBuilder>(assembly);
 
-				builder->WithOp(OperatorFlags_None, op)
+				builder->WithOp(flags, op)
 					.WithParam("left", strA)
 					.WithParam("right", strB)
 					.Returns(strRet);
@@ -293,13 +293,13 @@ namespace HXSL
 			}
 		}
 
-		void WithUnaryOperators(std::initializer_list<Operator> ops, const std::string& str)
+		void WithUnaryOperators(std::initializer_list<Operator> ops, const std::string& str, OperatorFlags flags)
 		{
 			for (auto op : ops)
 			{
 				auto builder = std::make_unique<OperatorBuilder>(assembly);
 
-				builder->WithOp(OperatorFlags_None, op)
+				builder->WithOp(flags, op)
 					.WithParam("value", str)
 					.Returns(str);
 
@@ -308,7 +308,7 @@ namespace HXSL
 			}
 		}
 
-		void WithUnaryOperators(std::initializer_list<Operator> ops, const std::string& str, const std::string& strRet)
+		void WithUnaryOperators(std::initializer_list<Operator> ops, const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
 			for (auto op : ops)
 			{
@@ -323,11 +323,11 @@ namespace HXSL
 			}
 		}
 
-		void WithImplicitCast(const std::string& str, const std::string& strRet)
+		void WithImplicitCast(const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
 			auto builder = std::make_unique<OperatorBuilder>(assembly);
 
-			builder->WithOp(OperatorFlags_Implicit, Operator_Cast)
+			builder->WithOp(OperatorFlags_Implicit | flags, Operator_Cast)
 				.WithParam("value", str)
 				.Returns(strRet);
 
@@ -335,11 +335,11 @@ namespace HXSL
 			operators.push_back(std::move(builder));
 		}
 
-		void WithExplicitCast(const std::string& str, const std::string& strRet)
+		void WithExplicitCast(const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
 			auto builder = std::make_unique<OperatorBuilder>(assembly);
 
-			builder->WithOp(OperatorFlags_Explicit, Operator_Cast)
+			builder->WithOp(OperatorFlags_Explicit | flags, Operator_Cast)
 				.WithParam("value", str)
 				.Returns(strRet);
 

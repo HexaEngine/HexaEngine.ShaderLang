@@ -18,21 +18,21 @@ namespace HXSL
 		PrimitiveKind_Void,
 		PrimitiveKind_Bool,
 		PrimitiveKind_Int,
+		PrimitiveKind_UInt,
+		PrimitiveKind_Half,
 		PrimitiveKind_Float,
-		PrimitiveKind_Uint,
 		PrimitiveKind_Double,
 		PrimitiveKind_Min8Float,
 		PrimitiveKind_Min10Float,
 		PrimitiveKind_Min16Float,
 		PrimitiveKind_Min12Int,
 		PrimitiveKind_Min16Int,
-		PrimitiveKind_Min16Uint,
-		PrimitiveKind_Uint8,
+		PrimitiveKind_Min16UInt,
+		PrimitiveKind_UInt8,
 		PrimitiveKind_Int16,
-		PrimitiveKind_Uint16,
-		PrimitiveKind_Float16,
+		PrimitiveKind_UInt16,
 		PrimitiveKind_Int64,
-		PrimitiveKind_Uint64,
+		PrimitiveKind_UInt64,
 	};
 
 	static PrimitiveKind& operator++(PrimitiveKind& kind)
@@ -45,42 +45,20 @@ namespace HXSL
 	{
 		switch (kind)
 		{
-		case PrimitiveKind_Void:
-			return "void";
-			break;
-		case PrimitiveKind_Bool:
-			return "bool";
-			break;
-		case PrimitiveKind_Int:
-			return "int";
-			break;
-		case PrimitiveKind_Float:
-			return "float";
-			break;
-		case PrimitiveKind_Uint:
-			return "uint";
-			break;
-		case PrimitiveKind_Double:
-			return "double";
-			break;
-		case PrimitiveKind_Min8Float:
-			return "min8float";
-			break;
-		case PrimitiveKind_Min10Float:
-			return "min10float";
-			break;
-		case PrimitiveKind_Min16Float:
-			return "min16float";
-			break;
-		case PrimitiveKind_Min12Int:
-			return "min12int";
-			break;
-		case PrimitiveKind_Min16Int:
-			return "min16int";
-			break;
-		case PrimitiveKind_Min16Uint:
-			return "min16uint";
-			break;
+		case PrimitiveKind_Void: return "void";
+		case PrimitiveKind_Bool: return "bool";
+		case PrimitiveKind_Int: return "int";
+		case PrimitiveKind_UInt: return "uint";
+		case PrimitiveKind_Half: return "half";
+		case PrimitiveKind_Float: return "float";
+		case PrimitiveKind_Double: return "double";
+		case PrimitiveKind_Min8Float: return "min8float";
+		case PrimitiveKind_Min10Float: return "min10float";
+		case PrimitiveKind_Min16Float: return "min16float";
+		case PrimitiveKind_Min12Int: return "min12int";
+		case PrimitiveKind_Min16Int: return "min16int";
+		case PrimitiveKind_Min16UInt: return "min16uint";
+
 		default:
 			return "";
 			break;
@@ -192,6 +170,11 @@ namespace HXSL
 		SymbolType GetSymbolType() const override
 		{
 			return SymbolType_Primitive;
+		}
+
+		size_t GetFieldOffset(Field* field) const override
+		{
+			return -1;
 		}
 
 		void Write(Stream& stream) const override

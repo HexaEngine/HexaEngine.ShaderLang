@@ -36,4 +36,22 @@ namespace HXSL
 		field->SetParent(this);
 		fields.push_back(std::move(field));
 	}
+
+	void Container::TransferContentsTo(Container& target)
+	{
+		auto move_all_with_parent = [&target](auto& from, auto& to) {
+			for (auto& item : from)
+			{
+				item->SetParent(&target);
+				to.push_back(std::move(item));
+			}
+			from.clear();
+			};
+
+		move_all_with_parent(functions, target.GetFunctionsMut());
+		move_all_with_parent(operators, target.GetOperatorsMut());
+		move_all_with_parent(structs, target.GetStructsMut());
+		move_all_with_parent(classes, target.GetClassesMut());
+		move_all_with_parent(fields, target.GetFieldsMut());
+	}
 }

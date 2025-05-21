@@ -1,8 +1,7 @@
 #ifndef TEXT_HELPER_HPP
 #define TEXT_HELPER_HPP
-#include <cctype>
-#include <unordered_set>
-#include <string>
+
+#include "pch/std.hpp"
 
 namespace TextHelper
 {

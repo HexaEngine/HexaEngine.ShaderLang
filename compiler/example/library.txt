@@ -1,44 +1,16 @@
 namespace Core;
 
-#define MACRO 1
-#define FLOAT_TYPE float4
-
-#define add(a, b) ((a) + (b))
-#define square(a) add(a, a)
-
-#define TEN add(5, 5)
-
-#define INTEGRAL(a, b) ((b)*(b)*(b) / 3d - (a)*(a)*(a) / 3d)
-
-struct PS_INPUT
+int factorial(int n) 
 {
-    float4 position : SV_POSITION;
-    float2 tex : TEXCOORD;
-    float4 color : COLOR;
-
-    public static explicit operator FLOAT_TYPE(PS_INPUT input)
-    {
-        float result = 0;
-        for (int i = 0; i < 10; i++)
-        {
-            result += square(i + 1);
-        }
-
-        int a = 1;
-        switch (a)
-        {
-            case 1:
-                a = 10;
-                break;
-        }
-
-        return input.position;
+    int result = 1;
+    for (int i = 1; i != 1.1f; i++) 
+	{
+        result = result * i;
     }
+    return result;
+}
 
-    public static operator+ PS_INPUT(PS_INPUT a, PS_INPUT b)
-    {
-        PS_INPUT result;
-        result.position = a.position + b.position;
-        return result;
-    } 
+float main(float x)
+{	
+   
 }

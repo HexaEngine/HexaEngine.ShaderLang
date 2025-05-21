@@ -2,7 +2,7 @@
 #define SYMBOLS_BASE_HPP
 
 #include "ast_base.hpp"
-#include "symbols/symbol_handle.hpp"
+#include "semantics/symbols/symbol_handle.hpp"
 #include "il/assembly.hpp"
 
 namespace HXSL
@@ -239,6 +239,8 @@ namespace HXSL
 		{
 		}
 
+		void TrimCastType();
+
 		bool HasFullyQualifiedName() const noexcept { return isFullyQualified; }
 
 		const SymbolRefType& GetType() const noexcept { return type; }
@@ -337,6 +339,9 @@ namespace HXSL
 		Type(TextSpan span, NodeType type, const std::string& name, bool isExtern = false) : SymbolDef(span, type, name, isExtern)
 		{
 		}
+
+		virtual size_t GetFieldOffset(Field* field) const = 0;
+
 		virtual ~Type() {}
 	};
 

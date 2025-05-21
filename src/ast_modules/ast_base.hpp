@@ -1,6 +1,8 @@
 #ifndef AST_BASE_HPP
 #define AST_BASE_HPP
 
+#include "pch/std.hpp"
+
 #include "config.h"
 #include "lang/language.hpp"
 #include "lexical/token.hpp"
@@ -10,11 +12,6 @@
 #include "io/source_file.hpp"
 #include "io/stream.hpp"
 #include "macros.hpp"
-
-#include <memory>
-#include <vector>
-#include <string>
-#include <functional>
 
 namespace HXSL
 {
@@ -51,6 +48,7 @@ namespace HXSL
 		/// </summary>
 		NodeType_Unknown,
 		NodeType_Compilation,
+		NodeType_CompilationUnit, // Special kind of Compilation, pruned and lowered Compilation
 		NodeType_Namespace,
 		NodeType_Enum, // Placeholder (Will be added in the future.)
 		NodeType_Primitive,
@@ -70,12 +68,13 @@ namespace HXSL
 		NodeType_DeclarationStatement, // type-check: done
 		NodeType_AssignmentStatement, // type-check: done
 		NodeType_CompoundAssignmentStatement, // type-check: done
-		NodeType_FunctionCallStatement, // type-check: done
+		NodeType_ExpressionStatement, // type-check: done
 		NodeType_ReturnStatement, // type-check: done
 		NodeType_IfStatement, // type-check: done
 		NodeType_ElseStatement, // type-check: done
 		NodeType_ElseIfStatement, // type-check: done
 		NodeType_WhileStatement, // type-check: done
+		NodeType_DoWhileStatement,
 		NodeType_ForStatement, // type-check: done
 		NodeType_BreakStatement, // type-check: done
 		NodeType_ContinueStatement, // type-check: done
@@ -157,12 +156,13 @@ namespace HXSL
 		case NodeType_DeclarationStatement:
 		case NodeType_AssignmentStatement:
 		case NodeType_CompoundAssignmentStatement:
-		case NodeType_FunctionCallStatement:
+		case NodeType_ExpressionStatement:
 		case NodeType_ReturnStatement:
 		case NodeType_IfStatement:
 		case NodeType_ElseStatement:
 		case NodeType_ElseIfStatement:
 		case NodeType_WhileStatement:
+		case NodeType_DoWhileStatement:
 		case NodeType_ForStatement:
 		case NodeType_BreakStatement:
 		case NodeType_ContinueStatement:
@@ -207,12 +207,13 @@ namespace HXSL
 		case NodeType_DeclarationStatement: return "DeclarationStatement";
 		case NodeType_AssignmentStatement: return "AssignmentStatement";
 		case NodeType_CompoundAssignmentStatement: return "CompoundAssignmentStatement";
-		case NodeType_FunctionCallStatement: return "FunctionCallStatement";
+		case NodeType_ExpressionStatement: return "ExpressionStatement";
 		case NodeType_ReturnStatement: return "ReturnStatement";
 		case NodeType_IfStatement: return "IfStatement";
 		case NodeType_ElseStatement: return "ElseStatement";
 		case NodeType_ElseIfStatement: return "ElseIfStatement";
 		case NodeType_WhileStatement: return "WhileStatement";
+		case NodeType_DoWhileStatement: return "DoWhileStatement";
 		case NodeType_ForStatement: return "ForStatement";
 		case NodeType_BreakStatement: return "BreakStatement";
 		case NodeType_ContinueStatement: return "ContinueStatement";
@@ -433,6 +434,9 @@ namespace HXSL
 
 		template <typename T>
 		T* As() { return dynamic_cast<T*>(this); };
+
+		template <typename T>
+		T* Cast() { return static_cast<T*>(this); };
 
 		virtual std::unique_ptr<ASTNode> Clone() const noexcept
 		{

@@ -32,14 +32,7 @@ namespace HXSL
 		template <typename T>
 		void ChainEnd(std::unique_ptr<T> newExpr)
 		{
-			if (chainExpr)
-			{
-				chainExpr->SetNextExpression(std::move(newExpr));
-			}
-			else
-			{
-				root = std::move(newExpr);
-			}
+			Chain(std::move(newExpr));
 			parsing = false;
 		}
 
@@ -67,6 +60,8 @@ namespace HXSL
 		{
 			return std::move(root);
 		}
+
+		Expression* Head() const noexcept { return chainExpr; }
 
 		bool TryParse();
 	};

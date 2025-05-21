@@ -8,7 +8,7 @@ namespace HXSL
 	class ParserHelper
 	{
 	public:
-		static bool TryParseMemberAccessPath(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut);
+		static bool TryParseMemberAccessPath(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut, Expression** headOut = nullptr);
 
 		static bool ParseFunctionCallInner(Parser& parser, TokenStream& stream, std::vector<std::unique_ptr<FunctionCallParameter>>& parameters);
 

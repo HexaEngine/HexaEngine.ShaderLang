@@ -1,8 +1,7 @@
 #ifndef OPERATOR_HPP
 #define OPERATOR_HPP
 
-#include <string>
-
+#include "pch/std.hpp"
 #include "utils/tst.hpp"
 
 namespace HXSL
@@ -294,18 +293,18 @@ namespace HXSL
 			case Operator_Ternary:
 				return 1;
 
+			case Operator_OrOr:
+				return 2;
+
+			case Operator_AndAnd:
+				return 3;
+
 			case Operator_LessThan:
 			case Operator_GreaterThan:
 			case Operator_Equal:
 			case Operator_NotEqual:
 			case Operator_LessThanOrEqual:
 			case Operator_GreaterThanOrEqual:
-				return 2;
-
-			case Operator_OrOr:
-				return 3;
-
-			case Operator_AndAnd:
 				return 4;
 
 			case Operator_BitwiseShiftLeft:

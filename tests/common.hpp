@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include "parsers/parser.hpp"
 #include "parsers/hybrid_expr_parser.hpp"
-#include "ast_analyzers.hpp"
+#include "pch/ast_analyzers.hpp"
 #include "expect_file.hpp"
 
 using namespace HXSL;

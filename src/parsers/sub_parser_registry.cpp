@@ -32,8 +32,8 @@ namespace HXSL
 				Register<SwitchStatementParser>();
 				Register<ForStatementParser>();
 				Register<WhileStatementParser>();
+				Register<DoWhileStatementParser>();
 				Register<IfStatementParser>();
-				Register<ElseStatementParser>();
 				Register<ReturnStatementParser>();
 				Register<MemberAccessStatementParser>();
 			});

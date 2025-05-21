@@ -7,11 +7,7 @@
 #include "utils/span.hpp"
 #include "utils/endianness.hpp"
 
-#include <fstream>
-#include <iostream>
-#include <stdio.h>
-#include <stdint.h>
-#include <string>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

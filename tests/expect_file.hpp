@@ -1,13 +1,7 @@
 #ifndef EXPECT_FILE_HPP
 #define EXPECT_FILE_HPP
 
-#include <string>
-#include <vector>
-#include <fstream>
-#include <algorithm>
-#include <unordered_map>
-#include <cctype>
-#include <optional>
+#include "pch/std.hpp"
 
 #include "io/logger.hpp"
 

@@ -50,6 +50,11 @@ namespace HXSL
 			return SymbolType_Parameter;
 		}
 
+		SymbolDef* GetDeclaredType() const noexcept
+		{
+			return symbol->GetDeclaration();
+		}
+
 		void Write(Stream& stream) const override;
 
 		void Read(Stream& stream, StringPool& container) override;
@@ -452,6 +457,8 @@ namespace HXSL
 			return SymbolType_Struct;
 		}
 
+		size_t GetFieldOffset(Field* field) const override;
+
 		void Write(Stream& stream) const override;
 
 		void Read(Stream& stream, StringPool& container) override;
@@ -492,6 +499,8 @@ namespace HXSL
 		{
 			return SymbolType_Struct;
 		}
+
+		size_t GetFieldOffset(Field* field) const override;
 
 		void Write(Stream& stream) const override;
 

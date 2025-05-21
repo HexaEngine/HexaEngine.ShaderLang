@@ -1,7 +1,7 @@
 #include "hxls_compiler.hpp"
 
-#include "generated/localization.hpp"
-#include "analyzers/analyzer.hpp"
+#include "pch/localization.hpp"
+#include "semantics/semantic_analyzer.hpp"
 #include "parsers/parser.hpp"
 #include <preprocessing/preprocessor.hpp>
 
@@ -44,8 +44,8 @@ namespace HXSL
 			parser.Parse();
 		}
 
-		Analyzer::InitializeSubSystems();
-		Analyzer analyzer = Analyzer(compilation.get(), references);
+		SemanticAnalyzer::InitializeSubSystems();
+		SemanticAnalyzer analyzer = SemanticAnalyzer(compilation.get(), references);
 
 		analyzer.Analyze();
 		if (!compilation->HasErrors())

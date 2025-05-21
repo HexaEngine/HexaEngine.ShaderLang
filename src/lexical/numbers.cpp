@@ -22,11 +22,9 @@ namespace HXSL
 
 	static NumberType Classify(unsigned long long value)
 	{
-		if (value <= std::numeric_limits<unsigned char>::max())
-			return NumberType_UInt16;
 		if (value <= std::numeric_limits<unsigned int>::max())
-			return NumberType_UInt32;
-		return NumberType_UInt64;
+			return NumberType_Int32;
+		return NumberType_Int64;
 	}
 
 	static NumberType MakeUnsigned(NumberType type)

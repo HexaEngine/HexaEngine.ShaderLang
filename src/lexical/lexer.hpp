@@ -1,8 +1,6 @@
 #ifndef LEXER_HPP
 #define LEXER_HPP
 
-#include <stdexcept>
-
 #include "utils/text_helper.hpp"
 #include "io/source_file.hpp"
 #include "io/logger.hpp"
@@ -11,6 +9,8 @@
 #include "lexer_config.hpp"
 #include "input_stream.hpp"
 #include "diagnostic_code.hpp"
+
+#include "pch/std.hpp"
 
 namespace HXSL
 {

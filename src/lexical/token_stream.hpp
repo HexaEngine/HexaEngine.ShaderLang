@@ -3,11 +3,7 @@
 
 #include "lexical/lexer.hpp"
 #include "io/logger.hpp"
-#include "generated/localization.hpp"
-
-#include <string>
-#include <stack>
-#include <deque>
+#include "pch/localization.hpp"
 
 namespace HXSL
 {

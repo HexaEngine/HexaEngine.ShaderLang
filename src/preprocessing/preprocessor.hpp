@@ -7,9 +7,6 @@
 #include "preprocessor_stream.hpp"
 #include "utils/span.hpp"
 
-#include <unordered_map>
-#include <set>
-
 namespace HXSL
 {
 	struct TokenCollection : public TokenOutput
@@ -102,7 +99,7 @@ namespace HXSL
 		uint64_t last = 0;
 		size_t index = 0;
 		std::vector<uint8_t>& storage;
-		
+
 	public:
 		Decoder(std::vector<uint8_t>& storage) : storage(storage)
 		{

@@ -111,6 +111,11 @@ namespace HXSL
 			return Type == TokenType_Operator && Operators::isUnaryOperator(op);
 		}
 
+		bool isUnaryOperator() const noexcept
+		{
+			return Type == TokenType_Operator && Operators::isUnaryOperator(static_cast<Operator>(Value));
+		}
+
 		bool isAssignment(Operator& op) const noexcept
 		{
 			op = static_cast<Operator>(Value);
@@ -138,6 +143,8 @@ namespace HXSL
 		bool isLiteral() const noexcept { return Type == TokenType_Literal; }
 
 		bool isNumeric() const noexcept { return Type == TokenType_Numeric; }
+
+		bool isBool() const noexcept { if (Type != TokenType_Keyword) return false; auto kw = asKeyword(); return kw == Keyword_True || kw == Keyword_False; }
 	};
 
 	static std::string ToString(TokenType type)

@@ -7,47 +7,10 @@ namespace HXSL
 
 	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint32_t rows, uint32_t columns)
 	{
-		std::ostringstream name;
+		std::string scalarName = ToString(kind);
 
-		switch (kind)
-		{
-		case PrimitiveKind_Void:
-			name << "void";
-			break;
-		case PrimitiveKind_Bool:
-			name << "bool";
-			break;
-		case PrimitiveKind_Int:
-			name << "int";
-			break;
-		case PrimitiveKind_Float:
-			name << "float";
-			break;
-		case PrimitiveKind_Uint:
-			name << "uint";
-			break;
-		case PrimitiveKind_Double:
-			name << "double";
-			break;
-		case PrimitiveKind_Min8Float:
-			name << "min8float";
-			break;
-		case PrimitiveKind_Min10Float:
-			name << "min10float";
-			break;
-		case PrimitiveKind_Min16Float:
-			name << "min16float";
-			break;
-		case PrimitiveKind_Min12Int:
-			name << "min12int";
-			break;
-		case PrimitiveKind_Min16Int:
-			name << "min16int";
-			break;
-		case PrimitiveKind_Min16Uint:
-			name << "min16uint";
-			break;
-		}
+		std::ostringstream name;
+		name << scalarName;
 
 		switch (primitiveClass)
 		{
@@ -72,12 +35,36 @@ namespace HXSL
 
 		if (kind != PrimitiveKind_Void)
 		{
-			builder->WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide, Operator_Modulus }, nameStr);
-			builder->WithBinaryOperators({ Operator_Equal, Operator_NotEqual, Operator_GreaterThan, Operator_LessThan, Operator_GreaterThanOrEqual, Operator_LessThanOrEqual }, nameStr, nameStr, "bool");
-			builder->WithUnaryOperators({ Operator_LogicalNot, Operator_Increment, Operator_Decrement }, nameStr);
+			builder->WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide, Operator_Modulus }, nameStr, OperatorFlags_Intrinsic);
+			builder->WithBinaryOperators({ Operator_Equal, Operator_NotEqual, Operator_GreaterThan, Operator_LessThan, Operator_GreaterThanOrEqual, Operator_LessThanOrEqual }, nameStr, nameStr, "bool", OperatorFlags_Intrinsic);
+			builder->WithUnaryOperators({ Operator_LogicalNot, Operator_Increment, Operator_Decrement, Operator_Subtract }, nameStr, OperatorFlags_Intrinsic);
 			if (kind == PrimitiveKind_Int && primitiveClass == PrimitiveClass_Scalar)
 			{
-				builder->WithImplicitCast(nameStr, "float");
+				builder->WithImplicitCast(nameStr, "half", OperatorFlags_Intrinsic);
+				builder->WithImplicitCast(nameStr, "float", OperatorFlags_Intrinsic);
+				builder->WithImplicitCast(nameStr, "double", OperatorFlags_Intrinsic);
+				builder->WithExplicitCast(nameStr, "uint", OperatorFlags_Explicit | OperatorFlags_Intrinsic);
+				builder->WithBinaryOperators({ Operator_BitwiseShiftLeft, Operator_BitwiseShiftRight, Operator_BitwiseAnd, Operator_BitwiseOr, Operator_BitwiseXor,  Operator_BitwiseNot }, nameStr, OperatorFlags_Intrinsic);
+			}
+			if (kind == PrimitiveKind_UInt && primitiveClass == PrimitiveClass_Scalar)
+			{
+				builder->WithImplicitCast(nameStr, "half", OperatorFlags_Intrinsic);
+				builder->WithImplicitCast(nameStr, "float", OperatorFlags_Intrinsic);
+				builder->WithImplicitCast(nameStr, "double", OperatorFlags_Intrinsic);
+				builder->WithExplicitCast(nameStr, "int", OperatorFlags_Explicit | OperatorFlags_Intrinsic);
+				builder->WithBinaryOperators({ Operator_BitwiseShiftLeft, Operator_BitwiseShiftRight, Operator_BitwiseAnd, Operator_BitwiseOr, Operator_BitwiseXor,  Operator_BitwiseNot }, nameStr, OperatorFlags_Intrinsic);
+			}
+			if (kind == PrimitiveKind_Bool && primitiveClass == PrimitiveClass_Scalar)
+			{
+				builder->WithBinaryOperators({ Operator_AndAnd, Operator_OrOr, Operator_LogicalNot, Operator_BitwiseAnd, Operator_BitwiseOr, Operator_BitwiseXor }, nameStr, OperatorFlags_Intrinsic);
+			}
+			if (primitiveClass == PrimitiveClass_Vector)
+			{
+				builder->WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide, Operator_Modulus }, nameStr, scalarName, nameStr, OperatorFlags_Intrinsic);
+				if (kind != PrimitiveKind_Int)
+				{
+					builder->WithBinaryOperators({ Operator_Add, Operator_Subtract, Operator_Multiply, Operator_Divide, Operator_Modulus }, nameStr, "int", nameStr, OperatorFlags_Intrinsic);
+				}
 			}
 		}
 
@@ -90,7 +77,7 @@ namespace HXSL
 
 		AddPrim(primBuilders, assembly.get(), PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
 
-		for (int i = PrimitiveKind_Bool; i <= PrimitiveKind_Min16Uint; i++)
+		for (int i = PrimitiveKind_Bool; i <= PrimitiveKind_Min16UInt; i++)
 		{
 			auto kind = static_cast<PrimitiveKind>(i);
 

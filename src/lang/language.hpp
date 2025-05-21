@@ -64,6 +64,7 @@ namespace HXSL
 		OperatorFlags_None = 0,
 		OperatorFlags_Explicit = 1,
 		OperatorFlags_Implicit = 2,
+		OperatorFlags_Intrinsic = 4,
 	};
 
 	static OperatorFlags operator|(OperatorFlags lhs, OperatorFlags rhs)

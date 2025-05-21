@@ -1,10 +1,6 @@
 #include "text_helper.hpp"
 #include "endianness.hpp"
 
-#include <unordered_set>
-#include <cctype>
-#include <string>
-
 namespace TextHelper
 {
 	bool IsLetterOrDigit(char c)

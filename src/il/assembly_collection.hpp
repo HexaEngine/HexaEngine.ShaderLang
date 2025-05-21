@@ -2,12 +2,8 @@
 #define ASSEMBLY_COLLECTION_HPP
 
 #include "assembly.hpp"
-#include "ast.hpp"
+#include "pch/ast.hpp"
 
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <string>
 namespace HXSL
 {
 	class AssemblyCollection

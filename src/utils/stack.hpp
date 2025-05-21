@@ -1,8 +1,7 @@
 #ifndef STACK_HPP
 #define STACK_HPP
 
-#include <memory>
-#include <vector>
+#include "pch/std.hpp"
 
 namespace HXSL
 {

@@ -1,4 +1,4 @@
-#include "generated/localization.hpp"
+#include "pch/localization.hpp"
 #include "config.h"
 #include <filesystem>
 #include <iostream>

@@ -2,7 +2,7 @@
 #define ARRAY_MANAGER_HPP
 
 #include "array.hpp"
-#include "symbols/symbol_table.hpp"
+#include "semantics/symbols/symbol_table.hpp"
 
 namespace HXSL
 {

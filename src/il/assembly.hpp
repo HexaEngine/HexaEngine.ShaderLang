@@ -1,13 +1,11 @@
 #ifndef ASSEMLBY_HPP
 #define ASSEMLBY_HPP
 
-#include "symbols/symbol_handle.hpp"
+#include "semantics/symbols/symbol_handle.hpp"
 #include "lexical/text_span.hpp"
 #include "io/stream.hpp"
-#include <string>
-#include <memory>
-#include <fstream>
-#include <sstream>
+
+#include "pch/std.hpp"
 
 namespace HXSL
 {

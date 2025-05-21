@@ -151,30 +151,6 @@ namespace HXSL
 		Keyword_Groupshared,
 	};
 
-	static const std::unordered_set<Keyword> BuiltInTypes = {
-		Keyword_Void,
-		Keyword_Bool,
-		Keyword_Uint,
-		Keyword_Int,
-		Keyword_Float,
-		Keyword_Double,
-		Keyword_Matrix,
-		Keyword_Min16float,
-		Keyword_Min10float,
-		Keyword_Min16int,
-		Keyword_Min12int,
-		Keyword_Min16uint,
-		Keyword_SamplerState,
-		Keyword_Texture1D,
-		Keyword_Texture2D,
-		Keyword_Texture3D,
-		Keyword_Texture1DArray,
-		Keyword_Texture2DArray,
-		Keyword_Texture2DMS,
-		Keyword_Texture2DMSArray,
-		Keyword_TextureCube
-	};
-
 	static const std::unordered_set<Keyword> flowControlKeywords =
 	{
 		Keyword_Return,

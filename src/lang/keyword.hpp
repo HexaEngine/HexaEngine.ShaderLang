@@ -1,7 +1,7 @@
 #ifndef KEYWORD_HPP
 #define KEYWORD_HPP
 
-#include <string>
+#include "pch/std.hpp"
 #include "utils/tst.hpp"
 
 namespace HXSL

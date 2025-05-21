@@ -1,5 +1,5 @@
 #include "diagnostic_code.hpp"
-#include "generated/localization.hpp"
+#include "pch/localization.hpp"
 
 namespace HXSL
 {

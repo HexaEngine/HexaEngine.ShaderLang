@@ -1,6 +1,6 @@
 #include "namespace.hpp"
 #include "declarations.hpp"
-#include "symbols/symbol_table.hpp"
+#include "semantics/symbols/symbol_table.hpp"
 #include "il/assembly_collection.hpp"
 
 namespace HXSL

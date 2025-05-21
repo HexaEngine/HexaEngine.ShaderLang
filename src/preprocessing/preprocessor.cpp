@@ -1,5 +1,5 @@
 #include "preprocessor.hpp"
-#include "generated/localization.hpp"
+#include "pch/localization.hpp"
 #include "parsers/parser.hpp"
 #include "parsers/hybrid_expr_parser.hpp"
 #include "evaluator.hpp"

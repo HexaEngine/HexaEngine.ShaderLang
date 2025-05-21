@@ -1,6 +1,6 @@
 #include "symbol_base.hpp"
 #include "interfaces.hpp"
-#include "symbols/symbol_table.hpp"
+#include "semantics/symbols/symbol_table.hpp"
 
 namespace HXSL
 {
@@ -44,6 +44,14 @@ namespace HXSL
 		auto ref = std::make_unique<SymbolRef>(std::string(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
 		ref->SetTable(GetSymbolHandle());
 		return ref;
+	}
+
+	void SymbolRef::TrimCastType()
+	{
+		std::string& result = *fullyQualifiedName.get();
+		result.erase(std::remove(result.begin(), result.end(), '('), result.end());
+		result.erase(std::remove(result.begin(), result.end(), ')'), result.end());
+		UpdateName();
 	}
 
 	void SymbolRef::UpdateName()

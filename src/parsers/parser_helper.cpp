@@ -4,8 +4,6 @@
 #include "parser.hpp"
 #include "member_path_parser.hpp"
 
-#include <memory>
-
 namespace HXSL
 {
 #define ERR_RETURN_FALSE_INTERNAL(code) \
@@ -14,7 +12,7 @@ namespace HXSL
 		return false; \
 	} while (0)
 
-	bool ParserHelper::TryParseMemberAccessPath(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut)
+	bool ParserHelper::TryParseMemberAccessPath(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut, Expression** headOut)
 	{
 		MemberPathParser context = MemberPathParser(parser, stream);
 
@@ -24,6 +22,11 @@ namespace HXSL
 		}
 
 		expressionOut = context.TakeRoot();
+
+		if (headOut)
+		{
+			*headOut = context.Head();
+		}
 
 		return true;
 	}

@@ -8,7 +8,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(MSVC)
-    add_compile_options(/W3 /Od /Zi)
+    add_compile_options(/W3 /Od /Zi /MP)
 else()
     add_compile_options(-Wall -Wextra -pedantic)
 endif()
@@ -40,6 +40,7 @@ if (MSVC)
 endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE PCH_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/pch/*.hpp")
 
 find_package(Python3 REQUIRED)
 
@@ -96,6 +97,7 @@ if (BUILD_SHARED)
     add_dependencies(Compiler generate_locales)
 
     target_compile_definitions(Compiler PRIVATE $<$<CONFIG:Debug>:HXSL_DEBUG=1>)
+    target_precompile_headers(Compiler PRIVATE ${PCH_HEADERS})
 endif()
 
 if (BUILD_STATIC)
@@ -107,6 +109,7 @@ if (BUILD_STATIC)
     add_dependencies(CompilerStatic generate_locales)
 
     target_compile_definitions(CompilerStatic PRIVATE $<$<CONFIG:Debug>:HXSL_DEBUG=1> HXSL_ENABLE_CAPI=1)
+    target_precompile_headers(CompilerStatic PRIVATE ${PCH_HEADERS})
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)

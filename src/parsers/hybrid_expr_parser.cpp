@@ -27,41 +27,6 @@ namespace HXSL
 		return std::move(temp);
 	}
 
-	enum TaskType
-	{
-		TaskType_Unknown,
-		TaskType_ParseExpression,
-		TaskType_TernaryTrue,
-		TaskType_TernaryFalse,
-		TaskType_Assignment,
-		TaskType_BracketClose,
-		TaskType_Cast,
-		TaskType_UnaryPrefix
-	};
-
-	struct TaskFrame
-	{
-		TaskType type;
-		size_t stackBoundary;
-		ExpressionPtr result;
-		bool wasOperator;
-		bool hadBrackets;
-		TextSpan start;
-
-		TaskFrame(const TaskType& type, const size_t& stackLimit, ExpressionPtr result)
-			: type(type), stackBoundary(stackLimit), result(std::move(result)), wasOperator(true), hadBrackets(false)
-		{
-		}
-		TaskFrame(const TaskType& type, const size_t& stackLimit, ExpressionPtr result, TextSpan start)
-			: type(type), stackBoundary(stackLimit), result(std::move(result)), wasOperator(true), hadBrackets(false), start(start)
-		{
-		}
-
-		TaskFrame() : type(TaskType_Unknown), stackBoundary(0), wasOperator(true), hadBrackets(false)
-		{
-		}
-	};
-
 	static void ReduceOperator(std::stack<OperatorPtr>& operatorStack, std::stack<ExpressionPtr>& operandStack)
 	{
 		OperatorPtr expr = popFromStack(operatorStack);
@@ -124,156 +89,56 @@ namespace HXSL
 		operandStack.push(std::move(expr));
 	}
 
-	struct ParseContext : public TokenStreamAdapter, public ParserAdapter
+	bool ParseContext::NextTask()
 	{
-		std::stack<TaskFrame> tasks;
-		std::stack<ExpressionPtr> operandStack;
-		std::stack<OperatorPtr> operatorStack;
-		TaskFrame currentTask;
-		std::stack<size_t> ternaryStack;
-		ExpressionParserFlags flags;
-
-		ParseContext(Parser& parser, TokenStream& stream) : TokenStreamAdapter(stream), ParserAdapter(parser)
+		if (tasks.empty())
 		{
-		}
-
-		bool NextTask()
-		{
-			if (tasks.empty())
-			{
-				return false;
-			}
-			if (currentTask.type == TaskType_TernaryTrue)
-			{
-				ternaryStack.pop();
-			}
-			if (currentTask.type == TaskType_TernaryFalse)
-			{
-				ternaryStack.pop();
-			}
-			currentTask = popFromStack(tasks);
-			return true;
-		}
-
-		bool IsInTernary() const noexcept { return !ternaryStack.empty() && ternaryStack.top() == tasks.size() + 1; }
-
-		void PushParseExpressionTask()
-		{
-			tasks.push(TaskFrame(TaskType_ParseExpression, operatorStack.size(), nullptr));
-		}
-
-		void PushBracketCloseTask()
-		{
-			currentTask.hadBrackets = true;
-			PushCurrentTask();
-			tasks.push(TaskFrame(TaskType_BracketClose, operatorStack.size(), nullptr, LastToken().Span));
-			PushParseExpressionTask();
-		}
-
-		void PushCurrentTask()
-		{
-			tasks.push(std::move(currentTask));
-		}
-
-		void PushSubExpressionTask(TaskType type, ExpressionPtr&& expr)
-		{
-			PushCurrentTask();
-			tasks.push(TaskFrame(type, operatorStack.size(), std::move(expr)));
-			PushParseExpressionTask();
-			if (type == TaskType_TernaryTrue)
-			{
-				ternaryStack.push(tasks.size());
-			}
-			if (type == TaskType_TernaryFalse)
-			{
-				ternaryStack.push(tasks.size());
-			}
-		}
-
-		void PushSubTask(TaskType type, ExpressionPtr&& expr)
-		{
-			tasks.push(TaskFrame(type, operatorStack.size(), std::move(expr)));
-			PushParseExpressionTask();
-			if (type == TaskType_TernaryTrue)
-			{
-				ternaryStack.push(tasks.size());
-			}
-			if (type == TaskType_TernaryFalse)
-			{
-				ternaryStack.push(tasks.size());
-			}
-		}
-
-		template<typename ExpressionType, typename... Args>
-		void PushSubExpressionTask(TaskType type, Args&&... args)
-		{
-			PushSubExpressionTask(type, std::make_unique<ExpressionType>(std::forward<Args>(args)...));
-		}
-
-		void InjectTask(TaskType type, ExpressionPtr&& expr)
-		{
-			auto last = popFromStack(tasks);
-			tasks.push(TaskFrame(type, operatorStack.size(), std::move(expr)));
-			tasks.push(std::move(last));
-		}
-
-		void PushOperand(ExpressionPtr&& operand)
-		{
-			operandStack.push(std::move(operand));
-		}
-
-		void PushOperator(OperatorPtr&& _operator)
-		{
-			operatorStack.push(std::move(_operator));
-		}
-
-		template<typename ExpressionType, typename... Args>
-		void PushOperator(Args&&... args)
-		{
-			PushOperator(std::make_unique<ExpressionType>(std::forward<Args>(args)...));
-		}
-
-		ExpressionPtr PopOperand()
-		{
-			return popFromStack(operandStack);
-		}
-
-		bool HasOperand() const
-		{
-			return !operandStack.empty();
-		}
-
-		const ExpressionPtr& TopOperand() const
-		{
-			return operandStack.top();
-		}
-
-		void TryReduceOperators(int precedence)
-		{
-			while (operatorStack.size() > currentTask.stackBoundary && Operators::GetOperatorPrecedence(operatorStack.top()->GetOperator()) >= precedence)
-			{
-				ReduceOperator(operatorStack, operandStack);
-			}
-		}
-
-		void ReduceOperatorsFinal()
-		{
-			while (operatorStack.size() > currentTask.stackBoundary)
-			{
-				ReduceOperator(operatorStack, operandStack);
-			}
-		}
-
-		bool GetResult(ExpressionPtr& exprOut)
-		{
-			if (operandStack.size() == 1)
-			{
-				exprOut = std::move(operandStack.top());
-				return true;
-			}
 			return false;
 		}
-	};
+		if (currentTask.type == TaskType_TernaryTrue)
+		{
+			ternaryStack.pop();
+		}
+		if (currentTask.type == TaskType_TernaryFalse)
+		{
+			ternaryStack.pop();
+		}
+		currentTask = popFromStack(tasks);
+		return true;
+	}
+
+	void ParseContext::InjectTask(TaskType type, ExpressionPtr&& expr)
+	{
+		if (!canInject)
+		{
+			PushTask(TaskFrame(type, operatorStack.size(), std::move(expr)));
+			return;
+		}
+		auto last = popFromStack(tasks);
+		PushTask(TaskFrame(type, operatorStack.size(), std::move(expr)));
+		PushTask(std::move(last));
+	}
+
+	ExpressionPtr ParseContext::PopOperand()
+	{
+		return popFromStack(operandStack);
+	}
+
+	void ParseContext::TryReduceOperators(int precedence)
+	{
+		while (operatorStack.size() > currentTask.stackBoundary && Operators::GetOperatorPrecedence(operatorStack.top()->GetOperator()) >= precedence)
+		{
+			ReduceOperator(operatorStack, operandStack);
+		}
+	}
+
+	void ParseContext::ReduceOperatorsFinal()
+	{
+		while (operatorStack.size() > currentTask.stackBoundary)
+		{
+			ReduceOperator(operatorStack, operandStack);
+		}
+	}
 
 	static ExpressionPtr ParseUnaryPostfix(ParseContext& context, Operator op, ExpressionPtr operand)
 	{
@@ -368,7 +233,6 @@ namespace HXSL
 					if (wasOperator)
 					{
 						wasOperator = false;
-						ExpressionPtr unary;
 						HANDLE_RESULT(ParseUnaryPrefix(context, op));
 					}
 					else
@@ -418,7 +282,7 @@ namespace HXSL
 
 				hadBrackets = false;
 			}
-			else if (current.isDelimiterOf('(') || current.isLiteral() || current.isNumeric() || current.isIdentifier())
+			else if (current.isDelimiterOf('(') || current.isLiteral() || current.isNumeric() || current.isIdentifier() || current.isKeywordOf(BuiltInTypes) || current.isKeywordOf(KeywordLiterals))
 			{
 				if (hadBrackets && context.HasOperand())
 				{
@@ -428,11 +292,18 @@ namespace HXSL
 					if (type != NodeType_MemberReferenceExpression && type != NodeType_MemberAccessExpression)
 					{
 						context.Log(EXPECTED_TYPE_EXPR_CAST, left->GetSpan());
-						return false;
+						//return false;
 					}
 
 					std::unique_ptr<SymbolRef> typeRef;
 					ParserHelper::MakeConcreteSymbolRef(left.get(), SymbolRefType_Type, typeRef);
+
+					if (!typeRef)
+					{
+						typeRef = std::make_unique<SymbolRef>(left->GetSpan(), SymbolRefType_Type, false);
+					}
+
+					typeRef->TrimCastType();
 
 					auto cast = std::make_unique<CastExpression>(left->GetSpan(), std::move(typeRef), nullptr);
 					auto result = ParseOperandIter(context);
@@ -445,6 +316,7 @@ namespace HXSL
 					wasOperator = false;
 					return true;
 				}
+				hadBrackets = current.isDelimiterOf('(');
 
 				wasOperator = false;
 				HANDLE_RESULT(ParseOperandIter(context));
@@ -463,6 +335,8 @@ namespace HXSL
 				{
 					context.Log(UNEXPECTED_TOKEN, current);
 				}
+				context.PushOperand(std::make_unique<EmptyExpression>(current.Span));
+				context.Advance();
 				break;
 			}
 		}
@@ -471,12 +345,8 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseExpressionInner(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut, ExpressionParserFlags flags)
+	static bool ParseExpressionInner(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expressionOut, ParseContext& context)
 	{
-		ParseContext context = ParseContext(parser, stream);
-		context.flags = flags;
-		context.PushParseExpressionTask();
-
 		while (context.NextTask())
 		{
 			TaskFrame& frame = context.currentTask;
@@ -570,7 +440,27 @@ namespace HXSL
 	{
 		auto start = stream.Current();
 		stream.PushState();
-		if (!ParseExpressionInner(parser, stream, expression, flags))
+
+		ParseContext context = ParseContext(parser, stream);
+		context.flags = flags;
+		context.PushParseExpressionTask();
+
+		if (!ParseExpressionInner(parser, stream, expression, context))
+		{
+			stream.PopState();
+			return false;
+		}
+
+		stream.PopState(false);
+
+		return true;
+	}
+
+	bool HybridExpressionParser::ParseExpression(Parser& parser, TokenStream& stream, std::unique_ptr<Expression>& expression, ParseContext& context)
+	{
+		auto start = stream.Current();
+		stream.PushState();
+		if (!ParseExpressionInner(parser, stream, expression, context))
 		{
 			stream.PopState();
 			return false;

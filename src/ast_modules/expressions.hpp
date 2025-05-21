@@ -74,6 +74,8 @@ namespace HXSL
 			return inferredType;
 		}
 
+		bool IsVoidType() const noexcept;
+
 		void SetInferredType(SymbolDef* def) noexcept
 		{
 			inferredType = def;
@@ -281,6 +283,7 @@ namespace HXSL
 			typeSymbol(std::move(typeSymbol)),
 			operand(std::move(operand))
 		{
+			operatorSymbol = std::make_unique<SymbolRef>("", SymbolRefType_OperatorOverload, false);
 			REGISTER_CHILD(operand);
 		}
 
@@ -378,7 +381,11 @@ namespace HXSL
 		{
 		}
 
-		DEFINE_GETTER_SETTER(Token, Literal, literal)
+		Token& GetLiteral() noexcept {
+			return literal;
+		} void SetLiteral(const Token& value) noexcept {
+			literal = value;
+		}
 	};
 
 	class MemberReferenceExpression : public ChainExpression
@@ -538,15 +545,15 @@ namespace HXSL
 			return symbol;
 		}
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, IndexExpression, indexExpression)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, IndexExpression, indexExpression);
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol)
+		DEFINE_GET_SET_MOVE(std::unique_ptr<SymbolRef>, Symbol, symbol);
 	};
 
 	class AssignmentExpression : public OperatorExpression
 	{
 	private:
-
+		const Operator op = Operator_Assign;
 	protected:
 		std::unique_ptr<Expression> target;
 		std::unique_ptr<Expression> expression;
@@ -572,7 +579,7 @@ namespace HXSL
 
 		const Operator& GetOperator() const noexcept override
 		{
-			return Operator_Assign;
+			return op;
 		}
 
 		virtual void SetOperator(const Operator& value)
@@ -580,9 +587,9 @@ namespace HXSL
 			throw std::runtime_error("setting the operator is not supported on assignment nodes.");
 		}
 
-		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Target, target)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Target, target);
 
-			DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Expression, expression)
+		DEFINE_GET_SET_MOVE_CHILD(std::unique_ptr<Expression>, Expression, expression);
 	};
 
 	class CompoundAssignmentExpression : public AssignmentExpression

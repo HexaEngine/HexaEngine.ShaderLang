@@ -3,7 +3,7 @@
 #include "sub_parser_registry.hpp"
 #include "statement_parser.hpp"
 #include "parsers/parser.hpp"
-#include "ast.hpp"
+#include "pch/ast.hpp"
 #include "parser_helper.hpp"
 #include "hybrid_expr_parser.hpp"
 namespace HXSL

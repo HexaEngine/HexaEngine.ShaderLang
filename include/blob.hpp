@@ -2,7 +2,6 @@
 #define HXSL_BLOB_HPP
 
 #include "allocator.h"
-#include <string.h>
 
 namespace HXSL
 {
@@ -48,12 +47,11 @@ namespace HXSL
 
 		void Clear() noexcept
 		{
-			if (data) 
+			if (data)
 			{
 				memset(data, 0, size);
 			}
 		}
-
 
 		void Resize(size_t newSize)
 		{
