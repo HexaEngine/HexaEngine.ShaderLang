@@ -14,7 +14,6 @@ namespace HXSL
 		TokenType_Identifier,
 		TokenType_Literal,
 		TokenType_Numeric,
-		TokenType_Codeblock,
 		TokenType_Delimiter,
 		TokenType_Operator,
 		TokenType_Comment,
@@ -155,7 +154,6 @@ namespace HXSL
 		case TokenType_Identifier: return "Identifier";
 		case TokenType_Literal: return "Literal";
 		case TokenType_Numeric: return "Numeric";
-		case TokenType_Codeblock: return "Codeblock";
 		case TokenType_Delimiter: return "Delimiter";
 		case TokenType_Operator: return "Operator";
 		case TokenType_Comment: return "Comment";

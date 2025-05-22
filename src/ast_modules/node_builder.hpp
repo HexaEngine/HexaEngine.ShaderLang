@@ -179,9 +179,9 @@ namespace HXSL
 	class ClassBuilder : ASTNodeBuilder
 	{
 		ast_ptr<Class> _class;
-		std::vector<ast_ptr<FunctionBuilder>> functions;
+		std::vector<FunctionBuilder> functions;
 		std::vector<ast_ptr<Field>> fields;
-		std::vector<ast_ptr<OperatorBuilder>> operators;
+		std::vector<OperatorBuilder> operators;
 	public:
 		ClassBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), _class(make_ast_ptr<Class>())
 		{
@@ -195,10 +195,9 @@ namespace HXSL
 
 		FunctionBuilder& WithFunction()
 		{
-			auto builder = make_ast_ptr<FunctionBuilder>(assembly);
-			auto ptr = builder.get();
-			functions.push_back(std::move(builder));
-			return *ptr;
+			auto idx = functions.size();
+			functions.push_back(FunctionBuilder(assembly));
+			return functions[idx];
 		}
 
 		ClassBuilder& WithField(const std::string& name, const std::string& type)
@@ -216,17 +215,16 @@ namespace HXSL
 
 		OperatorBuilder& WithOperator(const std::string& name, const std::string& type)
 		{
-			auto builder = make_ast_ptr<OperatorBuilder>(assembly);
-			auto ptr = builder.get();
-			operators.push_back(std::move(builder));
-			return *ptr;
+			auto idx = functions.size();
+			operators.push_back(OperatorBuilder(assembly));
+			return operators[idx];
 		}
 	};
 
 	class PrimitiveBuilder : ASTNodeBuilder
 	{
 		ast_ptr<Primitive> primitive;
-		std::vector<ast_ptr<OperatorBuilder>> operators;
+		std::vector<OperatorBuilder> operators;
 		Primitive* prim;
 	public:
 		PrimitiveBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), primitive(make_ast_ptr<Primitive>()), prim(nullptr)
@@ -255,24 +253,22 @@ namespace HXSL
 
 		OperatorBuilder& WithOperator()
 		{
-			auto builder = make_ast_ptr<OperatorBuilder>(assembly);
-			auto ptr = builder.get();
-			operators.push_back(std::move(builder));
-			return *ptr;
+			auto idx = operators.size();
+			operators.push_back(OperatorBuilder(assembly));
+			return operators[idx];
 		}
 
 		void WithBinaryOperators(std::initializer_list<Operator> ops, const std::string& str, OperatorFlags flags)
 		{
 			for (auto op : ops)
 			{
-				auto builder = make_ast_ptr<OperatorBuilder>(assembly);
+				auto builder = OperatorBuilder(assembly);
 
-				builder->WithOp(flags, op)
+				builder.WithOp(flags, op)
 					.WithParam("left", str)
 					.WithParam("right", str)
 					.Returns(str);
 
-				auto ptr = builder.get();
 				operators.push_back(std::move(builder));
 			}
 		}
@@ -281,14 +277,13 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = make_ast_ptr<OperatorBuilder>(assembly);
+				auto builder = OperatorBuilder(assembly);
 
-				builder->WithOp(flags, op)
+				builder.WithOp(flags, op)
 					.WithParam("left", strA)
 					.WithParam("right", strB)
 					.Returns(strRet);
 
-				auto ptr = builder.get();
 				operators.push_back(std::move(builder));
 			}
 		}
@@ -297,13 +292,12 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = make_ast_ptr<OperatorBuilder>(assembly);
+				auto builder = OperatorBuilder(assembly);
 
-				builder->WithOp(flags, op)
+				builder.WithOp(flags, op)
 					.WithParam("value", str)
 					.Returns(str);
 
-				auto ptr = builder.get();
 				operators.push_back(std::move(builder));
 			}
 		}
@@ -312,38 +306,35 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = make_ast_ptr<OperatorBuilder>(assembly);
+				auto builder = OperatorBuilder(assembly);
 
-				builder->WithOp(OperatorFlags_None, op)
+				builder.WithOp(OperatorFlags_None, op)
 					.WithParam("value", str)
 					.Returns(strRet);
 
-				auto ptr = builder.get();
 				operators.push_back(std::move(builder));
 			}
 		}
 
 		void WithImplicitCast(const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
-			auto builder = make_ast_ptr<OperatorBuilder>(assembly);
+			auto builder = OperatorBuilder(assembly);
 
-			builder->WithOp(OperatorFlags_Implicit | flags, Operator_Cast)
+			builder.WithOp(OperatorFlags_Implicit | flags, Operator_Cast)
 				.WithParam("value", str)
 				.Returns(strRet);
 
-			auto ptr = builder.get();
 			operators.push_back(std::move(builder));
 		}
 
 		void WithExplicitCast(const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
-			auto builder = make_ast_ptr<OperatorBuilder>(assembly);
+			auto builder = OperatorBuilder(assembly);
 
-			builder->WithOp(OperatorFlags_Explicit | flags, Operator_Cast)
+			builder.WithOp(OperatorFlags_Explicit | flags, Operator_Cast)
 				.WithParam("value", str)
 				.Returns(strRet);
 
-			auto ptr = builder.get();
 			operators.push_back(std::move(builder));
 		}
 
@@ -359,7 +350,7 @@ namespace HXSL
 
 			for (size_t i = 0; i < operators.size(); i++)
 			{
-				operators[i]->AttachToPrimitive(primitivePtr);
+				operators[i].AttachToPrimitive(primitivePtr);
 			}
 		}
 
@@ -380,7 +371,7 @@ namespace HXSL
 			{
 				for (size_t i = 0; i < operators.size(); i++)
 				{
-					operators[i]->AttachToPrimitive(prim);
+					operators[i].AttachToPrimitive(prim);
 				}
 				operators.clear();
 				return true;

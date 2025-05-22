@@ -16,56 +16,47 @@ namespace HXSL
 	{
 		Parser::InitializeSubSystems();
 
-		for (size_t i = 0; i < 1000; i++)
+		GetThreadAllocator()->Reset();
+
+		std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
+		ast_ptr<CompilationUnit> compilation = make_ast_ptr<CompilationUnit>();
+
+		std::vector<std::unique_ptr<SourceFile>> sources;
+		for (auto& file : files)
 		{
-			astAllocator.Reset();
-			auto start = std::chrono::high_resolution_clock::now();
+			auto fs = FileStream::OpenRead(file.c_str());
 
-			std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
-			ast_ptr<CompilationUnit> compilation = make_ast_ptr<CompilationUnit>();
-
-			std::vector<std::unique_ptr<SourceFile>> sources;
-			for (auto& file : files)
+			if (!fs)
 			{
-				auto fs = FileStream::OpenRead(file.c_str());
-
-				if (!fs)
-				{
-					std::cerr << "Error opening file." << std::endl;
-					continue;
-				}
-
-				sources.push_back(std::make_unique<SourceFile>(fs.release(), true));
-				auto& source = sources.back();
-
-				if (!source->PrepareInputStream())
-				{
-					std::cerr << "Error reading file." << std::endl;
-					continue;
-				}
-
-				Preprocessor preprocessor = Preprocessor(logger.get());
-				preprocessor.Process(source.get());
-
-				LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger.get(), HXSLLexerConfig::Instance());
-				TokenStream tokenStream = TokenStream(&context);
-
-				Parser parser = Parser(logger.get(), tokenStream, compilation.get()); // here
-
-				parser.Parse();
+				std::cerr << "Error opening file." << std::endl;
+				continue;
 			}
 
-			auto end = std::chrono::high_resolution_clock::now();
+			sources.push_back(std::make_unique<SourceFile>(fs.release(), true));
+			auto& source = sources.back();
 
-			std::chrono::duration<double, std::milli> elapsed = end - start;
-			std::cout << "Elapsed time: " << elapsed.count() << " ms\n";
+			if (!source->PrepareInputStream())
+			{
+				std::cerr << "Error reading file." << std::endl;
+				continue;
+			}
+
+			Preprocessor preprocessor = Preprocessor(logger.get());
+			preprocessor.Process(source.get());
+
+			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger.get(), HXSLLexerConfig::Instance());
+			TokenStream tokenStream = TokenStream(&context);
+
+			Parser parser = Parser(logger.get(), tokenStream, compilation.get());
+
+			parser.Parse();
 		}
 
-		return;
-		/*
 		SemanticAnalyzer::InitializeSubSystems();
 		SemanticAnalyzer analyzer = SemanticAnalyzer(logger.get(), compilation.get(), references);
 		analyzer.Analyze();
+
+		auto& stats = GetThreadAllocator()->GetStats();
 
 		ASTFlattener flattener;
 		auto lowerCompilation = flattener.Flatten(compilation.get());
@@ -79,7 +70,9 @@ namespace HXSL
 			auto assembly = analyzer.GetOutputAssembly().get();
 
 			assembly->WriteToFile(output);
-		}*/
+		}
+
+		//astAllocator.ReleaseAll();
 	}
 
 	void Compiler::SetIncludeHandler(IncludeOpen includeOpen, IncludeClose includeClose)

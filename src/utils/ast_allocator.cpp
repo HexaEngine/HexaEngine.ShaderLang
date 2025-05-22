@@ -1,3 +1,8 @@
 #include "ast_allocator.hpp"
 
-thread_local ASTAllocator astAllocator = {};
+static thread_local ASTAllocator* allocator = new ASTAllocator();
+
+ASTAllocator* GetThreadAllocator()
+{
+	return allocator;
+}

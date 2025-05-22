@@ -3,14 +3,16 @@
 
 #include "pch/std.hpp"
 
+typedef void (*DestructorPtr)(void*);
+
 class ASTAllocator
 {
 	static constexpr size_t DEFAULT_BLOCK_SIZE = 1024 * 1024;
 
 	static constexpr size_t NUM_CLASSES = 30;
 	static constexpr size_t LARGE_OBJECT_CLASS = NUM_CLASSES - 1;
-	static constexpr size_t BASE_ALIGNMENT = 16;
-	static constexpr size_t MAX_SIZE_CLASS = BASE_ALIGNMENT * (NUM_CLASSES - 1);
+	static constexpr size_t OBJECT_CLASS_ALIGNMENT = 16;
+	static constexpr size_t MAX_SIZE_CLASS = OBJECT_CLASS_ALIGNMENT * (NUM_CLASSES - 1);
 
 	static size_t AlignUp(size_t size, size_t alignment)
 	{
@@ -23,31 +25,53 @@ class ASTAllocator
 		{
 			return LARGE_OBJECT_CLASS;
 		}
-		size_t alignedSize = AlignUp(size, BASE_ALIGNMENT);
-		return (alignedSize / BASE_ALIGNMENT) - 1;
+
+		return (size / OBJECT_CLASS_ALIGNMENT) - 1;
 	}
 
 	struct AllocHeader
 	{
-		AllocHeader* next;
-		size_t size;
+		AllocHeader* next = nullptr;
+		size_t size = 0;
+		DestructorPtr destructor = nullptr;
 	};
 
 	struct Block
 	{
 		char* memory;
 		size_t size;
+		AllocHeader* head;
 		size_t used;
 
 		Block(size_t size) : size(size), used(0)
 		{
 			memory = new char[size];
+			if (size < sizeof(AllocHeader))
+			{
+				throw std::bad_alloc();
+			}
+			head = reinterpret_cast<AllocHeader*>(memory);
+			new(head) AllocHeader();
+			head->next = nullptr;
+			head->size = 0;
+			head->destructor = nullptr;
 		}
 
 		~Block()
 		{
 			if (memory)
 			{
+				AllocHeader* current = reinterpret_cast<AllocHeader*>(memory);
+				while (current)
+				{
+					if (current->destructor)
+					{
+						void* objPtr = reinterpret_cast<void*>(reinterpret_cast<char*>(current) + sizeof(AllocHeader));
+						current->destructor(objPtr);
+					}
+
+					current = current->next;
+				}
 				delete[] memory;
 				memory = nullptr;
 				size = 0;
@@ -69,6 +93,7 @@ class ASTAllocator
 				memory = other.memory;
 				size = other.size;
 				used = other.used;
+				head = reinterpret_cast<AllocHeader*>(memory);
 
 				other.memory = nullptr;
 				other.size = 0;
@@ -79,12 +104,13 @@ class ASTAllocator
 
 		Block(Block&& other) noexcept : memory(other.memory), size(other.size), used(other.used)
 		{
+			head = reinterpret_cast<AllocHeader*>(memory);
 			other.memory = nullptr;
 			other.size = 0;
 			other.used = 0;
 		}
 
-		void* Alloc(size_t bytes, size_t alignment)
+		void* Alloc(size_t bytes, size_t alignment, DestructorPtr destructor)
 		{
 			size_t headerOffset = AlignUp(used, alignment);
 			size_t dataOffset = headerOffset + sizeof(AllocHeader);
@@ -96,70 +122,177 @@ class ASTAllocator
 			AllocHeader* header = reinterpret_cast<AllocHeader*>(memory + headerOffset);
 			new(header) AllocHeader();
 			header->size = bytes;
+			header->destructor = destructor;
+
+			head->next = header;
+			head = header;
 
 			used = dataOffset + bytes;
 			return memory + dataOffset;
 		}
 	};
+
+	struct FreeNode
+	{
+		AllocHeader* block;
+	};
+
+	struct FreeList
+	{
+		FreeNode* nodes = nullptr;
+		size_t capacity = 0;
+		size_t count = 0;
+
+		~FreeList()
+		{
+			if (nodes)
+			{
+				delete[] nodes;
+				nodes = nullptr;
+				capacity = 0;
+				count = 0;
+			}
+		}
+
+		void clear()
+		{
+			count = 0;
+		}
+
+		void grow(size_t nextCount)
+		{
+			if (nextCount > capacity)
+			{
+				auto newCapacity = std::max(capacity * 2, nextCount);
+				auto newNodes = new FreeNode[newCapacity];
+
+				if (nodes)
+				{
+					std::memcpy(newNodes, nodes, capacity * sizeof(FreeNode));
+					delete[] nodes;
+				}
+
+				nodes = newNodes;
+				capacity = newCapacity;
+			}
+		}
+
+		void push(AllocHeader* block)
+		{
+			size_t nextCount = count + 1;
+			grow(nextCount);
+			nodes[count].block = block;
+			count = nextCount;
+		}
+
+		void append(FreeList& list)
+		{
+			auto nextCount = count + list.count;
+			if (nextCount == count) return;
+			grow(nextCount);
+			std::memcpy(nodes + count, list.nodes, list.count * sizeof(FreeNode));
+			count = nextCount;
+		}
+
+		void* pop(size_t alignment, DestructorPtr destructor)
+		{
+			if (count == 0)
+				return nullptr;
+
+			for (size_t i = count; i-- > 0;)
+			{
+				auto block = nodes[i].block;
+				uintptr_t ptrVal = reinterpret_cast<uintptr_t>(block);
+				if ((ptrVal & (alignment - 1)) == 0)
+				{
+					if (i != count - 1)
+					{
+						std::swap(nodes[i], nodes[count - 1]);
+					}
+
+					FreeNode* node = nodes + (count - 1);
+					--count;
+					auto block = node->block;
+					block->destructor = destructor;
+
+					return reinterpret_cast<char*>(block) + sizeof(AllocHeader);
+				}
+			}
+
+			return nullptr;
+		}
+	};
+
 public:
+	struct AllocatorStats
+	{
+		size_t allocsPerClass[NUM_CLASSES] = {};
+		size_t freePerClass[NUM_CLASSES] = {};
+	};
+
 	std::vector<Block> blocks;
-	AllocHeader* freeLists[NUM_CLASSES] = {};
+
+	FreeList freeLists[NUM_CLASSES] = {};
+	AllocatorStats stats;
 
 	~ASTAllocator()
 	{
 		ReleaseAll();
 	}
 
-	void* Alloc(size_t bytes, size_t alignment = alignof(std::max_align_t))
+	const AllocatorStats& GetStats() const noexcept { return stats; }
+
+	void* Alloc(size_t bytes, size_t alignment = alignof(std::max_align_t), DestructorPtr destructor = nullptr)
 	{
 		alignment = std::max(alignment, alignof(AllocHeader));
-		size_t sizeNeeded = AlignUp(bytes, alignment);
+		size_t sizeNeeded = AlignUp(bytes, OBJECT_CLASS_ALIGNMENT);
 		size_t classIndex = SizeToClass(sizeNeeded);
 
-		AllocHeader** current = &freeLists[classIndex];
-		while (*current)
+		stats.allocsPerClass[classIndex]++;
+
+		void* freePtr = freeLists[classIndex].pop(alignment, destructor);
+		if (freePtr)
 		{
-			AllocHeader* block = *current;
-			uintptr_t ptrVal = reinterpret_cast<uintptr_t>(block);
-			if (block->size >= bytes && (ptrVal & (alignment - 1)) == 0)
-			{
-				*current = block->next;
-				void* ptr = reinterpret_cast<char*>(block) + sizeof(AllocHeader);
-				return ptr;
-			}
-			current = &block->next;
+			stats.freePerClass[classIndex]--;
+			return freePtr;
 		}
 
 		const size_t n = blocks.size();
 		for (size_t i = 0; i < n; i++)
 		{
-			void* ptr = blocks[i].Alloc(bytes, alignment);
+			void* ptr = blocks[i].Alloc(sizeNeeded, alignment, destructor);
 			if (ptr) return ptr;
 		}
 
-		size_t blockSize = AlignUp(bytes * 2, DEFAULT_BLOCK_SIZE);
+		size_t blockSize = AlignUp(sizeNeeded * 2, DEFAULT_BLOCK_SIZE);
 		blocks.emplace_back(Block(blockSize));
 
-		void* ptr = blocks.back().Alloc(bytes, alignment);
+		void* ptr = blocks.back().Alloc(sizeNeeded, alignment, destructor);
 		return ptr;
 	}
 
-	void Free(void* ptr)
+	void Free(void* ptr) noexcept
 	{
 		auto* header = reinterpret_cast<AllocHeader*>(static_cast<char*>(ptr) - sizeof(AllocHeader));
+		if (header->destructor)
+		{
+			header->destructor(ptr);
+		}
+
 		size_t size = header->size;
-
 		size_t classIndex = SizeToClass(size);
+		stats.allocsPerClass[classIndex]--;
+		stats.freePerClass[classIndex]++;
 
-		header->next = freeLists[classIndex];
-		freeLists[classIndex] = header;
+		header->destructor = nullptr;
+		freeLists[classIndex].push(header);
 	}
 
-	void Reset()
+	void Reset() noexcept
 	{
 		for (size_t i = 0; i < NUM_CLASSES; i++)
 		{
-			freeLists[i] = nullptr;
+			freeLists[i].clear();
 		}
 
 		for (auto& block : blocks)
@@ -168,18 +301,34 @@ public:
 		}
 	}
 
-	void ReleaseAll()
+	void ReleaseAll() noexcept
 	{
 		for (size_t i = 0; i < NUM_CLASSES; i++)
 		{
-			freeLists[i] = nullptr;
+			freeLists[i].clear();
 		}
 		blocks.clear();
 		blocks.shrink_to_fit();
 	}
+
+	void TransferAllocations(ASTAllocator* allocator)
+	{
+		for (auto& block : allocator->blocks)
+		{
+			blocks.push_back(std::move(block));
+		}
+		allocator->blocks.clear();
+
+		for (size_t i = 0; i < NUM_CLASSES; i++)
+		{
+			FreeList& freeList = allocator->freeLists[i];
+			freeLists[i].append(freeList);
+			freeList.clear();
+		}
+	}
 };
 
-extern thread_local ASTAllocator astAllocator;
+extern ASTAllocator* GetThreadAllocator();
 
 template <typename T>
 struct ASTAllocatorDeleter
@@ -197,12 +346,12 @@ struct ASTAllocatorDeleter
 	{
 	}
 
-	void operator()(T* ptr) const
+	void operator()(T* ptr) noexcept
 	{
-		if (ptr)
+		if (base)
 		{
-			ptr->~T();
-			astAllocator.Free(base);
+			GetThreadAllocator()->Free(base);
+			base = nullptr;
 		}
 	}
 };
@@ -210,10 +359,14 @@ struct ASTAllocatorDeleter
 template <typename T>
 using ast_ptr = std::unique_ptr<T, ASTAllocatorDeleter<T>>;
 
+template <typename U>
+inline void destroy(void* p) { static_cast<U*>(p)->~U(); }
+
 template <typename T, class... Args>
+[[nodiscard]]
 static ast_ptr<T> make_ast_ptr(Args&& ... args)
 {
-	void* rawMem = astAllocator.Alloc(sizeof(T), alignof(T));
+	void* rawMem = GetThreadAllocator()->Alloc(sizeof(T), alignof(T), &destroy<T>);
 	if (!rawMem) throw std::bad_alloc();
 
 	T* ptr = new(rawMem) T(std::forward<Args>(args)...);

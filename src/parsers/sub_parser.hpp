@@ -34,10 +34,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation)
-		{
-			return false;
-		}
+		virtual bool TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation) = 0;
 	};
 
 	class StatementParser
@@ -47,10 +44,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
-		{
-			return false;
-		}
+		virtual bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut) = 0;
 	};
 
 	class ExpressionParser
@@ -60,10 +54,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
-		{
-			return false;
-		}
+		virtual bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut) = 0;
 	};
 }
 
