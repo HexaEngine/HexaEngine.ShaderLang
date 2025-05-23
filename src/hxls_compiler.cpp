@@ -5,6 +5,8 @@
 #include "parsers/parser.hpp"
 #include "semantics/semantic_analyzer.hpp"
 #include "il/il_generator.hpp"
+#include "il/control_flow_analyzer.hpp"
+#include "optimizers/il_optimizer.hpp"
 #include "utils/ast_flattener.hpp"
 #include "utils/ast_allocator.hpp"
 
@@ -68,6 +70,12 @@ namespace HXSL
 
 		ILGenerator ilGen = ILGenerator(logger.get(), lowerCompilation.get());
 		ilGen.Emit();
+
+		ControlFlowAnalyzer cfAnalyzer = ControlFlowAnalyzer(logger.get(), lowerCompilation.get());
+		cfAnalyzer.Analyze();
+
+		ILOptimizer optimizer = ILOptimizer(logger.get(), lowerCompilation.get());
+		optimizer.Optimize();
 
 		if (!logger->HasErrors())
 		{

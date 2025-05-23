@@ -4,15 +4,22 @@
 #include "ast_base.hpp"
 #include "symbol_base.hpp"
 #include "container.hpp"
-#include "io/logger.hpp"
+#include "pch/il.hpp"
 
 namespace HXSL
 {
 	class LowerCompilationUnit : public Container
 	{
+		FuncCallGraph<ILFunction*> callGraph;
 		std::vector<ast_ptr<SymbolDef>> miscDefs;
+		std::vector<std::unique_ptr<ILFunction>> ilFunctions;
 	public:
 		LowerCompilationUnit() : Container({}, NodeType_LowerCompilationUnit), ASTNode({}, NodeType_LowerCompilationUnit) {}
+
+		FuncCallGraph<ILFunction*>& GetCallGraph()
+		{
+			return callGraph;
+		}
 
 		void AddMiscDef(ast_ptr<SymbolDef> def);
 
@@ -24,6 +31,21 @@ namespace HXSL
 		std::vector<ast_ptr<SymbolDef>>& GetMiscDefsMut() noexcept
 		{
 			return miscDefs;
+		}
+
+		void AddILFunction(std::unique_ptr<ILFunction>&& context)
+		{
+			ilFunctions.push_back(std::move(context));
+		}
+
+		const std::vector<std::unique_ptr<ILFunction>>& GetILFunctions() const noexcept
+		{
+			return ilFunctions;
+		}
+
+		std::vector<std::unique_ptr<ILFunction>>& GetILFunctionsMut() noexcept
+		{
+			return ilFunctions;
 		}
 	};
 }

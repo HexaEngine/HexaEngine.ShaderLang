@@ -1,13 +1,24 @@
 #ifndef CONTROL_FLOW_ANALYZER_HPP
 #define CONTROL_FLOW_ANALYZER_HPP
 
-#include "control_flow_graph.hpp"
+#include "io/logger_interface.hpp"
+#include "pch/ast_ilgen.hpp"
+#include "pch/il.hpp"
 
 namespace HXSL
 {
-	class ControlFlowAnalyzer : public CFGVisitor<EmptyCFGContext>
+	class ControlFlowAnalyzer : public LoggerAdapter
 	{
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		LowerCompilationUnit* compilation;
+
+		void DetectUnreachableCode(ILFunction* function);
+
+	public:
+		ControlFlowAnalyzer(ILogger* logger, LowerCompilationUnit* compilation) : LoggerAdapter(logger), compilation(compilation)
+		{
+		}
+
+		void Analyze();
 	};
 }
 

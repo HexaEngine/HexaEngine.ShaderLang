@@ -2,6 +2,7 @@
 #define AST_FLATTENER_HPP
 
 #include "pch/ast_analyzers.hpp"
+#include "pch/ast_ilgen.hpp"
 
 namespace HXSL
 {

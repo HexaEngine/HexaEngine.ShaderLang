@@ -4,6 +4,7 @@
 #include "symbols/symbol_resolver.hpp"
 #include "symbols/symbol_collector.hpp"
 #include "type_checker.hpp"
+#include "config.h"
 
 namespace HXSL
 {
@@ -55,8 +56,10 @@ namespace HXSL
 
 	bool SemanticAnalyzer::Analyze()
 	{
+#if HXSL_DEBUG
 		DebugVisitor debug = DebugVisitor();
 		debug.Traverse(compilation);
+#endif
 
 		SymbolCollector collector(*this, outputAssembly.get());
 		collector.Traverse(compilation);
@@ -66,14 +69,18 @@ namespace HXSL
 		SymbolResolver resolver(*this, references, outputAssembly.get(), arrayManager.get(), swizzleManager.get());
 		resolver.Traverse(compilation);
 
-		logger->LogFormattedInternal(LogLevel_Verbose, "Symbol resolve initial phase done! %d errors.", logger->GetErrorCount());
+#if HXSL_DEBUG
+		logger->LogFormattedInternal(LogLevel_Verbose, "Symbol resolve initial phase done! {} errors.", logger->GetErrorCount());
+#endif
 
 		collector.LateTraverse();
 
 		TypeChecker checker(*this, resolver);
 		checker.Traverse(compilation);
 
-		logger->LogFormattedInternal(LogLevel_Verbose, "Type checks done! %d errors.", logger->GetErrorCount());
+#if HXSL_DEBUG
+		logger->LogFormattedInternal(LogLevel_Verbose, "Type checks done! {} errors.", logger->GetErrorCount());
+#endif
 
 		AnalyzerVisitor visitor(*this);
 		visitor.Traverse(compilation);

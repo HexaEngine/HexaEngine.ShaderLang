@@ -2,14 +2,13 @@
 #define COMPILATION_UNIT_HPP
 
 #include "namespace.hpp"
-#include "io/logger.hpp"
 
 #include <mutex>
 #include <shared_mutex>
 
 namespace HXSL
 {
-	class CompilationUnit : virtual public ASTNode
+	class CompilationUnit : public ASTNode
 	{
 	private:
 		std::atomic<size_t> currentID = 0;

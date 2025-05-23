@@ -1,15 +1,6 @@
 namespace Core;
 
-//#error This is an error
-//#warning This is a warning
-
-#pragma warning disable HL1400
-
 float3 xxz(float x)
 {
 	return x.xxx;
-
-	x = 10;
 }
-
-#pragma warning restore HL1400
