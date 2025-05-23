@@ -2,7 +2,7 @@
 #define KEYWORD_HPP
 
 #include "pch/std.hpp"
-#include "utils/tst.hpp"
+#include "utils/radix_tree.hpp"
 
 namespace HXSL
 {
@@ -141,6 +141,7 @@ namespace HXSL
 		Keyword_Protected,
 		Keyword_Internal,
 		Keyword_Public,
+		Keyword_This,
 		Keyword_PrepDefine,
 		Keyword_PrepIf,
 		Keyword_PrepElif,
@@ -150,6 +151,7 @@ namespace HXSL
 		Keyword_PrepIfndef,
 		Keyword_PrepInclude,
 		Keyword_PrepError,
+		Keyword_PrepWarning,
 		Keyword_PrepPragma
 	};
 
@@ -290,6 +292,7 @@ namespace HXSL
 		case Keyword_Protected: return "protected";
 		case Keyword_Internal: return "internal";
 		case Keyword_Public: return "public";
+		case Keyword_This: return "this";
 		case Keyword_PrepDefine: return "#define";
 		case Keyword_PrepIf: return "#if";
 		case Keyword_PrepElif: return "#elif";
@@ -299,155 +302,158 @@ namespace HXSL
 		case Keyword_PrepIfndef: return "#ifndef";
 		case Keyword_PrepInclude: return "#include";
 		case Keyword_PrepError: return "#error";
+		case Keyword_PrepWarning: return "#warning";
 		case Keyword_PrepPragma: return "#pragma";
 		default: return "Unknown";
 		}
 	}
 
-	static void BuildKeywordTST(TernarySearchTreeDictionary<int>* tst)
+	static void BuildKeywordRadix(RadixTree<int>& t)
 	{
-		tst->Insert("AppendStructuredBuffer", Keyword_AppendStructuredBuffer);
-		tst->Insert("asm", Keyword_Asm);
-		tst->Insert("asm_fragment", Keyword_AsmFragment);
-		tst->Insert("BlendState", Keyword_BlendState);
-		tst->Insert("bool", Keyword_Bool);
-		tst->Insert("break", Keyword_Break);
-		tst->Insert("Buffer", Keyword_Buffer);
-		tst->Insert("ByteAddressBuffer", Keyword_ByteAddressBuffer);
-		tst->Insert("case", Keyword_Case);
-		tst->Insert("cbuffer", Keyword_Cbuffer);
-		tst->Insert("centroid", Keyword_Centroid);
-		tst->Insert("class", Keyword_Class);
-		tst->Insert("column_major", Keyword_ColumnMajor);
-		tst->Insert("compile", Keyword_Compile);
-		tst->Insert("compile_fragment", Keyword_CompileFragment);
-		tst->Insert("CompileShader", Keyword_CompileShader);
-		tst->Insert("const", Keyword_Const);
-		tst->Insert("continue", Keyword_Continue);
-		tst->Insert("ComputeShader", Keyword_ComputeShader);
-		tst->Insert("ConsumeStructuredBuffer", Keyword_ConsumeStructuredBuffer);
-		tst->Insert("default", Keyword_Default);
-		tst->Insert("DepthStencilState", Keyword_DepthStencilState);
-		tst->Insert("DepthStencilView", Keyword_DepthStencilView);
-		tst->Insert("discard", Keyword_Discard);
-		tst->Insert("do", Keyword_Do);
-		tst->Insert("double", Keyword_Double);
-		tst->Insert("DomainShader", Keyword_DomainShader);
-		tst->Insert("dword", Keyword_Dword);
-		tst->Insert("else", Keyword_Else);
-		tst->Insert("export", Keyword_Export);
-		tst->Insert("extern", Keyword_Extern);
-		tst->Insert("false", Keyword_False);
-		tst->Insert("float", Keyword_Float);
-		tst->Insert("for", Keyword_For);
-		tst->Insert("fxgroup", Keyword_Fxgroup);
-		tst->Insert("GeometryShader", Keyword_GeometryShader);
-		tst->Insert("groupshared", Keyword_Groupshared);
-		tst->Insert("half", Keyword_Half);
-		tst->Insert("Hullshader", Keyword_Hullshader);
-		tst->Insert("if", Keyword_If);
-		tst->Insert("in", Keyword_In);
-		tst->Insert("inline", Keyword_Inline);
-		tst->Insert("inout", Keyword_Inout);
-		tst->Insert("InputPatch", Keyword_InputPatch);
-		tst->Insert("int", Keyword_Int);
-		tst->Insert("interface", Keyword_Interface);
-		tst->Insert("line", Keyword_Line);
-		tst->Insert("lineadj", Keyword_Lineadj);
-		tst->Insert("linear", Keyword_Linear);
-		tst->Insert("LineStream", Keyword_LineStream);
-		tst->Insert("matrix", Keyword_Matrix);
-		tst->Insert("min16float", Keyword_Min16float);
-		tst->Insert("min10float", Keyword_Min10float);
-		tst->Insert("min16int", Keyword_Min16int);
-		tst->Insert("min12int", Keyword_Min12int);
-		tst->Insert("min16uint", Keyword_Min16uint);
-		tst->Insert("namespace", Keyword_Namespace);
-		tst->Insert("nointerpolation", Keyword_NoInterpolation);
-		tst->Insert("noperspective", Keyword_Noperspective);
-		tst->Insert("NULL", Keyword_Null);
-		tst->Insert("out", Keyword_Out);
-		tst->Insert("OutputPatch", Keyword_OutputPatch);
-		tst->Insert("packoffset", Keyword_Packoffset);
-		tst->Insert("pass", Keyword_Pass);
-		tst->Insert("pixelfragment", Keyword_Pixelfragment);
-		tst->Insert("PixelShader", Keyword_PixelShader);
-		tst->Insert("point", Keyword_Point);
-		tst->Insert("PointStream", Keyword_PointStream);
-		tst->Insert("precise", Keyword_Precise);
-		tst->Insert("RasterizerState", Keyword_RasterizerState);
-		tst->Insert("RenderTargetView", Keyword_RenderTargetView);
-		tst->Insert("return", Keyword_Return);
-		tst->Insert("register", Keyword_Register);
-		tst->Insert("row_major", Keyword_RowMajor);
-		tst->Insert("RWBuffer", Keyword_RWBuffer);
-		tst->Insert("RWByteAddressBuffer", Keyword_RWByteAddressBuffer);
-		tst->Insert("RWStructuredBuffer", Keyword_RWStructuredBuffer);
-		tst->Insert("RWTexture1D", Keyword_RWTexture1D);
-		tst->Insert("RWTexture1DArray", Keyword_RWTexture1DArray);
-		tst->Insert("RWTexture2D", Keyword_RWTexture2D);
-		tst->Insert("RWTexture2DArray", Keyword_RWTexture2DArray);
-		tst->Insert("RWTexture3D", Keyword_RWTexture3D);
-		tst->Insert("sample", Keyword_Sample);
-		tst->Insert("sampler", Keyword_Sampler);
-		tst->Insert("SamplerState", Keyword_SamplerState);
-		tst->Insert("SamplerComparisonState", Keyword_SamplerComparisonState);
-		tst->Insert("shared", Keyword_Shared);
-		tst->Insert("snorm", Keyword_Snorm);
-		tst->Insert("stateblock", Keyword_Stateblock);
-		tst->Insert("stateblock_state", Keyword_StateblockState);
-		tst->Insert("static", Keyword_Static);
-		tst->Insert("string", Keyword_String);
-		tst->Insert("struct", Keyword_Struct);
-		tst->Insert("switch", Keyword_Switch);
-		tst->Insert("StructuredBuffer", Keyword_StructuredBuffer);
-		tst->Insert("tbuffer", Keyword_Tbuffer);
-		tst->Insert("technique", Keyword_Technique);
-		tst->Insert("technique10", Keyword_Technique10);
-		tst->Insert("technique11", Keyword_Technique11);
-		tst->Insert("texture", Keyword_Texture);
-		tst->Insert("Texture1D", Keyword_Texture1D);
-		tst->Insert("Texture1DArray", Keyword_Texture1DArray);
-		tst->Insert("Texture2D", Keyword_Texture2D);
-		tst->Insert("Texture2DArray", Keyword_Texture2DArray);
-		tst->Insert("Texture2DMS", Keyword_Texture2DMS);
-		tst->Insert("Texture2DMSArray", Keyword_Texture2DMSArray);
-		tst->Insert("Texture3D", Keyword_Texture3D);
-		tst->Insert("TextureCube", Keyword_TextureCube);
-		tst->Insert("TextureCubeArray", Keyword_TextureCubeArray);
-		tst->Insert("true", Keyword_True);
-		tst->Insert("typedef", Keyword_Typedef);
-		tst->Insert("triangle", Keyword_Triangle);
-		tst->Insert("triangleadj", Keyword_Triangleadj);
-		tst->Insert("TriangleStream", Keyword_TriangleStream);
-		tst->Insert("uint", Keyword_Uint);
-		tst->Insert("uniform", Keyword_Uniform);
-		tst->Insert("unorm", Keyword_Unorm);
-		tst->Insert("unsigned", Keyword_Unsigned);
-		tst->Insert("vector", Keyword_Vector);
-		tst->Insert("vertexfragment", Keyword_Vertexfragment);
-		tst->Insert("VertexShader", Keyword_VertexShader);
-		tst->Insert("void", Keyword_Void);
-		tst->Insert("volatile", Keyword_Volatile);
-		tst->Insert("while", Keyword_While);
-		tst->Insert("operator", Keyword_Operator);
-		tst->Insert("implicit", Keyword_Implicit);
-		tst->Insert("explicit", Keyword_Explicit);
-		tst->Insert("using", Keyword_Using);
-		tst->Insert("private", Keyword_Private);
-		tst->Insert("protected", Keyword_Protected);
-		tst->Insert("internal", Keyword_Internal);
-		tst->Insert("public", Keyword_Public);
-		tst->Insert("#define", Keyword_PrepDefine);
-		tst->Insert("#if", Keyword_PrepIf);
-		tst->Insert("#elif", Keyword_PrepElif);
-		tst->Insert("#else", Keyword_PrepElse);
-		tst->Insert("#endif", Keyword_PrepEndif);
-		tst->Insert("#ifdef", Keyword_PrepIfdef);
-		tst->Insert("#ifndef", Keyword_PrepIfndef);
-		tst->Insert("#include", Keyword_PrepInclude);
-		tst->Insert("#error", Keyword_PrepError);
-		tst->Insert("#pragma", Keyword_PrepPragma);
+		t.Insert("AppendStructuredBuffer", Keyword_AppendStructuredBuffer);
+		t.Insert("asm", Keyword_Asm);
+		t.Insert("asm_fragment", Keyword_AsmFragment);
+		t.Insert("BlendState", Keyword_BlendState);
+		t.Insert("bool", Keyword_Bool);
+		t.Insert("break", Keyword_Break);
+		t.Insert("Buffer", Keyword_Buffer);
+		t.Insert("ByteAddressBuffer", Keyword_ByteAddressBuffer);
+		t.Insert("case", Keyword_Case);
+		t.Insert("cbuffer", Keyword_Cbuffer);
+		t.Insert("centroid", Keyword_Centroid);
+		t.Insert("class", Keyword_Class);
+		t.Insert("column_major", Keyword_ColumnMajor);
+		t.Insert("compile", Keyword_Compile);
+		t.Insert("compile_fragment", Keyword_CompileFragment);
+		t.Insert("CompileShader", Keyword_CompileShader);
+		t.Insert("const", Keyword_Const);
+		t.Insert("continue", Keyword_Continue);
+		t.Insert("ComputeShader", Keyword_ComputeShader);
+		t.Insert("ConsumeStructuredBuffer", Keyword_ConsumeStructuredBuffer);
+		t.Insert("default", Keyword_Default);
+		t.Insert("DepthStencilState", Keyword_DepthStencilState);
+		t.Insert("DepthStencilView", Keyword_DepthStencilView);
+		t.Insert("discard", Keyword_Discard);
+		t.Insert("do", Keyword_Do);
+		t.Insert("double", Keyword_Double);
+		t.Insert("DomainShader", Keyword_DomainShader);
+		t.Insert("dword", Keyword_Dword);
+		t.Insert("else", Keyword_Else);
+		t.Insert("export", Keyword_Export);
+		t.Insert("extern", Keyword_Extern);
+		t.Insert("false", Keyword_False);
+		t.Insert("float", Keyword_Float);
+		t.Insert("for", Keyword_For);
+		t.Insert("fxgroup", Keyword_Fxgroup);
+		t.Insert("GeometryShader", Keyword_GeometryShader);
+		t.Insert("groupshared", Keyword_Groupshared);
+		t.Insert("half", Keyword_Half);
+		t.Insert("Hullshader", Keyword_Hullshader);
+		t.Insert("if", Keyword_If);
+		t.Insert("in", Keyword_In);
+		t.Insert("inline", Keyword_Inline);
+		t.Insert("inout", Keyword_Inout);
+		t.Insert("InputPatch", Keyword_InputPatch);
+		t.Insert("int", Keyword_Int);
+		t.Insert("interface", Keyword_Interface);
+		t.Insert("line", Keyword_Line);
+		t.Insert("lineadj", Keyword_Lineadj);
+		t.Insert("linear", Keyword_Linear);
+		t.Insert("LineStream", Keyword_LineStream);
+		t.Insert("matrix", Keyword_Matrix);
+		t.Insert("min16float", Keyword_Min16float);
+		t.Insert("min10float", Keyword_Min10float);
+		t.Insert("min16int", Keyword_Min16int);
+		t.Insert("min12int", Keyword_Min12int);
+		t.Insert("min16uint", Keyword_Min16uint);
+		t.Insert("namespace", Keyword_Namespace);
+		t.Insert("nointerpolation", Keyword_NoInterpolation);
+		t.Insert("noperspective", Keyword_Noperspective);
+		t.Insert("NULL", Keyword_Null);
+		t.Insert("out", Keyword_Out);
+		t.Insert("OutputPatch", Keyword_OutputPatch);
+		t.Insert("packoffset", Keyword_Packoffset);
+		t.Insert("pass", Keyword_Pass);
+		t.Insert("pixelfragment", Keyword_Pixelfragment);
+		t.Insert("PixelShader", Keyword_PixelShader);
+		t.Insert("point", Keyword_Point);
+		t.Insert("PointStream", Keyword_PointStream);
+		t.Insert("precise", Keyword_Precise);
+		t.Insert("RasterizerState", Keyword_RasterizerState);
+		t.Insert("RenderTargetView", Keyword_RenderTargetView);
+		t.Insert("return", Keyword_Return);
+		t.Insert("register", Keyword_Register);
+		t.Insert("row_major", Keyword_RowMajor);
+		t.Insert("RWBuffer", Keyword_RWBuffer);
+		t.Insert("RWByteAddressBuffer", Keyword_RWByteAddressBuffer);
+		t.Insert("RWStructuredBuffer", Keyword_RWStructuredBuffer);
+		t.Insert("RWTexture1D", Keyword_RWTexture1D);
+		t.Insert("RWTexture1DArray", Keyword_RWTexture1DArray);
+		t.Insert("RWTexture2D", Keyword_RWTexture2D);
+		t.Insert("RWTexture2DArray", Keyword_RWTexture2DArray);
+		t.Insert("RWTexture3D", Keyword_RWTexture3D);
+		t.Insert("sample", Keyword_Sample);
+		t.Insert("sampler", Keyword_Sampler);
+		t.Insert("SamplerState", Keyword_SamplerState);
+		t.Insert("SamplerComparisonState", Keyword_SamplerComparisonState);
+		t.Insert("shared", Keyword_Shared);
+		t.Insert("snorm", Keyword_Snorm);
+		t.Insert("stateblock", Keyword_Stateblock);
+		t.Insert("stateblock_state", Keyword_StateblockState);
+		t.Insert("static", Keyword_Static);
+		t.Insert("string", Keyword_String);
+		t.Insert("struct", Keyword_Struct);
+		t.Insert("switch", Keyword_Switch);
+		t.Insert("StructuredBuffer", Keyword_StructuredBuffer);
+		t.Insert("tbuffer", Keyword_Tbuffer);
+		t.Insert("technique", Keyword_Technique);
+		t.Insert("technique10", Keyword_Technique10);
+		t.Insert("technique11", Keyword_Technique11);
+		t.Insert("texture", Keyword_Texture);
+		t.Insert("Texture1D", Keyword_Texture1D);
+		t.Insert("Texture1DArray", Keyword_Texture1DArray);
+		t.Insert("Texture2D", Keyword_Texture2D);
+		t.Insert("Texture2DArray", Keyword_Texture2DArray);
+		t.Insert("Texture2DMS", Keyword_Texture2DMS);
+		t.Insert("Texture2DMSArray", Keyword_Texture2DMSArray);
+		t.Insert("Texture3D", Keyword_Texture3D);
+		t.Insert("TextureCube", Keyword_TextureCube);
+		t.Insert("TextureCubeArray", Keyword_TextureCubeArray);
+		t.Insert("true", Keyword_True);
+		t.Insert("typedef", Keyword_Typedef);
+		t.Insert("triangle", Keyword_Triangle);
+		t.Insert("triangleadj", Keyword_Triangleadj);
+		t.Insert("TriangleStream", Keyword_TriangleStream);
+		t.Insert("uint", Keyword_Uint);
+		t.Insert("uniform", Keyword_Uniform);
+		t.Insert("unorm", Keyword_Unorm);
+		t.Insert("unsigned", Keyword_Unsigned);
+		t.Insert("vector", Keyword_Vector);
+		t.Insert("vertexfragment", Keyword_Vertexfragment);
+		t.Insert("VertexShader", Keyword_VertexShader);
+		t.Insert("void", Keyword_Void);
+		t.Insert("volatile", Keyword_Volatile);
+		t.Insert("while", Keyword_While);
+		t.Insert("operator", Keyword_Operator);
+		t.Insert("implicit", Keyword_Implicit);
+		t.Insert("explicit", Keyword_Explicit);
+		t.Insert("using", Keyword_Using);
+		t.Insert("private", Keyword_Private);
+		t.Insert("protected", Keyword_Protected);
+		t.Insert("internal", Keyword_Internal);
+		t.Insert("public", Keyword_Public);
+		//t.Insert("this", Keyword_This);
+		t.Insert("#define", Keyword_PrepDefine);
+		t.Insert("#if", Keyword_PrepIf);
+		t.Insert("#elif", Keyword_PrepElif);
+		t.Insert("#else", Keyword_PrepElse);
+		t.Insert("#endif", Keyword_PrepEndif);
+		t.Insert("#ifdef", Keyword_PrepIfdef);
+		t.Insert("#ifndef", Keyword_PrepIfndef);
+		t.Insert("#include", Keyword_PrepInclude);
+		t.Insert("#error", Keyword_PrepError);
+		t.Insert("#warning", Keyword_PrepWarning);
+		t.Insert("#pragma", Keyword_PrepPragma);
 	}
 }
 #endif

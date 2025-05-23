@@ -2,6 +2,7 @@
 
 namespace HXSL
 {
+	/*
 	bool FunctionInliner::TryMapOperand(ILOperand& operand)
 	{
 		if (operand.kind == ILOperandKind_Register)
@@ -129,4 +130,5 @@ namespace HXSL
 		auto& metadata = builder.GetMetadata();
 		metadata.RemoveFunc(funcSlot);
 	}
+	*/
 }

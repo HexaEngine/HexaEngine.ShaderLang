@@ -21,11 +21,31 @@ namespace HXSL
 			return static_cast<LogLevel>((value >> 62) + LogLevel_Info);
 		}
 
+		void SetLogLevel(LogLevel level)
+		{
+			value = (value & ~(0x3ull << 62ull)) | (static_cast<uint64_t>(level) << 62ull);
+		}
+
+		void ClearLogLevel()
+		{
+			value &= ~(0x3ull << 62ull);
+		}
+
 		std::string GetMessage() const;
 
 		std::string GetCodeString() const;
 
 		static DiagnosticCode Encode(LogLevel level, const std::string& codeId);
+
+		bool operator==(const DiagnosticCode& other) const
+		{
+			return value == other.value;
+		}
+
+		bool operator!=(const DiagnosticCode& other) const
+		{
+			return !(*this == other);
+		}
 	};
 }
 

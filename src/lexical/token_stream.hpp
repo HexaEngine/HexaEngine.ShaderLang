@@ -325,7 +325,7 @@ namespace HXSL
 			}
 			if (advance)
 			{
-				Advance();
+				TryAdvance();
 			}
 			return true;
 		}
@@ -358,7 +358,7 @@ namespace HXSL
 		}
 
 		template <typename... Args>
-		bool ExpectLiteral(TextSpan& literal, DiagnosticCode code, Args&&... args)
+		bool ExpectLiteral(TextSpan& literal, DiagnosticCode code = EXPECTED_LITERAL, Args&&... args)
 		{
 			Token token;
 			auto result = Expect(TokenType_Literal, token);

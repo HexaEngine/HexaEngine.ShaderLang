@@ -64,92 +64,9 @@ namespace HXSL
 			nodeCaller.dependencies.push_back(itCallee->second);
 		}
 
-		std::vector<std::vector<size_t>> ComputeSCCs()
+		std::vector<std::vector<size_t>> ComputeSCCs() const
 		{
-			SCCGraph<FCGNode<T>> graph;
-			return graph.ComputeSCCs(nodes);
-			size_t N = nodes.size();
-			std::vector<size_t> index(N, -1);
-			std::vector<size_t> boundary(N, -1);
-			std::vector<bool> onStack(N, false);
-			std::vector<std::vector<size_t>> sccs;
-
-			std::stack<size_t> S;
-			std::stack<size_t> P;
-
-			size_t currentIndex = 0;
-
-			struct Frame
-			{
-				size_t v;
-				size_t dep_i;
-				bool finished;
-				Frame(size_t v) : v(v), dep_i(0), finished(false) {}
-			};
-
-			std::stack<Frame> stackFrames;
-
-			for (size_t start = 0; start < N; ++start)
-			{
-				if (index[start] != -1)
-					continue;
-
-				stackFrames.push(start);
-
-				while (!stackFrames.empty())
-				{
-					Frame& frame = stackFrames.top();
-					size_t v = frame.v;
-
-					if (index[v] == -1)
-					{
-						index[v] = currentIndex++;
-						boundary[v] = S.size();
-						S.push(v);
-						P.push(boundary[v]);
-						onStack[v] = true;
-					}
-
-					if (frame.dep_i < nodes[v].dependencies.size())
-					{
-						size_t w = nodes[v].dependencies[frame.dep_i];
-						frame.dep_i++;
-
-						if (index[w] == -1)
-						{
-							stackFrames.push(w);
-							continue;
-						}
-						else if (onStack[w])
-						{
-							while (!P.empty() && P.top() > index[w])
-								P.pop();
-						}
-					}
-					else
-					{
-						if (!P.empty() && P.top() == boundary[v])
-						{
-							P.pop();
-
-							std::vector<size_t> scc;
-							size_t w;
-							do
-							{
-								w = S.top();
-								S.pop();
-								onStack[w] = false;
-								scc.push_back(w);
-							} while (w != v);
-
-							sccs.push_back(std::move(scc));
-						}
-						stackFrames.pop();
-					}
-				}
-			}
-
-			return sccs;
+			return SCCGraph<FCGNode<T>>::ComputeSCCs(nodes);
 		}
 	};
 }

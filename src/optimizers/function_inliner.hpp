@@ -1,12 +1,13 @@
 #ifndef FUNCTION_INLINER_HPP
 #define FUNCTION_INLINER_HPP
 
-#include "il/il_context.hpp"
+#include "pch/il.hpp"
 
 namespace HXSL
 {
 	class FunctionInliner
 	{
+		/*
 		ILBuilder& builder;
 		std::unordered_map<ILRegister, ILRegister> registerMap;
 		std::unordered_map<uint64_t, uint64_t> variableMap;
@@ -18,6 +19,7 @@ namespace HXSL
 	public:
 		FunctionInliner(ILBuilder& builder) : builder(builder) {}
 		void Inline(ILContext& ctx, uint64_t funcSlot);
+		*/
 	};
 }
 

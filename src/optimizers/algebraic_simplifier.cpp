@@ -3,53 +3,9 @@
 
 namespace HXSL
 {
-	static bool IsZero(const ILOperand& op)
-	{
-		if (!op.IsImm()) return false;
+	DEFINE_IMM_COMP(IsZero, 0);
 
-		auto& imm = op.imm;
-		switch (imm.Kind)
-		{
-		case NumberType_Int8: return imm.i8 == 0;
-		case NumberType_Int16: return imm.i16 == 0;
-		case NumberType_Int32: return imm.i32 == 0;
-		case NumberType_Int64: return imm.i64 == 0;
-		case NumberType_UInt8: return imm.u8 == 0;
-		case NumberType_UInt16: return imm.u16 == 0;
-		case NumberType_UInt32: return imm.u32 == 0;
-		case NumberType_UInt64: return imm.u64 == 0;
-		case NumberType_Half: return imm.half_ == 0.0f;
-		case NumberType_Float: return imm.float_ == 0.0f;
-		case NumberType_Double: return imm.double_ == 0.0;
-		default:
-			break;
-		}
-		return false;
-	}
-
-	static bool IsOne(const ILOperand& op)
-	{
-		if (!op.IsImm()) return false;
-
-		auto& imm = op.imm;
-		switch (imm.Kind)
-		{
-		case NumberType_Int8: return imm.i8 == 1;
-		case NumberType_Int16: return imm.i16 == 1;
-		case NumberType_Int32: return imm.i32 == 1;
-		case NumberType_Int64: return imm.i64 == 1;
-		case NumberType_UInt8: return imm.u8 == 1;
-		case NumberType_UInt16: return imm.u16 == 1;
-		case NumberType_UInt32: return imm.u32 == 1;
-		case NumberType_UInt64: return imm.u64 == 1;
-		case NumberType_Half: return imm.half_ == 1.0f;
-		case NumberType_Float: return imm.float_ == 1.0f;
-		case NumberType_Double: return imm.double_ == 1.0;
-		default:
-			break;
-		}
-		return false;
-	}
+	DEFINE_IMM_COMP(IsOne, 1);
 
 	static void ConvertToMove(ILInstruction& instr, const ILOperand& left)
 	{

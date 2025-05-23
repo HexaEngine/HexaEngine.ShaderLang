@@ -60,6 +60,8 @@ namespace HXSL
 
 		bool SymbolVisibilityChecks(const SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const;
 
+		bool TryResolveThis(SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
+
 		bool TryResolve(const SymbolTable* table, const StringSpan& name, const SymbolHandle& lookup, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
 		bool TryResolveFromRoot(const SymbolTable* table, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;

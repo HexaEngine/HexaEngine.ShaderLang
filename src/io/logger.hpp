@@ -3,16 +3,29 @@
 
 #include "config.h"
 #include "diagnostic_code.hpp"
+#include "utils/interval_tree.hpp"
 
 #include <fmt/core.h>
 #include "pch/std.hpp"
 
 namespace HXSL
 {
+	struct DiagnosticSuppressionRange
+	{
+		DiagnosticCode code;
+		size_t start;
+		size_t end;
+
+		explicit DiagnosticSuppressionRange(DiagnosticCode code, size_t start, size_t end) : code(code), start(start), end(end)
+		{
+		}
+	};
+
 	class ILogger
 	{
 	private:
 		std::vector<LogMessage> messages;
+		std::vector<DiagnosticSuppressionRange> suppressionRanges;
 		bool hasCriticalErrors;
 		int errorCount;
 
@@ -32,31 +45,11 @@ namespace HXSL
 			return messages;
 		}
 
-		void Log(LogLevel level, const std::string& message)
-		{
-			messages.push_back(std::move(LogMessage(level, message)));
+		void AddDiagnosticSuppressionRange(const DiagnosticSuppressionRange& range);
 
-			if (EnableErrorOutput)
-			{
-				std::cerr << "[" << ToString(level) << "]: " << message << std::endl;
-			}
+		void Log(LogLevel level, const std::string& message);
 
-			if (level == LogLevel_Critical)
-			{
-				hasCriticalErrors = true;
-				HXSL_ASSERT(false, message.c_str());
-			}
-			else if (level == LogLevel_Error)
-			{
-				errorCount++;
-				if (errorCount >= 100)
-				{
-					Log(LogLevel_Critical, "Too many errors encountered, stopping compilation!");
-				}
-			}
-		}
-
-		void Log(DiagnosticCode code, const std::string& message);
+		void Log(DiagnosticCode code, size_t location, const std::string& message);
 
 		template <typename T>
 		auto convert_to_cstr(T&& arg) -> decltype(std::forward<T>(arg))
@@ -75,46 +68,24 @@ namespace HXSL
 		}
 
 		template <typename... Args>
-		[[deprecated("Use DiagnosticCode overload")]]
-		void LogFormatted(LogLevel level, const std::string& format, Args&&... args)
-		{
-			const auto size_s = std::snprintf(nullptr, 0, format.data(), convert_to_cstr(args)...);
-
-			if (size_s <= 0)
-			{
-				return;
-			}
-
-			const auto size = static_cast<size_t>(size_s);
-			std::string buf;
-			buf.resize(size);
-
-			std::snprintf(buf.data(), size_s + 1, format.data(), convert_to_cstr(args)...);
-
-			Log(level, buf);
-		}
-
-		template <typename... Args>
 		void LogFormattedInternal(LogLevel level, const std::string& format, Args&&... args)
 		{
-			const auto size_s = std::snprintf(nullptr, 0, format.data(), convert_to_cstr(args)...);
+			auto view = fmt::string_view(format);
 
-			if (size_s <= 0)
-			{
-				return;
-			}
+			auto storedArgs = std::make_tuple(std::forward<Args>(args)...);
 
-			const auto size = static_cast<size_t>(size_s);
-			std::string buf;
-			buf.resize(size);
+			std::string formatted = std::apply(
+				[&](const auto&... unpacked) {
+					return fmt::vformat(view, fmt::make_format_args(unpacked...));
+				},
+				storedArgs
+			);
 
-			std::snprintf(buf.data(), size_s + 1, format.data(), convert_to_cstr(args)...);
-
-			Log(level, buf);
+			Log(level, formatted);
 		}
 
 		template <typename... Args>
-		void LogFormattedEx(DiagnosticCode code, const std::string& format, Args&&... args)
+		void LogFormattedEx(DiagnosticCode code, size_t location, const std::string& format, Args&&... args)
 		{
 			std::string formatFinal = code.GetMessage() + format;
 
@@ -129,7 +100,7 @@ namespace HXSL
 				storedArgs
 			);
 
-			Log(code, formatted);
+			Log(code, location, formatted);
 		}
 
 		~ILogger()

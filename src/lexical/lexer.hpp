@@ -66,7 +66,7 @@ namespace HXSL
 		template <typename... Args>
 		void LogFormatted(DiagnosticCode code, Args&&... args) const
 		{
-			context->logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., Line, Column);
+			context->logger->LogFormattedEx(code, Index, " (Line: {}, Column: {})", std::forward<Args>(args)..., Line, Column);
 		}
 
 		const char* Current() const noexcept

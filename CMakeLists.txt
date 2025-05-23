@@ -8,7 +8,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(MSVC)
-    add_compile_options(/W3 /Od /Zi /MP)
+    add_compile_options(/W3 /Zi /MP)
 else()
     add_compile_options(-Wall -Wextra -pedantic)
 endif()

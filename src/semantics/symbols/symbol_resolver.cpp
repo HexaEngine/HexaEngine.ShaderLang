@@ -191,6 +191,23 @@ namespace HXSL
 		return true;
 	}
 
+	bool SymbolResolver::TryResolveThis(SymbolHandle& outHandle, SymbolDef*& outDefinition) const
+	{
+		auto local = targetAssembly->GetSymbolTable();
+		for (auto it = stack.rbegin(); it != stack.rend(); ++it)
+		{
+			auto& scope = *it;
+			auto type = scope.Parent->GetType();
+			if (type == NodeType_Class || type == NodeType_Struct)
+			{
+				outDefinition = scope.Parent->As<SymbolDef>();
+				outHandle = outDefinition->GetSymbolHandle();
+				return true;
+			}
+		}
+		return false;
+	}
+
 	bool SymbolResolver::TryResolve(const SymbolTable* table, const StringSpan& name, const SymbolHandle& lookup, SymbolHandle& outHandle, SymbolDef*& outDefinition) const
 	{
 		auto handle = lookup.FindFullPath(name, table);
@@ -266,6 +283,19 @@ namespace HXSL
 				}
 			}
 
+			if (!silent)
+			{
+				analyzer.Log(SYMBOL_NOT_FOUND, span, name.str());
+			}
+			return nullptr;
+		}
+
+		if (name == "this")
+		{
+			if (TryResolveThis(outHandle, def))
+			{
+				return def;
+			}
 			if (!silent)
 			{
 				analyzer.Log(SYMBOL_NOT_FOUND, span, name.str());

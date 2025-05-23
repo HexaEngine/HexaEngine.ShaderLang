@@ -95,8 +95,6 @@ namespace HXSL
 
 	struct ILMetadata
 	{
-		ILTempVariableAllocator& tempAllocator;
-
 		std::vector<ILTypeMetadata> typeMetadata;
 		std::unordered_map<SymbolDef*, uint64_t> typeMap;
 
@@ -109,7 +107,9 @@ namespace HXSL
 
 		std::vector<PhiMetadata> phiMetadata;
 
-		ILMetadata(ILTempVariableAllocator& tempAllocator) : tempAllocator(tempAllocator)
+		std::vector<ILMapping> mappings;
+
+		ILMetadata()
 		{
 		}
 
@@ -209,6 +209,33 @@ namespace HXSL
 			access.typeId = static_cast<uint32_t>(RegType(type));
 			access.fieldId = static_cast<uint32_t>(type->GetFieldOffset(field));
 			return access;
+		}
+
+		const ILMapping* FindMappingForInstruction(size_t instrIndex) const
+		{
+			int low = 0;
+			int high = (int)mappings.size() - 1;
+
+			while (low <= high)
+			{
+				int mid = low + (high - low) / 2;
+				const ILMapping& m = mappings[mid];
+
+				if (instrIndex >= m.start && instrIndex < static_cast<size_t>(m.start) + m.len)
+				{
+					return &m;
+				}
+				else if (instrIndex < m.start)
+				{
+					high = mid - 1;
+				}
+				else
+				{
+					low = mid + 1;
+				}
+			}
+
+			return nullptr;
 		}
 	};
 

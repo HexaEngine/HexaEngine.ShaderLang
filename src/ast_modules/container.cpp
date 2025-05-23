@@ -37,21 +37,22 @@ namespace HXSL
 		fields.push_back(std::move(field));
 	}
 
-	void Container::TransferContentsTo(Container& target)
+	void Container::TransferContentsTo(Container& target, ContainerTransferFlags flags)
 	{
 		auto move_all_with_parent = [&target](auto& from, auto& to) {
 			for (auto& item : from)
 			{
+				item->SetCanonicalParent(item->GetParent());
 				item->SetParent(&target);
 				to.push_back(std::move(item));
 			}
 			from.clear();
 			};
 
-		move_all_with_parent(functions, target.GetFunctionsMut());
-		move_all_with_parent(operators, target.GetOperatorsMut());
-		move_all_with_parent(structs, target.GetStructsMut());
-		move_all_with_parent(classes, target.GetClassesMut());
-		move_all_with_parent(fields, target.GetFieldsMut());
+		if ((flags & ContainerTransferFlags_Functions) != 0) move_all_with_parent(functions, target.GetFunctionsMut());
+		if ((flags & ContainerTransferFlags_Operators) != 0) move_all_with_parent(operators, target.GetOperatorsMut());
+		if ((flags & ContainerTransferFlags_Structs) != 0) move_all_with_parent(structs, target.GetStructsMut());
+		if ((flags & ContainerTransferFlags_Classes) != 0) move_all_with_parent(classes, target.GetClassesMut());
+		if ((flags & ContainerTransferFlags_Fields) != 0) move_all_with_parent(fields, target.GetFieldsMut());
 	}
 }

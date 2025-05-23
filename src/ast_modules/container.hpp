@@ -6,6 +6,21 @@
 
 namespace HXSL
 {
+	enum ContainerTransferFlags : int
+	{
+		ContainerTransferFlags_None = 0,
+		ContainerTransferFlags_Functions = 1 << 0,
+		ContainerTransferFlags_Operators = 1 << 1,
+		ContainerTransferFlags_Structs = 1 << 2,
+		ContainerTransferFlags_Classes = 1 << 3,
+		ContainerTransferFlags_Enums = 1 << 4,
+		ContainerTransferFlags_Fields = 1 << 5,
+		ContainerTransferFlags_Default = ContainerTransferFlags_Functions | ContainerTransferFlags_Operators | ContainerTransferFlags_Structs | ContainerTransferFlags_Classes | ContainerTransferFlags_Enums,
+		ContainerTransferFlags_All = ContainerTransferFlags_Functions | ContainerTransferFlags_Operators | ContainerTransferFlags_Structs | ContainerTransferFlags_Classes | ContainerTransferFlags_Enums | ContainerTransferFlags_Fields,
+	};
+
+	DEFINE_FLAGS_OPERATORS(ContainerTransferFlags, int);
+
 	class Container : virtual public ASTNode, public IHasOperatorOverloads
 	{
 	protected:
@@ -84,7 +99,7 @@ namespace HXSL
 			return fields;
 		}
 
-		void TransferContentsTo(Container& target);
+		void TransferContentsTo(Container& target, ContainerTransferFlags flags);
 	};
 }
 

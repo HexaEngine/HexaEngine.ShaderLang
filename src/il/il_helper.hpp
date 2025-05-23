@@ -104,48 +104,50 @@ namespace HXSL
 				return OpCode_Vec4Divide;
 			}
 		}
+
+		return OpCode_Noop;
 	}
 
 	static ILOpKind PrimToOpKind(PrimitiveKind kind)
 	{
 		switch (kind)
 		{
-		case HXSL::PrimitiveKind_Bool:
+		case PrimitiveKind_Bool:
 			return ILOpKind_U8;
-		case HXSL::PrimitiveKind_Int:
+		case PrimitiveKind_Int:
 			return ILOpKind_I32;
-		case HXSL::PrimitiveKind_Float:
+		case PrimitiveKind_Float:
 			return ILOpKind_Float;
-		case HXSL::PrimitiveKind_UInt:
+		case PrimitiveKind_UInt:
 			return ILOpKind_U32;
-		case HXSL::PrimitiveKind_Double:
+		case PrimitiveKind_Double:
 			return ILOpKind_Double;
-		case HXSL::PrimitiveKind_Min8Float:
+		case PrimitiveKind_Min8Float:
 			return ILOpKind_Min8Float;
-		case HXSL::PrimitiveKind_Min10Float:
+		case PrimitiveKind_Min10Float:
 			return ILOpKind_Min10Float;
-		case HXSL::PrimitiveKind_Min16Float:
+		case PrimitiveKind_Min16Float:
 			return ILOpKind_Min16Float;
-		case HXSL::PrimitiveKind_Min12Int:
+		case PrimitiveKind_Min12Int:
 			return ILOpKind_Min12Int;
-		case HXSL::PrimitiveKind_Min16Int:
+		case PrimitiveKind_Min16Int:
 			return ILOpKind_Min16Int;
-		case HXSL::PrimitiveKind_Min16UInt:
+		case PrimitiveKind_Min16UInt:
 			return ILOpKind_Min16Uint;
-		case HXSL::PrimitiveKind_UInt8:
+		case PrimitiveKind_UInt8:
 			return ILOpKind_U8;
-		case HXSL::PrimitiveKind_Int16:
+		case PrimitiveKind_Int16:
 			return ILOpKind_I16;
-		case HXSL::PrimitiveKind_UInt16:
+		case PrimitiveKind_UInt16:
 			return ILOpKind_U16;
-		case HXSL::PrimitiveKind_Half:
+		case PrimitiveKind_Half:
 			return ILOpKind_Half;
-		case HXSL::PrimitiveKind_Int64:
+		case PrimitiveKind_Int64:
 			return ILOpKind_I64;
-		case HXSL::PrimitiveKind_UInt64:
+		case PrimitiveKind_UInt64:
 			return ILOpKind_U64;
 		default:
-			break;
+			return ILOpKind_None;
 		}
 	}
 
@@ -153,30 +155,30 @@ namespace HXSL
 	{
 		switch (type)
 		{
-		case HXSL::NumberType_Int8:
+		case NumberType_Int8:
 			return ILOpKind_I8;
-		case HXSL::NumberType_UInt8:
+		case NumberType_UInt8:
 			return ILOpKind_U8;
-		case HXSL::NumberType_Int16:
+		case NumberType_Int16:
 			return ILOpKind_I16;
-		case HXSL::NumberType_UInt16:
+		case NumberType_UInt16:
 			return ILOpKind_U16;
-		case HXSL::NumberType_Int32:
+		case NumberType_Int32:
 			return ILOpKind_I32;
-		case HXSL::NumberType_UInt32:
+		case NumberType_UInt32:
 			return ILOpKind_U32;
-		case HXSL::NumberType_Int64:
+		case NumberType_Int64:
 			return ILOpKind_I64;
-		case HXSL::NumberType_UInt64:
+		case NumberType_UInt64:
 			return ILOpKind_U64;
-		case HXSL::NumberType_Half:
+		case NumberType_Half:
 			return ILOpKind_Half;
-		case HXSL::NumberType_Float:
+		case NumberType_Float:
 			return ILOpKind_Float;
-		case HXSL::NumberType_Double:
+		case NumberType_Double:
 			return ILOpKind_Double;
 		default:
-			break;
+			return ILOpKind_None;
 		}
 	}
 
@@ -208,104 +210,6 @@ namespace HXSL
 			return true;
 		}
 		return false;
-	}
-
-	static std::string ToString(const ILOperand& operand, bool first, const ILMetadata& metadata)
-	{
-		std::ostringstream oss;
-		if (!first)
-		{
-			oss << ", ";
-		}
-
-		switch (operand.kind)
-		{
-		case ILOperandKind_Register:
-			oss << "%tmp" << operand.reg.id;
-			break;
-		case ILOperandKind_Immediate:
-			oss << operand.imm.ToString();
-			break;
-		case ILOperandKind_Variable:
-			oss << "%var" << (operand.varId & 0xFFFFFFFF) << "_" << (operand.varId >> 32);
-			break;
-		case ILOperandKind_Field:
-			oss << operand.field.typeId << "::" << operand.field.fieldId;
-			break;
-		case ILOperandKind_Label:
-			oss << "#loc_" << operand.varId;
-			break;
-		case ILOperandKind_Func:
-			oss << metadata.functions[operand.varId].func->GetName();
-			break;
-		case ILOperandKind_Type:
-			oss << metadata.typeMetadata[operand.varId].def->GetName();
-			break;
-		case ILOperandKind_Phi:
-		{
-			auto& phi = metadata.phiMetadata[operand.varId];
-			for (auto& p : phi.params)
-			{
-				oss << "[";
-				oss << "%var" << (p & 0xFFFFFFFF) << "_" << (p >> 32);
-				oss << "]";
-			}
-		}
-		break;
-		}
-
-		return oss.str();
-	}
-
-	static bool IsFlagSet(ILOpKind opKind, ILOpKind flag)
-	{
-		return (opKind & flag) != 0;
-	}
-
-	static std::string GetOpKindType(ILOpKind opKind)
-	{
-		opKind &= static_cast<ILOpKind>(ILOpKindTypeMask);
-		return OpKindToString(opKind);
-	}
-
-	static std::string ToString(const ILInstruction& instruction, const ILMetadata& metadata)
-	{
-		std::ostringstream oss;
-
-		if (instruction.operandResult.kind != ILOperandKind_Disabled)
-		{
-			oss << ToString(instruction.operandResult, true, metadata);
-			oss << " = ";
-		}
-
-		oss << OpCodeToString(instruction.opcode) + " ";
-
-		bool first = true;
-		if (instruction.operandLeft.kind != ILOperandKind_Disabled)
-		{
-			oss << ToString(instruction.operandLeft, first, metadata);
-			first = false;
-		}
-
-		if (instruction.operandRight.kind != ILOperandKind_Disabled)
-		{
-			oss << ToString(instruction.operandRight, first, metadata);
-			first = false;
-		}
-
-		if (IsFlagSet(instruction.opKind, ILOpKind_Const))
-		{
-			oss << " const";
-		}
-
-		if (IsFlagSet(instruction.opKind, ILOpKind_Precise))
-		{
-			oss << " precise";
-		}
-
-		oss << " " << GetOpKindType(instruction.opKind);
-
-		return oss.str();
 	}
 
 	static ILOpCode VecLoadOp(const ILVariable& var, uint32_t components, bool addressOf = false)
@@ -356,19 +260,23 @@ namespace HXSL
 	}
 
 #define DEFINE_CAST(field, type) \
-	switch (numType) { \
-	case NumberType_Int8: out.field = static_cast<type>(input.i8); return out; \
-	case NumberType_UInt8: out.field = static_cast<type>(input.u8); return out; \
-	case NumberType_Int16: out.field = static_cast<type>(input.i16); return out; \
-	case NumberType_UInt16: out.field = static_cast<type>(input.u16); return out; \
-	case NumberType_Int32: out.field = static_cast<type>(input.i32); return out; \
-	case NumberType_UInt32: out.field = static_cast<type>(input.i32); return out; \
-	case NumberType_Int64: out.field = static_cast<type>(input.i64); return out; \
-	case NumberType_UInt64: out.field = static_cast<type>(input.u64); return out; \
-	case NumberType_Half: out.field = static_cast<type>(input.half_); return out; \
-	case NumberType_Float: out.field = static_cast<type>(input.float_); return out; \
-	case NumberType_Double: out.field = static_cast<type>(input.double_); return out; \
-	default: return {}; }
+  __pragma(warning(push)) \
+  __pragma(warning(disable:4244)) \
+  switch (numType) { \
+    case NumberType_Int8: out.field = static_cast<type>(input.i8); return out; \
+    case NumberType_UInt8: out.field = static_cast<type>(input.u8); return out; \
+    case NumberType_Int16: out.field = static_cast<type>(input.i16); return out; \
+    case NumberType_UInt16: out.field = static_cast<type>(input.u16); return out; \
+    case NumberType_Int32: out.field = static_cast<type>(input.i32); return out; \
+    case NumberType_UInt32: out.field = static_cast<type>(input.u32); return out; \
+    case NumberType_Int64: out.field = static_cast<type>(input.i64); return out; \
+    case NumberType_UInt64: out.field = static_cast<type>(input.u64); return out; \
+    case NumberType_Half: out.field = static_cast<type>(input.half_); return out; \
+    case NumberType_Float: out.field = static_cast<type>(input.float_); return out; \
+    case NumberType_Double: out.field = static_cast<type>(input.double_); return out; \
+    default: return {}; \
+  } \
+  __pragma(warning(pop))
 
 	static Number Cast(Number input, ILOpKind kind)
 	{
@@ -539,6 +447,25 @@ namespace HXSL
 		default:
 			return false;
 		}
+	}
+
+#define DEFINE_IMM_COMP(name, value) \
+	static bool name##(const ILOperand& op) { \
+	if (!op.IsImm()) return false; auto& imm = op.imm; \
+	switch (imm.Kind) { \
+	case NumberType_Int8: return imm.i8 == value; \
+	case NumberType_Int16: return imm.i16 == value; \
+	case NumberType_Int32: return imm.i32 == value; \
+	case NumberType_Int64: return imm.i64 == value; \
+	case NumberType_UInt8: return imm.u8 == value; \
+	case NumberType_UInt16: return imm.u16 == value; \
+	case NumberType_UInt32: return imm.u32 == value; \
+	case NumberType_UInt64: return imm.u64 == value; \
+	case NumberType_Half: return imm.half_ == value; \
+	case NumberType_Float: return imm.float_ == value; \
+	case NumberType_Double: return imm.double_ == value; \
+	default: break; } \
+	return false; \
 	}
 }
 

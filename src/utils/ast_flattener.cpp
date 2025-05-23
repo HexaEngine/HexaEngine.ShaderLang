@@ -9,7 +9,7 @@ namespace HXSL
 		return std::move(compilationUnit);
 	}
 
-	TraversalBehavior ASTFlattener::Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context)
+	void ASTFlattener::VisitClose(ASTNode* node, size_t depth)
 	{
 		auto type = node->GetType();
 
@@ -18,23 +18,21 @@ namespace HXSL
 		case HXSL::NodeType_Namespace:
 		{
 			auto ns = node->As<Namespace>();
-			ns->TransferContentsTo(*compilationUnit.get());
+			ns->TransferContentsTo(*compilationUnit.get(), ContainerTransferFlags_All);
 		}
 		break;
 		case HXSL::NodeType_Struct:
 		{
 			auto str = node->As<Struct>();
-			str->TransferContentsTo(*compilationUnit.get());
+			str->TransferContentsTo(*compilationUnit.get(), ContainerTransferFlags_Default);
 		}
 		break;
 		case HXSL::NodeType_Class:
 		{
 			auto cls = node->As<Class>();
-			cls->TransferContentsTo(*compilationUnit.get());
+			cls->TransferContentsTo(*compilationUnit.get(), ContainerTransferFlags_Default);
 		}
 		break;
 		}
-
-		return TraversalBehavior_Keep;
 	}
 }

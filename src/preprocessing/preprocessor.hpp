@@ -163,6 +163,7 @@ namespace HXSL
 		std::unique_ptr<LexerStream> outputStream;
 		IfState ifState = IfState_None;
 		std::stack<IfState> ifStateStack;
+		std::vector<DiagnosticSuppressionRange> suppressionRanges;
 
 		void ParseMacroExpression(TokenStream& stream, Parser& parser, TokenCollection& tokens);
 

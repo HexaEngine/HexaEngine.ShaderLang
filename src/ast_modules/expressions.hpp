@@ -256,6 +256,11 @@ namespace HXSL
 			return operatorSymbol;
 		}
 
+		SymbolDef* GetOperatorDeclaration() const
+		{
+			return operatorSymbol->GetDeclaration();
+		}
+
 		const Operator& GetOperator() const noexcept override
 		{
 			return _operator;

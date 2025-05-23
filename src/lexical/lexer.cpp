@@ -1,6 +1,5 @@
 #include "lexer.hpp"
 #include "utils/text_helper.hpp"
-#include "utils/tst.hpp"
 #include "io/logger.hpp"
 #include "numbers.hpp"
 #include "pch/localization.hpp"
@@ -21,7 +20,7 @@ namespace HXSL
 
 		int keyword;
 		size_t keywordLength;
-		if (config->keywords.MatchLongestPrefix(state.AsSpan(), keyword, keywordLength) && keyword != 0)
+		if (config->keywords.Find(state.AsSpan(), keyword, keywordLength) && keyword != 0)
 		{
 			size_t wordLength = state.FindWordBoundary(i + keywordLength);
 			if (wordLength == 0)
@@ -33,7 +32,7 @@ namespace HXSL
 
 		int op;
 		size_t operatorLength;
-		if (config->operators.MatchLongestPrefix(state.AsSpan(), op, operatorLength))
+		if (config->operators.Find(state.AsSpan(), op, operatorLength))
 		{
 			// causes problems with -( for example, that's why we forward the delimiters.
 			size_t wordLength = state.FindOperatorBoundary(i + operatorLength, config->delimiters);
@@ -83,7 +82,7 @@ namespace HXSL
 			state.IndexNext += trackedLength + 4;
 
 			auto token = Token(state.AsTextSpan(i, trackedLength + 3), TokenType_Comment);
-			state.NewLine(lines);
+			state.NewLine(static_cast<uint32_t>(lines));
 			return token;
 		}
 

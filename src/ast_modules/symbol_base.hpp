@@ -194,6 +194,7 @@ namespace HXSL
 		SymbolRefType_Member,
 		SymbolRefType_Type,
 		SymbolRefType_ArrayType,
+		SymbolRefType_This,
 		SymbolRefType_Any,
 	};
 

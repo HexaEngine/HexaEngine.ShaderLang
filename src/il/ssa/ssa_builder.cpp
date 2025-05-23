@@ -67,9 +67,7 @@ namespace HXSL
 			MapTempRegister(instr);
 		}
 
-		DiscardMarkedInstructs(node);
-
-		auto& phiMetadata = builder.GetMetadata().phiMetadata;
+		auto& phiMetadata = metadata.phiMetadata;
 		for (auto succ : node.successors)
 		{
 			auto& succNode = cfg.GetNode(succ);
@@ -97,7 +95,7 @@ namespace HXSL
 
 	void SSABuilder::InsertPhiMeta(CFGNode& node, uint64_t varId, size_t& phiIdOut)
 	{
-		auto& globalMetadata = builder.GetMetadata();
+		auto& globalMetadata = metadata;
 		auto& phiMetadata = globalMetadata.phiMetadata;
 		size_t phiId = phiMetadata.size();
 		phiMetadata.emplace_back();

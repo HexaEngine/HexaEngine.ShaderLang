@@ -1,4 +1,5 @@
 #include "il_generator.hpp"
+#include "utils/ast_pruner.hpp"
 
 namespace HXSL
 {
@@ -8,7 +9,6 @@ namespace HXSL
 		{
 			auto ctx = std::make_unique<ILContext>(logger, func.get());
 			ctx->Build();
-			ctx->Print();
 
 			callGraph.AddFunction(ctx.get());
 
@@ -17,9 +17,17 @@ namespace HXSL
 			defMap.insert({ func.get(), idx });
 		}
 
+		if (logger->HasErrors())
+		{
+			return false;
+		}
+
+		ASTPruner pruner;
+		pruner.Prune(compilation);
+
 		for (auto& ctx : contexts)
 		{
-			auto& funcRefs = ctx->builder.GetMetadata().functions;
+			auto& funcRefs = ctx->GetMetadata().functions;
 			for (size_t i = 0; i < funcRefs.size(); ++i)
 			{
 				auto& funcRef = funcRefs[i];

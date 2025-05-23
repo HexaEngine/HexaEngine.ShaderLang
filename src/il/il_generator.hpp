@@ -2,8 +2,7 @@
 #define IL_GENERATOR_HPP
 
 #include "pch/ast.hpp"
-#include "il/il_context.hpp"
-#include "il/func_call_graph.hpp"
+#include "pch/il.hpp"
 
 namespace HXSL
 {

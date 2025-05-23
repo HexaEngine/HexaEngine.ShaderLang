@@ -1,17 +1,17 @@
 #ifndef IL_MUTATOR_BASE_HPP
 #define IL_MUTATOR_BASE_HPP
 
-#include "il_builder.hpp"
-#include "il/control_flow_graph.hpp"
+#include "il_metadata.hpp"
+#include "control_flow_graph.hpp"
 
 namespace HXSL
 {
 	class ILMutatorBase
 	{
 	protected:
-		ILBuilder& builder;
+		ILMetadata& metadata;
 		std::vector<size_t> discardList;
-		ILMutatorBase(ILBuilder& builder) : builder(builder) {}
+		ILMutatorBase(ILMetadata& metadata) : metadata(metadata) {}
 
 	public:
 		void DiscardMarkedInstructs(CFGNode& node)

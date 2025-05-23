@@ -195,6 +195,35 @@ namespace HXSL
 		{
 			return std::string(data + start, length);
 		}
+
+		std::string str(size_t start) const
+		{
+			if (start > length) throw std::out_of_range("start index was out of range.");
+
+			return std::string(data + this->start + start, length - start);
+		}
+
+		std::string str(size_t start, size_t length) const
+		{
+			if (start > length)
+				throw std::out_of_range("start index was out of range.");
+
+			if (start + length > this->length)
+				throw std::out_of_range("substring length out of range.");
+
+			return std::string(data + this->start + start, length);
+		}
+
+		bool operator==(const std::string& other) const
+		{
+			if (this->length != other.size()) return false;
+			return std::memcmp(this->begin(), other.c_str(), this->length * sizeof(char)) == 0;
+		}
+
+		bool operator!=(const std::string& other) const
+		{
+			return !(*this == other);
+		}
 	};
 }
 

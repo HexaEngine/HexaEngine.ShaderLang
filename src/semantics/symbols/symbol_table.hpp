@@ -190,7 +190,8 @@ namespace HXSL
 			StringSpan oldName = *node.Name.get();
 			auto& parent = nodes[node.ParentIndex];
 
-			if (parent.Children.find(newName) != parent.Children.end())
+			auto it = parent.Children.find(newName);
+			if (it != parent.Children.end() && it->second != index)
 			{
 				return false;
 			}

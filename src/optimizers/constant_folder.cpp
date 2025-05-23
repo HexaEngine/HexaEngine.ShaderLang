@@ -1,4 +1,5 @@
 #include "constant_folder.hpp"
+#include "il/il_helper.hpp"
 
 namespace HXSL
 {

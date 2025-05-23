@@ -1,13 +1,11 @@
 #ifndef CONSTANT_FOLDER_HPP
 #define CONSTANT_FOLDER_HPP
 
-#include "il/il_instruction.hpp"
-#include "il/il_mutator_base.hpp"
-#include "il/control_flow_graph.hpp"
+#include "pch/il.hpp"
 
 namespace HXSL
 {
-	class ConstantFolder : public ILMutatorBase, public CFGVisitor<EmptyCFGContext>
+	class ConstantFolder : public CFGVisitor<EmptyCFGContext>, ILMutatorBase
 	{
 		std::unordered_map<ILRegister, Number> constants;
 		std::unordered_map<uint64_t, Number> varConstants;
@@ -16,7 +14,7 @@ namespace HXSL
 		void TryFoldOperand(ILOperand& op);
 
 	public:
-		ConstantFolder(ControlFlowGraph& cfg, ILBuilder& builder) : ILMutatorBase(builder), CFGVisitor(cfg)
+		ConstantFolder(ControlFlowGraph& cfg, ILMetadata& metadata) : ILMutatorBase(metadata), CFGVisitor(cfg)
 		{
 		}
 

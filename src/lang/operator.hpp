@@ -2,7 +2,7 @@
 #define OPERATOR_HPP
 
 #include "pch/std.hpp"
-#include "utils/tst.hpp"
+#include "utils/radix_tree.hpp"
 
 namespace HXSL
 {
@@ -147,43 +147,44 @@ namespace HXSL
 		}
 	}
 
-	static void BuildOperatorTST(TernarySearchTreeDictionary<int>* tst) {
-		tst->Insert("+", Operator_Add);
-		tst->Insert("-", Operator_Subtract);
-		tst->Insert("*", Operator_Multiply);
-		tst->Insert("/", Operator_Divide);
-		tst->Insert("%", Operator_Modulus);
-		tst->Insert("=", Operator_Assign);
-		tst->Insert("+=", Operator_PlusAssign);
-		tst->Insert("-=", Operator_MinusAssign);
-		tst->Insert("*=", Operator_MultiplyAssign);
-		tst->Insert("/=", Operator_DivideAssign);
-		tst->Insert("%=", Operator_ModulusAssign);
-		tst->Insert("~", Operator_BitwiseNot);
-		tst->Insert("<<", Operator_BitwiseShiftLeft);
-		tst->Insert(">>", Operator_BitwiseShiftRight);
-		tst->Insert("&", Operator_BitwiseAnd);
-		tst->Insert("|", Operator_BitwiseOr);
-		tst->Insert("^", Operator_BitwiseXor);
-		tst->Insert("<<=", Operator_BitwiseShiftLeftAssign);
-		tst->Insert(">>=", Operator_BitwiseShiftRightAssign);
-		tst->Insert("&=", Operator_BitwiseAndAssign);
-		tst->Insert("|=", Operator_BitwiseOrAssign);
-		tst->Insert("^=", Operator_BitwiseXorAssign);
-		tst->Insert("&&", Operator_AndAnd);
-		tst->Insert("||", Operator_OrOr);
-		tst->Insert("?", Operator_Ternary);
-		tst->Insert(":", Operator_TernaryElse);
-		tst->Insert("<", Operator_LessThan);
-		tst->Insert(">", Operator_GreaterThan);
-		tst->Insert("==", Operator_Equal);
-		tst->Insert("!=", Operator_NotEqual);
-		tst->Insert("<=", Operator_LessThanOrEqual);
-		tst->Insert(">=", Operator_GreaterThanOrEqual);
-		tst->Insert("++", Operator_Increment);
-		tst->Insert("--", Operator_Decrement);
-		tst->Insert(".", Operator_MemberAccess);
-		tst->Insert("!", Operator_LogicalNot);
+	static void BuildOperatorRadix(RadixTree<int>& t) 
+	{
+		t.Insert("+", Operator_Add);
+		t.Insert("-", Operator_Subtract);
+		t.Insert("*", Operator_Multiply);
+		t.Insert("/", Operator_Divide);
+		t.Insert("%", Operator_Modulus);
+		t.Insert("=", Operator_Assign);
+		t.Insert("+=", Operator_PlusAssign);
+		t.Insert("-=", Operator_MinusAssign);
+		t.Insert("*=", Operator_MultiplyAssign);
+		t.Insert("/=", Operator_DivideAssign);
+		t.Insert("%=", Operator_ModulusAssign);
+		t.Insert("~", Operator_BitwiseNot);
+		t.Insert("<<", Operator_BitwiseShiftLeft);
+		t.Insert(">>", Operator_BitwiseShiftRight);
+		t.Insert("&", Operator_BitwiseAnd);
+		t.Insert("|", Operator_BitwiseOr);
+		t.Insert("^", Operator_BitwiseXor);
+		t.Insert("<<=", Operator_BitwiseShiftLeftAssign);
+		t.Insert(">>=", Operator_BitwiseShiftRightAssign);
+		t.Insert("&=", Operator_BitwiseAndAssign);
+		t.Insert("|=", Operator_BitwiseOrAssign);
+		t.Insert("^=", Operator_BitwiseXorAssign);
+		t.Insert("&&", Operator_AndAnd);
+		t.Insert("||", Operator_OrOr);
+		t.Insert("?", Operator_Ternary);
+		t.Insert(":", Operator_TernaryElse);
+		t.Insert("<", Operator_LessThan);
+		t.Insert(">", Operator_GreaterThan);
+		t.Insert("==", Operator_Equal);
+		t.Insert("!=", Operator_NotEqual);
+		t.Insert("<=", Operator_LessThanOrEqual);
+		t.Insert(">=", Operator_GreaterThanOrEqual);
+		t.Insert("++", Operator_Increment);
+		t.Insert("--", Operator_Decrement);
+		t.Insert(".", Operator_MemberAccess);
+		t.Insert("!", Operator_LogicalNot);
 	}
 
 	namespace Operators

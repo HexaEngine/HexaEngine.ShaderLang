@@ -77,6 +77,15 @@ namespace HXSL
 		virtual const ast_ptr<BlockStatement>& GetBody() const noexcept = 0;
 		virtual ~IHasBody() = default;
 	};
+
+	class IHasCanonicalParent
+	{
+	protected:
+		ASTNode* canonicalParent;
+	public:
+		ASTNode* GetCanonicalParent() const noexcept { return canonicalParent; }
+		void SetCanonicalParent(ASTNode* newParent) { canonicalParent = newParent; }
+	};
 }
 
 #endif

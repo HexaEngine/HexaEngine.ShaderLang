@@ -21,7 +21,7 @@ namespace HXSL
 					continue;
 				}
 
-				if (span == StringSpan("defined"))
+				if (span == "defined")
 				{
 					stream.Advance();
 					stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
@@ -113,7 +113,7 @@ namespace HXSL
 								continue;
 							}
 
-							if (span == StringSpan("defined"))
+							if (span == "defined")
 							{
 								stream.Advance();
 								stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
@@ -175,7 +175,7 @@ namespace HXSL
 
 		MakeMapping(start, end, 0, -1, true);
 
-		return PrepTransformResult::Skip;
+		return PrepTransformResult::Keep;
 	}
 
 	Number Preprocessor::EvalExpression(TokenStream& stream, Parser& parser)
@@ -190,7 +190,7 @@ namespace HXSL
 	{
 		bool found = false;
 		size_t depth = 1;
-		while (stream.TryAdvance())
+		do
 		{
 			auto current = stream.Current();
 			if (current.isKeyword())
@@ -226,12 +226,16 @@ namespace HXSL
 			{
 				stream.LogFormatted(EXPECTED_PREP_DIRECTIVE);
 			}
+			else if (current.isNewLine())
+			{
+				outputStream->Write("\n", 1);
+			}
 
 			if (found)
 			{
 				break;
 			}
-		}
+		} while (stream.TryAdvance());
 
 		if (found)
 		{
@@ -242,7 +246,7 @@ namespace HXSL
 			stream.LogFormatted(UNEXPECTED_EOS);
 		}
 
-		return PrepTransformResult::Skip;
+		return PrepTransformResult::Keep;
 	}
 
 	PrepTransformResult Preprocessor::HandleIfdef(TokenStream& stream, Parser& parser, bool negate)
@@ -367,17 +371,17 @@ namespace HXSL
 		LexerContext context = LexerContext(file, file->GetInputStream().get(), logger, HXSLLexerConfig::InstancePreprocess());
 		PrepTokenStream stream = PrepTokenStream(&context, outputStream.get());
 		Parser parser = Parser(logger, stream, nullptr);
-
 		auto result = PrepTransformResult::Keep;
-		auto current = stream.Current();
 		while (stream.CanAdvance())
 		{
 			stream.Advance();
-
 			do
 			{
+				auto current = stream.Current();
 				result = Transform(current, stream, parser);
+				current = stream.Current();
 				stream.SkipWhitespace(false);
+
 				while (result == PrepTransformResult::Keep)
 				{
 					if (current.isNewLine())
@@ -389,7 +393,6 @@ namespace HXSL
 					outputStream->Write(current.Span.span());
 					break;
 				}
-				current = stream.Current();
 			} while (result == PrepTransformResult::Loop);
 		}
 
@@ -469,8 +472,6 @@ namespace HXSL
 
 			StringSpan nameSpan = *symbol.name.get();
 			symbolTable.insert(std::make_pair(nameSpan, std::move(symbol)));
-
-			return PrepTransformResult::Skip;
 		}
 		break;
 		case Keyword_PrepIf:
@@ -489,7 +490,6 @@ namespace HXSL
 			{
 				return SkipPreprocessorBlock(stream, parser);
 			}
-			return PrepTransformResult::Skip;
 		}
 		break;
 		case Keyword_PrepElif:
@@ -499,7 +499,7 @@ namespace HXSL
 			if (ifStateStack.empty())
 			{
 				stream.LogFormatted(PREP_MISSING_IF);
-				return PrepTransformResult::Skip;
+				break;
 			}
 			else if ((ifState & IfState_BranchTaken) != 0)
 			{
@@ -515,7 +515,6 @@ namespace HXSL
 			{
 				return SkipPreprocessorBlock(stream, parser);
 			}
-			return PrepTransformResult::Skip;
 		}
 		break;
 		case Keyword_PrepElse:
@@ -525,13 +524,12 @@ namespace HXSL
 			if (ifStateStack.empty())
 			{
 				stream.LogFormatted(PREP_MISSING_IF);
-				return PrepTransformResult::Skip;
+				return PrepTransformResult::Keep;
 			}
 			else if ((ifState & IfState_BranchTaken) != 0)
 			{
 				return SkipPreprocessorBlock(stream, parser);
 			}
-			return PrepTransformResult::Skip;
 		}
 		break;
 		case Keyword_PrepEndif:
@@ -541,11 +539,10 @@ namespace HXSL
 			if (ifStateStack.empty())
 			{
 				stream.LogFormatted(PREP_MISSING_IF);
-				return PrepTransformResult::Skip;
+				return PrepTransformResult::Keep;
 			}
 			ifState = ifStateStack.top();
 			ifStateStack.pop();
-			return PrepTransformResult::Skip;
 		}
 		break;
 		case Keyword_PrepIfdef: return HandleIfdef(stream, parser, false);
@@ -553,13 +550,57 @@ namespace HXSL
 		case Keyword_PrepInclude:
 		{
 			TextSpan literal;
-			stream.ExpectLiteral(literal, EXPECTED_LITERAL);
+			stream.ExpectLiteral(literal);
 		}
 		break;
 		case Keyword_PrepError:
-			break;
+		{
+		}
+		break;
+		case Keyword_PrepWarning:
+		{
+		}
+		break;
 		case Keyword_PrepPragma:
-			break;
+		{
+			stream.SkipWhitespace(true);
+			stream.Advance();
+
+			TextSpan literal;
+			stream.ExpectIdentifier(literal);
+			auto span = literal.span();
+
+			if (span == "warning")
+			{
+				TextSpan op;
+				stream.ExpectIdentifier(op);
+				auto opSpan = op.span();
+
+				TextSpan code;
+				stream.ExpectIdentifier(code);
+
+				auto diagCode = DiagnosticCode::Encode(LogLevel_Warn, code.str());
+
+				if (opSpan == "disable")
+				{
+					suppressionRanges.push_back(DiagnosticSuppressionRange(diagCode, outputStream->GetPosition(), -1));
+				}
+				else if (opSpan == "restore")
+				{
+					for (size_t i = 0; i < suppressionRanges.size(); i++)
+					{
+						auto& supr = suppressionRanges[i];
+						if (supr.code == diagCode)
+						{
+							supr.end = outputStream->GetPosition();
+							logger->AddDiagnosticSuppressionRange(supr);
+							suppressionRanges.erase(suppressionRanges.begin() + i);
+						}
+					}
+				}
+			}
+		}
+		break;
 		}
 
 		return PrepTransformResult::Keep;

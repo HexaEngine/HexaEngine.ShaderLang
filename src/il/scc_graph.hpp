@@ -9,7 +9,7 @@ namespace HXSL
 	class SCCGraph
 	{
 	public:
-		std::vector<std::vector<size_t>> ComputeSCCs(const std::vector<T>& nodes)
+		static std::vector<std::vector<size_t>> ComputeSCCs(const std::vector<T>& nodes)
 		{
 			std::vector<std::vector<size_t>> sccs;
 

@@ -3,6 +3,7 @@
 
 #include "utils/text_helper.hpp"
 #include "pch/std.hpp"
+#include "utils/hashing.hpp"
 #include <utils/half.hpp>
 
 namespace HXSL
@@ -477,6 +478,36 @@ namespace HXSL
 			}
 
 			return oss.str();
+		}
+
+		uint64_t hash() const noexcept
+		{
+			XXHash3_64 hash{};
+
+			hash.Combine(Kind);
+
+			switch (Kind)
+			{
+			case NumberType_UInt8:  hash.Combine(u8);  break;
+			case NumberType_Int8:   hash.Combine(i8);  break;
+			case NumberType_Int16:  hash.Combine(i16); break;
+			case NumberType_UInt16: hash.Combine(u16); break;
+			case NumberType_Int32:  hash.Combine(i32); break;
+			case NumberType_UInt32: hash.Combine(u32); break;
+			case NumberType_Int64:  hash.Combine(i64); break;
+			case NumberType_UInt64: hash.Combine(u64); break;
+			case NumberType_Half:
+				hash.Combine(static_cast<uint16_t>(half_));
+				break;
+			case NumberType_Float:
+				hash.Combine(static_cast<uint32_t>(float_));
+				break;
+			case NumberType_Double:
+				hash.Combine(static_cast<uint64_t>(double_));
+				break;
+			}
+
+			return hash.Finalize();
 		}
 	};
 

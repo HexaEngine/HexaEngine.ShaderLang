@@ -1,34 +1,26 @@
 #ifndef IL_CONTEXT_HPP
 #define IL_CONTEXT_HPP
 
-#include "il/il_builder.hpp"
+#include "il_metadata.hpp"
+#include "control_flow_graph.hpp"
+#include "io/logger_interface.hpp"
 
 namespace HXSL
 {
-	struct ILContext
+	struct ILContext : LoggerAdapter
 	{
-		ILogger* logger;
 		FunctionOverload* overload;
-		ILBuilder builder = {};
+		ILMetadata metadata;
+		ControlFlowGraph cfg;
 		bool canInline = false;
 
-		ILContext(ILogger* logger, FunctionOverload* overload) : logger(logger), overload(overload)
+		ILContext(ILogger* logger, FunctionOverload* overload) : LoggerAdapter(logger), overload(overload), cfg(metadata)
 		{
 		}
 
-		template<typename... Args>
-		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
-		{
-			logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
-		}
-
-		ILMetadata& GetMetadata() { return builder.GetMetadata(); }
-
-		void Print() { builder.Print(); }
+		ILMetadata& GetMetadata() { return metadata; }
 
 		void Build();
-
-		void Fold();
 
 		void BuildCFG();
 

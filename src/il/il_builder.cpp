@@ -23,6 +23,7 @@ namespace HXSL
 		{
 			MappingStart();
 			auto decl = statement->As<DeclarationStatement>();
+			if (decl->GetDeclaredType() == nullptr) break;
 			auto init = decl->GetInitializer().get();
 
 			auto typeId = RegType(decl->GetDeclaredType());
@@ -229,13 +230,27 @@ namespace HXSL
 	{
 		stack.push(ILFrame(func->GetBody().get(), 0));
 
+		auto canonicalParent = func->GetCanonicalParent();
+		auto type = canonicalParent->GetType();
+
+		size_t parameterBase = 0;
+		/*
+		if (type == NodeType_Struct || type == NodeType_Class)
+		{
+			ast_ptr<ThisDef> thisDef = make_ast_ptr<ThisDef>(make_ast_ptr<SymbolRef>("", SymbolRefType_Type, false));
+			auto typeId = RegType(canonicalParent->As<SymbolDef>());
+			auto& varId = RegVar(typeId, param.get());
+			AddInstr(OpCode_LoadParam, Number(parameterBase), ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
+			parameterBase++;
+		}*/
+
 		auto& parameters = func->GetParameters();
 		for (size_t i = 0; i < parameters.size(); i++)
 		{
 			auto& param = parameters[i];
 			auto typeId = RegType(param->GetDeclaredType());
 			auto& varId = RegVar(typeId, param.get());
-			AddInstr(OpCode_LoadParam, Number(i), ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
+			AddInstr(OpCode_LoadParam, Number(parameterBase + i), ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
 		}
 
 		while (!stack.empty())

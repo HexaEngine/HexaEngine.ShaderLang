@@ -1,8 +1,7 @@
 #ifndef ALGEBRAIC_SIMPLIFIER_HPP
 #define ALGEBRAIC_SIMPLIFIER_HPP
 
-#include "il/control_flow_graph.hpp"
-#include "il/il_mutator_base.hpp"
+#include "pch/il.hpp"
 
 namespace HXSL
 {
@@ -10,7 +9,7 @@ namespace HXSL
 	{
 		bool changed = false;
 	public:
-		AlgebraicSimplifier(ILBuilder& builder, ControlFlowGraph& graph) : ILMutatorBase(builder), CFGVisitor(graph)
+		AlgebraicSimplifier(ControlFlowGraph& graph, ILMetadata& metadata) : ILMutatorBase(metadata), CFGVisitor(graph)
 		{
 		}
 

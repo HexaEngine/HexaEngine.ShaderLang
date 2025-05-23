@@ -60,13 +60,9 @@ namespace HXSL
 		void Read(Stream& stream, StringPool& container) override;
 
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
-
-		~Parameter() override
-		{
-		}
 	};
 
-	class FunctionOverload : public SymbolDef, public AttributeContainer
+	class FunctionOverload : public SymbolDef, public AttributeContainer, public IHasCanonicalParent
 	{
 	protected:
 		std::string cachedSignature;
@@ -363,7 +359,7 @@ namespace HXSL
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 	};
 
-	class Field : public SymbolDef, public IHasSymbolRef
+	class Field : public SymbolDef, public IHasSymbolRef, public IHasCanonicalParent
 	{
 	private:
 		AccessModifier accessModifiers;
@@ -425,9 +421,48 @@ namespace HXSL
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
 
-	class Struct : public Type, public Container
+	class ThisDef : public SymbolDef, public IHasSymbolRef
+	{
+		ast_ptr<SymbolRef> symbol = make_ast_ptr<SymbolRef>("", SymbolRefType_Type, false);
+
+	public:
+		ThisDef()
+			: ASTNode(TextSpan(), NodeType_ThisDef),
+			SymbolDef(TextSpan(), NodeType_ThisDef, "this")
+		{
+		}
+
+		void SetSymbolRef(ast_ptr<SymbolRef> ref)
+		{
+			symbol = std::move(ref);
+		}
+
+		ast_ptr<SymbolRef>& GetSymbolRef() override
+		{
+			return symbol;
+		}
+
+		SymbolType GetSymbolType() const override
+		{
+			return SymbolType_Variable;
+		}
+
+		SymbolDef* GetDeclaredType() const noexcept
+		{
+			return symbol->GetDeclaration();
+		}
+
+		void Write(Stream& stream) const override {}
+
+		void Read(Stream& stream, StringPool& container) override {}
+
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override {}
+	};
+
+	class Struct : public Type, public Container, public IHasCanonicalParent
 	{
 	private:
+		ast_ptr<ThisDef> thisDef = make_ast_ptr<ThisDef>();
 		AccessModifier accessModifiers;
 	public:
 		Struct()
@@ -437,6 +472,7 @@ namespace HXSL
 			accessModifiers(AccessModifier_Private)
 		{
 		}
+
 		Struct(TextSpan span, AccessModifier access, TextSpan name)
 			: Type(span, NodeType_Struct, name),
 			Container(span, NodeType_Struct),
@@ -457,6 +493,11 @@ namespace HXSL
 			return SymbolType_Struct;
 		}
 
+		const ast_ptr<ThisDef>& GetThisDef() const
+		{
+			return thisDef;
+		}
+
 		size_t GetFieldOffset(Field* field) const override;
 
 		void Write(Stream& stream) const override;
@@ -468,7 +509,7 @@ namespace HXSL
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
 
-	class Class : public Type, public Container
+	class Class : public Type, public Container, public IHasCanonicalParent
 	{
 	private:
 		AccessModifier accessModifiers;

@@ -5,6 +5,7 @@
 #include "pch/std.hpp"
 #include "lexical/text_span.hpp"
 #include "lexical/numbers.hpp"
+#include "utils/hashing.hpp"
 
 namespace HXSL
 {
@@ -97,90 +98,38 @@ namespace HXSL
 		OpCode_Vec4Divide,
 	};
 
-	static std::string OpCodeToString(ILOpCode opcode)
+	static bool IsCommutative(ILOpCode code)
 	{
-		switch (opcode)
+		switch (code)
 		{
-		case OpCode_Noop: return "nop";
-		case OpCode_Alloc: return "alloca";
-		case OpCode_Zero: return "zero";
-		case OpCode_Store: return "sta";
-		case OpCode_Load: return "lda";
-		case OpCode_LoadParam: return "ldarg";
-		case OpCode_OffsetAddress: return "offs";
-		case OpCode_AddressOf: return "addr";
-		case OpCode_Push: return "push";
-		case OpCode_Pop: return "pop";
-		case OpCode_Move: return "mov";
-		case OpCode_Cast: return "cast";
-		case OpCode_Return: return "ret";
-		case OpCode_Jump: return "jmp";
-		case OpCode_JumpZero: return "jz";
-		case OpCode_JumpNotZero: return "jnz";
-		case OpCode_CallBegin: return "cbeg";
-		case OpCode_CallEnd: return "cend";
-		case OpCode_StoreParam: return "starg";
-		case OpCode_Call: return "call";
+			// Arithmetic operations
+		case OpCode_Add:
+		case OpCode_Multiply:
 
-		case OpCode_Phi: return "phi";
+			// Logical operations
+		case OpCode_AndAnd:
+		case OpCode_OrOr:
 
-		case OpCode_Add: return "add";
-		case OpCode_Subtract: return "sub";
-		case OpCode_Multiply: return "mul";
-		case OpCode_Divide: return "div";
-		case OpCode_Modulus: return "rem";
-		case OpCode_BitwiseShiftLeft: return "bls";
-		case OpCode_BitwiseShiftRight: return "brs";
-		case OpCode_AndAnd: return "lgAnd";
-		case OpCode_OrOr: return "lgOr";
-		case OpCode_BitwiseAnd: return "bwAnd";
-		case OpCode_BitwiseOr: return "bwOr";
-		case OpCode_BitwiseXor: return "bwXor";
-		case OpCode_LessThan: return "lt";
-		case OpCode_LessThanOrEqual: return "ltq";
-		case OpCode_GreaterThan: return "gt";
-		case OpCode_GreaterThanOrEqual: return "gtq";
-		case OpCode_Equal: return "eq";
-		case OpCode_NotEqual: return "neq";
-		case OpCode_Increment: return "inc";
-		case OpCode_Decrement: return "dec";
-		case OpCode_LogicalNot: return "lgNot";
-		case OpCode_BitwiseNot: return "bwNot";
-		case OpCode_Negate: return "neg";
+			// Bitwise operations
+		case OpCode_BitwiseAnd:
+		case OpCode_BitwiseOr:
+		case OpCode_BitwiseXor:
 
-		case OpCode_Vec2Load: return "vec2_lda";
-		case OpCode_Vec2Store: return "vec2_sta";
-		case OpCode_Vec3Load: return "vec3_lda";
-		case OpCode_Vec3Store: return "vec3_sta";
-		case OpCode_Vec4Load: return "vec4_lda";
-		case OpCode_Vec4Store: return "vec4_sta";
+			// Comparison operations
+		case OpCode_Equal:
+		case OpCode_NotEqual:
 
-		case OpCode_VecExtract: return "v.extract";
+			// Vector operations
+		case OpCode_Vec2Add:
+		case OpCode_Vec2Multiply:
+		case OpCode_Vec3Add:
+		case OpCode_Vec3Multiply:
+		case OpCode_Vec4Add:
+		case OpCode_Vec4Multiply:
+			return true;
 
-		case OpCode_BroadcastVec2: return "vec2_bcast";
-		case OpCode_BroadcastVec3: return "vec3_bcast";
-		case OpCode_BroadcastVec4: return "vec4_bcast";
-
-		case OpCode_Vec2Swizzle: return "vec2_swiz";
-		case OpCode_Vec3Swizzle: return "vec3_swiz";
-		case OpCode_Vec4Swizzle: return "vec4_swiz";
-
-		case OpCode_Vec2Add: return "vec2_add";
-		case OpCode_Vec2Subtract: return "vec2_sub";
-		case OpCode_Vec2Multiply: return "vec2_mul";
-		case OpCode_Vec2Divide: return "vec2_div";
-
-		case OpCode_Vec3Add: return "vec3_add";
-		case OpCode_Vec3Subtract: return "vec3_sub";
-		case OpCode_Vec3Multiply: return "vec3_mul";
-		case OpCode_Vec3Divide: return "vec3_div";
-
-		case OpCode_Vec4Add: return "vec3_add";
-		case OpCode_Vec4Subtract: return "vec3_sub";
-		case OpCode_Vec4Multiply: return "vec3_mul";
-		case OpCode_Vec4Divide: return "vec3_div";
-
-		default: return "Unknown OpCode";
+		default:
+			return false;
 		}
 	}
 
@@ -197,22 +146,6 @@ namespace HXSL
 		ILOperandKind_Func,
 		ILOperandKind_Phi,
 	};
-
-	static std::string OperandKindToString(ILOperandKind kind)
-	{
-		switch (kind)
-		{
-		case ILOperandKind_Register: return "Register";
-		case ILOperandKind_Immediate: return "Immediate";
-		case ILOperandKind_Variable: return "Variable";
-		case ILOperandKind_Field: return "Field";
-		case ILOperandKind_Array: return "Array";
-		case ILOperandKind_Label: return "Label";
-		case ILOperandKind_Type: return "Type";
-		case ILOperandKind_Func: return "Func";
-		default: return "Unknown";
-		}
-	}
 
 	struct ILFieldAccess
 	{
@@ -231,32 +164,32 @@ namespace HXSL
 		}
 	};
 
-	static bool operator==(const ILRegister& a, const ILRegister& b)
+	inline static bool operator==(const ILRegister& a, const ILRegister& b)
 	{
 		return a.id == b.id;
 	}
 
-	static bool operator!=(const ILRegister& a, const ILRegister& b)
+	inline static bool operator!=(const ILRegister& a, const ILRegister& b)
 	{
 		return a.id != b.id;
 	}
 
-	static bool operator>(const ILRegister& a, const ILRegister& b)
+	inline static bool operator>(const ILRegister& a, const ILRegister& b)
 	{
 		return a.id > b.id;
 	}
 
-	static bool operator<(const ILRegister& a, const ILRegister& b)
+	inline static bool operator<(const ILRegister& a, const ILRegister& b)
 	{
 		return a.id < b.id;
 	}
 
-	static ILRegister operator++(ILRegister& a)
+	inline static ILRegister operator++(ILRegister& a)
 	{
 		return a.id++;
 	}
 
-	static ILRegister operator--(ILRegister& a)
+	inline static ILRegister operator--(ILRegister& a)
 	{
 		return a.id--;
 	}
@@ -284,7 +217,7 @@ namespace HXSL
 
 		ILOperand(ILFieldAccess f) : kind(ILOperandKind_Field), field(f) {}
 
-		ILOperand() : kind(ILOperandKind_Disabled) {}
+		ILOperand() : kind(ILOperandKind_Disabled), imm() {}
 
 		bool IsDisabled() const noexcept { return kind == ILOperandKind_Disabled; }
 
@@ -295,6 +228,34 @@ namespace HXSL
 		bool IsImm() const noexcept { return kind == ILOperandKind_Immediate; }
 
 		bool IsLabel() const noexcept { return kind == ILOperandKind_Label; }
+
+		uint64_t hash() const noexcept
+		{
+			XXHash3_64 hash{};
+			hash.Combine(kind);
+			switch (kind)
+			{
+			case ILOperandKind_Register:
+				hash.Combine(reg.id);
+				break;
+			case ILOperandKind_Immediate:
+				hash.Combine(imm.hash());
+				break;
+			case ILOperandKind_Variable:
+			case ILOperandKind_Type:
+			case ILOperandKind_Label:
+			case ILOperandKind_Func:
+			case ILOperandKind_Phi:
+				hash.Combine(varId);
+				break;
+			case ILOperandKind_Field:
+				hash.Combine(field.typeId);
+				hash.Combine(field.fieldId);
+				break;
+			}
+
+			return hash.Finalize();
+		}
 	};
 
 	static bool operator==(const ILOperand& a, const ILOperand& b)
@@ -311,14 +272,17 @@ namespace HXSL
 			return a.imm == b.imm;
 
 		case ILOperandKind_Variable:
+		case ILOperandKind_Type:
 		case ILOperandKind_Label:
+		case ILOperandKind_Func:
+		case ILOperandKind_Phi:
 			return a.varId == b.varId;
 
 		case ILOperandKind_Field:
 			return a.field.typeId == b.field.typeId && a.field.fieldId == b.field.fieldId;
 
 		case ILOperandKind_Disabled:
-			return true; // Both are disabled
+			return true;
 
 		default:
 			return false;
@@ -358,20 +322,44 @@ namespace HXSL
 		ILOpKind_Min16Uint = 17 << ILOpKindFlagBits,
 	};
 
-	inline static ILOpKind operator~(ILOpKind value) {
+	inline static ILOpKind operator~(ILOpKind value)
+	{
 		return (ILOpKind)~(uint32_t)value;
-	} inline static ILOpKind operator|(ILOpKind lhs, ILOpKind rhs) {
+	}
+
+	inline static ILOpKind operator|(ILOpKind lhs, ILOpKind rhs)
+	{
 		return (ILOpKind)((uint32_t)lhs | (uint32_t)rhs);
-	} inline static ILOpKind operator&(ILOpKind lhs, ILOpKind rhs) {
+	}
+
+	inline static ILOpKind operator&(ILOpKind lhs, ILOpKind rhs)
+	{
 		return (ILOpKind)((uint32_t)lhs & (uint32_t)rhs);
-	} inline static ILOpKind operator^(ILOpKind lhs, ILOpKind rhs) {
+	}
+
+	inline static ILOpKind operator^(ILOpKind lhs, ILOpKind rhs)
+	{
 		return (ILOpKind)((uint32_t)lhs ^ (uint32_t)rhs);
-	} inline static ILOpKind& operator|=(ILOpKind& lhs, ILOpKind rhs) {
+	}
+
+	inline static ILOpKind& operator|=(ILOpKind& lhs, ILOpKind rhs)
+	{
 		return (ILOpKind&)((uint32_t&)lhs |= (uint32_t)rhs);
-	} inline static ILOpKind& operator&=(ILOpKind& lhs, ILOpKind rhs) {
+	}
+
+	inline static ILOpKind& operator&=(ILOpKind& lhs, ILOpKind rhs)
+	{
 		return (ILOpKind&)((uint32_t&)lhs &= (uint32_t)rhs);
-	} inline static ILOpKind& operator^=(ILOpKind& lhs, ILOpKind rhs) {
+	}
+
+	inline static ILOpKind& operator^=(ILOpKind& lhs, ILOpKind rhs)
+	{
 		return (ILOpKind&)((uint32_t&)lhs ^= (uint32_t)rhs);
+	}
+
+	static bool IsFlagSet(ILOpKind opKind, ILOpKind flag)
+	{
+		return (opKind & flag) != 0;
 	}
 
 	struct ILInstruction
@@ -411,33 +399,50 @@ namespace HXSL
 		bool IsImmReg(ILOpCode code) const noexcept { return opcode == code && IsImmReg(); }
 
 		bool IsRegImm(ILOpCode code) const noexcept { return opcode == code && IsRegImm(); }
-	};
 
-	static std::string OpKindToString(ILOpKind opKind)
-	{
-		switch (opKind)
+		uint64_t hash() const noexcept
 		{
-		case ILOpKind_None: return "";
-		case ILOpKind_I8: return "i8";
-		case ILOpKind_I16: return "i16";
-		case ILOpKind_I32: return "i32";
-		case ILOpKind_I64: return "i64";
-		case ILOpKind_U8: return "u8";
-		case ILOpKind_U16: return "u16";
-		case ILOpKind_U32: return "u32";
-		case ILOpKind_U64: return "u64";
-		case ILOpKind_Half: return "f16";
-		case ILOpKind_Float: return "f32";
-		case ILOpKind_Double: return "f64";
-		case ILOpKind_Min8Float: return "m8f";
-		case ILOpKind_Min10Float: return "m10f";
-		case ILOpKind_Min16Float: return "m16f";
-		case ILOpKind_Min12Int: return "m12i";
-		case ILOpKind_Min16Int: return "m16i";
-		case ILOpKind_Min16Uint: return "m16u";
-		default: return "Unknown OpKind";
+			XXHash3_64 hash{};
+			hash.Combine(opcode);
+			hash.Combine(opKind);
+
+			uint64_t leftHash = operandLeft.hash();
+			uint64_t rightHash = operandRight.hash();
+
+			if (IsCommutative(opcode) && leftHash > rightHash)
+			{
+				std::swap(leftHash, rightHash);
+			}
+
+			hash.Combine(leftHash);
+			hash.Combine(rightHash);
+
+			return hash.Finalize();
 		}
-	}
+
+		bool operator==(const ILInstruction& other) const noexcept
+		{
+			if (opcode != other.opcode || opKind != other.opKind)
+			{
+				return false;
+			}
+
+			if (operandLeft != other.operandLeft || operandRight != other.operandRight)
+			{
+				if (!IsCommutative(opcode) || operandLeft != other.operandRight || operandRight != other.operandLeft)
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool operator!=(const ILInstruction& other)
+		{
+			return !(*this == other);
+		}
+	};
 
 	struct ILMapping
 	{
@@ -460,6 +465,24 @@ namespace std
 		size_t operator()(const HXSL::ILRegister& reg) const noexcept
 		{
 			return hash<uint64_t>{}(reg.id);
+		}
+	};
+
+	template <>
+	struct hash<HXSL::ILOperand>
+	{
+		size_t operator()(const HXSL::ILOperand& op) const noexcept
+		{
+			return static_cast<size_t>(op.hash());
+		}
+	};
+
+	template <>
+	struct hash<HXSL::ILInstruction>
+	{
+		size_t operator()(const HXSL::ILInstruction& instr) const noexcept
+		{
+			return static_cast<size_t>(instr.hash());
 		}
 	};
 }

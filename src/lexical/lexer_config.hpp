@@ -2,6 +2,7 @@
 #define LEXER_CONFIG_HPP
 
 #include "utils/tst.hpp"
+#include "utils/radix_tree.hpp"
 #include "pch/std.hpp"
 
 namespace HXSL
@@ -12,14 +13,14 @@ namespace HXSL
 		bool enableNewline;
 		bool enableWhitespace;
 		std::unordered_set<char> delimiters;
-		TernarySearchTreeDictionary<int> keywords;
-		TernarySearchTreeDictionary<int> operators;
+		RadixTree<int> keywords;
+		RadixTree<int> operators;
 
 		LexerConfig() : enableNewline(false), enableWhitespace(false)
 		{
 		}
 
-		LexerConfig(bool enableNewline, bool enableWhitespace, bool specialParseTreatIdentiferAsLiteral, const std::unordered_set<char>& delimiters, const TernarySearchTreeDictionary<int>& keywords, const TernarySearchTreeDictionary<int>& operators)
+		LexerConfig(bool enableNewline, bool enableWhitespace, bool specialParseTreatIdentiferAsLiteral, const std::unordered_set<char>& delimiters, const RadixTree<int>& keywords, const RadixTree<int>& operators)
 			: enableNewline(enableNewline), enableWhitespace(enableWhitespace), delimiters(delimiters), keywords(keywords), operators(operators)
 		{
 		}

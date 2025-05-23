@@ -2,11 +2,7 @@
 #define IL_EXPRESSION_BUILDER_HPP
 
 #include "pch/ast.hpp"
-#include "il_instruction.hpp"
-#include "il_container.hpp"
-#include "il_metadata.hpp"
-#include "jump_table.hpp"
-
+#include "pch/il.hpp"
 #include "il_temp_var_allocator.hpp"
 
 namespace HXSL
@@ -87,8 +83,9 @@ namespace HXSL
 		void OperatorCall(OperatorOverload* op, const ILOperand& left, const ILOperand& right, const ILOperand& result);
 		void OperatorCall(BinaryExpression* binary, const ILOperand& left, const ILOperand& right, const ILOperand& result)
 		{
-			auto op = binary->GetOperatorSymbolRef()->GetDeclaration()->As<OperatorOverload>();
-			return OperatorCall(op, left, right, result);
+			auto op = binary->GetOperatorDeclaration();
+			if (op == nullptr) return;
+			return OperatorCall(op->As<OperatorOverload>(), left, right, result);
 		}
 		ILRegister TraverseExpression(Expression* expression, const ILOperand& outOperand = INVALID_REGISTER);
 	};

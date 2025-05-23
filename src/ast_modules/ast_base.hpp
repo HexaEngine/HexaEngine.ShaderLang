@@ -63,6 +63,7 @@ namespace HXSL
 		NodeType_OperatorOverload,
 		NodeType_Constructor, // Placeholder (Will be added in the future.)
 		NodeType_Parameter,
+		NodeType_ThisDef,
 		NodeType_SwizzleDefinition,
 		NodeType_AttributeDeclaration,
 

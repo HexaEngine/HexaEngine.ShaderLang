@@ -1,27 +1,31 @@
 #include "il_context.hpp"
+#include "il_builder.hpp"
+#include "control_flow_graph.hpp"
+#include "control_flow_analyzer.hpp"
+
 #include "optimizers/constant_folder.hpp"
 #include "optimizers/algebraic_simplifier.hpp"
+#include "optimizers/strength_reduction.hpp"
+#include "optimizers/common_sub_expression.hpp"
 #include "optimizers/function_inliner.hpp"
-#include "il/control_flow_graph.hpp"
-#include "il/control_flow_analyzer.hpp"
+
 #include "ssa/ssa_builder.hpp"
 
 namespace HXSL
 {
 	void ILContext::Build()
 	{
-		builder.Build(overload);
-	}
+		ILContainer container = {};
+		JumpTable jumpTable = {};
 
-	void ILContext::Fold()
-	{
+		ILBuilder builder = ILBuilder(container, metadata, jumpTable);
+		builder.Build(overload);
+
+		cfg.Build(container, jumpTable);
 	}
 
 	void ILContext::BuildCFG()
 	{
-		ControlFlowGraph cfg(builder);
-		cfg.Build();
-
 		bool changed = false;
 		auto& nodes = cfg.GetNodes();
 		for (size_t i = 1; i < nodes.size(); i++)
@@ -33,7 +37,7 @@ namespace HXSL
 				TextSpan span;
 				for (size_t j = 0; j < node.instructions.size(); j++)
 				{
-					auto map = builder.FindMappingForInstruction(instr + j);
+					auto map = metadata.FindMappingForInstruction(instr + j);
 					if (map)
 					{
 						if (j != 0)
@@ -60,48 +64,38 @@ namespace HXSL
 			cfg.RebuildDomTree();
 		}
 
-		SSABuilder ssaBuilder = SSABuilder(builder, cfg);
+		SSABuilder ssaBuilder = SSABuilder(metadata, cfg);
 		ssaBuilder.Build();
 
-		while (true)
+		for (size_t i = 0; i < 10; i++)
 		{
-			cfg.Print(builder.GetMetadata());
-			ConstantFolder folder(cfg, builder);
+			cfg.Print();
+			ConstantFolder folder(cfg, metadata);
 			folder.Traverse();
 
-			AlgebraicSimplifier algSimp(builder, cfg);
+			AlgebraicSimplifier algSimp(cfg, metadata);
 			algSimp.Traverse();
 			if (algSimp.HasChanged())
 			{
 				continue;
 			}
 
-			break;
+			StrengthReduction sr(cfg, metadata);
+			sr.Traverse();
+
+			CommonSubExpression cse(cfg, metadata);
+			cse.Traverse();
 		}
 
-		cfg.Print(builder.GetMetadata());
+		cfg.Print();
 		return;
 	}
 
 	void ILContext::UpdateState()
 	{
-		auto& container = builder.GetContainer();
-		auto& metadata = builder.GetMetadata();
-		canInline = builder.GetContainer().size() < 10;
-		for (auto& refFunc : metadata.functions)
-		{
-			if (refFunc.func == overload)
-			{
-				canInline = false;
-				break;
-			}
-		}
 	}
 
 	void ILContext::TryInline(ILContext& ctx, uint64_t funcSlot)
 	{
-		if (!ctx.canInline) return;
-		FunctionInliner inliner = FunctionInliner(builder);
-		inliner.Inline(ctx, funcSlot);
 	}
 }

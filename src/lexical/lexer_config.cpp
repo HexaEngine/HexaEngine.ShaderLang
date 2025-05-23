@@ -11,15 +11,15 @@ namespace HXSL
 	static void Init()
 	{
 		mainConfig = std::make_unique<LexerConfig>();
-		BuildKeywordTST(&mainConfig->keywords);
-		BuildOperatorTST(&mainConfig->operators);
+		BuildKeywordRadix(mainConfig->keywords);
+		BuildOperatorRadix(mainConfig->operators);
 		mainConfig->delimiters = { '{', '}', '[', ']', '(', ')', ',', ';', '#', '@' };
 
 		preprocessorConfig = std::make_unique<LexerConfig>();
 		preprocessorConfig->enableNewline = true;
 		preprocessorConfig->enableWhitespace = true;
-		BuildKeywordTST(&preprocessorConfig->keywords);
-		BuildOperatorTST(&preprocessorConfig->operators);
+		BuildKeywordRadix(preprocessorConfig->keywords);
+		BuildOperatorRadix(preprocessorConfig->operators);
 		preprocessorConfig->delimiters = { '{', '}', '[', ']', '(', ')', ',', ';', '#', '@' };
 	}
 

@@ -1,9 +1,7 @@
-#ifndef TERNARY_SEARCH_TREE_DICTIONARY_H
-#define TERNARY_SEARCH_TREE_DICTIONARY_H
+#ifndef TERNARY_SEARCH_TREE_DICTIONARY_HPP
+#define TERNARY_SEARCH_TREE_DICTIONARY_HPP
 
-#include "allocator.h"
 #include "span.hpp"
-
 #include "pch/std.hpp"
 
 namespace HXSL
@@ -16,15 +14,15 @@ namespace HXSL
 	private:
 		struct Node
 		{
-			size_t ParentIndex;
-			char SplitChar;
-			size_t Left;
-			size_t Middle;
-			size_t Right;
-			T Value;
+			size_t parentIndex;
+			char splitChar;
+			size_t left;
+			size_t middle;
+			size_t right;
+			T value;
 
-			Node(size_t parentIndex, char splitChar, T value)
-				: ParentIndex(parentIndex), SplitChar(splitChar), Left(TST_INVALID_INDEX), Middle(TST_INVALID_INDEX), Right(TST_INVALID_INDEX), Value(value)
+			Node(size_t parentIndex, char splitChar, const T& value)
+				: parentIndex(parentIndex), splitChar(splitChar), left(TST_INVALID_INDEX), middle(TST_INVALID_INDEX), right(TST_INVALID_INDEX), value(value)
 			{
 			}
 		};
@@ -52,12 +50,12 @@ namespace HXSL
 				if (parentIndex != -1)
 				{
 					auto parent = &nodes[parentIndex];
-					if (parent->Right == last)
-						parent->Right = index;
-					if (parent->Middle == last)
-						parent->Middle = index;
-					if (parent->Left == last)
-						parent->Left = index;
+					if (parent->right == last)
+						parent->right = index;
+					if (parent->middle == last)
+						parent->middle = index;
+					if (parent->left == last)
+						parent->left = index;
 				}
 			}
 
@@ -70,44 +68,44 @@ namespace HXSL
 			{
 				Node node = nodes[index];
 
-				if (node.SplitChar == '\0')
+				if (node.splitChar == '\0')
 				{
-					node.SplitChar = c;
+					node.splitChar = c;
 
 					size_t newIndex = AddNode(index, '\0');
-					node.Middle = newIndex;
+					node.middle = newIndex;
 
 					nodes[index] = node;
 
 					return newIndex;
 				}
 
-				if (c < node.SplitChar)
+				if (c < node.splitChar)
 				{
-					if (node.Left == -1)
+					if (node.left == -1)
 					{
-						node.Left = AddNode(index, '\0');
+						node.left = AddNode(index, '\0');
 						nodes[index] = node;
 					}
-					index = node.Left;
+					index = node.left;
 				}
-				else if (c > node.SplitChar)
+				else if (c > node.splitChar)
 				{
-					if (node.Right == -1)
+					if (node.right == -1)
 					{
-						node.Right = AddNode(index, '\0');
+						node.right = AddNode(index, '\0');
 						nodes[index] = node;
 					}
-					index = node.Right;
+					index = node.right;
 				}
 				else
 				{
-					if (node.Middle == -1)
+					if (node.middle == -1)
 					{
-						node.Middle = AddNode(index, '\0');
+						node.middle = AddNode(index, '\0');
 						nodes[index] = node;
 					}
-					return node.Middle;
+					return node.middle;
 				}
 			}
 		}
@@ -124,40 +122,40 @@ namespace HXSL
 				Node node = nodes[index];
 				char c = key[i];
 
-				if (c < node.SplitChar)
+				if (c < node.splitChar)
 				{
-					if (node.Left == -1)
+					if (node.left == TST_INVALID_INDEX)
 					{
 						break;
 					}
 
-					index = node.Left;
+					index = node.left;
 				}
-				else if (c > node.SplitChar)
+				else if (c > node.splitChar)
 				{
-					if (node.Right == -1)
+					if (node.right == TST_INVALID_INDEX)
 					{
 						break;
 					}
 
-					index = node.Right;
+					index = node.right;
 				}
 				else
 				{
 					i++;
 
-					if (node.Middle == -1)
+					if (node.middle == TST_INVALID_INDEX)
 					{
 						break;
 					}
 
-					lastMatchedIndex = node.Middle;
+					lastMatchedIndex = node.middle;
 					matchedLength = i;
-					index = node.Middle;
+					index = node.middle;
 				}
 			}
 
-			if (lastMatchedIndex != -1)
+			if (lastMatchedIndex != TST_INVALID_INDEX)
 			{
 				nodeIndex = lastMatchedIndex;
 				return true;
@@ -184,7 +182,7 @@ namespace HXSL
 
 		void ShrinkToFit()
 		{
-			nodes.resize(nodes.size());
+			nodes.shrink_to_fit();
 		}
 
 		void Clear()
@@ -210,19 +208,19 @@ namespace HXSL
 			while (index != -1)
 			{
 				const Node& node = nodes[index];
-				if (equals(node.Value, defaultValue) && node.Left == -1 && node.Middle == -1 && node.Right == -1)
+				if (equals(node.value, defaultValue) && node.left == -1 && node.middle == -1 && node.right == -1)
 				{
 					size_t parentIndex = node.ParentIndex;
 
 					if (parentIndex != -1)
 					{
 						Node& parent = nodes[parentIndex];
-						if (parent.Left == index)
-							parent.Left = -1;
-						if (parent.Middle == index)
-							parent.Middle = -1;
-						if (parent.Right == index)
-							parent.Right = -1;
+						if (parent.left == index)
+							parent.left = -1;
+						if (parent.middle == index)
+							parent.middle = -1;
+						if (parent.right == index)
+							parent.right = -1;
 					}
 
 					RemoveNode(index);
@@ -248,7 +246,7 @@ namespace HXSL
 			}
 		}
 
-		void Insert(const StringSpan& key, T value)
+		void Insert(const StringSpan& key, const T& value)
 		{
 			size_t index = 0;
 
@@ -257,7 +255,7 @@ namespace HXSL
 				index = InsertChar(index, c);
 			}
 
-			nodes[index].Value = value;
+			nodes[index].value = value;
 		}
 
 		bool MatchLongestPrefix(const StringSpan& text, T& value, size_t& matchedLength) const
@@ -273,7 +271,7 @@ namespace HXSL
 			if (LookupNode(text, nodeIndex, matchedLength))
 			{
 				auto& node = nodes[nodeIndex];
-				value = node.Value;
+				value = node.value;
 				return true;
 			}
 			value = defaultValue;
@@ -288,7 +286,7 @@ namespace HXSL
 			{
 				throw std::runtime_error("Key not found.");
 			}
-			return nodes[index].Value;
+			return nodes[index].value;
 		}
 	};
 }

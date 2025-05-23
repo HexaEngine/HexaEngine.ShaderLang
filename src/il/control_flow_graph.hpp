@@ -2,9 +2,12 @@
 #define CONTROL_FLOW_GRAPH_HPP
 
 #include "pch/ast.hpp"
-#include "il/il_instruction.hpp"
-#include "il/il_container.hpp"
-#include "il/il_builder.hpp"
+#include "il_instruction.hpp"
+#include "il_text.hpp"
+
+#include "il_container.hpp"
+#include "il_metadata.hpp"
+#include "jump_table.hpp"
 #include "graph_base.hpp"
 
 namespace HXSL
@@ -103,15 +106,15 @@ namespace HXSL
 	class ControlFlowGraph
 	{
 	public:
-		ILBuilder& builder;
+		ILMetadata& metadata;
 		std::vector<CFGNode> nodes;
 		std::vector<size_t> idom;
 		std::vector<std::vector<size_t>> domTreeChildren;
 		std::vector<std::unordered_set<size_t>> domFront;
 
-		ControlFlowGraph(ILBuilder& builder) : builder(builder) {}
+		ControlFlowGraph(ILMetadata& metadata) : metadata(metadata) {}
 
-		void Build();
+		void Build(ILContainer& container, JumpTable& jumpTable);
 
 		void RebuildDomTree();
 
@@ -162,7 +165,7 @@ namespace HXSL
 
 		void MergeNodes(size_t from, size_t to);
 
-		void Print(const ILMetadata& metadata) const
+		void Print() const
 		{
 			for (const auto& node : nodes)
 			{

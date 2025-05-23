@@ -2,11 +2,7 @@
 #define IL_BUILDER_HPP
 
 #include "pch/ast.hpp"
-#include "il_instruction.hpp"
-#include "il_metadata.hpp"
-#include "il_container.hpp"
-#include "jump_table.hpp"
-#include "il_helper.hpp"
+#include "pch/il.hpp"
 #include "il_expression_builder.hpp"
 
 namespace HXSL
@@ -152,17 +148,10 @@ namespace HXSL
 		ILFrame currentFrame;
 		std::stack<ILLoopFrame> loopStack;
 		ILLoopFrame currentLoop;
-
-		ILMetadata metadata;
 		ILTempVariableAllocator tempAllocator;
-
 		ILExpressionBuilder exprBuilder;
+		JumpTable& jumpTable;
 
-		JumpTable jumpTable;
-
-		ILContainer container;
-
-		std::vector<ILMapping> mapping;
 		std::stack<size_t> mappingStarts;
 
 		void MappingStart()
@@ -181,7 +170,7 @@ namespace HXSL
 			{
 				end = container.size();
 			}
-			mapping.push_back(ILMapping(static_cast<uint32_t>(start), static_cast<uint32_t>(end - start), span));
+			metadata.mappings.push_back(ILMapping(static_cast<uint32_t>(start), static_cast<uint32_t>(end - start), span));
 		}
 
 		bool didReturn = false;
@@ -248,38 +237,11 @@ namespace HXSL
 		bool TraverseStatement(Statement* statement);
 		void TraverseBlock(ILBlockFrame& frame);
 	public:
-		ILBuilder() : metadata(tempAllocator), ILContainerAdapter(container), ILMetadataAdapter(metadata), exprBuilder(container, metadata, tempAllocator, jumpTable)
+		ILBuilder(ILContainer& container, ILMetadata& metadata, JumpTable& jumpTable) : ILContainerAdapter(container), ILMetadataAdapter(metadata), exprBuilder(container, metadata, tempAllocator, jumpTable), jumpTable(jumpTable)
 		{
 		}
 
 		void Build(FunctionOverload* func);
-
-		const ILMapping* FindMappingForInstruction(size_t instrIndex) const
-		{
-			int low = 0;
-			int high = (int)mapping.size() - 1;
-
-			while (low <= high)
-			{
-				int mid = low + (high - low) / 2;
-				const ILMapping& m = mapping[mid];
-
-				if (instrIndex >= m.start && instrIndex < static_cast<size_t>(m.start) + m.len)
-				{
-					return &m;
-				}
-				else if (instrIndex < m.start)
-				{
-					high = mid - 1;
-				}
-				else
-				{
-					low = mid + 1;
-				}
-			}
-
-			return nullptr;
-		}
 
 		void Print()
 		{
@@ -302,21 +264,6 @@ namespace HXSL
 				std::cout << "    " << ToString(instr, metadata) << std::endl;
 			}
 			std::cout << "}" << std::endl;
-		}
-
-		ILContainer& GetContainer()
-		{
-			return container;
-		}
-
-		ILMetadata& GetMetadata()
-		{
-			return metadata;
-		}
-
-		JumpTable& GetJumpTable()
-		{
-			return jumpTable;
 		}
 
 		ILTempVariableAllocator& GetTempAllocator()

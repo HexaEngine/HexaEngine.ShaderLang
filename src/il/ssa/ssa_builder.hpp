@@ -14,7 +14,7 @@ namespace HXSL
 
 	class SSABuilder : CFGVisitor<SSACFGContext>
 	{
-		ILBuilder& builder;
+		ILMetadata& metadata;
 		ControlFlowGraph& cfg;
 
 		std::vector<std::vector<size_t>>& domTreeChildren;
@@ -57,38 +57,6 @@ namespace HXSL
 			versionStacks[varId].pop();
 		}
 
-		void DiscardMarkedInstructs(CFGNode& node)
-		{
-			auto& container = node.instructions;
-			size_t toDiscard = discardList.size();
-			size_t discardIndex = 0;
-			size_t writeIndex = 0;
-			for (size_t i = 0; i < container.size(); i++)
-			{
-				auto& instr = container[i];
-				if (discardIndex < toDiscard && discardList[discardIndex] == i)
-				{
-					discardIndex++;
-					continue;
-				}
-
-				container[writeIndex] = std::move(instr);
-				writeIndex++;
-			}
-			container.resize(writeIndex);
-
-			discardList.clear();
-		}
-
-		void DiscardInstr(size_t index)
-		{
-			auto it = std::lower_bound(discardList.begin(), discardList.end(), index);
-			if (it == discardList.end() || *it != index)
-			{
-				discardList.insert(it, index);
-			}
-		}
-
 		void MapTempRegister(ILInstruction& instr);
 
 		void InsertPhiMeta(CFGNode& node, uint64_t varId, size_t& phiIdOut);
@@ -98,7 +66,7 @@ namespace HXSL
 		void VisitClose(size_t index, CFGNode& node, SSACFGContext& context) override;
 
 	public:
-		SSABuilder(ILBuilder& builder, ControlFlowGraph& cfg) : builder(builder), CFGVisitor(cfg), cfg(cfg), domTreeChildren(cfg.domTreeChildren), domFront(cfg.domFront)
+		SSABuilder(ILMetadata& metadata, ControlFlowGraph& cfg) : metadata(metadata), CFGVisitor(cfg), cfg(cfg), domTreeChildren(cfg.domTreeChildren), domFront(cfg.domFront)
 		{
 		}
 

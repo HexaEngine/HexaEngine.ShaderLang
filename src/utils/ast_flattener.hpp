@@ -9,7 +9,9 @@ namespace HXSL
 	{
 		std::unique_ptr<LowerCompilationUnit> compilationUnit;
 
-		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override;
+		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override { return TraversalBehavior_Keep; }
+
+		void VisitClose(ASTNode* node, size_t depth) override;
 
 	public:
 		std::unique_ptr<LowerCompilationUnit> Flatten(CompilationUnit* compilation);

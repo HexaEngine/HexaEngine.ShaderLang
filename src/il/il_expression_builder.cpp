@@ -174,7 +174,12 @@ namespace HXSL
 			outOp.reg = outOperand.reg != INVALID_REGISTER ? outOperand.reg : 0;
 			reg.current = outOp.reg.id + 1;
 		}
-		
+
+		if (expression->GetInferredType() == nullptr)
+		{
+			return outOp.reg;
+		}
+
 		PushFrame({ expression, outOp });
 
 		while (!stack.empty())
@@ -424,7 +429,7 @@ namespace HXSL
 
 				ILOperand imm;
 				bool isImm = IsInlineable(operand, imm);
-				
+
 				if (currentFrame.state || isImm)
 				{
 					if (isImm)

@@ -14,6 +14,10 @@ namespace HXSL
 {
 	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
 	{
+		RadixTree<Operator> tree;
+		tree.Insert("!=", Operator_NotEqual);
+		tree.Insert("!", Operator_LogicalNot);
+
 		Parser::InitializeSubSystems();
 
 		GetThreadAllocator()->Reset();
@@ -71,8 +75,6 @@ namespace HXSL
 
 			assembly->WriteToFile(output);
 		}
-
-		//astAllocator.ReleaseAll();
 	}
 
 	void Compiler::SetIncludeHandler(IncludeOpen includeOpen, IncludeClose includeClose)

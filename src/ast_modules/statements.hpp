@@ -40,6 +40,11 @@ namespace HXSL
 		{
 			return statements;
 		}
+
+		std::vector<ast_ptr<Statement>>& GetStatementsMut()
+		{
+			return statements;
+		}
 	};
 
 	class BlockStatement : public Statement, public StatementContainer

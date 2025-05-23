@@ -5,10 +5,8 @@
 
 namespace HXSL
 {
-	void ControlFlowGraph::Build()
+	void ControlFlowGraph::Build(ILContainer& container, JumpTable& jumpTable)
 	{
-		auto& container = builder.GetContainer();
-		auto& jumpTable = builder.GetJumpTable();
 		nodes.clear();
 
 		auto size = container.size();
@@ -142,7 +140,7 @@ namespace HXSL
 
 	void ControlFlowGraph::UpdatePhiInputs(size_t removedPred, size_t targetBlock)
 	{
-		auto& phiMetadata = builder.GetMetadata().phiMetadata;
+		auto& phiMetadata = metadata.phiMetadata;
 		auto& targetNode = nodes[targetBlock];
 
 		for (auto& instr : targetNode.instructions)

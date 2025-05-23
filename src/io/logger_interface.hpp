@@ -25,7 +25,7 @@ namespace HXSL
 		template <typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{
-			logger->LogFormattedEx(code, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
+			logger->LogFormattedEx(code, span.start, " (Line: {}, Column: {})", std::forward<Args>(args)..., span.line, span.column);
 		}
 
 		template<typename... Args>
