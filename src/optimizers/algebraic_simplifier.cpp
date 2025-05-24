@@ -161,7 +161,7 @@ namespace HXSL
 					break;
 				}
 
-				if (instr.operandRight.imm.ToBool())
+				if (instr.operandRight.imm().ToBool())
 				{
 					ConvertMove(instr); changed = true;
 				}

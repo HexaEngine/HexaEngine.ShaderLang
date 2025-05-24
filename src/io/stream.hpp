@@ -109,31 +109,31 @@ namespace HXSL
 		}
 
 		template<typename T>
-		void WriteValue(const T& value)
+		void WriteValue(const T& value) const
 		{
 			T valueToWrite = EndianUtils::IsLittleEndian() ? value : EndianUtils::ToLittleEndian(value);
 			Write(&valueToWrite, sizeof(T));
 		}
 
 		template<typename T>
-		T ReadValue()
+		T ReadValue() const
 		{
 			T value{};
 			Read(&value, sizeof(T));
 			return EndianUtils::IsLittleEndian() ? value : EndianUtils::FromLittleEndian(value);
 		}
 
-		void WriteUInt(uint32_t value)
+		void WriteUInt(uint32_t value) const
 		{
 			WriteValue<uint32_t>(value);
 		}
 
-		uint32_t ReadUInt()
+		uint32_t ReadUInt() const
 		{
 			return ReadValue<uint32_t>();
 		}
 
-		void WriteString(const std::string& str)
+		void WriteString(const std::string& str) const
 		{
 			uint32_t len = static_cast<uint32_t>(str.size());
 			WriteUInt(len);
@@ -141,7 +141,7 @@ namespace HXSL
 			Write(str.data(), len);
 		}
 
-		void WriteString(const StringSpan& str)
+		void WriteString(const StringSpan& str) const
 		{
 			uint32_t len = static_cast<uint32_t>(str.length);
 			WriteUInt(len);
@@ -149,7 +149,7 @@ namespace HXSL
 			Write(str.data + str.start, len);
 		}
 
-		std::string ReadString()
+		std::string ReadString() const
 		{
 			uint32_t len = ReadUInt();
 			std::string result(len, '\0');
@@ -157,7 +157,7 @@ namespace HXSL
 			return result;
 		}
 
-		std::string ReadAllText()
+		std::string ReadAllText() const
 		{
 			auto len = Length();
 			if (len <= 0) return {};
@@ -411,6 +411,214 @@ namespace HXSL
 
 		static void MemoryStreamClose(void* userdata)
 		{
+		}
+	};
+
+	struct BufferedStream : Stream
+	{
+		enum class LastAction
+		{
+			None,
+			Read,
+			Write,
+		};
+
+		Stream* inner;
+		bool closeInner;
+		uint8_t* buffer;
+		size_t bufferSize;
+		size_t bufferPosition;
+		size_t bufferReadSize;
+		LastAction lastAction;
+
+		BufferedStream(Stream* inner, bool closeInner = true, size_t bufferSize = 4096)
+			: Stream(sizeof(BufferedStream), this, BufferedStreamRead, BufferedStreamWrite, BufferedStreamSeek, BufferedStreamPosition, BufferedStreamLength, BufferedStreamFlush, BufferedStreamClose),
+			closeInner(closeInner),
+			bufferSize(bufferSize),
+			bufferPosition(0),
+			bufferReadSize(0),
+			lastAction(LastAction::None)
+		{
+			buffer = new uint8_t[bufferSize];
+		}
+
+		BufferedStream(const BufferedStream&) = delete;
+		BufferedStream& operator=(const BufferedStream&) = delete;
+
+		static size_t BufferedStreamRead(void* userdata, void* buffer, size_t size)
+		{
+			if (size == 0) return 0;
+			auto stream = static_cast<BufferedStream*>(userdata);
+			auto& lastAction = stream->lastAction;
+			if (lastAction == LastAction::Write) { stream->Flush(); }
+
+			auto& bufferPosition = stream->bufferPosition;
+			auto innerBuffer = stream->buffer;
+			const size_t bufferSize = stream->bufferSize;
+			auto& bufferReadSize = stream->bufferReadSize;
+
+			auto start = static_cast<uint8_t*>(buffer);
+			auto dst = start;
+
+			while (size > 0)
+			{
+				size_t space = bufferReadSize - bufferPosition;
+				if (space == 0)
+				{
+					size_t read = stream->inner->Read(innerBuffer, bufferSize);
+					if (read == EOF)
+					{
+						return (dst - start);
+					}
+					bufferPosition = 0;
+					bufferReadSize = read;
+					space = read;
+				}
+
+				size_t toCopy = std::min(space, size);
+				std::memcpy(dst, innerBuffer + bufferPosition, toCopy);
+				bufferPosition += toCopy;
+				dst += toCopy;
+				size -= toCopy;
+			}
+
+			lastAction = LastAction::Read;
+			return (dst - start);
+		}
+
+		static size_t BufferedStreamWrite(void* userdata, const void* buffer, size_t size)
+		{
+			if (size == 0) return 0;
+			auto stream = static_cast<BufferedStream*>(userdata);
+			auto& lastAction = stream->lastAction;
+			if (lastAction == LastAction::Read) { stream->Flush(); }
+
+			auto& bufferPosition = stream->bufferPosition;
+			auto innerBuffer = stream->buffer;
+			const size_t bufferSize = stream->bufferSize;
+
+			auto start = static_cast<const uint8_t*>(buffer);
+			auto src = start;
+
+			while (size > 0)
+			{
+				size_t space = bufferSize - bufferPosition;
+				if (space == 0)
+				{
+					size_t written = stream->inner->Write(innerBuffer, bufferSize);
+					if (written != bufferPosition)
+					{
+						return written == EOF ? written : (src - start);
+					}
+					bufferPosition = 0;
+					space = bufferSize;
+				}
+
+				size_t toCopy = std::min(size, space);
+				std::memcpy(innerBuffer + bufferPosition, src, toCopy);
+				bufferPosition += toCopy;
+				src += toCopy;
+				size -= toCopy;
+			}
+
+			stream->bufferReadSize = 0;
+			lastAction = LastAction::Write;
+			return (src - start);
+		}
+
+		static int64_t BufferedStreamSeek(void* userdata, int64_t offset, SeekOrigin origin)
+		{
+			auto stream = static_cast<BufferedStream*>(userdata);
+			auto& lastAction = stream->lastAction;
+			if (lastAction == LastAction::Write) { stream->Flush(); }
+			auto inner = stream->inner;
+			auto& bufferReadSize = stream->bufferReadSize;
+			auto& bufferPosition = stream->bufferPosition;
+
+			const int64_t oldInnerPositionFront = inner->Position();
+			const int64_t oldInnerPosition = oldInnerPositionFront - bufferReadSize;
+			const int64_t oldPosition = oldInnerPosition + bufferPosition;
+			const size_t length = inner->Length();
+			int64_t newPosition = oldPosition;
+
+			switch (origin)
+			{
+			case SeekOrigin_Begin: newPosition = offset; break;
+			case SeekOrigin_Current: newPosition = oldPosition + offset; break;
+			case SeekOrigin_End: newPosition = length + offset; break;
+			}
+
+			if (newPosition < 0 || newPosition > static_cast<int64_t>(length))
+			{
+				return EOF;
+			}
+
+			if (lastAction == LastAction::Read)
+			{
+				if (newPosition >= oldInnerPosition && newPosition < oldInnerPositionFront)
+				{
+					bufferPosition = static_cast<size_t>(newPosition - oldInnerPosition);
+					return newPosition;
+				}
+			}
+
+			bufferReadSize = 0;
+			bufferPosition = 0;
+			lastAction = LastAction::None;
+			return inner->Seek(newPosition, SeekOrigin_Begin);
+		}
+
+		static int64_t BufferedStreamPosition(void* userdata)
+		{
+			auto stream = static_cast<BufferedStream*>(userdata);
+			return stream->inner->Position() - stream->bufferReadSize + stream->bufferPosition;
+		}
+
+		static int64_t BufferedStreamLength(void* userdata)
+		{
+			auto stream = static_cast<BufferedStream*>(userdata);
+			return stream->inner->Length();
+		}
+
+		static void BufferedStreamFlush(void* userdata)
+		{
+			auto stream = static_cast<BufferedStream*>(userdata);
+			auto inner = stream->inner;
+			auto& bufferPosition = stream->bufferPosition;
+			auto& lastAction = stream->lastAction;
+
+			if (bufferPosition > 0 && lastAction == LastAction::Write)
+			{
+				inner->Write(stream->buffer, bufferPosition);
+				bufferPosition = 0;
+			}
+			stream->bufferReadSize = 0;
+			lastAction = LastAction::None;
+
+			inner->Flush();
+		}
+
+		static void BufferedStreamClose(void* userdata)
+		{
+			auto stream = static_cast<BufferedStream*>(userdata);
+
+			if (stream->buffer == nullptr)
+			{
+				return;
+			}
+
+			delete[] stream->buffer;
+			stream->buffer = nullptr;
+			stream->bufferSize = 0;
+			stream->bufferPosition = 0;
+			stream->lastAction = LastAction::None;
+
+			if (stream->closeInner)
+			{
+				stream->inner->Close();
+				stream->inner = nullptr;
+				stream->closeInner = false;
+			}
 		}
 	};
 }

@@ -2,6 +2,7 @@
 #define IL_TEXT_HPP
 
 #include "il_instruction.hpp"
+#include "ssa/ssa_instruction.hpp"
 #include "il_metadata.hpp"
 
 namespace HXSL
@@ -122,16 +123,25 @@ namespace HXSL
 
 	static std::string OperandKindToString(ILOperandKind kind)
 	{
-		switch (kind)
+		switch (kind.value)
 		{
 		case ILOperandKind_Register: return "Register";
-		case ILOperandKind_Immediate: return "Immediate";
 		case ILOperandKind_Variable: return "Variable";
 		case ILOperandKind_Field: return "Field";
-		case ILOperandKind_Array: return "Array";
 		case ILOperandKind_Label: return "Label";
 		case ILOperandKind_Type: return "Type";
 		case ILOperandKind_Func: return "Func";
+		case ILOperandKind_Imm_i8: return "i8";
+		case ILOperandKind_Imm_u8: return "u8";
+		case ILOperandKind_Imm_i16: return "i16";
+		case ILOperandKind_Imm_u16: return "u16";
+		case ILOperandKind_Imm_i32: return "i32";
+		case ILOperandKind_Imm_u32: return "u32";
+		case ILOperandKind_Imm_i64: return "i64";
+		case ILOperandKind_Imm_u64: return "u64";
+		case ILOperandKind_Imm_f16: return "f16";
+		case ILOperandKind_Imm_f32: return "f32";
+		case ILOperandKind_Imm_f64: return "f64";
 		default: return "Unknown";
 		}
 	}
@@ -144,17 +154,29 @@ namespace HXSL
 			oss << ", ";
 		}
 
-		switch (operand.kind)
+		switch (operand.kind.value)
 		{
 		case ILOperandKind_Register:
 			oss << "%tmp" << operand.reg.id;
 			break;
-		case ILOperandKind_Immediate:
-			oss << operand.imm.ToString();
+		case ILOperandKind_Imm_i8:
+		case ILOperandKind_Imm_u8:
+		case ILOperandKind_Imm_i16:
+		case ILOperandKind_Imm_u16:
+		case ILOperandKind_Imm_i32:
+		case ILOperandKind_Imm_u32:
+		case ILOperandKind_Imm_i64:
+		case ILOperandKind_Imm_u64:
+		case ILOperandKind_Imm_f16:
+		case ILOperandKind_Imm_f32:
+		case ILOperandKind_Imm_f64:
+			oss << operand.imm().ToString();
 			break;
 		case ILOperandKind_Variable:
-			oss << "%var" << (operand.varId & 0xFFFFFFFF) << "_" << (operand.varId >> 32);
-			break;
+		{
+			oss << "%var" << (operand.varId & SSA_VARIABLE_MASK) << "_" << (operand.varId >> 32) << ": " << metadata.GetVarTypeName(operand.varId);
+		}
+		break;
 		case ILOperandKind_Field:
 			oss << metadata.GetTypeName(operand.field.typeId) << "::" << operand.field.fieldId;
 			break;
@@ -173,7 +195,7 @@ namespace HXSL
 			for (auto& p : phi.params)
 			{
 				oss << "[";
-				oss << "%var" << (p & 0xFFFFFFFF) << "_" << (p >> 32);
+				oss << "%var" << (p & SSA_VARIABLE_MASK) << "_" << (p >> 32);
 				oss << "]";
 			}
 		}

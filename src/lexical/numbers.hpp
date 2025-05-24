@@ -26,6 +26,25 @@ namespace HXSL
 		NumberType_Double,
 	};
 
+	struct NumberUnion
+	{
+		constexpr NumberUnion() : u64(0) {}
+		union
+		{
+			int8_t i8;
+			uint8_t u8;
+			int16_t i16;
+			uint16_t u16;
+			int32_t i32;
+			uint32_t u32;
+			int64_t i64;
+			uint64_t u64;
+			half f16;
+			float f32;
+			double f64;
+		};
+	};
+
 	struct Number
 	{
 		constexpr Number() : Kind(NumberType_Unknown), u64(0)
@@ -80,8 +99,16 @@ namespace HXSL
 		{
 		}
 
-		NumberType Kind;
-		union {
+		Number(const NumberUnion& value, NumberType kind)
+		{
+			*reinterpret_cast<NumberUnion*>(this) = value;
+			Kind = kind;
+		}
+
+		operator NumberUnion() const { return *reinterpret_cast<const NumberUnion*>(this); }
+
+		union
+		{
 			int8_t i8;
 			uint8_t u8;
 			int16_t i16;
@@ -94,6 +121,8 @@ namespace HXSL
 			float float_;
 			double double_;
 		};
+
+		NumberType Kind;
 
 		static Number implicitCast(const Number& n, NumberType targetType)
 		{

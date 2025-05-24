@@ -9,7 +9,7 @@
 
 namespace HXSL
 {
-	enum ILOpCode
+	enum ILOpCode : uint16_t
 	{
 		OpCode_Noop,
 		OpCode_StackAlloc,
@@ -134,18 +134,59 @@ namespace HXSL
 		}
 	}
 
-	enum ILOperandKind : char
+	enum ILOperandKind_T : char
 	{
 		ILOperandKind_Disabled,
 		ILOperandKind_Register,
-		ILOperandKind_Immediate,
 		ILOperandKind_Variable,
 		ILOperandKind_Field,
-		ILOperandKind_Array,
 		ILOperandKind_Label,
 		ILOperandKind_Type,
 		ILOperandKind_Func,
+		ILOperandKind_Imm_i8,
+		ILOperandKind_Imm_u8,
+		ILOperandKind_Imm_i16,
+		ILOperandKind_Imm_u16,
+		ILOperandKind_Imm_i32,
+		ILOperandKind_Imm_u32,
+		ILOperandKind_Imm_i64,
+		ILOperandKind_Imm_u64,
+		ILOperandKind_Imm_f16,
+		ILOperandKind_Imm_f32,
+		ILOperandKind_Imm_f64,
 		ILOperandKind_Phi,
+	};
+
+	struct ILOperandKind
+	{
+		ILOperandKind_T value;
+
+		constexpr ILOperandKind(ILOperandKind_T value) : value(value) {}
+		constexpr ILOperandKind(NumberType val) : value(val == NumberType_Unknown ? ILOperandKind_Disabled : static_cast<ILOperandKind_T>((val - 1 + ILOperandKind_Imm_i8))) {}
+		constexpr operator ILOperandKind_T() const { return value; }
+		constexpr operator char() const { return static_cast<char>(value); }
+		constexpr operator NumberType() const { return value < ILOperandKind_Imm_i8 || value > ILOperandKind_Imm_f64 ? NumberType_Unknown : static_cast<NumberType>(value - ILOperandKind_Imm_i8 + 1); }
+
+		constexpr bool operator==(const ILOperandKind& other) const { return value == other.value; }
+		constexpr bool operator!=(const ILOperandKind& other) const { return value != other.value; }
+		constexpr bool operator<(const ILOperandKind& other) const { return value < other.value; }
+		constexpr bool operator>(const ILOperandKind& other) const { return value > other.value; }
+		constexpr ILOperandKind operator~() const { return static_cast<ILOperandKind_T>(~static_cast<char>(value)); }
+		constexpr ILOperandKind operator|(const ILOperandKind& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) | static_cast<char>(other.value)); }
+		constexpr ILOperandKind operator&(const ILOperandKind& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) & static_cast<char>(other.value)); }
+		constexpr ILOperandKind operator^(const ILOperandKind& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) ^ static_cast<char>(other.value)); }
+		constexpr ILOperandKind operator+(const ILOperandKind& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) + static_cast<char>(other.value)); }
+		constexpr ILOperandKind operator-(const ILOperandKind& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) - static_cast<char>(other.value)); }
+
+		constexpr bool operator==(const ILOperandKind_T& other) const { return value == other; }
+		constexpr bool operator!=(const ILOperandKind_T& other) const { return value != other; }
+		constexpr bool operator<(const ILOperandKind_T& other) const { return value > other; }
+		constexpr bool operator>(const ILOperandKind_T& other) const { return value < other; }
+		constexpr ILOperandKind operator|(const ILOperandKind_T& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) | static_cast<char>(other)); }
+		constexpr ILOperandKind operator&(const ILOperandKind_T& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) & static_cast<char>(other)); }
+		constexpr ILOperandKind operator^(const ILOperandKind_T& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) ^ static_cast<char>(other)); }
+		constexpr ILOperandKind operator+(const ILOperandKind_T& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) + static_cast<char>(other)); }
+		constexpr ILOperandKind operator-(const ILOperandKind_T& other) const { return static_cast<ILOperandKind_T>(static_cast<char>(value) - static_cast<char>(other)); }
 	};
 
 	struct ILFieldAccess
@@ -201,24 +242,25 @@ namespace HXSL
 
 	struct ILOperand
 	{
-		ILOperandKind kind;
 		union
 		{
 			ILRegister reg;
-			Number imm;
+			NumberUnion imm_m;
 			uint64_t varId;
 			ILFieldAccess field;
 		};
 
+		ILOperandKind kind;
+
 		ILOperand(ILRegister r) : kind(ILOperandKind_Register), reg(r) {}
 
-		ILOperand(Number i) : kind(ILOperandKind_Immediate), imm(i) {}
+		ILOperand(Number i) : kind(i.Kind), imm_m(i) {}
 
 		ILOperand(ILOperandKind k, uint64_t v) : kind(k), varId(v) {}
 
 		ILOperand(ILFieldAccess f) : kind(ILOperandKind_Field), field(f) {}
 
-		ILOperand() : kind(ILOperandKind_Disabled), imm() {}
+		ILOperand() : kind(ILOperandKind_Disabled), imm_m() {}
 
 		bool IsDisabled() const noexcept { return kind == ILOperandKind_Disabled; }
 
@@ -226,21 +268,33 @@ namespace HXSL
 
 		bool IsVar() const noexcept { return kind == ILOperandKind_Variable; }
 
-		bool IsImm() const noexcept { return kind == ILOperandKind_Immediate; }
+		bool IsImm() const noexcept { return kind >= ILOperandKind_Imm_i8 && kind <= ILOperandKind_Imm_f64; }
 
 		bool IsLabel() const noexcept { return kind == ILOperandKind_Label; }
+
+		Number imm() const noexcept { return Number(imm_m, kind); }
 
 		uint64_t hash() const noexcept
 		{
 			XXHash3_64 hash{};
-			hash.Combine(kind);
-			switch (kind)
+			hash.Combine(kind.value);
+			switch (kind.value)
 			{
 			case ILOperandKind_Register:
 				hash.Combine(reg.id);
 				break;
-			case ILOperandKind_Immediate:
-				hash.Combine(imm.hash());
+			case ILOperandKind_Imm_i8:
+			case ILOperandKind_Imm_u8:
+			case ILOperandKind_Imm_i16:
+			case ILOperandKind_Imm_u16:
+			case ILOperandKind_Imm_i32:
+			case ILOperandKind_Imm_u32:
+			case ILOperandKind_Imm_i64:
+			case ILOperandKind_Imm_u64:
+			case ILOperandKind_Imm_f16:
+			case ILOperandKind_Imm_f32:
+			case ILOperandKind_Imm_f64:
+				hash.Combine(imm().hash());
 				break;
 			case ILOperandKind_Variable:
 			case ILOperandKind_Type:
@@ -264,13 +318,23 @@ namespace HXSL
 		if (a.kind != b.kind)
 			return false;
 
-		switch (a.kind)
+		switch (a.kind.value)
 		{
 		case ILOperandKind_Register:
 			return a.reg == b.reg;
 
-		case ILOperandKind_Immediate:
-			return a.imm == b.imm;
+		case ILOperandKind_Imm_i8:
+		case ILOperandKind_Imm_u8:
+		case ILOperandKind_Imm_i16:
+		case ILOperandKind_Imm_u16:
+		case ILOperandKind_Imm_i32:
+		case ILOperandKind_Imm_u32:
+		case ILOperandKind_Imm_i64:
+		case ILOperandKind_Imm_u64:
+		case ILOperandKind_Imm_f16:
+		case ILOperandKind_Imm_f32:
+		case ILOperandKind_Imm_f64:
+			return a.imm() == b.imm();
 
 		case ILOperandKind_Variable:
 		case ILOperandKind_Type:
@@ -297,9 +361,9 @@ namespace HXSL
 
 	constexpr size_t ILOpKindFlagBits = 2;
 
-	constexpr uint32_t ILOpKindTypeMask = ~((1 << ILOpKindFlagBits) - 1);
+	constexpr uint8_t ILOpKindTypeMask = ~((1 << ILOpKindFlagBits) - 1);
 
-	enum ILOpKind : uint32_t
+	enum ILOpKind : uint8_t
 	{
 		ILOpKind_None = 0,
 		ILOpKind_Const = 1,
@@ -325,37 +389,37 @@ namespace HXSL
 
 	inline static ILOpKind operator~(ILOpKind value)
 	{
-		return (ILOpKind)~(uint32_t)value;
+		return (ILOpKind)~(uint8_t)value;
 	}
 
 	inline static ILOpKind operator|(ILOpKind lhs, ILOpKind rhs)
 	{
-		return (ILOpKind)((uint32_t)lhs | (uint32_t)rhs);
+		return (ILOpKind)((uint8_t)lhs | (uint8_t)rhs);
 	}
 
 	inline static ILOpKind operator&(ILOpKind lhs, ILOpKind rhs)
 	{
-		return (ILOpKind)((uint32_t)lhs & (uint32_t)rhs);
+		return (ILOpKind)((uint8_t)lhs & (uint8_t)rhs);
 	}
 
 	inline static ILOpKind operator^(ILOpKind lhs, ILOpKind rhs)
 	{
-		return (ILOpKind)((uint32_t)lhs ^ (uint32_t)rhs);
+		return (ILOpKind)((uint8_t)lhs ^ (uint8_t)rhs);
 	}
 
 	inline static ILOpKind& operator|=(ILOpKind& lhs, ILOpKind rhs)
 	{
-		return (ILOpKind&)((uint32_t&)lhs |= (uint32_t)rhs);
+		return (ILOpKind&)((uint8_t&)lhs |= (uint8_t)rhs);
 	}
 
 	inline static ILOpKind& operator&=(ILOpKind& lhs, ILOpKind rhs)
 	{
-		return (ILOpKind&)((uint32_t&)lhs &= (uint32_t)rhs);
+		return (ILOpKind&)((uint8_t&)lhs &= (uint8_t)rhs);
 	}
 
 	inline static ILOpKind& operator^=(ILOpKind& lhs, ILOpKind rhs)
 	{
-		return (ILOpKind&)((uint32_t&)lhs ^= (uint32_t)rhs);
+		return (ILOpKind&)((uint8_t&)lhs ^= (uint8_t)rhs);
 	}
 
 	static bool IsFlagSet(ILOpKind opKind, ILOpKind flag)
@@ -363,13 +427,14 @@ namespace HXSL
 		return (opKind & flag) != 0;
 	}
 
-	struct ILInstruction
+	struct ILInstruction // alignment 8
 	{
-		ILOpCode opcode;
-		ILOperand operandLeft;
-		ILOperand operandRight;
-		ILOperand operandResult;
-		ILOpKind opKind;
+		ILOpCode opcode; // 2 bytes
+		ILOpKind opKind; // 1 byte
+		// padding 5 bytes.
+		ILOperand operandLeft; // 16 bytes
+		ILOperand operandRight; // 16 bytes
+		ILOperand operandResult; // 16 bytes
 
 		ILInstruction(ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandRight, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), operandRight(operandRight), operandResult(operandResult), opKind(opKind)
 		{

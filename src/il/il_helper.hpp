@@ -385,27 +385,27 @@ namespace HXSL
 		auto code = instr.opcode;
 		switch (code)
 		{
-		case OpCode_Add: outImm = instr.operandLeft.imm + instr.operandRight.imm; return true;
-		case OpCode_Subtract: outImm = instr.operandLeft.imm - instr.operandRight.imm; return true;
-		case OpCode_Multiply: outImm = instr.operandLeft.imm * instr.operandRight.imm; return true;
-		case OpCode_Divide: outImm = instr.operandLeft.imm / instr.operandRight.imm; return true;
-		case OpCode_Modulus: outImm = instr.operandLeft.imm % instr.operandRight.imm; return true;
-		case OpCode_BitwiseShiftLeft: outImm = instr.operandLeft.imm << instr.operandRight.imm; return true;
-		case OpCode_BitwiseShiftRight: outImm = instr.operandLeft.imm >> instr.operandRight.imm; return true;
-		case OpCode_AndAnd: outImm = instr.operandLeft.imm.ToBool() && instr.operandRight.imm.ToBool(); return true;
-		case OpCode_OrOr: outImm = instr.operandLeft.imm.ToBool() || instr.operandRight.imm.ToBool(); return true;
-		case OpCode_BitwiseAnd: outImm = instr.operandLeft.imm & instr.operandRight.imm; return true;
-		case OpCode_BitwiseOr: outImm = instr.operandLeft.imm | instr.operandRight.imm; return true;
-		case OpCode_BitwiseXor: outImm = instr.operandLeft.imm ^ instr.operandRight.imm; return true;
-		case OpCode_LessThan: outImm = instr.operandLeft.imm < instr.operandRight.imm; return true;
-		case OpCode_LessThanOrEqual: outImm = instr.operandLeft.imm <= instr.operandRight.imm; return true;
-		case OpCode_GreaterThan: outImm = instr.operandLeft.imm > instr.operandRight.imm; return true;
-		case OpCode_GreaterThanOrEqual: outImm = instr.operandLeft.imm >= instr.operandRight.imm; return true;
-		case OpCode_Equal: outImm = instr.operandLeft.imm == instr.operandRight.imm; return true;
-		case OpCode_NotEqual: outImm = instr.operandLeft.imm != instr.operandRight.imm; return true;
-		case OpCode_LogicalNot: outImm = !instr.operandLeft.imm.ToBool(); return true;
-		case OpCode_BitwiseNot: outImm = ~instr.operandLeft.imm; return true;
-		case OpCode_Negate: outImm = -instr.operandLeft.imm; return true;
+		case OpCode_Add: outImm = instr.operandLeft.imm() + instr.operandRight.imm(); return true;
+		case OpCode_Subtract: outImm = instr.operandLeft.imm() - instr.operandRight.imm(); return true;
+		case OpCode_Multiply: outImm = instr.operandLeft.imm() * instr.operandRight.imm(); return true;
+		case OpCode_Divide: outImm = instr.operandLeft.imm() / instr.operandRight.imm(); return true;
+		case OpCode_Modulus: outImm = instr.operandLeft.imm() % instr.operandRight.imm(); return true;
+		case OpCode_BitwiseShiftLeft: outImm = instr.operandLeft.imm() << instr.operandRight.imm(); return true;
+		case OpCode_BitwiseShiftRight: outImm = instr.operandLeft.imm() >> instr.operandRight.imm(); return true;
+		case OpCode_AndAnd: outImm = instr.operandLeft.imm().ToBool() && instr.operandRight.imm().ToBool(); return true;
+		case OpCode_OrOr: outImm = instr.operandLeft.imm().ToBool() || instr.operandRight.imm().ToBool(); return true;
+		case OpCode_BitwiseAnd: outImm = instr.operandLeft.imm() & instr.operandRight.imm(); return true;
+		case OpCode_BitwiseOr: outImm = instr.operandLeft.imm() | instr.operandRight.imm(); return true;
+		case OpCode_BitwiseXor: outImm = instr.operandLeft.imm() ^ instr.operandRight.imm(); return true;
+		case OpCode_LessThan: outImm = instr.operandLeft.imm() < instr.operandRight.imm(); return true;
+		case OpCode_LessThanOrEqual: outImm = instr.operandLeft.imm() <= instr.operandRight.imm(); return true;
+		case OpCode_GreaterThan: outImm = instr.operandLeft.imm() > instr.operandRight.imm(); return true;
+		case OpCode_GreaterThanOrEqual: outImm = instr.operandLeft.imm() >= instr.operandRight.imm(); return true;
+		case OpCode_Equal: outImm = instr.operandLeft.imm() == instr.operandRight.imm(); return true;
+		case OpCode_NotEqual: outImm = instr.operandLeft.imm() != instr.operandRight.imm(); return true;
+		case OpCode_LogicalNot: outImm = !instr.operandLeft.imm().ToBool(); return true;
+		case OpCode_BitwiseNot: outImm = ~instr.operandLeft.imm(); return true;
+		case OpCode_Negate: outImm = -instr.operandLeft.imm(); return true;
 		}
 
 		return false;
@@ -454,7 +454,7 @@ namespace HXSL
 
 #define DEFINE_IMM_COMP(name, value) \
 	static bool name##(const ILOperand& op) { \
-	if (!op.IsImm()) return false; auto& imm = op.imm; \
+	if (!op.IsImm()) return false; auto imm = op.imm(); \
 	switch (imm.Kind) { \
 	case NumberType_Int8: return imm.i8 == value; \
 	case NumberType_Int16: return imm.i16 == value; \

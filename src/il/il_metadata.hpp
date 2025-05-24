@@ -3,6 +3,7 @@
 
 #include "pch/ast.hpp"
 #include "il_instruction.hpp"
+#include "ssa/ssa_instruction.hpp"
 #include "il_temp_var_allocator.hpp"
 
 namespace HXSL
@@ -270,6 +271,17 @@ namespace HXSL
 			}
 
 			return functions[funcId].func->GetName();
+		}
+
+		const std::string_view& GetVarTypeName(uint64_t varId) const
+		{
+			varId &= SSA_VARIABLE_MASK;
+			if (varId >= variables.size())
+			{
+				return "Unknown";
+			}
+			auto& var = variables[varId];
+			return GetTypeName(var.typeId);
 		}
 	};
 

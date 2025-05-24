@@ -54,7 +54,7 @@ namespace HXSL
 			case OpCode_Move:
 				if (instr.operandLeft.IsImm() && instr.operandResult.IsReg())
 				{
-					constants.insert({ instr.operandResult.reg, instr.operandLeft.imm });
+					constants.insert({ instr.operandResult.reg, instr.operandLeft.imm() });
 					//DiscardInstr(i);
 				}
 				else if (instr.operandLeft.IsReg() && instr.operandResult.IsReg())
@@ -72,7 +72,7 @@ namespace HXSL
 				}
 				else if (instr.operandLeft.IsImm() && instr.operandResult.IsVar())
 				{
-					varConstants.insert({ instr.operandResult.varId, instr.operandLeft.imm });
+					varConstants.insert({ instr.operandResult.varId, instr.operandLeft.imm() });
 					//DiscardInstr(i);
 				}
 				break;
@@ -80,15 +80,15 @@ namespace HXSL
 				if (instr.operandLeft.IsImm() && instr.operandResult.IsReg())
 				{
 					instr.opcode = OpCode_Move;
-					instr.operandLeft = Cast(instr.operandLeft.imm, instr.opKind);
-					constants.insert({ instr.operandResult.reg, instr.operandLeft.imm });
+					instr.operandLeft = Cast(instr.operandLeft.imm(), instr.opKind);
+					constants.insert({ instr.operandResult.reg, instr.operandLeft.imm() });
 					//DiscardInstr(i);
 				}
 				if (instr.operandLeft.IsImm() && instr.operandResult.IsVar())
 				{
 					instr.opcode = OpCode_Move;
-					instr.operandLeft = Cast(instr.operandLeft.imm, instr.opKind);
-					varConstants.insert({ instr.operandResult.varId, instr.operandLeft.imm });
+					instr.operandLeft = Cast(instr.operandLeft.imm(), instr.opKind);
+					varConstants.insert({ instr.operandResult.varId, instr.operandLeft.imm() });
 					//DiscardInstr(i);
 				}
 				break;
@@ -97,7 +97,7 @@ namespace HXSL
 			case OpCode_Negate:
 				if (instr.operandLeft.IsImm())
 				{
-					Number imm = FoldImm(instr.operandLeft.imm, {}, instr.opcode);
+					Number imm = FoldImm(instr.operandLeft.imm(), {}, instr.opcode);
 					if (IsJumpCondition(instructions, i))
 					{
 						break;
@@ -154,7 +154,7 @@ namespace HXSL
 				if (regImm || immReg)
 				{
 					ILRegister lhs = regImm ? instr.operandLeft.reg : instr.operandRight.reg;
-					Number rhs = regImm ? instr.operandRight.imm : instr.operandLeft.imm;
+					Number rhs = regImm ? instr.operandRight.imm() : instr.operandLeft.imm();
 					auto defIt = defMap.find(lhs);
 					if (defIt != defMap.end())
 					{
@@ -174,12 +174,12 @@ namespace HXSL
 							if (defRegImm)
 							{
 								base = defInstr.operandLeft.reg;
-								lhs = defInstr.operandRight.imm;
+								lhs = defInstr.operandRight.imm();
 							}
 							else if (defImmReg)
 							{
 								base = defInstr.operandRight.reg;
-								lhs = defInstr.operandLeft.imm;
+								lhs = defInstr.operandLeft.imm();
 							}
 							else
 							{
@@ -195,7 +195,7 @@ namespace HXSL
 							Number total = FoldImm(lhs, rhs, fuseMulDiv ? OpCode_Divide : instr.opcode);
 							DiscardInstr(defIt->second);
 							instr.operandLeft.reg = base;
-							instr.operandRight.imm = total;
+							instr.operandRight.imm() = total;
 							instr.opcode = fuseMulDiv ? OpCode_Multiply : defInstr.opcode;
 							continue;
 						}

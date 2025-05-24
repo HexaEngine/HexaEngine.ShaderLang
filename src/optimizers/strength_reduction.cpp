@@ -17,7 +17,7 @@ namespace HXSL
 		if (!instr.operandRight.IsImm()) return;
 
 		uint64_t val = 0;
-		auto& imm = instr.operandRight.imm;
+		auto imm = instr.operandRight.imm();
 		if (imm.IsNegative()) return;
 		switch (imm.Kind)
 		{

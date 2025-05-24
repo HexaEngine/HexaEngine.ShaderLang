@@ -93,11 +93,11 @@ namespace HXSL
 			auto& varId = FindVar(m);
 			if (op == MemberOp_Write)
 			{
-				AddInstr(VecStoreOp(varId, m), writeOp, varId.AsTypeOperand(), varId.AsOperand());
+				AddInstr(VecStoreOp(varId, m), writeOp, varId.AsOperand());
 			}
 			else if (op == MemberOp_Read)
 			{
-				AddInstr(VecLoadOp(varId, m), varId.AsOperand(), varId.AsTypeOperand(), outRegister);
+				AddInstr(VecLoadOp(varId, m), varId.AsOperand(), outRegister);
 			}
 			return false;
 		}
@@ -105,7 +105,7 @@ namespace HXSL
 		auto temp = reg.Alloc(expr->GetInferredType());
 		auto member = expr->Cast<MemberAccessExpression>();
 		auto& varId = FindVar(member);
-		AddInstr(VecLoadOp(varId, member, true), varId.AsOperand(), varId.AsTypeOperand(), temp);
+		AddInstr(VecLoadOp(varId, member, true), varId.AsOperand(), temp);
 
 		bool first = true;
 		auto next = member->GetNextExpression().get();
@@ -358,7 +358,7 @@ namespace HXSL
 							auto& last = container.instructions.back();
 							if (last.opcode == OpCode_StackAlloc)
 							{
-								AddInstr(OpCode_StoreParamRef, last.operandResult, last.operandLeft, Number(0));
+								AddInstr(OpCode_StoreParamRef, last.operandResult, Number(0));
 							}
 						}
 					}
@@ -392,7 +392,7 @@ namespace HXSL
 								looped = true;
 								auto member = static_cast<MemberReferenceExpression*>(operand);
 								auto& var = FindVar(member);
-								AddInstr(OpCode_StoreParam, var.AsOperand(), var.AsTypeOperand(), Number(paramOffset + currentFrame.state - 1));
+								AddInstr(OpCode_StoreParam, var.AsOperand(), {}, Number(paramOffset + currentFrame.state - 1));
 							}
 							else
 							{
