@@ -102,6 +102,7 @@ if (BUILD_STATIC)
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
+add_subdirectory(${PROJECT_SOURCE_DIR}/gui)
 
 if(BUILD_TESTS)
     if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/googletest")

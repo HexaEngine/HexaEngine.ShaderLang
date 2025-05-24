@@ -10,7 +10,7 @@ namespace HXSL
 	{
 		ILRegister current = 0;
 
-		ILRegister Alloc()
+		ILRegister Alloc(SymbolDef* type)
 		{
 			return current.id++;
 		}
