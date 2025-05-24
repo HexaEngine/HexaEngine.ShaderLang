@@ -19,6 +19,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 option(BUILD_TESTS "Enable Unit tests for compiler" ON)
 option(BUILD_SHARED "Build shared lib" OFF)
 option(BUILD_STATIC "Build static lib" ON)
+option(BUILD_GUI "Build GUI debugger/test suit" ON)
 
 if(MSVC)
     add_compile_options(
@@ -102,7 +103,27 @@ if (BUILD_STATIC)
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
-add_subdirectory(${PROJECT_SOURCE_DIR}/gui)
+
+if (BUILD_GUI)
+    add_subdirectory(external/glfw)
+    set(GLFW_INCLUDE_DIRS external/glfw/include)
+
+    add_library(imgui
+        external/imgui/imgui.cpp
+        external/imgui/imgui_demo.cpp
+        external/imgui/imgui_draw.cpp
+        external/imgui/imgui_tables.cpp
+        external/imgui/imgui_widgets.cpp
+        external/imgui/backends/imgui_impl_glfw.cpp
+        external/imgui/backends/imgui_impl_opengl3.cpp
+    )
+
+    target_link_libraries(imgui glfw ${CMAKE_DL_LIBS})
+
+    target_include_directories(imgui PUBLIC external/imgui external/imgui/backends)
+
+    add_subdirectory(${PROJECT_SOURCE_DIR}/gui)
+endif()
 
 if(BUILD_TESTS)
     if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/googletest")
