@@ -1,17 +1,28 @@
 #ifndef STRENGTH_REDUCTION_HPP
 #define STRENGTH_REDUCTION_HPP
 
-#include "pch/il.hpp"
+#include "il_optimizer_pass.hpp"
 
 namespace HXSL
 {
-	class StrengthReduction : public CFGVisitor<EmptyCFGContext>, ILMutatorBase
+	class StrengthReduction : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 	{
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context);
+		bool changed = false;
+
+		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+
+		void MulDivReduce(ILInstruction& instr);
 
 	public:
-		StrengthReduction(ControlFlowGraph& cfg, ILMetadata& metadata) : ILMutatorBase(metadata), CFGVisitor(cfg)
+		StrengthReduction(ILMetadata& metadata, ControlFlowGraph& cfg) : ILOptimizerPass(metadata), CFGVisitor(cfg)
 		{
+		}
+
+		OptimizerPassResult Run() override
+		{
+			changed = false;
+			Traverse();
+			return changed ? OptimizerPassResult_Changed : OptimizerPassResult_None;
 		}
 	};
 }

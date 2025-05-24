@@ -25,17 +25,17 @@ namespace HXSL
 		}
 	}
 
-	static ILInstruction VecSwizzleExpr(SwizzleDefinition* swizzle, ILRegister outRegister)
+	static ILInstruction VecSwizzleExpr(SwizzleDefinition* swizzle, const ILOperand& inOp, const ILOperand& outOp)
 	{
 		auto baseType = swizzle->GetBasePrim();
 		auto targetType = swizzle->GetTargetPrim();
 
 		if (baseType->GetClass() == PrimitiveClass_Scalar)
 		{
-			return ILInstruction(VecBroadcast(targetType->GetRows()), outRegister, outRegister, PrimToOpKind(baseType->GetKind()));
+			return ILInstruction(VecBroadcast(targetType->GetRows()), inOp, outOp, PrimToOpKind(baseType->GetKind()));
 		}
 
-		return ILInstruction(VecSwizzle(targetType->GetRows()), outRegister, Number(swizzle->GetMask()), outRegister);
+		return ILInstruction(VecSwizzle(targetType->GetRows()), inOp, Number(swizzle->GetMask()), outOp);
 	}
 
 	bool ILExpressionBuilder::IsInlineable(Expression* expr, ILOperand& opOut)
@@ -105,14 +105,28 @@ namespace HXSL
 
 		auto member = expr->Cast<MemberAccessExpression>();
 		auto& varId = FindVar(member);
-		AddInstr(VecLoadOp(varId, member, true), varId.AsOperand(), outRegister);
+		AddInstr(VecLoadOp(varId, member, true), varId.AsOperand(), varId.AsTypeOperand(), outRegister);
 
+		bool first = true;
 		auto next = member->GetNextExpression().get();
 		while (next)
 		{
 			auto type = next->GetType();
 			auto ref = next->GetSymbolRef().get();
 			auto decl = ref->GetDeclaration();
+			if (auto swizzle = decl->As<SwizzleDefinition>())
+			{
+				if (first)
+				{
+					container.instructions.back() = VecSwizzleExpr(swizzle, varId.AsOperand(), outRegister);
+				}
+				else
+				{
+					AddInstr(VecSwizzleExpr(swizzle, outRegister, outRegister));
+				}
+
+				goto end;
+			}
 			switch (type)
 			{
 			case NodeType_MemberAccessExpression:
@@ -122,16 +136,11 @@ namespace HXSL
 			break;
 			case NodeType_MemberReferenceExpression:
 			{
-				if (auto swizzle = decl->As<SwizzleDefinition>())
-				{
-					AddInstr(VecSwizzleExpr(swizzle, outRegister));
-					break;
-				}
 				AddInstr(OpCode_OffsetAddress, outRegister, MakeFieldAccess(decl), outRegister);
 
 				if (op == MemberOp_Write)
 				{
-					AddInstr(OpCode_Store, writeOp, outRegister);
+					AddInstr(OpCode_Store, writeOp, outRegister, ILOperand());
 				}
 				else if (op == MemberOp_Read)
 				{
@@ -142,7 +151,9 @@ namespace HXSL
 			default:
 				break;
 			}
+		end:
 			next = next->GetNextExpression().get();
+			first = false;
 		}
 
 		return true;
@@ -327,7 +338,25 @@ namespace HXSL
 			case NodeType_FunctionCallExpression:
 			{
 				auto funcCall = static_cast<FunctionCallExpression*>(expr);
+				auto overload = funcCall->GetSymbolRef()->GetDeclaration();
 				auto& parameters = funcCall->GetParameters();
+				bool isConstructor = overload->IsTypeOf(NodeType_ConstructorOverload);
+				size_t paramOffset = 0;
+				if (isConstructor)
+				{
+					if (currentFrame.state == 0)
+					{
+						if (container.instructions.size() > 0)
+						{
+							auto& last = container.instructions.back();
+							if (last.opcode == OpCode_StackAlloc)
+							{
+								AddInstr(OpCode_StoreParamRef, last.operandResult, last.operandLeft, Number(0));
+							}
+						}
+					}
+					paramOffset = 1;
+				}
 
 				bool looped = false;
 				while (true)
@@ -336,7 +365,7 @@ namespace HXSL
 					{
 						if (currentFrame.state != 0 && !looped)
 						{
-							AddInstr(OpCode_StoreParam, ILRegister(0));
+							AddInstr(OpCode_StoreParam, ILRegister(0), {}, Number(paramOffset + currentFrame.state - 1));
 						}
 
 						auto param = parameters[currentFrame.state].get();
@@ -356,7 +385,7 @@ namespace HXSL
 								looped = true;
 								auto member = static_cast<MemberReferenceExpression*>(operand);
 								auto& var = FindVar(member);
-								AddInstr(OpCode_StoreParam, var.AsOperand(), var.AsTypeOperand(), Number(currentFrame.state));
+								AddInstr(OpCode_StoreParam, var.AsOperand(), var.AsTypeOperand(), Number(paramOffset + currentFrame.state - 1));
 							}
 							else
 							{
@@ -370,16 +399,16 @@ namespace HXSL
 					{
 						if (currentFrame.state != 0 && !looped)
 						{
-							AddInstr(OpCode_StoreParam, ILRegister(0));
+							AddInstr(OpCode_StoreParam, ILRegister(0), {}, Number(paramOffset + currentFrame.state - 1));
 						}
 
 						if (!funcCall->IsVoidType())
 						{
-							AddInstr(OpCode_Call, ILOperand(ILOperandKind_Func, RegFunc(funcCall->GetSymbolRef()->GetDeclaration())), ILOperand(ILOperandKind_Type, RegType(funcCall->GetInferredType())), ILOperand(currentFrame.outRegister));
+							AddInstr(OpCode_Call, ILOperand(ILOperandKind_Func, RegFunc(overload)), ILOperand(ILOperandKind_Type, RegType(funcCall->GetInferredType())), ILOperand(currentFrame.outRegister));
 						}
 						else
 						{
-							AddInstr(OpCode_Call, ILOperand(ILOperandKind_Func, RegFunc(funcCall->GetSymbolRef()->GetDeclaration())));
+							AddInstr(OpCode_Call, ILOperand(ILOperandKind_Func, RegFunc(overload)));
 						}
 						break;
 					}

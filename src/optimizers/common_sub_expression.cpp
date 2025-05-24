@@ -9,7 +9,7 @@ namespace HXSL
 			auto it = map.find(op);
 			if (it != map.end())
 			{
-				op = it->second;
+				op = it->second; changed = true;
 			}
 		}
 	}
@@ -24,6 +24,8 @@ namespace HXSL
 
 			TryMapOperand(instr.operandLeft);
 			TryMapOperand(instr.operandRight);
+
+			if (instr.opcode == OpCode_Load || instr.opcode == OpCode_Move || instr.opcode == OpCode_Store) continue;
 
 			auto it = subExpressions.find(instr);
 			if (it != subExpressions.end())

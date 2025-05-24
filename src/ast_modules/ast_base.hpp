@@ -20,6 +20,7 @@ namespace HXSL
 	class ASTNodeAdapter;
 	class CompilationUnit;
 	class FunctionOverload;
+	class ConstructorOverload;
 	class OperatorOverload;
 	class Struct;
 	class Class;
@@ -61,9 +62,9 @@ namespace HXSL
 		NodeType_IntrinsicFunction, // Placeholder (Will be added in the future.)
 		NodeType_FunctionOverload,
 		NodeType_OperatorOverload,
-		NodeType_Constructor, // Placeholder (Will be added in the future.)
+		NodeType_ConstructorOverload,
 		NodeType_Parameter,
-		NodeType_ThisDef,
+		NodeType_ThisDef, // Needs attention.
 		NodeType_SwizzleDefinition,
 		NodeType_AttributeDeclaration,
 
@@ -120,6 +121,7 @@ namespace HXSL
 		case NodeType_Primitive:
 		case NodeType_Struct:
 		case NodeType_Class:
+		case NodeType_Enum:
 			return true;
 		default:
 			return false;
@@ -192,10 +194,10 @@ namespace HXSL
 		case NodeType_Class: return "Class";
 		case NodeType_Array: return "Array";
 		case NodeType_Field: return "Field";
-		case NodeType_IntrinsicFunction: return "IntrinsicFunction";
+		case NodeType_IntrinsicFunction: return "Intrinsic";
 		case NodeType_FunctionOverload: return "Function";
 		case NodeType_OperatorOverload: return "Operator";
-		case NodeType_Constructor: return "Constructor";
+		case NodeType_ConstructorOverload: return "Constructor";
 		case NodeType_Parameter: return "Parameter";
 		case NodeType_AttributeDeclaration: return "AttributeDeclaration";
 		case NodeType_BinaryExpression: return "BinaryExpression";

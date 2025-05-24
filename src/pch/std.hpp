@@ -24,5 +24,6 @@
 #include <iostream>
 #include <limits>
 #include <typeindex>
+#include <chrono>
 
 #endif

@@ -4,6 +4,12 @@ namespace HXSL
 {
 	bool SymbolResolver::SymbolTypeSanityCheck(const SymbolMetadata* metadata, SymbolRef* ref, bool silent) const
 	{
+		if (metadata == nullptr)
+		{
+			HXSL_ASSERT(false, "SymbolMetadata was null, this should never happen.");
+			return false;
+		}
+
 		auto refType = ref->GetType();
 		auto defType = metadata->symbolType;
 		auto& name = ref->GetName();
@@ -441,6 +447,91 @@ namespace HXSL
 		return true;
 	}
 
+	bool SymbolResolver::TryResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool* success, bool silent) const
+	{
+		if (success) *success = false;
+		outDefinition = nullptr;
+
+		SymbolRef* ref = funcCallExpr->GetSymbolRef().get();
+
+		SymbolHandle handle;
+		SymbolDef* typeDef = ResolveSymbol({}, ref->GetName(), ref->HasFullyQualifiedName(), handle, true);
+
+		if (handle.invalid() || typeDef == nullptr || !IsDataType(typeDef->GetType()))
+		{
+			return false;
+		}
+
+		auto signature = funcCallExpr->BuildConstructorOverloadSignature();
+		auto ctorHandle = handle.FindPart(signature);
+		if (ctorHandle.valid())
+		{
+			auto ctorMetadata = ctorHandle.GetMetadata();
+			if (SymbolTypeSanityCheck(ctorMetadata, ref, silent))
+			{
+				ref->SetTable(ctorHandle);
+				outDefinition = ctorMetadata->declaration;
+				if (success) *success = true;
+				return true;
+			}
+		}
+
+		if (!silent)
+		{
+			analyzer.Log(CTOR_OVERLOAD_NOT_FOUND, ref->GetSpan(), signature, typeDef->GetName());
+		}
+		return true;
+	}
+
+	bool SymbolResolver::ResolveFunction(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
+	{
+		SymbolRef* ref = funcCallExpr->GetSymbolRef().get();
+
+		auto signature = funcCallExpr->BuildOverloadSignature();
+
+		bool success = false;
+		if (auto expr = funcCallExpr->FindAncestor<MemberAccessExpression>(NodeType_MemberAccessExpression, 1))
+		{
+			auto memberRef = expr->GetSymbolRef()->GetBaseDeclaration();
+			if (memberRef)
+			{
+				success = ResolveSymbol(ref, signature, memberRef->GetTable(), memberRef->GetSymbolHandle(), true);
+			}
+		}
+		else
+		{
+			success = ResolveSymbol(ref, signature, true);
+		}
+
+		if (!success && !silent)
+		{
+			analyzer.Log(FUNC_OVERLOAD_NOT_FOUND, funcCallExpr->GetSpan(), signature);
+		}
+
+		if (success)
+		{
+			outDefinition = ref->GetDeclaration();
+		}
+
+		return success;
+	}
+
+	bool SymbolResolver::ResolveCallable(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
+	{
+		bool success = false;
+		if (TryResolveConstructor(funcCallExpr, outDefinition, &success, silent))
+		{
+			return success;
+		}
+
+		if (ResolveFunction(funcCallExpr, outDefinition, silent))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
 	void SymbolResolver::PushScope(ASTNode* parent, const StringSpan& span, bool external)
 	{
 		stack.push(current);
@@ -587,6 +678,15 @@ namespace HXSL
 			PushScope(node, signature);
 		}
 		break;
+		case NodeType_ConstructorOverload:
+		{
+			auto function = node->As<ConstructorOverload>();
+			auto& ref = function->GetReturnSymbolRef();
+			ResolveSymbol(ref.get());
+			auto signature = function->BuildTemporaryOverloadSignature();
+			PushScope(node, signature);
+		}
+		break;
 		case NodeType_OperatorOverload:
 		{
 			auto function = node->As<OperatorOverload>();
@@ -681,7 +781,7 @@ namespace HXSL
 		return nullptr;
 	}
 
-	int SymbolResolver::ResolveMemberInner(ChainExpression* expr, SymbolRef* type) const
+	ResolveMemberResult SymbolResolver::ResolveMemberInner(ChainExpression* expr, SymbolRef* type) const
 	{
 		auto refInner = expr->GetSymbolRef().get();
 		auto& handle = type->GetSymbolHandle();
@@ -689,18 +789,18 @@ namespace HXSL
 		auto exprType = expr->GetType();
 		if (exprType == NodeType_FunctionCallExpression || exprType == NodeType_IndexerAccessExpression)
 		{
-			return 2;
+			return ResolveMemberResult::Skip;
 		}
 
 		if (type->IsNotFound())
 		{
-			return -1;
+			return ResolveMemberResult::Failure;
 		}
 
 		if (handle.invalid())
 		{
 			refInner->SetDeferred(true);
-			return 1;
+			return ResolveMemberResult::Defer;
 		}
 
 		refInner->SetDeferred(false);
@@ -713,19 +813,19 @@ namespace HXSL
 			{
 				if (swizzleManager->VerifySwizzle(metadata->declaration->As<Primitive>(), refInner))
 				{
-					return 0;
+					return ResolveMemberResult::Success;
 				}
 			}
-			return -1;
+			return ResolveMemberResult::Failure;
 		}
 		auto metaInner = indexNext.GetMetadata();
 		if (!SymbolTypeSanityCheck(metaInner, refInner))
 		{
-			return -1;
+			return ResolveMemberResult::Failure;
 		}
 		refInner->SetTable(indexNext);
 
-		return 0;
+		return ResolveMemberResult::Success;
 	}
 
 	TraversalBehavior SymbolResolver::ResolveMember(ChainExpression* chainExprRoot, ASTNode*& next, bool skipInitialResolve) const
@@ -764,18 +864,18 @@ namespace HXSL
 			next = chain;
 
 			auto result = ResolveMemberInner(chain, type);
-			if (result == -1)
+			if (result == ResolveMemberResult::Failure)
 			{
 				auto refInner = chain->GetSymbolRef().get();
 				analyzer.Log(MEMBER_NOT_FOUND_IN, refInner->GetSpan(), refInner->ToString(), ref->ToString());
 				return TraversalBehavior_Keep;
 			}
-			else if (result == 1)
+			else if (result == ResolveMemberResult::Defer)
 			{
 				next = chainExprRoot;
 				return TraversalBehavior_Defer;
 			}
-			else if (result == 2)
+			else if (result == ResolveMemberResult::Skip)
 			{
 				return TraversalBehavior_Keep;
 			}

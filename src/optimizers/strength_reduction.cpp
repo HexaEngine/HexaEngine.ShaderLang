@@ -4,10 +4,11 @@ namespace HXSL
 {
 	DEFINE_IMM_COMP(IsTwo, 2);
 
-	static void MulDivReduce(ILInstruction& instr)
+	void StrengthReduction::MulDivReduce(ILInstruction& instr)
 	{
 		if (instr.opcode == OpCode_Multiply && IsTwo(instr.operandRight))
 		{
+			changed = true;
 			instr.opcode = OpCode_Add;
 			instr.operandRight = instr.operandLeft;
 			return;
@@ -39,11 +40,13 @@ namespace HXSL
 
 		if (instr.opcode == OpCode_Multiply)
 		{
+			changed = true;
 			instr.opcode = OpCode_BitwiseShiftLeft;
 			instr.operandRight = Cast(shiftNum, instr.opKind);
 		}
 		else if (instr.opcode == OpCode_Divide)
 		{
+			changed = true;
 			instr.opcode = OpCode_BitwiseShiftRight;
 			instr.operandRight = Cast(shiftNum, instr.opKind);
 		}

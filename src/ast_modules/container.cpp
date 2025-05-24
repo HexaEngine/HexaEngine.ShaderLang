@@ -13,6 +13,12 @@ namespace HXSL
 		functions.push_back(std::move(function));
 	}
 
+	void Container::AddConstructor(ast_ptr<ConstructorOverload> constructor)
+	{
+		constructor->SetParent(this);
+		constructors.push_back(std::move(constructor));
+	}
+
 	void Container::AddOperator(ast_ptr<OperatorOverload> _operator)
 	{
 		_operator->SetParent(this);
@@ -50,6 +56,7 @@ namespace HXSL
 			};
 
 		if ((flags & ContainerTransferFlags_Functions) != 0) move_all_with_parent(functions, target.GetFunctionsMut());
+		if ((flags & ContainerTransferFlags_Constructors) != 0) move_all_with_parent(constructors, target.GetConstructorsMut());
 		if ((flags & ContainerTransferFlags_Operators) != 0) move_all_with_parent(operators, target.GetOperatorsMut());
 		if ((flags & ContainerTransferFlags_Structs) != 0) move_all_with_parent(structs, target.GetStructsMut());
 		if ((flags & ContainerTransferFlags_Classes) != 0) move_all_with_parent(classes, target.GetClassesMut());

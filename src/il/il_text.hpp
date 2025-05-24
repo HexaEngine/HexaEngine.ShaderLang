@@ -11,7 +11,7 @@ namespace HXSL
 		switch (opcode)
 		{
 		case OpCode_Noop: return "nop";
-		case OpCode_Alloc: return "alloca";
+		case OpCode_StackAlloc: return "alloca";
 		case OpCode_Zero: return "zero";
 		case OpCode_Store: return "sta";
 		case OpCode_Load: return "lda";
@@ -29,6 +29,7 @@ namespace HXSL
 		case OpCode_CallBegin: return "cbeg";
 		case OpCode_CallEnd: return "cend";
 		case OpCode_StoreParam: return "starg";
+		case OpCode_StoreParamRef: return "rfarg";
 		case OpCode_Call: return "call";
 
 		case OpCode_Phi: return "phi";
@@ -155,16 +156,16 @@ namespace HXSL
 			oss << "%var" << (operand.varId & 0xFFFFFFFF) << "_" << (operand.varId >> 32);
 			break;
 		case ILOperandKind_Field:
-			oss << operand.field.typeId << "::" << operand.field.fieldId;
+			oss << metadata.GetTypeName(operand.field.typeId) << "::" << operand.field.fieldId;
 			break;
 		case ILOperandKind_Label:
 			oss << "#loc_" << operand.varId;
 			break;
 		case ILOperandKind_Func:
-			oss << metadata.functions[operand.varId].func->GetName();
+			oss << metadata.GetFuncName(operand.varId);
 			break;
 		case ILOperandKind_Type:
-			oss << metadata.typeMetadata[operand.varId].def->GetName();
+			oss << metadata.GetTypeName(operand.varId);
 			break;
 		case ILOperandKind_Phi:
 		{

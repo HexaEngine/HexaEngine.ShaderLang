@@ -1,9 +1,7 @@
 #ifndef SSA_BUILDER_HPP
 #define SSA_BUILDER_HPP
 
-#include "ssa_instruction.hpp"
-#include "il/control_flow_graph.hpp"
-#include "il/lt_dominator_tree.hpp"
+#include "pch/il.hpp"
 
 namespace HXSL
 {

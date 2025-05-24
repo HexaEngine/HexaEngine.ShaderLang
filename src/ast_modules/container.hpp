@@ -10,13 +10,14 @@ namespace HXSL
 	{
 		ContainerTransferFlags_None = 0,
 		ContainerTransferFlags_Functions = 1 << 0,
-		ContainerTransferFlags_Operators = 1 << 1,
-		ContainerTransferFlags_Structs = 1 << 2,
-		ContainerTransferFlags_Classes = 1 << 3,
-		ContainerTransferFlags_Enums = 1 << 4,
-		ContainerTransferFlags_Fields = 1 << 5,
-		ContainerTransferFlags_Default = ContainerTransferFlags_Functions | ContainerTransferFlags_Operators | ContainerTransferFlags_Structs | ContainerTransferFlags_Classes | ContainerTransferFlags_Enums,
-		ContainerTransferFlags_All = ContainerTransferFlags_Functions | ContainerTransferFlags_Operators | ContainerTransferFlags_Structs | ContainerTransferFlags_Classes | ContainerTransferFlags_Enums | ContainerTransferFlags_Fields,
+		ContainerTransferFlags_Constructors = 1 << 1,
+		ContainerTransferFlags_Operators = 1 << 2,
+		ContainerTransferFlags_Structs = 1 << 3,
+		ContainerTransferFlags_Classes = 1 << 4,
+		ContainerTransferFlags_Enums = 1 << 5,
+		ContainerTransferFlags_Fields = 1 << 6,
+		ContainerTransferFlags_Default = ContainerTransferFlags_Functions | ContainerTransferFlags_Constructors | ContainerTransferFlags_Operators | ContainerTransferFlags_Structs | ContainerTransferFlags_Classes | ContainerTransferFlags_Enums,
+		ContainerTransferFlags_All = ContainerTransferFlags_Default | ContainerTransferFlags_Fields,
 	};
 
 	DEFINE_FLAGS_OPERATORS(ContainerTransferFlags, int);
@@ -25,6 +26,7 @@ namespace HXSL
 	{
 	protected:
 		std::vector<ast_ptr<FunctionOverload>> functions;
+		std::vector<ast_ptr<ConstructorOverload>> constructors;
 		std::vector<ast_ptr<OperatorOverload>> operators;
 		std::vector<ast_ptr<Struct>> structs;
 		std::vector<ast_ptr<Class>> classes;
@@ -41,6 +43,8 @@ namespace HXSL
 
 		void AddFunction(ast_ptr<FunctionOverload> function);
 
+		void AddConstructor(ast_ptr<ConstructorOverload> constructor);
+
 		void AddOperator(ast_ptr<OperatorOverload> _operator);
 
 		void AddStruct(ast_ptr<Struct> _struct);
@@ -52,6 +56,11 @@ namespace HXSL
 		const std::vector<ast_ptr<FunctionOverload>>& GetFunctions() const noexcept
 		{
 			return functions;
+		}
+
+		const std::vector<ast_ptr<ConstructorOverload>>& GetConstructors() const noexcept
+		{
+			return constructors;
 		}
 
 		const std::vector<ast_ptr<OperatorOverload>>& GetOperators() const noexcept override
@@ -77,6 +86,11 @@ namespace HXSL
 		std::vector<ast_ptr<FunctionOverload>>& GetFunctionsMut() noexcept
 		{
 			return functions;
+		}
+
+		std::vector<ast_ptr<ConstructorOverload>>& GetConstructorsMut() noexcept
+		{
+			return constructors;
 		}
 
 		std::vector<ast_ptr<OperatorOverload>>& GetOperatorsMut() noexcept

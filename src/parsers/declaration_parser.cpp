@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	static bool ParseField(const Token& start, TextSpan name, ast_ptr<SymbolRef> symbol, TextSpan semantic, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
+	static bool ParseField(Parser& parser, TokenStream& stream, const Token& start, TextSpan name, ast_ptr<SymbolRef> symbol, TextSpan semantic)
 	{
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
@@ -63,7 +63,38 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseFunction(const Token& start, TextSpan name, ast_ptr<SymbolRef> returnSymbol, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
+	static bool ParseParameters(Parser& parser, TokenStream& stream, FunctionOverload* overload)
+	{
+		std::vector<ast_ptr<Parameter>> parameters;
+		bool firstParameter = true;
+		while (!stream.TryGetDelimiter(')'))
+		{
+			if (!firstParameter)
+			{
+				stream.ExpectDelimiter(',', EXPECTED_COMMA);
+			}
+			firstParameter = false;
+
+			ast_ptr<Parameter> parameter;
+
+			if (ParseParameter(parser, stream, parameter))
+			{
+				parameters.push_back(std::move(parameter));
+			}
+			else
+			{
+				if (!parser.TryRecoverParameterList())
+				{
+					break;
+				}
+			}
+		}
+		overload->SetParameters(std::move(parameters));
+
+		return true;
+	}
+
+	static bool ParseFunction(Parser& parser, TokenStream& stream, const Token& start, TextSpan name, ast_ptr<SymbolRef> returnSymbol)
 	{
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
@@ -85,39 +116,18 @@ namespace HXSL
 			function->AddAttribute(std::move(attribute->Take()));
 		}
 
-		std::vector<ast_ptr<Parameter>> parameters;
-
-		bool firstParameter = true;
-		while (!stream.TryGetDelimiter(')'))
-		{
-			if (!firstParameter)
-			{
-				stream.ExpectDelimiter(',', EXPECTED_COMMA);
-			}
-			firstParameter = false;
-
-			ast_ptr<Parameter> parameter;
-
-			IF_ERR_RET_FALSE(ParseParameter(parser, stream, parameter));
-
-			parameters.push_back(std::move(parameter));
-		}
-
-		function->SetParameters(std::move(parameters));
+		ParseParameters(parser, stream, function.get());
 
 		if (stream.TryGetOperator(Operator_Colon))
 		{
 			TextSpan semantic;
-			IF_ERR_RET_FALSE(stream.ExpectIdentifier(semantic, EXPECTED_IDENTIFIER));
+			stream.ExpectIdentifier(semantic, EXPECTED_IDENTIFIER);
 			function->SetSemantic(semantic.str());
 		}
 
-		if (!stream.TryGetDelimiter(';'))
-		{
-			ast_ptr<BlockStatement> statement;
-			IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_Function, parser, stream, statement));
-			function->SetBody(std::move(statement));
-		}
+		ast_ptr<BlockStatement> statement;
+		ParseStatementBody(ScopeType_Function, parser, stream, statement);
+		function->SetBody(std::move(statement));
 
 		function->SetSpan(stream.MakeFromLast(start));
 
@@ -140,7 +150,53 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseOperator(const Token& start, OperatorFlags flags, Parser& parser, TokenStream& stream, CompilationUnit* compilation)
+	static bool ParseConstructor(Parser& parser, TokenStream& stream, const Token& start, ast_ptr<SymbolRef> returnSymbol)
+	{
+		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		parser.AcceptAttribute(&attribute, 0);
+
+		ModifierList list;
+		ModifierList allowed = ModifierList(AccessModifier_All, true, FunctionFlags_All, StorageClass_None, InterpolationModifier_None, false);
+		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_CTOR);
+
+		auto scopeType = parser.scopeType();
+		if (scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
+		{
+			return false;
+		}
+
+		auto parent = parser.scopeParent();
+		auto ctor = make_ast_ptr<ConstructorOverload>(TextSpan(), list.accessModifiers, list.functionFlags, std::move(returnSymbol));
+		if (attribute && attribute->HasResource())
+		{
+			ctor->AddAttribute(std::move(attribute->Take()));
+		}
+
+		ParseParameters(parser, stream, ctor.get());
+
+		ast_ptr<BlockStatement> statement;
+		ParseStatementBody(ScopeType_Function, parser, stream, statement);
+		ctor->SetBody(std::move(statement));
+
+		ctor->SetSpan(stream.MakeFromLast(start));
+
+		auto parentType = parent->GetType();
+		switch (parentType)
+		{
+		case NodeType_Struct:
+			parent->As<Struct>()->AddFunction(std::move(ctor));
+			break;
+		case NodeType_Class:
+			parent->As<Class>()->AddFunction(std::move(ctor));
+			break;
+		default:
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool ParseOperator(Parser& parser, TokenStream& stream, const Token& start, OperatorFlags flags)
 	{
 		auto opKeywordToken = stream.Current();
 		stream.ExpectKeyword(Keyword_Operator, EXPECTED_OPERATOR);
@@ -181,35 +237,8 @@ namespace HXSL
 			_operator->AddAttribute(std::move(attribute->Take()));
 		}
 
-		std::vector<ast_ptr<Parameter>> parameters;
-
 		stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
-
-		bool firstParameter = true;
-		while (!stream.TryGetDelimiter(')'))
-		{
-			if (!firstParameter)
-			{
-				stream.ExpectDelimiter(',', EXPECTED_COMMA);
-			}
-			firstParameter = false;
-
-			ast_ptr<Parameter> parameter;
-
-			if (ParseParameter(parser, stream, parameter))
-			{
-				parameters.push_back(std::move(parameter));
-			}
-			else
-			{
-				if (!parser.TryRecoverParameterList())
-				{
-					break;
-				}
-			}
-		}
-
-		_operator->SetParameters(std::move(parameters));
+		ParseParameters(parser, stream, _operator.get());
 
 		if (!stream.TryGetDelimiter(';'))
 		{
@@ -237,7 +266,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool DeclarationParser::TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation)
+	bool DeclarationParser::TryParse(Parser& parser, TokenStream& stream)
 	{
 		auto startingToken = stream.Current();
 
@@ -247,6 +276,11 @@ namespace HXSL
 		TextSpan name;
 		if (!stream.TryGetIdentifier(name))
 		{
+			if (stream.TryGetDelimiter('('))
+			{
+				ParseConstructor(parser, stream, startingToken, std::move(symbol.make()));
+				return true;
+			}
 			return false;
 		}
 
@@ -254,13 +288,13 @@ namespace HXSL
 		TextSpan fieldSemantic;
 		if (stream.TryGetDelimiter('('))
 		{
-			ParseFunction(startingToken, name, std::move(symbol.make()), parser, stream, compilation);
+			ParseFunction(parser, stream, startingToken, name, std::move(symbol.make()));
 			return true;
 		}
 		else if (stream.TryGetOperator(Operator_Colon) && stream.TryGetIdentifier(fieldSemantic))
 		{
 			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-			ParseField(startingToken, name, std::move(symbol.make()), fieldSemantic, parser, stream, compilation);
+			ParseField(parser, stream, startingToken, name, std::move(symbol.make()), fieldSemantic);
 			return true;
 		}
 		else if (parser.TryParseArraySizes(arraySizes))
@@ -268,19 +302,19 @@ namespace HXSL
 			auto hSymbol = symbol.make(SymbolRefType_ArrayType);
 			hSymbol->SetArrayDims(std::move(arraySizes));
 			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-			ParseField(startingToken, name, std::move(hSymbol), {}, parser, stream, compilation);
+			ParseField(parser, stream, startingToken, name, std::move(hSymbol), {});
 		}
 		else
 		{
 			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-			ParseField(startingToken, name, std::move(symbol.make()), {}, parser, stream, compilation);
+			ParseField(parser, stream, startingToken, name, std::move(symbol.make()), {});
 			return true;
 		}
 
 		return false;
 	}
 
-	bool OperatorParser::TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation)
+	bool OperatorParser::TryParse(Parser& parser, TokenStream& stream)
 	{
 		auto startingToken = stream.Current();
 
@@ -303,12 +337,12 @@ namespace HXSL
 			break;
 		}
 
-		IF_ERR_RET_FALSE(ParseOperator(startingToken, operatorFlags, parser, stream, compilation));
+		IF_ERR_RET_FALSE(ParseOperator(parser, stream, startingToken, operatorFlags));
 
 		return true;
 	}
 
-	bool StructParser::TryParse(Parser& parser, TokenStream& stream, CompilationUnit* compilation)
+	bool StructParser::TryParse(Parser& parser, TokenStream& stream)
 	{
 		auto startingToken = stream.Current();
 
@@ -335,7 +369,7 @@ namespace HXSL
 		parser.EnterScope(ScopeType_Struct, _struct.get(), t, true, EXPECTED_LEFT_BRACE);
 		while (parser.IterateScope(_struct.get()))
 		{
-			if (!parser.ParseSubStepInner(_struct.get()))
+			if (!parser.ParseSubStepInner())
 			{
 				if (!parser.TryRecoverScope(_struct.get(), true))
 				{

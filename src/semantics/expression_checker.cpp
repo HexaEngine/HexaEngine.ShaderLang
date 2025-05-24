@@ -163,31 +163,18 @@ namespace HXSL
 				return;
 			}
 
-			auto& ref = expression->GetSymbolRef();
-			auto signature = expression->BuildOverloadSignature();
-
-			bool success = false;
-			if (auto expr = expression->FindAncestor<MemberAccessExpression>(NodeType_MemberAccessExpression, 1))
+			SymbolDef* overload;
+			if (!resolver.ResolveCallable(expression, overload))
 			{
-				auto memberRef = expr->GetSymbolRef()->GetBaseDeclaration();
-				if (memberRef)
-				{
-					success = resolver.ResolveSymbol(ref.get(), signature, memberRef->GetTable(), memberRef->GetSymbolHandle());
-				}
-			}
-			else
-			{
-				success = resolver.ResolveSymbol(ref.get(), signature);
-			}
-
-			if (!success)
-			{
-				analyzer.Log(FUNC_OVERLOAD_NOT_FOUND, expression->GetSpan(), signature);
 				return;
 			}
 
-			auto function = dynamic_cast<FunctionOverload*>(ref->GetDeclaration());
-			HXSL_ASSERT(function, "Declaration in function call expression was not a function, this should never happen.");
+			auto function = overload->As<FunctionOverload>();
+			if (function == nullptr)
+			{
+				HXSL_ASSERT(false, "Declaration in function call expression was not a function, this should never happen.");
+				return;
+			}
 
 			auto type = function->GetReturnSymbolRef()->GetDeclaration();
 			auto next = expression->GetNextExpression().get();

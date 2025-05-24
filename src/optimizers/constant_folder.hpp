@@ -1,11 +1,11 @@
 #ifndef CONSTANT_FOLDER_HPP
 #define CONSTANT_FOLDER_HPP
 
-#include "pch/il.hpp"
+#include "il_optimizer_pass.hpp"
 
 namespace HXSL
 {
-	class ConstantFolder : public CFGVisitor<EmptyCFGContext>, ILMutatorBase
+	class ConstantFolder : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 	{
 		std::unordered_map<ILRegister, Number> constants;
 		std::unordered_map<uint64_t, Number> varConstants;
@@ -13,12 +13,22 @@ namespace HXSL
 
 		void TryFoldOperand(ILOperand& op);
 
+		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+
 	public:
-		ConstantFolder(ControlFlowGraph& cfg, ILMetadata& metadata) : ILMutatorBase(metadata), CFGVisitor(cfg)
+		ConstantFolder(ILMetadata& metadata, ControlFlowGraph& cfg) : ILOptimizerPass(metadata), CFGVisitor(cfg)
 		{
 		}
 
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context);
+		OptimizerPassResult Run() override
+		{
+			changed = false;
+			constants.clear();
+			varConstants.clear();
+			registerToRegister.clear();
+			Traverse();
+			return changed ? OptimizerPassResult_Changed : OptimizerPassResult_None;
+		}
 	};
 }
 

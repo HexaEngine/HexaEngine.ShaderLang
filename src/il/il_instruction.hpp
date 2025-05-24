@@ -12,7 +12,7 @@ namespace HXSL
 	enum ILOpCode
 	{
 		OpCode_Noop,
-		OpCode_Alloc,
+		OpCode_StackAlloc,
 		OpCode_Zero,
 		OpCode_Store,
 		OpCode_Load,
@@ -27,6 +27,7 @@ namespace HXSL
 		OpCode_CallBegin,
 		OpCode_CallEnd,
 		OpCode_StoreParam,
+		OpCode_StoreParamRef,
 		OpCode_Call,
 
 		OpCode_Jump,

@@ -31,7 +31,7 @@ namespace HXSL
 
 			if (varId.IsLargeObject())
 			{
-				AddInstr(OpCode_Alloc, ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
+				AddInstr(OpCode_StackAlloc, ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
 			}
 
 			if (init)

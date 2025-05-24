@@ -1,9 +1,7 @@
 #ifndef LOWER_COMPILATION_UNIT_HPP
 #define LOWER_COMPILATION_UNIT_HPP
 
-#include "ast_base.hpp"
-#include "symbol_base.hpp"
-#include "container.hpp"
+#include "pch/ast.hpp"
 #include "pch/il.hpp"
 
 namespace HXSL

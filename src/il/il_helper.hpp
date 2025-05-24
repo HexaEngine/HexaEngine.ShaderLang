@@ -214,14 +214,17 @@ namespace HXSL
 
 	static ILOpCode VecLoadOp(const ILVariable& var, uint32_t components, bool addressOf = false)
 	{
-		if (!var.IsReference()) return OpCode_Move;
 		switch (components)
 		{
-		case 1: return OpCode_Load;
+		case 1: return var.IsReference() ? OpCode_Load : OpCode_Move;
 		case 2: return OpCode_Vec2Load;
 		case 3: return OpCode_Vec3Load;
 		case 4: return OpCode_Vec4Load;
-		default: return addressOf ? OpCode_AddressOf : OpCode_Load;
+		default:
+		{
+			if (!var.IsReference()) return OpCode_Move;
+			return addressOf ? OpCode_AddressOf : OpCode_Load;
+		}
 		}
 	}
 

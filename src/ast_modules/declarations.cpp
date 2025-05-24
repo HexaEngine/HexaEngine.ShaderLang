@@ -139,6 +139,24 @@ namespace HXSL
 		return body;
 	}
 
+	void ConstructorOverload::Write(Stream& stream) const
+	{
+		stream.WriteUInt(functionFlags);
+		returnSymbol->Write(stream);
+	}
+
+	void ConstructorOverload::Read(Stream& stream, StringPool& container)
+	{
+		functionFlags = static_cast<FunctionFlags>(stream.ReadUInt());
+		returnSymbol = make_ast_ptr<SymbolRef>();
+		returnSymbol->Read(stream);
+	}
+
+	void ConstructorOverload::Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes)
+	{
+		FunctionOverload::Build(table, index, compilation, nodes);
+	}
+
 	void OperatorOverload::Write(Stream& stream) const
 	{
 		stream.WriteUInt(functionFlags);

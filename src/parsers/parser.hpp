@@ -293,9 +293,9 @@ namespace HXSL
 		NamespaceDeclaration ParseNamespaceDeclaration(bool& scoped);
 		bool TryAdvance();
 		bool Parse();
-		bool ParseSubStep(ASTNode* parent);
+		bool ParseSubStep();
 		void ParseInnerBegin();
-		bool ParseSubStepInner(ASTNode* parent);
+		bool ParseSubStepInner();
 		bool AttemptErrorRecovery(bool restorePoint = false);
 
 		/// <summary>
@@ -528,9 +528,9 @@ namespace HXSL
 		bool TryAdvance() { return parser.TryAdvance(); }
 		bool Parse() { return parser.Parse(); }
 
-		bool ParseSubStep(ASTNode* parent) { return parser.ParseSubStep(parent); }
+		bool ParseSubStep() { return parser.ParseSubStep(); }
 		void ParseInnerBegin() { parser.ParseInnerBegin(); }
-		bool ParseSubStepInner(ASTNode* parent) { return parser.ParseSubStepInner(parent); }
+		bool ParseSubStepInner() { return parser.ParseSubStepInner(); }
 		bool AttemptErrorRecovery(bool restorePoint = false) { return parser.AttemptErrorRecovery(restorePoint); }
 
 		template<typename... Args>

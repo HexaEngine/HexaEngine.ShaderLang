@@ -94,6 +94,17 @@ namespace HXSL
 		}
 		break;
 
+		case NodeType_ConstructorOverload:
+		{
+			ConstructorOverload* s = node->As<ConstructorOverload>();
+			auto symType = s->GetSymbolType();
+			auto metadata = std::make_shared<SymbolMetadata>(symType, current.Type, s->GetAccessModifiers(), 0, s);
+			auto signature = s->BuildTemporaryOverloadSignature();
+			Push(signature, s, metadata, SymbolScopeType_Constructor);
+			RegisterForLatePass(node);
+		}
+		break;
+
 		case NodeType_OperatorOverload:
 		{
 			OperatorOverload* s = dynamic_cast<OperatorOverload*>(node);
@@ -148,6 +159,18 @@ namespace HXSL
 			case NodeType_FunctionOverload:
 			{
 				FunctionOverload* s = dynamic_cast<FunctionOverload*>(node);
+				auto signature = s->BuildOverloadSignature();
+				auto& index = s->GetSymbolHandle();
+				if (!table->RenameNode(signature, index))
+				{
+					analyzer.Log(SYMBOL_REDEFINITION, s->GetSpan(), signature);
+				}
+			}
+			break;
+
+			case NodeType_ConstructorOverload:
+			{
+				ConstructorOverload* s = node->As<ConstructorOverload>();
 				auto signature = s->BuildOverloadSignature();
 				auto& index = s->GetSymbolHandle();
 				if (!table->RenameNode(signature, index))

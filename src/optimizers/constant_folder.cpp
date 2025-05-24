@@ -21,12 +21,12 @@ namespace HXSL
 			auto it = constants.find(op.reg);
 			if (it != constants.end())
 			{
-				op = it->second;
+				op = it->second; changed = true;
 			}
 			auto itr = registerToRegister.find(op.reg);
 			if (itr != registerToRegister.end())
 			{
-				op = itr->second;
+				op = itr->second; changed = true;
 			}
 		}
 		if (op.IsVar())
@@ -34,7 +34,7 @@ namespace HXSL
 			auto it = varConstants.find(op.varId);
 			if (it != varConstants.end())
 			{
-				op = it->second;
+				op = it->second; changed = true;
 			}
 		}
 	}
@@ -55,7 +55,7 @@ namespace HXSL
 				if (instr.operandLeft.IsImm() && instr.operandResult.IsReg())
 				{
 					constants.insert({ instr.operandResult.reg, instr.operandLeft.imm });
-					DiscardInstr(i);
+					//DiscardInstr(i);
 				}
 				else if (instr.operandLeft.IsReg() && instr.operandResult.IsReg())
 				{
@@ -68,19 +68,28 @@ namespace HXSL
 					{
 						registerToRegister.insert({ instr.operandResult.reg, instr.operandLeft.reg });
 					}
-					DiscardInstr(i);
+					//DiscardInstr(i);
 				}
 				else if (instr.operandLeft.IsImm() && instr.operandResult.IsVar())
 				{
 					varConstants.insert({ instr.operandResult.varId, instr.operandLeft.imm });
-					DiscardInstr(i);
+					//DiscardInstr(i);
 				}
 				break;
 			case OpCode_Cast:
 				if (instr.operandLeft.IsImm() && instr.operandResult.IsReg())
 				{
-					constants.insert({ instr.operandResult.reg, Cast(instr.operandLeft.imm, instr.opKind) });
-					DiscardInstr(i);
+					instr.opcode = OpCode_Move;
+					instr.operandLeft = Cast(instr.operandLeft.imm, instr.opKind);
+					constants.insert({ instr.operandResult.reg, instr.operandLeft.imm });
+					//DiscardInstr(i);
+				}
+				if (instr.operandLeft.IsImm() && instr.operandResult.IsVar())
+				{
+					instr.opcode = OpCode_Move;
+					instr.operandLeft = Cast(instr.operandLeft.imm, instr.opKind);
+					varConstants.insert({ instr.operandResult.varId, instr.operandLeft.imm });
+					//DiscardInstr(i);
 				}
 				break;
 			case OpCode_LogicalNot:
@@ -94,8 +103,10 @@ namespace HXSL
 						break;
 					}
 					constants.insert({ instr.operandResult.reg, imm });
-					DiscardInstr(i);
+					//DiscardInstr(i);
 				}
+				break;
+			case OpCode_Store:
 				break;
 			default:
 				if (instr.operandLeft.IsImm() && instr.operandRight.IsImm())
@@ -115,7 +126,10 @@ namespace HXSL
 						{
 							constants.insert({ instr.operandResult.reg, imm });
 						}
-						DiscardInstr(i);
+						instr.opcode = OpCode_Move;
+						instr.operandLeft = imm;
+						instr.operandRight = {};
+						//DiscardInstr(i);
 					}
 				}
 				break;

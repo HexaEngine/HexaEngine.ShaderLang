@@ -14,14 +14,14 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode* parent, CompilationUnit* compilation)
+		static bool TryParse(Parser& parser, TokenStream& stream)
 		{
 			do
 			{
 				for (auto& subParser : parsers)
 				{
 					stream.PushState();
-					if (subParser->TryParse(parser, stream, compilation))
+					if (subParser->TryParse(parser, stream))
 					{
 						stream.PopState(false);
 						return true;

@@ -81,18 +81,6 @@ namespace HXSL
 			functionFlags(functionFlags)
 		{
 		}
-		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol, std::vector<ast_ptr<Parameter>> parameters, TextSpan semantic)
-			: ASTNode(span, type),
-			SymbolDef(span, type, name),
-			AttributeContainer(this),
-			accessModifiers(accessModifiers),
-			functionFlags(functionFlags),
-			returnSymbol(std::move(returnSymbol)),
-			parameters(std::move(parameters)),
-			semantic(semantic.str())
-		{
-			RegisterChildren(this->parameters);
-		}
 		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol)
 			: ASTNode(span, type),
 			SymbolDef(span, type, name),
@@ -102,7 +90,23 @@ namespace HXSL
 			returnSymbol(std::move(returnSymbol))
 		{
 		}
-
+		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, const std::string& name)
+			: ASTNode(span, type),
+			SymbolDef(span, type, name),
+			AttributeContainer(this),
+			accessModifiers(accessModifiers),
+			functionFlags(functionFlags)
+		{
+		}
+		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, const std::string& name, ast_ptr<SymbolRef> returnSymbol)
+			: ASTNode(span, type),
+			SymbolDef(span, type, name),
+			AttributeContainer(this),
+			accessModifiers(accessModifiers),
+			functionFlags(functionFlags),
+			returnSymbol(std::move(returnSymbol))
+		{
+		}
 	public:
 		FunctionOverload()
 			: ASTNode(TextSpan(), NodeType_FunctionOverload, true),
@@ -112,19 +116,6 @@ namespace HXSL
 			functionFlags(FunctionFlags_None)
 		{
 		}
-		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol, std::vector<ast_ptr<Parameter>> parameters, TextSpan semantic)
-			: ASTNode(span, NodeType_FunctionOverload),
-			SymbolDef(span, NodeType_FunctionOverload, name),
-			AttributeContainer(this),
-			accessModifiers(accessModifiers),
-			functionFlags(functionFlags),
-			returnSymbol(std::move(returnSymbol)),
-			parameters(std::move(parameters)),
-			semantic(semantic.str())
-		{
-			RegisterChildren(this->parameters);
-		}
-
 		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol)
 			: ASTNode(span, NodeType_FunctionOverload),
 			SymbolDef(span, NodeType_FunctionOverload, name),
@@ -229,6 +220,103 @@ namespace HXSL
 		ast_ptr<BlockStatement>& GetBodyMut() noexcept;
 	};
 
+	class ConstructorOverload : public FunctionOverload
+	{
+	private:
+		ast_ptr<SymbolRef> targetTypeSymbol;
+	public:
+		ConstructorOverload()
+			: FunctionOverload(TextSpan(), NodeType_ConstructorOverload, AccessModifier_Private, FunctionFlags_None, "#ctor", make_ast_ptr<SymbolRef>("void", SymbolRefType_Type, true)),
+			ASTNode(TextSpan(), NodeType_ConstructorOverload, true)
+		{
+		}
+		ConstructorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags)
+			: FunctionOverload(span, NodeType_ConstructorOverload, accessModifiers, functionFlags, "#ctor", make_ast_ptr<SymbolRef>("void", SymbolRefType_Type, true)),
+			ASTNode(span, NodeType_ConstructorOverload)
+		{
+		}
+
+		ConstructorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef> targetTypeSymbol)
+			: FunctionOverload(span, NodeType_ConstructorOverload, accessModifiers, functionFlags, "#ctor", make_ast_ptr<SymbolRef>("void", SymbolRefType_Type, true)),
+			ASTNode(span, NodeType_ConstructorOverload),
+			targetTypeSymbol(std::move(targetTypeSymbol))
+		{
+		}
+
+		ast_ptr<SymbolRef>& GetTargetTypeSymbolRef()
+		{
+			return targetTypeSymbol;
+		}
+
+		SymbolDef* GetTargetType() const noexcept
+		{
+			return targetTypeSymbol->GetDeclaration();
+		}
+
+		std::string BuildOverloadSignature(bool placeholder) noexcept override
+		{
+			if (!placeholder && !cachedSignature.empty())
+			{
+				return cachedSignature;
+			}
+
+			std::string str = "#ctor(";
+
+			bool first = true;
+			for (auto& param : parameters)
+			{
+				if (!first)
+				{
+					str.push_back(',');
+				}
+				first = false;
+
+				if (placeholder)
+				{
+					str.append(std::to_string(param->GetID()));
+				}
+				else
+				{
+					str.append(param->GetSymbolRef()->GetFullyQualifiedName());
+				}
+			}
+			str.push_back(')');
+
+			if (placeholder)
+			{
+				return str;
+			}
+			else
+			{
+				cachedSignature = str;
+				return cachedSignature;
+			}
+		}
+
+		std::string BuildOverloadSignature() noexcept
+		{
+			return BuildOverloadSignature(false);
+		}
+
+		std::string BuildTemporaryOverloadSignature() noexcept
+		{
+			return BuildOverloadSignature(true);
+		}
+
+		SymbolType GetSymbolType() const override
+		{
+			return SymbolType_Constructor;
+		}
+
+		void Write(Stream& stream) const override;
+
+		void Read(Stream& stream, StringPool& container) override;
+
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
+
+		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, TargetTypeSymbol, targetTypeSymbol)
+	};
+
 	class OperatorOverload : public FunctionOverload
 	{
 	private:
@@ -240,13 +328,6 @@ namespace HXSL
 			ASTNode(TextSpan(), NodeType_OperatorOverload, true),
 			_operator(Operator_Unknown),
 			operatorFlags(OperatorFlags_None)
-		{
-		}
-		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, ast_ptr<SymbolRef> returnSymbol, std::vector<ast_ptr<Parameter>> parameters, TextSpan semantic)
-			: FunctionOverload(span, NodeType_OperatorOverload, accessModifiers, functionFlags, name, std::move(returnSymbol), std::move(parameters), semantic),
-			ASTNode(span, NodeType_OperatorOverload),
-			_operator(_operator),
-			operatorFlags(operatorFlags)
 		{
 		}
 

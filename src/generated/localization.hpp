@@ -596,6 +596,15 @@ namespace HXSL
 	constexpr DiagnosticCode INVALID_MODIFIER_ON_STRUCT = 9223373187906027732;
 	
 	/// <summary>
+	/// <para>Code: HL0213</para>
+	/// <para>Message: specified modifier is not allowed on constructor</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_CTOR = 9223373187906027733;
+	
+	/// <summary>
 	/// <para>Code: HL0300</para>
 	/// <para>Message: invalid postfix operator.</para>
 	/// <para>Description: Desc</para>
@@ -849,174 +858,192 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1113</para>
+	/// <para>Message: cannot overload constructor '{}', no overload defined for type '{}'</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode CTOR_OVERLOAD_NOT_FOUND = 9223373187906028633;
+	
+	/// <summary>
+	/// <para>Code: HL1114</para>
 	/// <para>Message: cannot overload operator '{}', no overload defined for types '{}' and '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode OP_OVERLOAD_NOT_FOUND_BINARY = 9223373187906028633;
+	constexpr DiagnosticCode OP_OVERLOAD_NOT_FOUND_BINARY = 9223373187906028634;
 	
 	/// <summary>
-	/// <para>Code: HL1114</para>
+	/// <para>Code: HL1115</para>
 	/// <para>Message: cannot overload operator '{}', no overload defined for type '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode OP_OVERLOAD_NOT_FOUND_UNARY = 9223373187906028634;
+	constexpr DiagnosticCode OP_OVERLOAD_NOT_FOUND_UNARY = 9223373187906028635;
 	
 	/// <summary>
-	/// <para>Code: HL1115</para>
+	/// <para>Code: HL1116</para>
 	/// <para>Message: '{}' is of type '{}', but a namespace was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_NAMESPACE_SYMBOL = 9223373187906028635;
+	constexpr DiagnosticCode EXPECTED_NAMESPACE_SYMBOL = 9223373187906028636;
 	
 	/// <summary>
-	/// <para>Code: HL1116</para>
+	/// <para>Code: HL1117</para>
 	/// <para>Message: '{}' is of type '{}', but a function was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_FUNC_SYMBOL = 9223373187906028636;
+	constexpr DiagnosticCode EXPECTED_FUNC_SYMBOL = 9223373187906028637;
 	
 	/// <summary>
-	/// <para>Code: HL1117</para>
+	/// <para>Code: HL1118</para>
 	/// <para>Message: '{}' is of type '{}', but a operator was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_OP_SYMBOL = 9223373187906028637;
+	constexpr DiagnosticCode EXPECTED_OP_SYMBOL = 9223373187906028638;
 	
 	/// <summary>
-	/// <para>Code: HL1118</para>
+	/// <para>Code: HL1119</para>
 	/// <para>Message: '{}' is of type '{}', but a constructor was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_CTOR_SYMBOL = 9223373187906028638;
+	constexpr DiagnosticCode EXPECTED_CTOR_SYMBOL = 9223373187906028639;
 	
 	/// <summary>
-	/// <para>Code: HL1119</para>
+	/// <para>Code: HL1120</para>
 	/// <para>Message: '{}' is of type '{}', but a constructor or function was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_CTOR_OR_FUNC_SYMBOL = 9223373187906028639;
+	constexpr DiagnosticCode EXPECTED_CTOR_OR_FUNC_SYMBOL = 9223373187906028640;
 	
 	/// <summary>
-	/// <para>Code: HL1120</para>
+	/// <para>Code: HL1121</para>
 	/// <para>Message: '{}' is of type '{}', but a struct was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_STRUCT_SYMBOL = 9223373187906028640;
+	constexpr DiagnosticCode EXPECTED_STRUCT_SYMBOL = 9223373187906028641;
 	
 	/// <summary>
-	/// <para>Code: HL1121</para>
+	/// <para>Code: HL1122</para>
 	/// <para>Message: '{}' is of type '{}', but a enum was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_ENUM_SYMBOL = 9223373187906028641;
+	constexpr DiagnosticCode EXPECTED_ENUM_SYMBOL = 9223373187906028642;
 	
 	/// <summary>
-	/// <para>Code: HL1122</para>
+	/// <para>Code: HL1123</para>
 	/// <para>Message: '{}' is of type '{}', but a member or variable was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_IDENTIFIER_SYMBOL = 9223373187906028642;
+	constexpr DiagnosticCode EXPECTED_IDENTIFIER_SYMBOL = 9223373187906028643;
 	
 	/// <summary>
-	/// <para>Code: HL1123</para>
+	/// <para>Code: HL1124</para>
 	/// <para>Message: '{}' is of type '{}', but a attribute was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_ATTRIBUTE_SYMBOL = 9223373187906028643;
+	constexpr DiagnosticCode EXPECTED_ATTRIBUTE_SYMBOL = 9223373187906028644;
 	
 	/// <summary>
-	/// <para>Code: HL1124</para>
+	/// <para>Code: HL1125</para>
 	/// <para>Message: '{}' is of type '{}', but a member was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_MEMBER_SYMBOL = 9223373187906028644;
+	constexpr DiagnosticCode EXPECTED_MEMBER_SYMBOL = 9223373187906028645;
 	
 	/// <summary>
-	/// <para>Code: HL1125</para>
+	/// <para>Code: HL1126</para>
 	/// <para>Message: '{}' is of type '{}', but a struct, class or enum type was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_TYPE_SYMBOL = 9223373187906028645;
+	constexpr DiagnosticCode EXPECTED_TYPE_SYMBOL = 9223373187906028646;
 	
 	/// <summary>
-	/// <para>Code: HL1126</para>
+	/// <para>Code: HL1127</para>
 	/// <para>Message: '{}' is of type '{}', but a array type was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_ARRAY_SYMBOL = 9223373187906028646;
+	constexpr DiagnosticCode EXPECTED_ARRAY_SYMBOL = 9223373187906028647;
 	
 	/// <summary>
-	/// <para>Code: HL1127</para>
+	/// <para>Code: HL1128</para>
 	/// <para>Message: '{}' is not a valid array element type</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_ARRAY_TYPE = 9223373187906028647;
+	constexpr DiagnosticCode INVALID_ARRAY_TYPE = 9223373187906028648;
 	
 	/// <summary>
-	/// <para>Code: HL1128</para>
+	/// <para>Code: HL1129</para>
 	/// <para>Message: use of variable '{}' before its declaration</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode USE_BEFORE_DECL = 9223373187906028648;
+	constexpr DiagnosticCode USE_BEFORE_DECL = 9223373187906028649;
 	
 	/// <summary>
-	/// <para>Code: HL1129</para>
+	/// <para>Code: HL1130</para>
 	/// <para>Message: couldn't resolve type of member '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode CANNOT_RESOLVE_MEMBER_TYPE = 9223373187906028649;
+	constexpr DiagnosticCode CANNOT_RESOLVE_MEMBER_TYPE = 9223373187906028650;
 	
 	/// <summary>
-	/// <para>Code: HL1130</para>
+	/// <para>Code: HL1131</para>
 	/// <para>Message: ambiguous function overload for '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode AMBIGUOUS_FUNC_OVERLOAD = 9223373187906028650;
+	constexpr DiagnosticCode AMBIGUOUS_FUNC_OVERLOAD = 9223373187906028651;
 	
 	/// <summary>
-	/// <para>Code: HL1131</para>
+	/// <para>Code: HL1132</para>
+	/// <para>Message: ambiguous constructor overload for '{}'</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode AMBIGUOUS_CTOR_OVERLOAD = 9223373187906028652;
+	
+	/// <summary>
+	/// <para>Code: HL1133</para>
 	/// <para>Message: ambiguous operator overload for '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode AMBIGUOUS_OP_OVERLOAD = 9223373187906028651;
+	constexpr DiagnosticCode AMBIGUOUS_OP_OVERLOAD = 9223373187906028653;
 	
 	/// <summary>
 	/// <para>Code: HL1200</para>

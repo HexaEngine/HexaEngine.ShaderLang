@@ -362,15 +362,12 @@ using ast_ptr = std::unique_ptr<T, ASTAllocatorDeleter<T>>;
 template <typename U>
 inline void destroy(void* p) { static_cast<U*>(p)->~U(); }
 
-template <typename T, class... Args>
-[[nodiscard]]
-static ast_ptr<T> make_ast_ptr(Args&& ... args)
+template <class _Ty, class... _Types, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
+_NODISCARD_SMART_PTR_ALLOC _CONSTEXPR23 ast_ptr<_Ty> make_ast_ptr(_Types&& ... args)
 {
-	void* rawMem = GetThreadAllocator()->Alloc(sizeof(T), alignof(T), &destroy<T>);
-	if (!rawMem) throw std::bad_alloc();
-
-	T* ptr = new(rawMem) T(std::forward<Args>(args)...);
-	return ast_ptr<T>(ptr, ASTAllocatorDeleter<T>{rawMem});
+	void* rawMem = GetThreadAllocator()->Alloc(sizeof(_Ty), alignof(_Ty), &destroy<_Ty>);
+	_Ty* ptr = new(rawMem) _Ty(std::forward<_Types>(args)...);
+	return ast_ptr<_Ty>(ptr, ASTAllocatorDeleter<_Ty>{rawMem});
 }
 
 #endif

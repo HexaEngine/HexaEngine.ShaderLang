@@ -434,7 +434,7 @@ namespace HXSL
 		stream->Advance();
 		while (TryAdvance())
 		{
-			if (!ParseSubStepInner(compilation))
+			if (!ParseSubStepInner())
 			{
 				Log(UNEXPECTED_TOKEN, stream->Current());
 				stream->TryAdvance();
@@ -443,9 +443,9 @@ namespace HXSL
 		return !stream->HasCriticalErrors();
 	}
 
-	bool Parser::ParseSubStep(ASTNode* parent)
+	bool Parser::ParseSubStep()
 	{
-		while (ParseSubStepInner(parent))
+		while (ParseSubStepInner())
 		{
 		}
 
@@ -459,10 +459,10 @@ namespace HXSL
 		ParseModifierList();
 	}
 
-	bool Parser::ParseSubStepInner(ASTNode* parent)
+	bool Parser::ParseSubStepInner()
 	{
 		ParseInnerBegin();
-		if (SubParserRegistry::TryParse(*this, *stream, parent, compilation))
+		if (SubParserRegistry::TryParse(*this, *stream))
 		{
 			HXSL_ASSERT(modifierList.Empty(), "Modifier list was not empty, forgot to accept/reject it?.");
 			HXSL_ASSERT(!attribute.HasResource(), "Attribute list was not empty, forgot to accept/reject it?.");

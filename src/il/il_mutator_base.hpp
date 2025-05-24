@@ -37,7 +37,7 @@ namespace HXSL
 			discardList.clear();
 		}
 
-		void DiscardInstr(size_t index)
+		virtual void DiscardInstr(size_t index)
 		{
 			auto it = std::lower_bound(discardList.begin(), discardList.end(), index);
 			if (it == discardList.end() || *it != index)

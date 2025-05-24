@@ -153,7 +153,21 @@ namespace HXSL
 
 			auto idx = variables.size();
 
-			ILVariable var = ILVariable(idx, typeId, def);
+			auto& type = typeMetadata[typeId];
+
+			bool isLargeObject = true;
+			if (auto prim = type.def->As<Primitive>())
+			{
+				isLargeObject = prim->GetClass() == PrimitiveClass_Matrix;
+			}
+
+			ILVariableFlags flags = ILVariableFlags_None;
+			if (isLargeObject)
+			{
+				flags |= ILVariableFlags_LargeObject | ILVariableFlags_Reference;
+			}
+
+			ILVariable var = ILVariable(idx, typeId, def, flags);
 
 			variables.push_back(var);
 			varMap.insert({ def, idx });
@@ -236,6 +250,26 @@ namespace HXSL
 			}
 
 			return nullptr;
+		}
+
+		const std::string_view& GetTypeName(uint64_t typeId) const
+		{
+			if (typeId >= typeMetadata.size())
+			{
+				return "Unknown";
+			}
+
+			return typeMetadata[typeId].def->GetName();
+		}
+
+		const std::string_view& GetFuncName(uint64_t funcId) const
+		{
+			if (funcId >= functions.size())
+			{
+				return "Unknown";
+			}
+
+			return functions[funcId].func->GetName();
 		}
 	};
 

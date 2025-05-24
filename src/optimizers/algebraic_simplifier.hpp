@@ -1,21 +1,25 @@
 #ifndef ALGEBRAIC_SIMPLIFIER_HPP
 #define ALGEBRAIC_SIMPLIFIER_HPP
 
-#include "pch/il.hpp"
+#include "il_optimizer_pass.hpp"
 
 namespace HXSL
 {
-	class AlgebraicSimplifier : public CFGVisitor<EmptyCFGContext>, ILMutatorBase
+	class AlgebraicSimplifier : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 	{
-		bool changed = false;
+		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+
 	public:
-		AlgebraicSimplifier(ControlFlowGraph& graph, ILMetadata& metadata) : ILMutatorBase(metadata), CFGVisitor(graph)
+		AlgebraicSimplifier(ILMetadata& metadata, ControlFlowGraph& graph) : ILOptimizerPass(metadata), CFGVisitor(graph)
 		{
 		}
 
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
-
-		bool HasChanged() const { return changed; }
+		OptimizerPassResult Run() override
+		{
+			changed = false;
+			Traverse();
+			return changed ? OptimizerPassResult_Rerun : OptimizerPassResult_None;
+		}
 	};
 }
 

@@ -236,13 +236,12 @@ namespace HXSL
 				}
 
 				Visit(currentIdx, node, context);
+				walkStack.push({ currentIdx, true, std::move(context) });
 
 				auto& children = domTreeChildren[currentIdx];
 				if (!children.empty())
 				{
-					walkStack.push({ currentIdx, true, std::move(context) });
-
-					for (auto it = children.rbegin(); it != children.rend(); ++it)
+					for (auto it = children.begin(); it != children.end(); ++it)
 					{
 						walkStack.push({ *it , false, {} });
 					}

@@ -1,6 +1,28 @@
 namespace Core;
 
-float3 xxz(float x)
+float test(float x)
 {
-	return x.xxx;
+	return x * 80 + 20;
+}
+
+struct MyStruct
+{
+	float field;
+
+	MyStruct(float value)
+	{
+		field = value;
+	}
+}
+
+float3 xxz(float x, float y)
+{
+	MyStruct value = MyStruct(x);
+
+	if (x > 10)
+	{
+		x = 10 * 80;
+		y = 30;
+	}
+	return x.xxx * y.xxx.xyx * value.field;
 }

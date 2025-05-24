@@ -87,6 +87,7 @@ namespace HXSL
 		SymbolScopeType_Struct,
 		SymbolScopeType_Class,
 		SymbolScopeType_Function,
+		SymbolScopeType_Constructor,
 		SymbolScopeType_Operator,
 		SymbolScopeType_Block
 	};

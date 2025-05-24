@@ -483,6 +483,24 @@ namespace HXSL
 			return oss.str();
 		}
 
+		std::string BuildConstructorOverloadSignature()
+		{
+			std::ostringstream oss;
+			oss << "#ctor(";
+			bool first = true;
+			for (auto& param : parameters)
+			{
+				if (!first)
+				{
+					oss << ",";
+				}
+				first = false;
+				oss << param->GetExpression()->GetInferredType()->GetFullyQualifiedName();
+			}
+			oss << ")";
+			return oss.str();
+		}
+
 		void AddParameter(ast_ptr<FunctionCallParameter> param) noexcept
 		{
 			RegisterChild(param);

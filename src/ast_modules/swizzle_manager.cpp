@@ -33,7 +33,7 @@ namespace HXSL
 			{
 				return false;
 			}
-			mask |= (i & 0x3) << shift;
+			mask = (i & 0x3) | (mask << shift);
 			shift += 2;
 		}
 

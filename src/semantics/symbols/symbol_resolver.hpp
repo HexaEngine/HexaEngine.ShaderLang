@@ -30,6 +30,14 @@ namespace HXSL
 		}
 	};
 
+	enum class ResolveMemberResult
+	{
+		Failure = -1, /// Resolution failed
+		Success = 0,  /// Resolution succeeded
+		Defer = 1,  /// Resolution should be deferred
+		Skip = 2   /// Skip resolution (e.g., function call or indexer)
+	};
+
 	class SymbolResolver : public Visitor<ResolverDeferralContext>
 	{
 	private:
@@ -76,13 +84,34 @@ namespace HXSL
 
 		bool ResolveSymbol(SymbolRef* ref, std::optional<StringSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent = false) const;
 
-		/// <summary>
-		///
-		/// </summary>
-		/// <param name="type"></param>
-		/// <param name="getter"></param>
-		/// <returns>-1 Failed, 0 Success, 1 Defer, 2 Skip/Terminal</returns>
-		int ResolveMemberInner(ChainExpression* expr, SymbolRef* type) const;
+		/**
+		 * @brief Attempts to resolve the constructor call represented by the given expression.
+		 *
+		 * This function checks whether the given expression corresponds to a constructor call.
+		 *
+		 * @param funcCallExpr Pointer to the function call expression to analyze.
+		 * @param[out] outDefinition Pointer to the declaration. The pointer to the constructor overload if the ctor overload was successfully resolved; nullptr otherwise.
+		 * @param[out] success Optional output parameter. If provided, set to true if the constructor overload
+		 *                    was successfully resolved; false otherwise. Defaults to nullptr.
+		 * @param silent If true, suppresses error logging for resolution failures. Defaults to false.
+		 *
+		 * @return true if the expression represents a constructor call (regardless of resolution success).
+		 * @return false if the expression does not represent a constructor call.
+		 */
+		bool TryResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool* success = nullptr, bool silent = false) const;
+
+		bool ResolveFunction(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
+
+		bool ResolveCallable(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
+
+		/**
+		 * @brief Attempts to resolve a member within a chain expression.
+		 *
+		 * @param expr The chain expression containing the member access.
+		 * @param type The base symbol reference to resolve against.
+		 * @return A ResolveMemberResult indicating the resolution outcome.
+		 */
+		ResolveMemberResult ResolveMemberInner(ChainExpression* expr, SymbolRef* type) const;
 
 		TraversalBehavior ResolveMember(ChainExpression* chainExprRoot, ASTNode*& next, bool skipInitialResolve = false) const;
 
