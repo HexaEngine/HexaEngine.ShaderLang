@@ -18,12 +18,11 @@ namespace HXSL
 
 		auto& instructions = node.instructions;
 		const size_t n = instructions.size();
-		for (size_t i = 0; i < n; ++i)
+		for (auto& instr : instructions)
 		{
-			auto& instr = instructions[i];
 			if (instr.opcode == OpCode_Phi)
 			{
-				DiscardInstr(i);
+				DiscardInstr(instr);
 				continue;
 			}
 
@@ -31,7 +30,7 @@ namespace HXSL
 			TryClearVersion(instr.operandRight);
 			TryClearVersion(instr.operandResult);
 
-			Prepare(instr, node.startInstr + i);
+			Prepare(instr);
 		}
 
 		for (auto& p : seenVars)
@@ -43,9 +42,9 @@ namespace HXSL
 			freeTemps[typeId].push(varId);
 		}
 
-		for (size_t i = 0; i < n; ++i)
+		for (auto& instr : instructions)
 		{
-			RemapOperandsAndResult(node.instructions[i], node.startInstr + i);
+			RemapOperandsAndResult(instr);
 		}
 
 		DiscardMarkedInstructs(node);

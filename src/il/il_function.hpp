@@ -3,18 +3,20 @@
 
 #include "il_metadata.hpp"
 #include "control_flow_graph.hpp"
+#include "utils/bump_allocator.hpp"
 
 namespace HXSL
 {
 	class ILFunction
 	{
 	public:
+		BumpAllocator allocator;
 		LowerCompilationUnit* compilation;
 		FunctionOverload* overload;
 		ILMetadata metadata;
 		ControlFlowGraph cfg;
 
-		ILFunction(LowerCompilationUnit* compilation, FunctionOverload* overload) : compilation(compilation), overload(overload), cfg(metadata)
+		ILFunction(LowerCompilationUnit* compilation, FunctionOverload* overload) : compilation(compilation), overload(overload), cfg(allocator, metadata)
 		{
 		}
 

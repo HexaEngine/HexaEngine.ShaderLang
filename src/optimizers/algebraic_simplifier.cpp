@@ -38,12 +38,9 @@ namespace HXSL
 	void AlgebraicSimplifier::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
 	{
 		auto& instructions = node.instructions;
-		const size_t n = instructions.size();
 
-		for (size_t i = 0; i < n; i++)
+		for (auto& instr : instructions)
 		{
-			auto& instr = instructions[i];
-
 			switch (instr.opcode)
 			{
 			case OpCode_Multiply:
@@ -170,15 +167,14 @@ namespace HXSL
 					changed = true;
 
 					bool condition = false;
-					auto j = i + 1;
-					if (j < n)
+					if (instr.next)
 					{
-						auto& nextInstr = instructions[j];
+						auto& nextInstr = *instr.next;
 						bool isTrueBranch = nextInstr.opcode == OpCode_JumpNotZero;
 						if (isTrueBranch || nextInstr.opcode == OpCode_JumpZero)
 						{
 							bool willJump = (isTrueBranch && condition) || (!isTrueBranch && !condition);
-							auto& target = nextInstr.operandLeft.varId;
+							auto& target = nextInstr.operandLeft.label;
 
 							if (willJump)
 							{
@@ -200,8 +196,7 @@ namespace HXSL
 								}
 
 								node.type = ControlFlowType_Normal;
-								node.terminator = node.startInstr + i - 1;
-								instructions.resize(i);
+								instructions.trim_end(&instr);
 
 								auto& targetNode = cfg.GetNode(target);
 								if (targetNode.predecessors.size() == 1 && targetNode.predecessors[0] == index)
@@ -219,8 +214,7 @@ namespace HXSL
 								}
 
 								node.type = ControlFlowType_Normal;
-								node.terminator = node.startInstr + i - 1;
-								instructions.resize(i);
+								instructions.trim_end(&instr);
 							}
 
 							cfg.RebuildDomTree();

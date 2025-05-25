@@ -6,6 +6,7 @@
 #include "lexical/text_span.hpp"
 #include "lexical/numbers.hpp"
 #include "utils/hashing.hpp"
+#include "utils/ilist.hpp"
 
 namespace HXSL
 {
@@ -24,9 +25,9 @@ namespace HXSL
 		OpCode_Move,
 
 		OpCode_Return,
-		OpCode_CallBegin,
-		OpCode_CallEnd,
 		OpCode_StoreParam,
+		OpCode_StoreRefParam,
+		OpCode_LoadRefParam,
 		OpCode_Call,
 
 		OpCode_Jump,
@@ -414,14 +415,14 @@ namespace HXSL
 		return (opKind & flag) != 0;
 	}
 
-	struct ILInstruction // alignment 8
+	class ILInstruction : public IntrusiveLinkedBase<ILInstruction>
 	{
-		ILOpCode opcode; // 2 bytes
-		ILOpKind opKind; // 1 byte
-		// padding 5 bytes.
-		ILOperand operandLeft; // 16 bytes
-		ILOperand operandRight; // 16 bytes
-		ILOperand operandResult; // 16 bytes
+	public:
+		ILOpCode opcode;
+		ILOpKind opKind;
+		ILOperand operandLeft;
+		ILOperand operandRight;
+		ILOperand operandResult;
 
 		ILInstruction(ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandRight, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), operandRight(operandRight), operandResult(operandResult), opKind(opKind)
 		{
@@ -499,12 +500,12 @@ namespace HXSL
 
 	struct ILMapping
 	{
-		uint32_t start;
-		uint32_t len;
+		ILInstruction* start;
+		ILInstruction* end;
 		TextSpan span;
 
-		ILMapping(const uint32_t& start, const uint32_t& len, const TextSpan& span)
-			: start(start), len(len), span(span)
+		ILMapping(ILInstruction* start, ILInstruction* end, const TextSpan& span)
+			: start(start), end(end), span(span)
 		{
 		}
 	};

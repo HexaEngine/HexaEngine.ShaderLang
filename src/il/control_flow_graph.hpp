@@ -42,14 +42,12 @@ namespace HXSL
 	struct CFGNode : public GraphNode<CFGNode>
 	{
 		size_t id;
-		size_t startInstr;
 		ControlFlowType type;
-		std::vector<ILInstruction> instructions;
+		ilist<ILInstruction> instructions;
 		std::vector<size_t> predecessors;
 		std::vector<size_t> successors;
-		size_t terminator;
 
-		CFGNode(size_t id, size_t startInstr, ControlFlowType type) : id(id), startInstr(startInstr), type(type), terminator(-1) {}
+		CFGNode(BumpAllocator& allocator, size_t id, ControlFlowType type) : id(id), type(type), instructions({ allocator }) {}
 
 		const std::vector<size_t>& GetDependencies() const
 		{
@@ -63,7 +61,7 @@ namespace HXSL
 
 		void AddInstr(const ILInstruction& instr)
 		{
-			instructions.push_back(instr);
+			instructions.append(instr);
 		}
 
 		void AddPredecessor(size_t predId)
@@ -96,23 +94,19 @@ namespace HXSL
 			if (it == predecessors.end()) return -1;
 			return it - predecessors.begin();
 		}
-
-		void SetTerminator(size_t term)
-		{
-			terminator = term;
-		}
 	};
 
 	class ControlFlowGraph
 	{
 	public:
+		BumpAllocator& allocator;
 		ILMetadata& metadata;
 		std::vector<CFGNode> nodes;
 		std::vector<size_t> idom;
 		std::vector<std::vector<size_t>> domTreeChildren;
 		std::vector<std::unordered_set<size_t>> domFront;
 
-		ControlFlowGraph(ILMetadata& metadata) : metadata(metadata) {}
+		ControlFlowGraph(BumpAllocator& allocator, ILMetadata& metadata) : allocator(allocator), metadata(metadata) {}
 
 		void Build(ILContainer& container, JumpTable& jumpTable);
 
@@ -129,7 +123,7 @@ namespace HXSL
 			return nodes[index];
 		}
 
-		size_t AddNode(ControlFlowType type, size_t startInstr)
+		size_t AddNode(ControlFlowType type)
 		{
 			if (!nodes.empty())
 			{
@@ -142,8 +136,7 @@ namespace HXSL
 			}
 
 			auto index = nodes.size();
-			CFGNode node = CFGNode(index, startInstr, type);
-			nodes.push_back(node);
+			nodes.emplace_back(allocator, index, type);
 			return index;
 		}
 
@@ -189,9 +182,6 @@ namespace HXSL
 				{
 					std::cout << succ << " ";
 				}
-				std::cout << "\n";
-
-				std::cout << "  Terminator: " << node.terminator << "\n";
 				std::cout << "\n";
 			}
 		}

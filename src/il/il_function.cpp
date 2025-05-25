@@ -5,7 +5,7 @@ namespace HXSL
 {
 	void ILFunction::Build()
 	{
-		ILContainer container = {};
+		ILContainer container = { allocator };
 		JumpTable jumpTable = {};
 
 		ILBuilder builder = ILBuilder(compilation, container, metadata, jumpTable);

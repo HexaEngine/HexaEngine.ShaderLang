@@ -9,7 +9,7 @@ namespace HXSL
 	{
 		std::unordered_map<ILVarId, ILVarId> phiMap;
 		std::unordered_map<ILVarId, ILVarId> varMapping;
-		std::unordered_map<ILVarId, size_t> lastUseIndex;
+		std::unordered_map<ILVarId, const ILInstruction*> lastUseIndex;
 		std::vector<std::queue<ILVarId>> freeTemps;
 		std::unordered_set<ILVarId> seenVars;
 
@@ -32,15 +32,15 @@ namespace HXSL
 			return finalId;
 		}
 
-		void Prepare(const ILInstruction& instr, size_t instrIdx)
+		void Prepare(const ILInstruction& instr)
 		{
 			if (instr.operandLeft.IsVar())
 			{
-				lastUseIndex.insert_or_assign(instr.operandLeft.varId, instrIdx);
+				lastUseIndex.insert_or_assign(instr.operandLeft.varId, &instr);
 			}
 			if (instr.operandRight.IsVar())
 			{
-				lastUseIndex.insert_or_assign(instr.operandRight.varId, instrIdx);
+				lastUseIndex.insert_or_assign(instr.operandRight.varId, &instr);
 			}
 			if (instr.operandResult.IsVar())
 			{
@@ -48,7 +48,7 @@ namespace HXSL
 			}
 		}
 
-		void RemapOperand(ILOperand& op, size_t instrIdx, bool isResult)
+		void RemapOperand(ILOperand& op, ILInstruction* instr, bool isResult)
 		{
 			if (!op.IsVar()) return;
 
@@ -69,7 +69,7 @@ namespace HXSL
 				}
 			}
 
-			if (lastUseIndex[varId] != instrIdx) return;
+			if (lastUseIndex[varId] != instr) return;
 
 			auto id = varId & SSA_VARIABLE_MASK;
 
@@ -78,11 +78,11 @@ namespace HXSL
 			freeTemps[typeId].push(op.varId & SSA_VERSION_STRIP_MASK);
 		}
 
-		void RemapOperandsAndResult(ILInstruction& instr, size_t instrIdx)
+		void RemapOperandsAndResult(ILInstruction& instr)
 		{
-			RemapOperand(instr.operandLeft, instrIdx, false);
-			RemapOperand(instr.operandRight, instrIdx, false);
-			RemapOperand(instr.operandResult, instrIdx, true);
+			RemapOperand(instr.operandLeft, &instr, false);
+			RemapOperand(instr.operandRight, &instr, false);
+			RemapOperand(instr.operandResult, &instr, true);
 		}
 
 		void TryClearVersion(ILOperand& op);

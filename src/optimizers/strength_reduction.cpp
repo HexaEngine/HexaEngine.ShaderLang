@@ -55,11 +55,8 @@ namespace HXSL
 	void StrengthReduction::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
 	{
 		auto& instructions = node.instructions;
-		const size_t n = instructions.size();
-		for (size_t i = 0; i < n; i++)
+		for (auto& instr : instructions)
 		{
-			auto& instr = instructions[i];
-
 			switch (instr.opcode)
 			{
 			case OpCode_Multiply:

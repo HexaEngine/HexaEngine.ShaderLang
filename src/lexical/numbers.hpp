@@ -101,7 +101,7 @@ namespace HXSL
 
 		Number(const NumberUnion& value, NumberType kind)
 		{
-			*reinterpret_cast<NumberUnion*>(this) = value;
+			u64 = value.u64;
 			Kind = kind;
 		}
 

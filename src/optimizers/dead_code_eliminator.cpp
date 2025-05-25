@@ -10,7 +10,7 @@ namespace HXSL
 		}
 	}
 
-	void DeadCodeEliminator::ProcessInstr(ILInstruction& instr, size_t idx, bool protectedInstr)
+	void DeadCodeEliminator::ProcessInstr(ILInstruction& instr, bool protectedInstr)
 	{
 		if (instr.opcode == OpCode_Phi)
 		{
@@ -29,7 +29,7 @@ namespace HXSL
 		if (op.IsVar() && usedVars.find(op.varId) == usedVars.end())
 		{
 			deadVars.insert(op.varId);
-			DiscardInstr(idx);
+			DiscardInstr(instr);
 		}
 	}
 
@@ -39,12 +39,12 @@ namespace HXSL
 		const size_t n = instructions.size();
 
 		bool protectedInstr = false;
-		for (size_t i = n; i-- != 0; )
+		for (auto it = instructions.rbegin(); it != instructions.rend(); ++it)
 		{
-			auto& instr = instructions[i];
+			auto& instr = *it;
 			protectedInstr |= instr.opcode == OpCode_Store;
 
-			ProcessInstr(instr, i, protectedInstr);
+			ProcessInstr(instr, protectedInstr);
 			if (instr.opcode == OpCode_JumpZero || instr.opcode == OpCode_JumpNotZero)
 			{
 				protectedInstr = true;

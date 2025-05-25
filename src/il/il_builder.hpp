@@ -153,25 +153,25 @@ namespace HXSL
 		ILExpressionBuilder exprBuilder;
 		JumpTable& jumpTable;
 
-		std::stack<size_t> mappingStarts;
+		std::stack<ILInstruction*> mappingStarts;
 
 		void MappingStart()
 		{
-			mappingStarts.push(container.size());
+			mappingStarts.push(&container.back());
 		}
 
-		void MappingEnd(const TextSpan& span, size_t start = -1, size_t end = -1)
+		void MappingEnd(const TextSpan& span, ILInstruction* start = nullptr, ILInstruction* end = nullptr)
 		{
-			if (start == -1)
+			if (start == nullptr)
 			{
 				start = mappingStarts.top();
 				mappingStarts.pop();
 			}
-			if (end == -1)
+			if (end == nullptr)
 			{
-				end = container.size();
+				end = &container.back();
 			}
-			metadata.mappings.push_back(ILMapping(static_cast<uint32_t>(start), static_cast<uint32_t>(end - start), span));
+			metadata.mappings.push_back(ILMapping(start, end, span));
 		}
 
 		bool didReturn = false;
@@ -218,21 +218,21 @@ namespace HXSL
 			loopStack.pop();
 		}
 
-		void SetLocation(uint64_t label, uint64_t location = INVALID_JUMP_LOCATION)
+		void SetLocation(uint64_t label, ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
-			if (location == INVALID_JUMP_LOCATION)
+			if (location == INVALID_JUMP_LOCATION_PTR)
 			{
-				location = container.size();
+				location = &container.back();
 			}
 			jumpTable.SetLocation(label, location);
 		}
 
-		uint64_t MakeJumpLocation(uint64_t location = INVALID_JUMP_LOCATION)
+		uint64_t MakeJumpLocation(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			return jumpTable.Allocate(location);
 		}
 
-		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(container.size()); }
+		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
 
 		ILVarId TraverseExpression(Expression* expr, const ILOperand& outRegister = INVALID_VARIABLE) { return exprBuilder.TraverseExpression(expr, outRegister); }
 		SymbolDef* GetAddrType(SymbolDef* elementType);
@@ -253,13 +253,12 @@ namespace HXSL
 		void Print()
 		{
 			std::cout << "{" << std::endl;
-			for (size_t i = 0; i < container.size(); i++)
+			for (auto& instr : container)
 			{
-				auto& instr = container[i];
 				size_t offset = 0;
 				while (true)
 				{
-					auto it = std::find(jumpTable.locations.begin() + offset, jumpTable.locations.end(), i);
+					auto it = std::find(jumpTable.locations.begin() + offset, jumpTable.locations.end(), &instr);
 					if (it == jumpTable.locations.end())
 					{
 						break;

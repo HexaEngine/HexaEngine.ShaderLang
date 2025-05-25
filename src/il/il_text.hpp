@@ -27,9 +27,10 @@ namespace HXSL
 		case OpCode_Jump: return "jmp";
 		case OpCode_JumpZero: return "jz";
 		case OpCode_JumpNotZero: return "jnz";
-		case OpCode_CallBegin: return "cbeg";
-		case OpCode_CallEnd: return "cend";
+
 		case OpCode_StoreParam: return "starg";
+		case OpCode_StoreRefParam: return "strefarg";
+		case OpCode_LoadRefParam: return "ldrefarg";
 		case OpCode_Call: return "call";
 
 		case OpCode_Phi: return "phi";

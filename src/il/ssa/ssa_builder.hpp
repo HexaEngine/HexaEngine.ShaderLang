@@ -2,6 +2,7 @@
 #define SSA_BUILDER_HPP
 
 #include "pch/il.hpp"
+#include "il/memory_ssa_graph.hpp"
 
 namespace HXSL
 {
@@ -27,7 +28,10 @@ namespace HXSL
 		uint64_t TopVersion(uint64_t varId)
 		{
 			if (versionStacks[varId].empty())
+			{
 				return varId;
+			}
+
 			return versionStacks[varId].top();
 		}
 

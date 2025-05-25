@@ -16,9 +16,9 @@ namespace HXSL
 	{
 	protected:
 		bool changed = false;
-		void DiscardInstr(size_t index) override
+		void DiscardInstr(ILInstruction& instr) override
 		{
-			ILMutatorBase::DiscardInstr(index);
+			ILMutatorBase::DiscardInstr(instr);
 			changed = true;
 		}
 

@@ -77,10 +77,9 @@ namespace HXSL
 					}
 					else
 					{
-						auto n = container.size();
-						if (n != 0)
+						if (!container.empty())
 						{
-							container[n - 1].operandResult = varId.AsOperand();
+							container.back().operandResult = varId.AsOperand();
 						}
 					}
 				}

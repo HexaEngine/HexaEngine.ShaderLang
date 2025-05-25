@@ -72,10 +72,9 @@ namespace HXSL
 			auto& var = FindVar(m);
 			if (!var.IsReference())
 			{
-				const size_t n = container.size();
-				if (n != 0)
+				if (!container.empty())
 				{
-					auto& result = container[n - 1].operandResult;
+					auto& result = container.back().operandResult;
 					//HXSL_ASSERT(result.IsReg() && result.reg == registerIn, "");
 					result = var.AsOperand();
 				}
@@ -136,7 +135,7 @@ namespace HXSL
 				nextVar = reg.Alloc(next->GetInferredType());
 				if (first)
 				{
-					container.instructions.back() = VecSwizzleExpr(swizzle, varId.AsOperand(), nextVar);
+					container.back() = VecSwizzleExpr(swizzle, varId.AsOperand(), nextVar);
 				}
 				else
 				{
@@ -368,9 +367,9 @@ namespace HXSL
 				{
 					if (currentFrame.state == 0)
 					{
-						if (container.instructions.size() > 0)
+						if (!container.empty())
 						{
-							auto& last = container.instructions.back();
+							auto& last = container.back();
 							if (last.opcode == OpCode_StackAlloc)
 							{
 								AddInstr(OpCode_StoreParam, last.operandResult, Number(0));

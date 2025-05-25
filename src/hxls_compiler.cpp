@@ -10,6 +10,8 @@
 #include "utils/ast_flattener.hpp"
 #include "utils/ast_allocator.hpp"
 
+#include "il/memory_ssa_graph.hpp"
+
 #include <chrono>
 
 namespace HXSL

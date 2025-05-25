@@ -12,7 +12,7 @@ namespace HXSL
 
 		void ProcessOperand(ILOperand& op);
 
-		void ProcessInstr(ILInstruction& instr, size_t idx, bool protectedInstr);
+		void ProcessInstr(ILInstruction& instr, bool protectedInstr);
 
 		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override
 		{

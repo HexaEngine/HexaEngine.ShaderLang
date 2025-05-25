@@ -6,11 +6,8 @@ namespace HXSL
 	void SSABuilder::Visit(size_t index, CFGNode& node, SSACFGContext& context)
 	{
 		auto& instructs = node.instructions;
-		const size_t n = node.instructions.size();
-		for (size_t i = 0; i < n; ++i)
+		for (auto& instr : instructs)
 		{
-			auto& instr = node.instructions[i];
-
 			if (instr.IsOp(OpCode_Phi))
 			{
 				uint64_t varId = instr.operandResult.varId;
@@ -37,6 +34,22 @@ namespace HXSL
 				context.variables.push_back(varId);
 				instr.operandResult.varId = newVersion;
 			}
+
+			if (instr.IsOp(OpCode_StackAlloc))
+			{
+			}
+
+			if (instr.IsOp(OpCode_OffsetAddress))
+			{
+			}
+
+			if (instr.IsOp(OpCode_Load))
+			{
+			}
+
+			if (instr.IsOp(OpCode_Store))
+			{
+			}
 		}
 
 		auto& phiMetadata = metadata.phiMetadata;
@@ -45,9 +58,8 @@ namespace HXSL
 			auto& succNode = cfg.GetNode(succ);
 			size_t slot = succNode.GetPredecessorIndex(index);
 
-			for (size_t i = 0; i < succNode.instructions.size(); ++i)
+			for (auto& instr : succNode.instructions)
 			{
-				auto& instr = succNode.instructions[i];
 				if (!instr.IsOp(OpCode_Phi)) break;
 				size_t phiId = instr.operandLeft.varId;
 				uint64_t varId = instr.operandResult.varId & SSA_VARIABLE_MASK;

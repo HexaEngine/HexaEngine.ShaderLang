@@ -48,7 +48,6 @@ namespace HXSL
 			ILOperandKind_T kind = op.kind;
 			switch (kind)
 			{
-			case ILOperandKind_Register:
 			case ILOperandKind_Variable:
 			case ILOperandKind_Label:
 			case ILOperandKind_Type:
@@ -161,7 +160,6 @@ namespace HXSL
 			ILOperandKind_T kind = op.kind;
 			switch (kind)
 			{
-			case ILOperandKind_Register:
 			case ILOperandKind_Variable:
 			case ILOperandKind_Label:
 			case ILOperandKind_Type:

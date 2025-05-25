@@ -14,20 +14,21 @@ namespace HXSL
 			auto& node = nodes[i];
 			if (node.predecessors.empty())
 			{
-				auto instr = node.startInstr;
 				TextSpan span;
-				for (size_t j = 0; j < node.instructions.size(); j++)
+				bool first = true;
+				for (auto& instr : node.instructions)
 				{
-					auto map = metadata.FindMappingForInstruction(instr + j);
+					auto map = metadata.FindMappingForInstruction(&instr);
 					if (map)
 					{
-						if (j != 0)
+						if (first)
 						{
-							span.merge(map->span);
+							span = map->span;
+							first = false;
 						}
 						else
 						{
-							span = map->span;
+							span.merge(map->span);
 						}
 					}
 				}

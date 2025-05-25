@@ -17,11 +17,8 @@ namespace HXSL
 	void CommonSubExpression::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
 	{
 		auto& instructions = node.instructions;
-		const size_t n = instructions.size();
-		for (size_t i = 0; i < n; i++)
+		for (auto& instr : instructions)
 		{
-			auto& instr = instructions[i];
-
 			TryMapOperand(instr.operandLeft);
 			TryMapOperand(instr.operandRight);
 
@@ -30,7 +27,7 @@ namespace HXSL
 			auto it = subExpressions.find(instr);
 			if (it != subExpressions.end())
 			{
-				DiscardInstr(i);
+				DiscardInstr(instr);
 				map.insert({ instr.operandResult, it->operandResult });
 			}
 			else

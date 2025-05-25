@@ -127,6 +127,12 @@ namespace HXSL
 		}
 	};
 
+	using ILMemoryLocation = uint64_t;
+
+	struct MemoryLocationMetadata
+	{
+	};
+
 	struct ILMetadata
 	{
 		std::string unknownString = "Unknown";
@@ -271,7 +277,7 @@ namespace HXSL
 			return access;
 		}
 
-		const ILMapping* FindMappingForInstruction(size_t instrIndex) const
+		const ILMapping* FindMappingForInstruction(const ILInstruction* instrIndex) const
 		{
 			int low = 0;
 			int high = (int)mappings.size() - 1;
@@ -281,7 +287,7 @@ namespace HXSL
 				int mid = low + (high - low) / 2;
 				const ILMapping& m = mappings[mid];
 
-				if (instrIndex >= m.start && instrIndex < static_cast<size_t>(m.start) + m.len)
+				if (instrIndex >= m.start && instrIndex < m.end)
 				{
 					return &m;
 				}
@@ -298,7 +304,7 @@ namespace HXSL
 			return nullptr;
 		}
 
-		const std::string_view& GetTypeName(ILTypeId typeId) const
+		std::string_view GetTypeName(ILTypeId typeId) const
 		{
 			if (typeId >= typeMetadata.size())
 			{
@@ -308,7 +314,7 @@ namespace HXSL
 			return typeMetadata[typeId].def->GetFullyQualifiedName();
 		}
 
-		const std::string_view& GetFieldName(ILFieldAccess access) const
+		std::string_view GetFieldName(ILFieldAccess access) const
 		{
 			auto typeId = access.typeId;
 			if (typeId >= typeMetadata.size())
@@ -332,7 +338,7 @@ namespace HXSL
 			return unknownString;
 		}
 
-		const std::string_view& GetFuncName(ILFuncId funcId) const
+		std::string_view GetFuncName(ILFuncId funcId) const
 		{
 			if (funcId >= functions.size())
 			{
@@ -342,7 +348,7 @@ namespace HXSL
 			return functions[funcId].func->GetFullyQualifiedName();
 		}
 
-		const std::string_view& GetVarTypeName(ILVarId varId) const
+		std::string_view GetVarTypeName(ILVarId varId) const
 		{
 			auto id = varId.var.id;
 			if (varId.var.temp)

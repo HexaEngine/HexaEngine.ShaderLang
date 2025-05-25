@@ -19,7 +19,8 @@ void set(MyStruct a)
 
 float test(float x, float y)
 {
-	MyStruct a = MyStruct(y);
-	set(a);
+	MyStruct a;
+	a.value1 = 10;
+	//set(a);
 	return x * 80 + x * 80 + x * 80 * a.value1;
 }

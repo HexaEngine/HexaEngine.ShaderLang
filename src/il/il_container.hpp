@@ -5,70 +5,35 @@
 
 namespace HXSL
 {
-	struct ILContainer
+	struct ILContainer : public ilist<ILInstruction>
 	{
-		std::vector<ILInstruction> instructions;
-
-		size_t size() const { return instructions.size(); }
-
-		const ILInstruction& operator[](size_t index) const
+		ILContainer(BumpAllocator& allocator) : ilist<ILInstruction>(allocator)
 		{
-			return instructions[index];
-		}
-
-		ILInstruction& operator[](size_t index)
-		{
-			return instructions[index];
 		}
 
 		void AddInstr(const ILInstruction& instr)
 		{
-			instructions.push_back(instr);
+			append(instr);
 		}
 
 		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandRight, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None)
 		{
-			instructions.push_back(ILInstruction(opcode, operandLeft, operandRight, operandResult, opKind));
+			append(ILInstruction(opcode, operandLeft, operandRight, operandResult, opKind));
 		}
 
 		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None)
 		{
-			instructions.push_back(ILInstruction(opcode, operandLeft, operandResult, opKind));
+			append(ILInstruction(opcode, operandLeft, operandResult, opKind));
 		}
 
 		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, ILOpKind opKind = ILOpKind_None)
 		{
-			instructions.push_back(ILInstruction(opcode, operandLeft, opKind));
+			append(ILInstruction(opcode, operandLeft, opKind));
 		}
 
 		void AddInstr(ILOpCode opcode, ILOpKind opKind = ILOpKind_None)
 		{
-			instructions.push_back(ILInstruction(opcode, opKind));
-		}
-
-		void InsertInstr(size_t index, const ILInstruction& instr)
-		{
-			instructions.insert(instructions.begin() + index, instr);
-		}
-
-		void InsertInstr(size_t index, ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandRight, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None)
-		{
-			instructions.insert(instructions.begin() + index, ILInstruction(opcode, operandLeft, operandRight, operandResult, opKind));
-		}
-
-		void InsertInstr(size_t index, ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None)
-		{
-			instructions.insert(instructions.begin() + index, ILInstruction(opcode, operandLeft, operandResult, opKind));
-		}
-
-		void InsertInstr(size_t index, ILOpCode opcode, const ILOperand& operandLeft, ILOpKind opKind = ILOpKind_None)
-		{
-			instructions.insert(instructions.begin() + index, ILInstruction(opcode, operandLeft, opKind));
-		}
-
-		void InsertInstr(size_t index, ILOpCode opcode, ILOpKind opKind = ILOpKind_None)
-		{
-			instructions.insert(instructions.begin() + index, ILInstruction(opcode, opKind));
+			append(ILInstruction(opcode, opKind));
 		}
 	};
 

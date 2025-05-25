@@ -9,63 +9,52 @@ namespace HXSL
 	{
 		nodes.clear();
 
-		auto size = container.size();
-
-		std::vector<size_t> instrToNode;
-		instrToNode.resize(size, -1);
-
-		std::unordered_set<size_t> blockStarts;
+		std::unordered_map<ILInstruction*, size_t> instrToNode;
+		std::unordered_set<ILInstruction*> blockStarts;
 		for (auto& loc : jumpTable.locations)
 		{
 			blockStarts.insert(loc);
 		}
 
-		size_t currentIdx = AddNode(ControlFlowType_Normal, 0);
+		size_t currentIdx = AddNode(ControlFlowType_Normal);
 
-		for (size_t i = 0; i < size; i++)
+		for (auto& instr : container)
 		{
-			if (blockStarts.contains(i))
+			if (blockStarts.contains(&instr))
 			{
-				GetNode(currentIdx).SetTerminator(i - 1);
-				currentIdx = AddNode(ControlFlowType_Normal, i);
+				currentIdx = AddNode(ControlFlowType_Normal);
 			}
-
-			auto& instr = container[i];
 
 			auto& node = GetNode(currentIdx);
 
 			node.AddInstr(instr);
-			instrToNode[i] = currentIdx;
+			instrToNode.insert({ &instr, currentIdx });
 
 			switch (instr.opcode)
 			{
 			case OpCode_Jump:
 			{
 				node.type = ControlFlowType_Unconditional;
-				node.SetTerminator(i);
-				currentIdx = AddNode(ControlFlowType_Normal, i + 1);
+				currentIdx = AddNode(ControlFlowType_Normal);
 			}
 			break;
 			case OpCode_JumpZero:
 			case OpCode_JumpNotZero:
 			{
 				node.type = ControlFlowType_Conditional;
-				node.SetTerminator(i);
-				currentIdx = AddNode(ControlFlowType_Normal, i + 1);
+				currentIdx = AddNode(ControlFlowType_Normal);
 			}
 			break;
 			case OpCode_Return:
 			case OpCode_Discard:
 				node.type = ControlFlowType_Exit;
-				node.SetTerminator(i);
-				if (i + 1 < size)
+				if (instr.next)
 				{
-					currentIdx = AddNode(ControlFlowType_Normal, i + 1);
+					currentIdx = AddNode(ControlFlowType_Normal);
 				}
 				break;
 			}
 		}
-		GetNode(currentIdx).SetTerminator(size - 1);
 
 		for (auto& node : nodes)
 		{
@@ -73,7 +62,7 @@ namespace HXSL
 				continue;
 
 			auto& lastInstr = node.instructions.back();
-			size_t termIdx = node.terminator;
+			ILInstruction* term = &lastInstr;
 
 			switch (lastInstr.opcode)
 			{
@@ -81,7 +70,7 @@ namespace HXSL
 			{
 				if (lastInstr.operandLeft.kind == ILOperandKind_Label)
 				{
-					size_t target = jumpTable.GetLocation(lastInstr.operandLeft.varId);
+					auto target = jumpTable.GetLocation(lastInstr.operandLeft.varId);
 					auto targetNode = instrToNode[target];
 					lastInstr.operandLeft.varId = targetNode;
 					Link(node.id, instrToNode[target]);
@@ -93,23 +82,23 @@ namespace HXSL
 			{
 				if (lastInstr.operandLeft.kind == ILOperandKind_Label)
 				{
-					size_t target = jumpTable.GetLocation(lastInstr.operandLeft.varId);
+					auto target = jumpTable.GetLocation(lastInstr.operandLeft.varId);
 					auto targetNode = instrToNode[target];
 					lastInstr.operandLeft.varId = targetNode;
 					Link(node.id, targetNode);
 				}
 
-				if (termIdx + 1 < size)
+				if (term->next)
 				{
-					Link(node.id, instrToNode[termIdx + 1]);
+					Link(node.id, instrToNode[term->next]);
 				}
 				break;
 			}
 			default:
 			{
-				if (termIdx + 1 < size)
+				if (term->next)
 				{
-					Link(node.id, instrToNode[termIdx + 1]);
+					Link(node.id, instrToNode[term->next]);
 				}
 				break;
 			}
@@ -190,7 +179,7 @@ namespace HXSL
 			return;
 		}
 
-		std::swap(node, nodes[last]);
+		std::swap(nodes[index], nodes[last]);
 
 		auto& swapped = nodes[index];
 		swapped.id = index;
@@ -246,10 +235,7 @@ namespace HXSL
 		}
 		src.successors.clear();
 
-		dst.instructions.insert(dst.instructions.begin(), src.instructions.begin(), src.instructions.end());
-
-		src.instructions.clear();
-		dst.startInstr = src.startInstr;
+		dst.instructions.prepend_move(src.instructions);
 
 		RemoveNode(from);
 	}

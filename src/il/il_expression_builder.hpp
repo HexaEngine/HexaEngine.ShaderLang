@@ -54,21 +54,21 @@ namespace HXSL
 			stack.pop();
 		}
 
-		void SetLocation(uint64_t label, uint64_t location = INVALID_JUMP_LOCATION)
+		void SetLocation(uint64_t label, ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
-			if (location == INVALID_JUMP_LOCATION)
+			if (location == INVALID_JUMP_LOCATION_PTR)
 			{
-				location = container.size();
+				location = &container.back();
 			}
 			jumpTable.SetLocation(label, location);
 		}
 
-		uint64_t MakeJumpLocation(uint64_t location = INVALID_JUMP_LOCATION)
+		uint64_t MakeJumpLocation(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			return jumpTable.Allocate(location);
 		}
 
-		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(container.size()); }
+		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
 
 	public:
 		ILExpressionBuilder(LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, ILTempVariableAllocator& tempAllocator, JumpTable& jumpTable)

@@ -3,14 +3,14 @@
 
 namespace HXSL
 {
-	static bool IsJumpCondition(std::vector<ILInstruction>& instructions, size_t i)
+	static bool IsJumpCondition(ILInstruction& instruction)
 	{
-		if (i + 1 >= instructions.size())
+		if (!instruction.next)
 		{
 			return false;
 		}
 
-		auto nextInstr = instructions[i + 1].opcode;
+		auto nextInstr = instruction.next->opcode;
 		return (nextInstr == OpCode_Jump || nextInstr == OpCode_JumpNotZero || nextInstr == OpCode_JumpZero);
 	}
 
@@ -34,10 +34,8 @@ namespace HXSL
 	void ConstantFolder::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
 	{
 		auto& instructions = node.instructions;
-		for (size_t i = 0; i < instructions.size(); i++)
+		for (auto& instr : instructions)
 		{
-			auto& instr = instructions[i];
-
 			TryFoldOperand(instr.operandLeft);
 			TryFoldOperand(instr.operandRight);
 
@@ -75,7 +73,7 @@ namespace HXSL
 				if (instr.operandLeft.IsImm())
 				{
 					Number imm = FoldImm(instr.operandLeft.imm(), {}, instr.opcode);
-					if (IsJumpCondition(instructions, i))
+					if (IsJumpCondition(instr))
 					{
 						break;
 					}
@@ -90,7 +88,7 @@ namespace HXSL
 					Number imm;
 					if (TryFold(instr, imm))
 					{
-						if (IsJumpCondition(instructions, i))
+						if (IsJumpCondition(instr))
 						{
 							break;
 						}
@@ -108,11 +106,9 @@ namespace HXSL
 		constants.clear();
 		varToVar.clear();
 
-		std::unordered_map<ILVarId, size_t> defMap;
-		for (size_t i = 0; i < instructions.size(); i++)
+		std::unordered_map<ILVarId, ILInstruction*> defMap;
+		for (auto& instr : instructions)
 		{
-			auto& instr = instructions[i];
-
 			if (IsBinaryOp(instr.opcode))
 			{
 				bool varImm = instr.IsVarImm();
@@ -126,7 +122,7 @@ namespace HXSL
 					auto defIt = defMap.find(lhs);
 					if (defIt != defMap.end())
 					{
-						auto& defInstr = instructions[defIt->second];
+						auto& defInstr = *defIt->second;
 
 						auto isMulDivCandidate0 = defInstr.IsOp(OpCode_Multiply) && instr.IsOp(OpCode_Divide);
 						auto isMulDivCandidate1 = defInstr.IsOp(OpCode_Divide) && instr.IsOp(OpCode_Multiply);
@@ -151,7 +147,7 @@ namespace HXSL
 							}
 							else
 							{
-								defMap[instr.operandResult.varId] = i;
+								defMap[instr.operandResult.varId] = &instr;
 								continue;
 							}
 
@@ -161,7 +157,7 @@ namespace HXSL
 							}
 
 							Number total = FoldImm(lhs, rhs, fuseMulDiv ? OpCode_Divide : instr.opcode);
-							DiscardInstr(defIt->second);
+							DiscardInstr(*defIt->second);
 							instr.operandLeft.varId = base;
 							instr.operandRight.imm() = total;
 							instr.opcode = fuseMulDiv ? OpCode_Multiply : defInstr.opcode;
@@ -173,7 +169,7 @@ namespace HXSL
 
 			if (instr.operandResult.IsVar())
 			{
-				defMap[instr.operandResult.varId] = i;
+				defMap[instr.operandResult.varId] = &instr;
 			}
 		}
 
