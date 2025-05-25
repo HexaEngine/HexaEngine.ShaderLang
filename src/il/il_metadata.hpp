@@ -101,7 +101,7 @@ namespace HXSL
 		}
 	};
 
-	constexpr ILVariable INVALID_VARIABLE = ILVariable(-1, -1, nullptr);
+	constexpr ILVariable INVALID_VARIABLE_METADATA = ILVariable(-1, -1, nullptr);
 
 	struct ILCall
 	{
@@ -129,13 +129,14 @@ namespace HXSL
 
 	struct ILMetadata
 	{
+		std::string unknownString = "Unknown";
+		ILVariable invalid = INVALID_VARIABLE_METADATA;
 		std::vector<ILTypeMetadata> typeMetadata;
 		std::unordered_map<SymbolDef*, ILTypeId> typeMap;
 
 		std::vector<ILVariable> variables;
 		std::vector<ILVariable> tempVariables;
 		std::unordered_map<SymbolDef*, ILVarId> varMap;
-		ILVariable invalid = INVALID_VARIABLE;
 
 		std::vector<ILCall> functions;
 		std::unordered_map<SymbolDef*, ILFuncId> funcMap;
@@ -301,10 +302,10 @@ namespace HXSL
 		{
 			if (typeId >= typeMetadata.size())
 			{
-				return "Unknown";
+				return unknownString;
 			}
 
-			return typeMetadata[typeId].def->GetName();
+			return typeMetadata[typeId].def->GetFullyQualifiedName();
 		}
 
 		const std::string_view& GetFieldName(ILFieldAccess access) const
@@ -312,7 +313,7 @@ namespace HXSL
 			auto typeId = access.typeId;
 			if (typeId >= typeMetadata.size())
 			{
-				return "Unknown";
+				return unknownString;
 			}
 
 			auto fieldId = access.fieldId;
@@ -323,44 +324,45 @@ namespace HXSL
 				auto& fields = struct_->GetFields();
 				if (fieldId >= fields.size())
 				{
-					return "Unknown";
+					return unknownString;
 				}
 				return fields[fieldId]->GetName();
 			}
+
+			return unknownString;
 		}
 
 		const std::string_view& GetFuncName(ILFuncId funcId) const
 		{
 			if (funcId >= functions.size())
 			{
-				return "Unknown";
+				return unknownString;
 			}
 
-			return functions[funcId].func->GetName();
+			return functions[funcId].func->GetFullyQualifiedName();
 		}
 
 		const std::string_view& GetVarTypeName(ILVarId varId) const
 		{
-			if ((varId & SSA_VARIABLE_TEMP_FLAG) != 0)
+			auto id = varId.var.id;
+			if (varId.var.temp)
 			{
-				varId &= SSA_VARIABLE_MASK;
-				if (varId >= tempVariables.size())
+				if (id >= tempVariables.size())
 				{
-					return "Unknown";
+					return unknownString;
 				}
 
-				auto& var = tempVariables[varId];
+				auto& var = tempVariables[id];
 				return GetTypeName(var.typeId);
 			}
 			else
 			{
-				varId &= SSA_VARIABLE_MASK;
-				if (varId >= variables.size())
+				if (id >= variables.size())
 				{
-					return "Unknown";
+					return unknownString;
 				}
 
-				auto& var = variables[varId];
+				auto& var = variables[id];
 				return GetTypeName(var.typeId);
 			}
 		}
@@ -396,14 +398,14 @@ namespace HXSL
 
 		ILTempVariableAllocator(ILMetadata& metadata) : metadata(metadata) {}
 
-		ILRegister Alloc(SymbolDef* type)
+		ILVarId Alloc(SymbolDef* type)
 		{
 			return metadata.RegTempVar(type).id;
 		}
 
-		void Free(ILRegister reg)
+		void Free(ILVarId reg)
 		{
-			if (reg == INVALID_REGISTER) return;
+			if (reg == INVALID_VARIABLE) return;
 		}
 	};
 }

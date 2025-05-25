@@ -59,12 +59,12 @@ namespace HXSL
 		return false;
 	}
 
-	void ILExpressionBuilder::ReadVar(Expression* target, ILRegister registerOut)
+	void ILExpressionBuilder::ReadVar(Expression* target, const ILVarId& varOut)
 	{
-		MemberAccess(target, registerOut, MemberOp_Read);
+		MemberAccess(target, varOut, MemberOp_Read);
 	}
 
-	void ILExpressionBuilder::WriteVar(Expression* target, ILRegister registerIn)
+	void ILExpressionBuilder::WriteVar(Expression* target, const ILVarId& varsIn)
 	{
 		if (target->GetType() == NodeType_MemberReferenceExpression)
 		{
@@ -83,7 +83,7 @@ namespace HXSL
 			}
 		}
 
-		MemberAccess(target, {}, MemberOp_Write, registerIn);
+		MemberAccess(target, {}, MemberOp_Write, varsIn);
 	}
 
 	SymbolDef* ILExpressionBuilder::GetAddrType(SymbolDef* elementType)
@@ -94,7 +94,7 @@ namespace HXSL
 		return def;
 	}
 
-	bool ILExpressionBuilder::MemberAccess(Expression* expr, ILRegister outRegister, MemberOp op, ILOperand writeOp)
+	bool ILExpressionBuilder::MemberAccess(Expression* expr, const ILVarId& outVar, MemberOp op, ILOperand writeOp)
 	{
 		if (auto m = expr->As<MemberReferenceExpression>())
 		{
@@ -105,7 +105,7 @@ namespace HXSL
 			}
 			else if (op == MemberOp_Read)
 			{
-				AddInstr(VecLoadOp(varId, m), varId.AsOperand(), outRegister);
+				AddInstr(VecLoadOp(varId, m), varId.AsOperand(), outVar);
 			}
 			return false;
 		}
@@ -130,7 +130,7 @@ namespace HXSL
 			auto decl = ref->GetDeclaration();
 			//reg.Free(temp);
 
-			ILRegister nextVar;
+			ILVarId nextVar;
 			if (auto swizzle = decl->As<SwizzleDefinition>())
 			{
 				nextVar = reg.Alloc(next->GetInferredType());
@@ -164,7 +164,7 @@ namespace HXSL
 				}
 				else if (op == MemberOp_Read)
 				{
-					AddInstr(OpCode_Load, nextVar, outRegister);
+					AddInstr(OpCode_Load, nextVar, outVar);
 				}
 			}
 			break;
@@ -198,17 +198,17 @@ namespace HXSL
 		}
 	}
 
-	ILRegister ILExpressionBuilder::TraverseExpression(Expression* expression, const ILOperand& outOperand)
+	ILVarId ILExpressionBuilder::TraverseExpression(Expression* expression, const ILOperand& outOperand)
 	{
 		auto outOp = outOperand;
 		if (outOperand.IsVar())
 		{
-			outOp.varId = outOperand.varId != static_cast<uint64_t>(-1) ? outOperand.varId : reg.Alloc(expression->GetInferredType()).id;
+			outOp.varId = outOperand.varId != INVALID_VARIABLE ? outOperand.varId : reg.Alloc(expression->GetInferredType());
 		}
 
 		if (expression->GetInferredType() == nullptr)
 		{
-			return outOp.reg;
+			return outOp.varId;
 		}
 
 		PushFrame({ expression, outOp });
@@ -244,7 +244,7 @@ namespace HXSL
 				else
 				{
 					currentFrame.state++;
-					currentFrame.rightRegister = isImm1 ? INVALID_REGISTER : reg.Alloc(right->GetInferredType());
+					currentFrame.rightRegister = isImm1 ? INVALID_VARIABLE : reg.Alloc(right->GetInferredType());
 					PushFrame(currentFrame);
 
 					if (!isImm1)
@@ -289,7 +289,7 @@ namespace HXSL
 				ILOperand imm;
 				bool isImm = IsInlineable(operand, imm);
 
-				ILRegister operandReg = {};
+				ILVarId operandReg = {};
 				if (!isImm)
 				{
 					operandReg = reg.Alloc(operand->GetInferredType());
@@ -304,12 +304,12 @@ namespace HXSL
 					if (operator_ == Operator_Increment)
 					{
 						AddInstr(OpCode_Add, ilOperand, Number(1), ILOperand(currentFrame.outRegister), PrimToOpKind(op));
-						MemberAccess(operand, currentFrame.outRegister.reg, MemberOp_Write, currentFrame.outRegister);
+						MemberAccess(operand, currentFrame.outRegister.varId, MemberOp_Write, currentFrame.outRegister);
 					}
 					else if (operator_ == Operator_Decrement)
 					{
 						AddInstr(OpCode_Subtract, ilOperand, Number(1), ILOperand(currentFrame.outRegister), PrimToOpKind(op));
-						MemberAccess(operand, currentFrame.outRegister.reg, MemberOp_Write, currentFrame.outRegister);
+						MemberAccess(operand, currentFrame.outRegister.varId, MemberOp_Write, currentFrame.outRegister);
 					}
 					else if (operator_ == Operator_Subtract)
 					{
@@ -330,7 +330,7 @@ namespace HXSL
 				auto operand = pref->GetOperand().get();
 				auto operator_ = pref->GetOperator();
 
-				MemberAccess(operand, currentFrame.outRegister.reg);
+				MemberAccess(operand, currentFrame.outRegister.varId);
 
 				ILOperand ilOperand = ILOperand(currentFrame.outRegister);
 
@@ -387,7 +387,7 @@ namespace HXSL
 					{
 						if (currentFrame.state != 0 && !looped)
 						{
-							AddInstr(OpCode_StoreParam, ILRegister(0), {}, Number(paramOffset + currentFrame.state - 1));
+							AddInstr(OpCode_StoreParam, currentFrame.rightRegister, {}, Number(paramOffset + currentFrame.state - 1));
 						}
 
 						auto param = parameters[currentFrame.state].get();
@@ -412,7 +412,7 @@ namespace HXSL
 							else
 							{
 								PushFrame(currentFrame);
-								PushFrame({ operand, currentFrame.outRegister });
+								PushFrame({ operand, currentFrame.rightRegister = reg.Alloc(operand->GetInferredType()) });
 								break;
 							}
 						}
@@ -421,10 +421,10 @@ namespace HXSL
 					{
 						if (currentFrame.state != 0 && !looped)
 						{
-							AddInstr(OpCode_StoreParam, ILRegister(0), {}, Number(paramOffset + currentFrame.state - 1));
+							AddInstr(OpCode_StoreParam, currentFrame.rightRegister, {}, Number(paramOffset + currentFrame.state - 1));
 						}
 
-						if (returnType != nullptr)
+						if (returnType != nullptr && !expression->IsVoidType())
 						{
 							AddInstr(OpCode_Call, ILOperand(ILOperandKind_Func, RegFunc(overload)), ILOperand(ILOperandKind_Type, RegType(returnType)), ILOperand(currentFrame.outRegister));
 						}
@@ -439,7 +439,7 @@ namespace HXSL
 			break;
 			case NodeType_MemberReferenceExpression:
 			case NodeType_MemberAccessExpression:
-				MemberAccess(expr, currentFrame.outRegister.reg);
+				MemberAccess(expr, currentFrame.outRegister.varId);
 				break;
 			case NodeType_CastExpression:
 			{
@@ -489,7 +489,7 @@ namespace HXSL
 					}
 					else
 					{
-						WriteVar(target, currentFrame.outRegister.reg);
+						WriteVar(target, currentFrame.outRegister.varId);
 					}
 				}
 				else
@@ -510,7 +510,7 @@ namespace HXSL
 				bool isImm = IsInlineable(operand, imm);
 				if (isImm || currentFrame.state == 0)
 				{
-					ReadVar(target, currentFrame.outRegister.reg);
+					ReadVar(target, currentFrame.outRegister.varId);
 				}
 
 				if (currentFrame.state || isImm)
@@ -521,7 +521,7 @@ namespace HXSL
 					auto op = assign->GetOperatorSymbolRef()->GetDeclaration()->As<OperatorOverload>();
 					OperatorCall(op, targetOp, rightOp, targetOp);
 
-					WriteVar(target, currentFrame.outRegister.reg);
+					WriteVar(target, currentFrame.outRegister.varId);
 					reg.Free(currentFrame.rightRegister);
 				}
 				else
@@ -579,6 +579,6 @@ namespace HXSL
 			}
 		}
 
-		return outOp.reg;
+		return outOp.varId;
 	}
 }

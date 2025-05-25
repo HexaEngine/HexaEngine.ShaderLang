@@ -136,7 +136,6 @@ namespace HXSL
 	enum ILOperandKind_T : char
 	{
 		ILOperandKind_Disabled,
-		ILOperandKind_Register,
 		ILOperandKind_Variable,
 		ILOperandKind_Field,
 		ILOperandKind_Label,
@@ -194,89 +193,71 @@ namespace HXSL
 		uint32_t fieldId;
 	};
 
-	struct ILRegister
-	{
-		uint64_t id;
-
-		ILRegister() : id(-1) {}
-
-		constexpr ILRegister(const uint64_t& id) : id(id)
-		{
-		}
-	};
-
-	inline static bool operator==(const ILRegister& a, const ILRegister& b)
-	{
-		return a.id == b.id;
-	}
-
-	inline static bool operator!=(const ILRegister& a, const ILRegister& b)
-	{
-		return a.id != b.id;
-	}
-
-	inline static bool operator>(const ILRegister& a, const ILRegister& b)
-	{
-		return a.id > b.id;
-	}
-
-	inline static bool operator<(const ILRegister& a, const ILRegister& b)
-	{
-		return a.id < b.id;
-	}
-
-	inline static ILRegister operator++(ILRegister& a)
-	{
-		return a.id++;
-	}
-
-	inline static ILRegister operator--(ILRegister& a)
-	{
-		return a.id--;
-	}
-
-	constexpr ILRegister MAX_REGISTERS = 8;
-
-	constexpr ILRegister INVALID_REGISTER = -1;
-
 	using ILTypeId = uint64_t;
-	using ILVarId = uint64_t;
 	using ILFuncId = uint64_t;
+	using ILLabel = uint64_t;
+	using ILPhiId = uint64_t;
 
-	struct ILVarId2
+	struct ILVarId_T
 	{
-		uint32_t id : 32;
-		uint32_t version : 31;
-		uint32_t temp : 1;
+		uint64_t id : 32;
+		uint64_t version : 31;
+		uint64_t temp : 1;
 	};
+
+	struct ILVarId
+	{
+		union
+		{
+			ILVarId_T var;
+			uint64_t raw;
+		};
+
+		constexpr ILVarId(uint64_t raw) : raw(raw) {}
+		constexpr ILVarId(ILVarId_T var) : var(var) {}
+		constexpr ILVarId() : raw(0) {}
+
+		constexpr operator uint64_t() const { return raw; }
+		constexpr operator ILVarId_T() const { return var; }
+
+		constexpr bool operator==(const ILVarId& other) const { return raw == other.raw; }
+		constexpr bool operator!=(const ILVarId& other) const { return raw != other.raw; }
+
+		constexpr ILVarId& operator++() { ++raw; return *this; }
+		constexpr ILVarId& operator--() { --raw; return *this; }
+		constexpr ILVarId operator++(int) { auto tmp = *this; ++raw; return tmp; }
+		constexpr ILVarId operator--(int) { auto tmp = *this; --raw; return tmp; }
+	};
+
+	constexpr ILVarId INVALID_VARIABLE = -1;
 
 	struct ILOperand
 	{
 		union
 		{
-			ILRegister reg;
 			NumberUnion imm_m;
 			ILVarId varId;
 			ILTypeId typeId;
 			ILFuncId funcId;
+			ILLabel label;
 			ILFieldAccess field;
+			ILPhiId phiId;
+			uint64_t raw;
 		};
 
 		ILOperandKind kind;
 
-		ILOperand(ILRegister r) : kind(ILOperandKind_Variable), varId(r.id) {}
+		constexpr ILOperand(ILVarId v) : kind(ILOperandKind_Variable), varId(v) {}
 
 		ILOperand(Number i) : kind(i.Kind), imm_m(i) {}
 
-		ILOperand(ILOperandKind k, uint64_t v) : kind(k), varId(v) {}
+		constexpr ILOperand(ILOperandKind k, const uint64_t& v) : kind(k), raw(v) {}
 
-		ILOperand(ILFieldAccess f) : kind(ILOperandKind_Field), field(f) {}
+		constexpr ILOperand(ILFieldAccess f) : kind(ILOperandKind_Field), field(f) {}
 
 		ILOperand() : kind(ILOperandKind_Disabled), imm_m() {}
 
 		bool IsDisabled() const noexcept { return kind == ILOperandKind_Disabled; }
-
-		bool IsReg() const noexcept { return kind == ILOperandKind_Register; }
 
 		bool IsVar() const noexcept { return kind == ILOperandKind_Variable; }
 
@@ -292,9 +273,6 @@ namespace HXSL
 			hash.Combine(kind.value);
 			switch (kind.value)
 			{
-			case ILOperandKind_Register:
-				hash.Combine(reg.id);
-				break;
 			case ILOperandKind_Imm_i8:
 			case ILOperandKind_Imm_u8:
 			case ILOperandKind_Imm_i16:
@@ -313,7 +291,7 @@ namespace HXSL
 			case ILOperandKind_Label:
 			case ILOperandKind_Func:
 			case ILOperandKind_Phi:
-				hash.Combine(varId);
+				hash.Combine(varId.raw);
 				break;
 			case ILOperandKind_Field:
 				hash.Combine(field.typeId);
@@ -332,9 +310,6 @@ namespace HXSL
 
 		switch (a.kind.value)
 		{
-		case ILOperandKind_Register:
-			return a.reg == b.reg;
-
 		case ILOperandKind_Imm_i8:
 		case ILOperandKind_Imm_u8:
 		case ILOperandKind_Imm_i16:
@@ -470,13 +445,13 @@ namespace HXSL
 
 		bool IsOp(ILOpCode code) const noexcept { return opcode == code; }
 
-		bool IsImmReg() const noexcept { return operandLeft.IsImm() && operandRight.IsReg(); }
+		bool IsImmVar() const noexcept { return operandLeft.IsImm() && operandRight.IsVar(); }
 
-		bool IsRegImm() const noexcept { return operandLeft.IsReg() && operandRight.IsImm(); }
+		bool IsVarImm() const noexcept { return operandLeft.IsVar() && operandRight.IsImm(); }
 
-		bool IsImmReg(ILOpCode code) const noexcept { return opcode == code && IsImmReg(); }
+		bool IsImmVar(ILOpCode code) const noexcept { return opcode == code && IsImmVar(); }
 
-		bool IsRegImm(ILOpCode code) const noexcept { return opcode == code && IsRegImm(); }
+		bool IsVarImm(ILOpCode code) const noexcept { return opcode == code && IsVarImm(); }
 
 		uint64_t hash() const noexcept
 		{
@@ -538,11 +513,11 @@ namespace HXSL
 namespace std
 {
 	template <>
-	struct hash<HXSL::ILRegister>
+	struct hash<HXSL::ILVarId>
 	{
-		size_t operator()(const HXSL::ILRegister& reg) const noexcept
+		size_t operator()(const HXSL::ILVarId& var) const noexcept
 		{
-			return hash<uint64_t>{}(reg.id);
+			return hash<uint64_t>{}(var.raw);
 		}
 	};
 

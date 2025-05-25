@@ -134,6 +134,8 @@ namespace HXSL
 
 		void SetAssembly(const Assembly* assembly, const SymbolHandle& handle);
 
+		void UpdateFQN();
+
 		const Assembly* GetAssembly() const noexcept { return assembly; }
 
 		const SymbolTable* GetTable() const noexcept { return assembly->GetSymbolTable(); }

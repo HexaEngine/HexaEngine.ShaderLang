@@ -165,6 +165,7 @@ namespace HXSL
 				{
 					analyzer.Log(SYMBOL_REDEFINITION, s->GetSpan(), signature);
 				}
+				s->UpdateFQN();
 			}
 			break;
 
@@ -177,6 +178,7 @@ namespace HXSL
 				{
 					analyzer.Log(SYMBOL_REDEFINITION, s->GetSpan(), signature);
 				}
+				s->UpdateFQN();
 			}
 			break;
 
@@ -189,6 +191,7 @@ namespace HXSL
 				{
 					analyzer.Log(SYMBOL_REDEFINITION, s->GetSpan(), signature);
 				}
+				s->UpdateFQN();
 			}
 			break;
 			}

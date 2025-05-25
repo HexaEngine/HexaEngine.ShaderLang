@@ -15,7 +15,7 @@ namespace HXSL
 			return false;
 		}
 
-		std::string elementTypeName = std::string(elementType->GetName());
+		std::string elementTypeName = elementType->GetFullyQualifiedName();
 		std::string pointerKey = elementTypeName + "*";
 
 		auto table = pointerAssembly->GetMutableSymbolTable();
@@ -27,7 +27,6 @@ namespace HXSL
 			pointerOut = handle.GetMetadata()->declaration;
 			return true;
 		}
-
 
 		auto symbolRef = make_ast_ptr<SymbolRef>(elementTypeName, SymbolRefType_Type, true);
 
@@ -44,5 +43,4 @@ namespace HXSL
 
 		return true;
 	}
-
 }

@@ -4,7 +4,7 @@ namespace HXSL
 {
 	void CommonSubExpression::TryMapOperand(ILOperand& op)
 	{
-		if (op.IsReg() || op.IsVar())
+		if (op.IsVar())
 		{
 			auto it = map.find(op);
 			if (it != map.end())
@@ -25,7 +25,7 @@ namespace HXSL
 			TryMapOperand(instr.operandLeft);
 			TryMapOperand(instr.operandRight);
 
-			if (instr.opcode == OpCode_Load || instr.opcode == OpCode_Move || instr.opcode == OpCode_Store) continue;
+			if (instr.opcode == OpCode_Load || instr.opcode == OpCode_Move || instr.opcode == OpCode_Store || instr.opcode == OpCode_StoreParam || instr.opcode == OpCode_LoadParam) continue;
 
 			auto it = subExpressions.find(instr);
 			if (it != subExpressions.end())

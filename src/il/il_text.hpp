@@ -124,7 +124,6 @@ namespace HXSL
 	{
 		switch (kind.value)
 		{
-		case ILOperandKind_Register: return "Register";
 		case ILOperandKind_Variable: return "Variable";
 		case ILOperandKind_Field: return "Field";
 		case ILOperandKind_Label: return "Label";
@@ -155,9 +154,6 @@ namespace HXSL
 
 		switch (operand.kind.value)
 		{
-		case ILOperandKind_Register:
-			oss << "%tmp" << operand.reg.id;
-			break;
 		case ILOperandKind_Imm_i8:
 		case ILOperandKind_Imm_u8:
 		case ILOperandKind_Imm_i16:
@@ -184,17 +180,17 @@ namespace HXSL
 			oss << metadata.GetTypeName(operand.field.typeId) << "::" << metadata.GetFieldName(operand.field);
 			break;
 		case ILOperandKind_Label:
-			oss << "#loc_" << operand.varId;
+			oss << "#loc_" << operand.label;
 			break;
 		case ILOperandKind_Func:
-			oss << metadata.GetFuncName(operand.varId);
+			oss << metadata.GetFuncName(operand.funcId);
 			break;
 		case ILOperandKind_Type:
-			oss << metadata.GetTypeName(operand.varId);
+			oss << metadata.GetTypeName(operand.typeId);
 			break;
 		case ILOperandKind_Phi:
 		{
-			auto& phi = metadata.phiMetadata[operand.varId];
+			auto& phi = metadata.phiMetadata[operand.phiId];
 			for (auto& p : phi.params)
 			{
 				oss << "[";

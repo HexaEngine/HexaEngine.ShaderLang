@@ -29,7 +29,26 @@ namespace HXSL
 	{
 		this->assembly = assembly;
 		this->symbolHandle = handle;
-		fullyQualifiedName = make_ast_ptr<std::string>(symbolHandle.GetFullyQualifiedName());
+		UpdateFQN();
+	}
+
+	void SymbolDef::UpdateFQN()
+	{
+		if (symbolHandle.invalid())
+		{
+			fullyQualifiedName.reset();
+			return;
+		}
+
+		if (fullyQualifiedName.get())
+		{
+			*fullyQualifiedName.get() = symbolHandle.GetFullyQualifiedName();
+		}
+		else
+		{
+			fullyQualifiedName = make_ast_ptr<std::string>(symbolHandle.GetFullyQualifiedName());
+		}
+
 		UpdateName();
 	}
 

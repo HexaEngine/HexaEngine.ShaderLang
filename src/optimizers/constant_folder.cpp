@@ -16,25 +16,17 @@ namespace HXSL
 
 	void ConstantFolder::TryFoldOperand(ILOperand& op)
 	{
-		if (op.IsReg())
+		if (op.IsVar())
 		{
-			auto it = constants.find(op.reg);
+			auto it = constants.find(op.varId);
 			if (it != constants.end())
 			{
 				op = it->second; changed = true;
 			}
-			auto itr = registerToRegister.find(op.reg);
-			if (itr != registerToRegister.end())
+			auto itr = varToVar.find(op.varId);
+			if (itr != varToVar.end())
 			{
 				op = itr->second; changed = true;
-			}
-		}
-		if (op.IsVar())
-		{
-			auto it = varConstants.find(op.varId);
-			if (it != varConstants.end())
-			{
-				op = it->second; changed = true;
 			}
 		}
 	}
@@ -52,44 +44,29 @@ namespace HXSL
 			switch (instr.opcode)
 			{
 			case OpCode_Move:
-				if (instr.operandLeft.IsImm() && instr.operandResult.IsReg())
+				if (instr.operandLeft.IsVar() && instr.operandResult.IsVar())
 				{
-					constants.insert({ instr.operandResult.reg, instr.operandLeft.imm() });
-					//DiscardInstr(i);
-				}
-				else if (instr.operandLeft.IsReg() && instr.operandResult.IsReg())
-				{
-					auto it = constants.find(instr.operandLeft.reg);
+					auto it = constants.find(instr.operandLeft.varId);
 					if (it != constants.end())
 					{
-						constants.insert({ instr.operandResult.reg, it->second });
+						constants.insert({ instr.operandResult.varId, it->second });
 					}
 					else
 					{
-						registerToRegister.insert({ instr.operandResult.reg, instr.operandLeft.reg });
+						varToVar.insert({ instr.operandResult.varId, instr.operandLeft.varId });
 					}
-					//DiscardInstr(i);
 				}
 				else if (instr.operandLeft.IsImm() && instr.operandResult.IsVar())
 				{
-					varConstants.insert({ instr.operandResult.varId, instr.operandLeft.imm() });
-					//DiscardInstr(i);
+					constants.insert({ instr.operandResult.varId, instr.operandLeft.imm() });
 				}
 				break;
 			case OpCode_Cast:
-				if (instr.operandLeft.IsImm() && instr.operandResult.IsReg())
-				{
-					instr.opcode = OpCode_Move;
-					instr.operandLeft = Cast(instr.operandLeft.imm(), instr.opKind);
-					constants.insert({ instr.operandResult.reg, instr.operandLeft.imm() });
-					//DiscardInstr(i);
-				}
 				if (instr.operandLeft.IsImm() && instr.operandResult.IsVar())
 				{
 					instr.opcode = OpCode_Move;
 					instr.operandLeft = Cast(instr.operandLeft.imm(), instr.opKind);
-					varConstants.insert({ instr.operandResult.varId, instr.operandLeft.imm() });
-					//DiscardInstr(i);
+					constants.insert({ instr.operandResult.varId, instr.operandLeft.imm() });
 				}
 				break;
 			case OpCode_LogicalNot:
@@ -102,8 +79,7 @@ namespace HXSL
 					{
 						break;
 					}
-					constants.insert({ instr.operandResult.reg, imm });
-					//DiscardInstr(i);
+					constants.insert({ instr.operandResult.varId, imm });
 				}
 				break;
 			case OpCode_Store:
@@ -118,18 +94,10 @@ namespace HXSL
 						{
 							break;
 						}
-						if (instr.operandResult.IsVar())
-						{
-							varConstants.insert({ instr.operandResult.varId, imm });
-						}
-						else
-						{
-							constants.insert({ instr.operandResult.reg, imm });
-						}
+						constants.insert({ instr.operandResult.varId, imm });
 						instr.opcode = OpCode_Move;
 						instr.operandLeft = imm;
 						instr.operandRight = {};
-						//DiscardInstr(i);
 					}
 				}
 				break;
@@ -138,23 +106,23 @@ namespace HXSL
 
 		DiscardMarkedInstructs(node);
 		constants.clear();
-		registerToRegister.clear();
+		varToVar.clear();
 
-		std::unordered_map<ILRegister, size_t> defMap;
+		std::unordered_map<ILVarId, size_t> defMap;
 		for (size_t i = 0; i < instructions.size(); i++)
 		{
 			auto& instr = instructions[i];
 
 			if (IsBinaryOp(instr.opcode))
 			{
-				bool regImm = instr.IsRegImm();
-				bool immReg = instr.IsImmReg();
+				bool varImm = instr.IsVarImm();
+				bool immVar = instr.IsImmVar();
 				bool isCommutative = (instr.IsOp(OpCode_Add) || instr.IsOp(OpCode_Multiply));
 
-				if (regImm || immReg)
+				if (varImm || immVar)
 				{
-					ILRegister lhs = regImm ? instr.operandLeft.reg : instr.operandRight.reg;
-					Number rhs = regImm ? instr.operandRight.imm() : instr.operandLeft.imm();
+					ILVarId lhs = varImm ? instr.operandLeft.varId : instr.operandRight.varId;
+					Number rhs = varImm ? instr.operandRight.imm() : instr.operandLeft.imm();
 					auto defIt = defMap.find(lhs);
 					if (defIt != defMap.end())
 					{
@@ -166,24 +134,24 @@ namespace HXSL
 
 						if (defInstr.opcode == instr.opcode || fuseMulDiv)
 						{
-							bool defRegImm = defInstr.operandLeft.IsReg() && defInstr.operandRight.IsImm();
-							bool defImmReg = (isCommutative || fuseMulDiv) && defInstr.operandLeft.IsImm() && defInstr.operandRight.IsReg();
+							bool defRegImm = defInstr.operandLeft.IsVar() && defInstr.operandRight.IsImm();
+							bool defImmReg = (isCommutative || fuseMulDiv) && defInstr.operandLeft.IsImm() && defInstr.operandRight.IsVar();
 
-							ILRegister base;
+							ILVarId base;
 							Number lhs;
 							if (defRegImm)
 							{
-								base = defInstr.operandLeft.reg;
+								base = defInstr.operandLeft.varId;
 								lhs = defInstr.operandRight.imm();
 							}
 							else if (defImmReg)
 							{
-								base = defInstr.operandRight.reg;
+								base = defInstr.operandRight.varId;
 								lhs = defInstr.operandLeft.imm();
 							}
 							else
 							{
-								defMap[instr.operandResult.reg] = i;
+								defMap[instr.operandResult.varId] = i;
 								continue;
 							}
 
@@ -194,7 +162,7 @@ namespace HXSL
 
 							Number total = FoldImm(lhs, rhs, fuseMulDiv ? OpCode_Divide : instr.opcode);
 							DiscardInstr(defIt->second);
-							instr.operandLeft.reg = base;
+							instr.operandLeft.varId = base;
 							instr.operandRight.imm() = total;
 							instr.opcode = fuseMulDiv ? OpCode_Multiply : defInstr.opcode;
 							continue;
@@ -203,9 +171,9 @@ namespace HXSL
 				}
 			}
 
-			if (instr.operandResult.IsReg())
+			if (instr.operandResult.IsVar())
 			{
-				defMap[instr.operandResult.reg] = i;
+				defMap[instr.operandResult.varId] = i;
 			}
 		}
 

@@ -12,9 +12,14 @@ struct MyStruct
 	}
 }
 
+void set(MyStruct a)
+{
+	a.value2 = 10;
+}
+
 float test(float x, float y)
 {
 	MyStruct a = MyStruct(y);
-	a.value1 = y;
+	set(a);
 	return x * 80 + x * 80 + x * 80 * a.value1;
 }

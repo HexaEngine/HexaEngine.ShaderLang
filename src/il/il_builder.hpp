@@ -234,7 +234,7 @@ namespace HXSL
 
 		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(container.size()); }
 
-		ILRegister TraverseExpression(Expression* expr, const ILOperand& outRegister = INVALID_REGISTER) { return exprBuilder.TraverseExpression(expr, outRegister); }
+		ILVarId TraverseExpression(Expression* expr, const ILOperand& outRegister = INVALID_VARIABLE) { return exprBuilder.TraverseExpression(expr, outRegister); }
 		SymbolDef* GetAddrType(SymbolDef* elementType);
 		bool TraverseStatement(Statement* statement);
 		void TraverseBlock(ILBlockFrame& frame);

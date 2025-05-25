@@ -7,9 +7,8 @@ namespace HXSL
 {
 	class ConstantFolder : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 	{
-		std::unordered_map<ILRegister, Number> constants;
-		std::unordered_map<uint64_t, Number> varConstants;
-		std::unordered_map<ILRegister, ILRegister> registerToRegister;
+		std::unordered_map<ILVarId, Number> constants;
+		std::unordered_map<ILVarId, ILVarId> varToVar;
 
 		void TryFoldOperand(ILOperand& op);
 
@@ -24,8 +23,7 @@ namespace HXSL
 		{
 			changed = false;
 			constants.clear();
-			varConstants.clear();
-			registerToRegister.clear();
+			varToVar.clear();
 			Traverse();
 			return changed ? OptimizerPassResult_Changed : OptimizerPassResult_None;
 		}

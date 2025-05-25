@@ -206,9 +206,9 @@ namespace HXSL
 					{
 						if (instr.opcode == OpCode_Jump || instr.opcode == OpCode_JumpNotZero || instr.opcode == OpCode_JumpZero)
 						{
-							if (instr.operandLeft.varId == last)
+							if (instr.operandLeft.label == last)
 							{
-								instr.operandLeft.varId = index;
+								instr.operandLeft.label = index;
 							}
 						}
 					}

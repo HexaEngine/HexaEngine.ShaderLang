@@ -22,9 +22,6 @@ namespace HXSL
 		std::unordered_map<uint64_t, uint32_t> versionCounters;
 		std::unordered_map<uint64_t, std::unordered_set<size_t>> defSites;
 
-		ILRegister currentTemp = 0;
-		std::unordered_map<ILRegister, ILRegister> r2r;
-
 		std::vector<size_t> discardList;
 
 		uint64_t TopVersion(uint64_t varId)
@@ -54,8 +51,6 @@ namespace HXSL
 		{
 			versionStacks[varId].pop();
 		}
-
-		void MapTempRegister(ILInstruction& instr);
 
 		void InsertPhiMeta(CFGNode& node, uint64_t varId, size_t& phiIdOut);
 

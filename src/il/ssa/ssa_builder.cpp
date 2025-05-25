@@ -3,33 +3,6 @@
 
 namespace HXSL
 {
-	static void MapTempRegisterOp(const std::unordered_map<ILRegister, ILRegister>& r2r, ILOperand& op)
-	{
-		auto it = r2r.find(op.reg);
-		if (it != r2r.end())
-		{
-			op.reg = it->second;
-		}
-	}
-
-	void SSABuilder::MapTempRegister(ILInstruction& instr)
-	{
-		if (instr.operandLeft.IsReg())
-		{
-			MapTempRegisterOp(r2r, instr.operandLeft);
-		}
-		if (instr.operandRight.IsReg())
-		{
-			MapTempRegisterOp(r2r, instr.operandRight);
-		}
-		if (instr.operandResult.IsReg())
-		{
-			r2r[instr.operandResult.reg] = currentTemp;
-			instr.operandResult.reg = currentTemp;
-			currentTemp.id++;
-		}
-	}
-
 	void SSABuilder::Visit(size_t index, CFGNode& node, SSACFGContext& context)
 	{
 		auto& instructs = node.instructions;
@@ -64,8 +37,6 @@ namespace HXSL
 				context.variables.push_back(varId);
 				instr.operandResult.varId = newVersion;
 			}
-
-			MapTempRegister(instr);
 		}
 
 		auto& phiMetadata = metadata.phiMetadata;

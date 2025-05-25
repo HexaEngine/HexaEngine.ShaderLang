@@ -42,13 +42,14 @@ namespace HXSL
 			ILVariable varId;
 			if ((flags & ILVariableFlags_LargeObject) != 0)
 			{
+				auto baseTypeId = RegType(decl->GetDeclaredType());
 				typeId = RegType(GetAddrType(decl->GetDeclaredType()));
 				varId = RegVar(typeId, decl);
-				AddInstr(OpCode_StackAlloc, ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
+				AddInstr(OpCode_StackAlloc, ILOperand(ILOperandKind_Type, baseTypeId), varId.AsOperand());
 			}
 			else
 			{
-				typeId = RegType(GetAddrType(decl->GetDeclaredType()));
+				typeId = RegType(decl->GetDeclaredType());
 				varId = RegVar(typeId, decl);
 			}
 
@@ -277,7 +278,7 @@ namespace HXSL
 			auto& param = parameters[i];
 			auto typeId = RegType(param->GetDeclaredType());
 			auto& varId = RegVar(typeId, param.get());
-			AddInstr(OpCode_LoadParam, Number(parameterBase + i), ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
+			AddInstr(OpCode_LoadParam, Number(parameterBase + i), varId.AsOperand());
 		}
 
 		while (!stack.empty())
