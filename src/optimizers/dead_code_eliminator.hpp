@@ -7,14 +7,16 @@ namespace HXSL
 {
 	class DeadCodeEliminator : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 	{
-		std::unordered_set<uint64_t> usedVars;
-		std::unordered_set<ILRegister> usedRegs;
+		std::unordered_set<ILVarId> usedVars;
+		std::unordered_set<ILVarId> deadVars;
 
 		void ProcessOperand(ILOperand& op);
 
 		void ProcessInstr(ILInstruction& instr, size_t idx, bool protectedInstr);
 
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override
+		{
+		}
 
 		void VisitClose(size_t index, CFGNode& node, EmptyCFGContext& context) override;
 
@@ -27,7 +29,6 @@ namespace HXSL
 		{
 			changed = false;
 			usedVars.clear();
-			usedRegs.clear();
 			Traverse();
 			return changed ? OptimizerPassResult_Changed : OptimizerPassResult_None;
 		};

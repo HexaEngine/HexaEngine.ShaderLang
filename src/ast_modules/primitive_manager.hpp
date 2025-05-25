@@ -3,8 +3,6 @@
 
 #include "primitive.hpp"
 
-#include <mutex>
-
 namespace HXSL
 {
 	class PrimitiveManager
@@ -28,7 +26,7 @@ namespace HXSL
 			return assembly->GetSymbolTable();
 		}
 
-		void Populate();
+		SymbolHandle Resolve(const StringSpan& span) const;
 
 	private:
 		static std::once_flag initFlag;
@@ -39,6 +37,8 @@ namespace HXSL
 		}
 
 		PrimitiveManager() = default;
+
+		void Populate();
 
 		PrimitiveManager(const PrimitiveManager&) = delete;
 		PrimitiveManager& operator=(const PrimitiveManager&) = delete;

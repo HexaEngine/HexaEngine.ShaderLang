@@ -27,7 +27,6 @@ namespace HXSL
 		OpCode_CallBegin,
 		OpCode_CallEnd,
 		OpCode_StoreParam,
-		OpCode_StoreParamRef,
 		OpCode_Call,
 
 		OpCode_Jump,
@@ -240,19 +239,32 @@ namespace HXSL
 
 	constexpr ILRegister INVALID_REGISTER = -1;
 
+	using ILTypeId = uint64_t;
+	using ILVarId = uint64_t;
+	using ILFuncId = uint64_t;
+
+	struct ILVarId2
+	{
+		uint32_t id : 32;
+		uint32_t version : 31;
+		uint32_t temp : 1;
+	};
+
 	struct ILOperand
 	{
 		union
 		{
 			ILRegister reg;
 			NumberUnion imm_m;
-			uint64_t varId;
+			ILVarId varId;
+			ILTypeId typeId;
+			ILFuncId funcId;
 			ILFieldAccess field;
 		};
 
 		ILOperandKind kind;
 
-		ILOperand(ILRegister r) : kind(ILOperandKind_Register), reg(r) {}
+		ILOperand(ILRegister r) : kind(ILOperandKind_Variable), varId(r.id) {}
 
 		ILOperand(Number i) : kind(i.Kind), imm_m(i) {}
 

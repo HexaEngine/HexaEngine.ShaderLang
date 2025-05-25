@@ -19,8 +19,9 @@ if (!expr) { \
 
 		const AssemblyCollection& references;
 		std::unique_ptr<Assembly> outputAssembly;
-		std::unique_ptr<SwizzleManager> swizzleManager;
+		std::unique_ptr<PointerManager> pointerManager;
 		std::unique_ptr<ArrayManager> arrayManager;
+		std::unique_ptr<SwizzleManager> swizzleManager;
 
 		class AnalyzerVisitor : public Visitor<EmptyDeferralContext>
 		{
@@ -43,15 +44,22 @@ if (!expr) { \
 			compilation(compilation),
 			references(references),
 			outputAssembly(Assembly::Create("")),
-			swizzleManager(std::make_unique<SwizzleManager>()),
+			pointerManager(std::make_unique<PointerManager>()),
 			arrayManager(std::make_unique<ArrayManager>()),
+			swizzleManager(std::make_unique<SwizzleManager>()),
 			primitives(PrimitiveManager::GetInstance())
 		{
 		}
 
 		static void InitializeSubSystems();
 
-		std::unique_ptr<Assembly>& GetOutputAssembly() noexcept { return outputAssembly; }
+		DEFINE_GET_SET_MOVE(std::unique_ptr<ArrayManager>, ArrayManager, arrayManager)
+
+			DEFINE_GET_SET_MOVE(std::unique_ptr<PointerManager>, PointerManager, pointerManager)
+
+			DEFINE_GET_SET_MOVE(std::unique_ptr<SwizzleManager>, SwizzleManager, swizzleManager)
+
+			std::unique_ptr<Assembly>& GetOutputAssembly() noexcept { return outputAssembly; }
 
 		CompilationUnit* Compilation() const noexcept { return compilation; }
 

@@ -62,6 +62,9 @@ namespace HXSL
 
 		ASTFlattener flattener;
 		auto lowerCompilation = flattener.Flatten(compilation.get());
+		lowerCompilation->SetPointerManager(std::move(analyzer.GetPointerManagerMut()));
+		lowerCompilation->SetArrayManager(std::move(analyzer.GetArrayManagerMut()));
+		lowerCompilation->SetSwizzleManager(std::move(analyzer.GetSwizzleManagerMut()));
 		compilation.reset();
 
 		ILGenerator ilGen = ILGenerator(logger.get(), lowerCompilation.get());

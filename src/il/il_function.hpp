@@ -6,13 +6,15 @@
 
 namespace HXSL
 {
-	struct ILFunction
+	class ILFunction
 	{
+	public:
+		LowerCompilationUnit* compilation;
 		FunctionOverload* overload;
 		ILMetadata metadata;
 		ControlFlowGraph cfg;
 
-		ILFunction(FunctionOverload* overload) : overload(overload), cfg(metadata)
+		ILFunction(LowerCompilationUnit* compilation, FunctionOverload* overload) : compilation(compilation), overload(overload), cfg(metadata)
 		{
 		}
 

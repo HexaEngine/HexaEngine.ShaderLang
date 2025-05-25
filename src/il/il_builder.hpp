@@ -1,7 +1,7 @@
 #ifndef IL_BUILDER_HPP
 #define IL_BUILDER_HPP
 
-#include "pch/ast.hpp"
+#include "ast_ilgen.hpp"
 #include "pch/il.hpp"
 #include "il_expression_builder.hpp"
 
@@ -144,6 +144,7 @@ namespace HXSL
 
 	class ILBuilder : public ILContainerAdapter, public ILMetadataAdapter
 	{
+		LowerCompilationUnit* compilation;
 		std::stack<ILFrame> stack;
 		ILFrame currentFrame;
 		std::stack<ILLoopFrame> loopStack;
@@ -234,10 +235,16 @@ namespace HXSL
 		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(container.size()); }
 
 		ILRegister TraverseExpression(Expression* expr, const ILOperand& outRegister = INVALID_REGISTER) { return exprBuilder.TraverseExpression(expr, outRegister); }
+		SymbolDef* GetAddrType(SymbolDef* elementType);
 		bool TraverseStatement(Statement* statement);
 		void TraverseBlock(ILBlockFrame& frame);
 	public:
-		ILBuilder(ILContainer& container, ILMetadata& metadata, JumpTable& jumpTable) : ILContainerAdapter(container), ILMetadataAdapter(metadata), exprBuilder(container, metadata, tempAllocator, jumpTable), jumpTable(jumpTable)
+		ILBuilder(LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, JumpTable& jumpTable)
+			: ILContainerAdapter(container), ILMetadataAdapter(metadata),
+			compilation(compilation),
+			tempAllocator(metadata),
+			exprBuilder(compilation, container, metadata, tempAllocator, jumpTable),
+			jumpTable(jumpTable)
 		{
 		}
 

@@ -8,9 +8,10 @@ namespace HXSL
 		ILContainer container = {};
 		JumpTable jumpTable = {};
 
-		ILBuilder builder = ILBuilder(container, metadata, jumpTable);
+		ILBuilder builder = ILBuilder(compilation, container, metadata, jumpTable);
 		builder.Build(overload);
 
 		cfg.Build(container, jumpTable);
+		cfg.Print();
 	}
 }

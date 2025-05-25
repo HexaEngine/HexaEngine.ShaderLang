@@ -1,9 +1,8 @@
 #ifndef IL_EXPRESSION_BUILDER_HPP
 #define IL_EXPRESSION_BUILDER_HPP
 
-#include "pch/ast.hpp"
+#include "ast_ilgen.hpp"
 #include "pch/il.hpp"
-#include "il_temp_var_allocator.hpp"
 
 namespace HXSL
 {
@@ -33,6 +32,7 @@ namespace HXSL
 
 	class ILExpressionBuilder : public ILContainerAdapter, public ILMetadataAdapter
 	{
+		LowerCompilationUnit* compilation;
 		std::stack<ILExpressionFrame> stack;
 		ILExpressionFrame currentFrame;
 		ILTempVariableAllocator& reg;
@@ -71,13 +71,18 @@ namespace HXSL
 		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(container.size()); }
 
 	public:
-		ILExpressionBuilder(ILContainer& container, ILMetadata& metadata, ILTempVariableAllocator& tempAllocator, JumpTable& jumpTable) : ILContainerAdapter(container), ILMetadataAdapter(metadata), jumpTable(jumpTable), reg(tempAllocator)
+		ILExpressionBuilder(LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, ILTempVariableAllocator& tempAllocator, JumpTable& jumpTable)
+			: ILContainerAdapter(container), ILMetadataAdapter(metadata), 
+			compilation(compilation),
+			jumpTable(jumpTable),
+			reg(tempAllocator)
 		{
 		}
 
 		bool IsInlineable(Expression* expr, ILOperand& opOut);
 		void ReadVar(Expression* target, ILRegister registerOut);
 		void WriteVar(Expression* target, ILRegister registerIn);
+		SymbolDef* GetAddrType(SymbolDef* elementType);
 		bool MemberAccess(Expression* expr, ILRegister outRegister, MemberOp op = MemberOp_Read, ILOperand writeOp = {});
 		void FunctionCall(FunctionCallExpression* expr);
 		void OperatorCall(OperatorOverload* op, const ILOperand& left, const ILOperand& right, const ILOperand& result);

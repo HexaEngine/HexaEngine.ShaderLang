@@ -30,7 +30,6 @@ namespace HXSL
 		case OpCode_CallBegin: return "cbeg";
 		case OpCode_CallEnd: return "cend";
 		case OpCode_StoreParam: return "starg";
-		case OpCode_StoreParamRef: return "rfarg";
 		case OpCode_Call: return "call";
 
 		case OpCode_Phi: return "phi";
@@ -174,11 +173,15 @@ namespace HXSL
 			break;
 		case ILOperandKind_Variable:
 		{
-			oss << "%var" << (operand.varId & SSA_VARIABLE_MASK) << "_" << (operand.varId >> 32) << ": " << metadata.GetVarTypeName(operand.varId);
+			uint32_t varId;
+			uint32_t version;
+			bool isTemp;
+			DecomposeVariableID(operand.varId, varId, version, isTemp);
+			oss << (isTemp ? "%tmp" : "%var") << version << "_" << varId << ": " << metadata.GetVarTypeName(operand.varId);
 		}
 		break;
 		case ILOperandKind_Field:
-			oss << metadata.GetTypeName(operand.field.typeId) << "::" << operand.field.fieldId;
+			oss << metadata.GetTypeName(operand.field.typeId) << "::" << metadata.GetFieldName(operand.field);
 			break;
 		case ILOperandKind_Label:
 			oss << "#loc_" << operand.varId;
@@ -195,7 +198,11 @@ namespace HXSL
 			for (auto& p : phi.params)
 			{
 				oss << "[";
-				oss << "%var" << (p & SSA_VARIABLE_MASK) << "_" << (p >> 32);
+				uint32_t varId;
+				uint32_t version;
+				bool isTemp;
+				DecomposeVariableID(p, varId, version, isTemp);
+				oss << (isTemp ? "%tmp" : "%var") << version << "_" << varId << ": " << metadata.GetVarTypeName(operand.varId);
 				oss << "]";
 			}
 		}

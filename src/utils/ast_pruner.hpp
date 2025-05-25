@@ -2,7 +2,7 @@
 #define AST_PRUNER_HPP
 
 #include "pch/ast_analyzers.hpp"
-#include "pch/ast_ilgen.hpp"
+#include "ast_ilgen.hpp"
 
 namespace HXSL
 {

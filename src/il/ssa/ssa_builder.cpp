@@ -44,15 +44,8 @@ namespace HXSL
 				uint64_t newVersion = MakeNewVersion(varId);
 				context.variables.push_back(varId);
 				instr.operandResult.varId = newVersion;
+				metadata.phiMetadata[instr.operandLeft.varId].varId = newVersion;
 				continue;
-			}
-
-			if (instr.operandResult.IsVar())
-			{
-				auto varId = instr.operandResult.varId;
-				uint64_t newVersion = MakeNewVersion(varId);
-				context.variables.push_back(varId);
-				instr.operandResult.varId = newVersion;
 			}
 
 			if (instr.operandLeft.IsVar())
@@ -62,6 +55,14 @@ namespace HXSL
 			if (instr.operandRight.IsVar())
 			{
 				instr.operandRight.varId = TopVersion(instr.operandRight.varId);
+			}
+
+			if (instr.operandResult.IsVar())
+			{
+				auto varId = instr.operandResult.varId;
+				uint64_t newVersion = MakeNewVersion(varId);
+				context.variables.push_back(varId);
+				instr.operandResult.varId = newVersion;
 			}
 
 			MapTempRegister(instr);
@@ -104,7 +105,7 @@ namespace HXSL
 
 		auto& var = globalMetadata.variables[varId];
 
-		ILInstruction phi = ILInstruction(OpCode_Phi, ILOperand(ILOperandKind_Phi, phiId), var.AsTypeOperand(), var.AsOperand());
+		ILInstruction phi = ILInstruction(OpCode_Phi, ILOperand(ILOperandKind_Phi, phiId), var.AsOperand());
 
 		node.instructions.insert(node.instructions.begin(), phi);
 

@@ -1,7 +1,7 @@
 #ifndef IL_GENERATOR_HPP
 #define IL_GENERATOR_HPP
 
-#include "pch/ast_ilgen.hpp"
+#include "ast_ilgen.hpp"
 #include "pch/il.hpp"
 
 namespace HXSL

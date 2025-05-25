@@ -1,7 +1,7 @@
 #ifndef IL_OPTIMIZER_HPP
 #define IL_OPTIMIZER_HPP
 
-#include "pch/ast_ilgen.hpp"
+#include "ast_ilgen.hpp"
 
 namespace HXSL
 {

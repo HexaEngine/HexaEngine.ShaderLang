@@ -13,6 +13,7 @@
 
 #include "ast_modules/array.hpp"
 #include "ast_modules/primitive.hpp"
+#include "ast_modules/pointer.hpp"
 #include "ast_modules/swizzle.hpp"
 #include "ast_modules/namespace.hpp"
 #include "ast_modules/compilation_unit.hpp"

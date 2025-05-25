@@ -2,12 +2,18 @@
 #define LOWER_COMPILATION_UNIT_HPP
 
 #include "pch/ast.hpp"
-#include "pch/il.hpp"
+#include "pch/ast_misc.hpp"
+#include "il/func_call_graph.hpp"
 
 namespace HXSL
 {
+	class ILFunction;
+
 	class LowerCompilationUnit : public Container
 	{
+		std::unique_ptr<ArrayManager> arrayManager;
+		std::unique_ptr<PointerManager> pointerManager;
+		std::unique_ptr<SwizzleManager> swizzleManager;
 		FuncCallGraph<ILFunction*> callGraph;
 		std::vector<ast_ptr<SymbolDef>> miscDefs;
 		std::vector<std::unique_ptr<ILFunction>> ilFunctions;
@@ -18,6 +24,12 @@ namespace HXSL
 		{
 			return callGraph;
 		}
+
+		DEFINE_GET_SET_MOVE(std::unique_ptr<ArrayManager>, ArrayManager, arrayManager)
+
+		DEFINE_GET_SET_MOVE(std::unique_ptr<PointerManager>, PointerManager, pointerManager)
+
+		DEFINE_GET_SET_MOVE(std::unique_ptr<SwizzleManager>, SwizzleManager, swizzleManager)
 
 		void AddMiscDef(ast_ptr<SymbolDef> def);
 

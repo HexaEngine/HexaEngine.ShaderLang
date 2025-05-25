@@ -1,23 +1,12 @@
 #ifndef IL_METADATA_HPP
 #define IL_METADATA_HPP
 
-#include "pch/ast.hpp"
+#include "ast_ilgen.hpp"
 #include "il_instruction.hpp"
 #include "ssa/ssa_instruction.hpp"
-#include "il_temp_var_allocator.hpp"
 
 namespace HXSL
 {
-	struct ILTypeMetadata
-	{
-		SymbolDef* def;
-
-		ILTypeMetadata(SymbolDef* def)
-			: def(def)
-		{
-		}
-	};
-
 	enum ILVariableFlags : int
 	{
 		ILVariableFlags_None = 0,
@@ -27,17 +16,52 @@ namespace HXSL
 
 	DEFINE_FLAGS_OPERATORS(ILVariableFlags, int)
 
-		struct ILVariable
+		static ILVariableFlags GetVarTypeFlags(SymbolDef* def)
 	{
-		uint64_t id;
-		uint64_t typeId;
+		bool isLargeObject = true;
+		if (auto prim = def->As<Primitive>())
+		{
+			isLargeObject = prim->GetClass() == PrimitiveClass_Matrix;
+		}
+
+		ILVariableFlags flags = ILVariableFlags_None;
+		if (isLargeObject)
+		{
+			flags |= ILVariableFlags_LargeObject | ILVariableFlags_Reference;
+		}
+
+		return flags;
+	}
+
+	struct ILTypeMetadata
+	{
+		ILTypeId id;
+		SymbolDef* def;
+
+		ILTypeMetadata(const ILTypeId& id, SymbolDef* def)
+			: id(id), def(def)
+		{
+		}
+
+		ILVariableFlags GetVarFlags() const
+		{
+			return GetVarTypeFlags(def);
+		}
+	};
+
+	struct ILVariable
+	{
+		ILVarId id;
+		ILTypeId typeId;
 		SymbolDef* var;
 		ILVariableFlags flags;
 
-		constexpr ILVariable(const uint64_t& id, const uint64_t& typeId, SymbolDef* var, ILVariableFlags flags = ILVariableFlags_None)
+		constexpr ILVariable(const ILVarId& id, const ILTypeId& typeId, SymbolDef* var, ILVariableFlags flags = ILVariableFlags_None)
 			: id(id), typeId(typeId), var(var), flags(flags)
 		{
 		}
+
+		ILVariable() : id(-1), typeId(-1), var(nullptr), flags(ILVariableFlags_None) {}
 
 		ILOperand AsOperand() const noexcept
 		{
@@ -91,20 +115,30 @@ namespace HXSL
 
 	struct PhiMetadata
 	{
-		std::vector<uint64_t> params;
+		ILVarId varId;
+		std::vector<ILVarId> params;
+
+		PhiMetadata(const ILVarId& varId, const std::vector<ILVarId>& params = {}) : varId(varId), params(params)
+		{
+		}
+
+		PhiMetadata() : varId(-1)
+		{
+		}
 	};
 
 	struct ILMetadata
 	{
 		std::vector<ILTypeMetadata> typeMetadata;
-		std::unordered_map<SymbolDef*, uint64_t> typeMap;
+		std::unordered_map<SymbolDef*, ILTypeId> typeMap;
 
 		std::vector<ILVariable> variables;
-		std::unordered_map<SymbolDef*, uint64_t> varMap;
+		std::vector<ILVariable> tempVariables;
+		std::unordered_map<SymbolDef*, ILVarId> varMap;
 		ILVariable invalid = INVALID_VARIABLE;
 
 		std::vector<ILCall> functions;
-		std::unordered_map<SymbolDef*, uint64_t> funcMap;
+		std::unordered_map<SymbolDef*, ILFuncId> funcMap;
 
 		std::vector<PhiMetadata> phiMetadata;
 
@@ -114,7 +148,7 @@ namespace HXSL
 		{
 		}
 
-		void RemoveFunc(uint64_t funcSlot)
+		void RemoveFunc(ILFuncId funcSlot)
 		{
 			auto& funcCall = functions[funcSlot];
 			funcMap.erase(funcCall.func);
@@ -130,7 +164,7 @@ namespace HXSL
 			}
 		}
 
-		uint64_t RegType(SymbolDef* def)
+		ILTypeId RegType(SymbolDef* def)
 		{
 			auto it = typeMap.find(def);
 			if (it != typeMap.end())
@@ -139,12 +173,12 @@ namespace HXSL
 			}
 
 			auto idx = typeMetadata.size();
-			typeMetadata.push_back(ILTypeMetadata(def));
+			typeMetadata.push_back(ILTypeMetadata(idx, def));
 			typeMap.insert({ def, idx });
 			return idx;
 		}
 
-		ILVariable& RegVar(uint64_t typeId, SymbolDef* def)
+		ILVariable& RegVar(ILTypeId typeId, SymbolDef* def)
 		{
 			auto it = varMap.find(def);
 			if (it != varMap.end())
@@ -155,20 +189,7 @@ namespace HXSL
 			auto idx = variables.size();
 
 			auto& type = typeMetadata[typeId];
-
-			bool isLargeObject = true;
-			if (auto prim = type.def->As<Primitive>())
-			{
-				isLargeObject = prim->GetClass() == PrimitiveClass_Matrix;
-			}
-
-			ILVariableFlags flags = ILVariableFlags_None;
-			if (isLargeObject)
-			{
-				flags |= ILVariableFlags_LargeObject | ILVariableFlags_Reference;
-			}
-
-			ILVariable var = ILVariable(idx, typeId, def, flags);
+			ILVariable var = ILVariable(idx, typeId, def, type.GetVarFlags());
 
 			variables.push_back(var);
 			varMap.insert({ def, idx });
@@ -182,7 +203,30 @@ namespace HXSL
 			return RegVar(typeId, var);
 		}
 
-		uint64_t RegFunc(SymbolDef* def)
+		ILVariable& RegTempVar(ILTypeId typeId)
+		{
+			auto idx = tempVariables.size();
+			auto& type = typeMetadata[typeId];
+
+			ILVariable var = ILVariable(idx | SSA_VARIABLE_TEMP_FLAG, typeId, nullptr, type.GetVarFlags());
+			tempVariables.push_back(var);
+
+			return tempVariables[idx];
+		}
+
+		ILVariable& RegTempVar(SymbolDef* type)
+		{
+			auto typeId = RegType(type);
+			return RegTempVar(typeId);
+		}
+
+		ILVariable& GetTempVar(ILVarId varId)
+		{
+			auto slot = varId & SSA_VARIABLE_MASK;
+			return tempVariables[slot];
+		}
+
+		ILFuncId RegFunc(SymbolDef* def)
 		{
 			auto it = funcMap.find(def);
 			if (it != funcMap.end())
@@ -253,7 +297,7 @@ namespace HXSL
 			return nullptr;
 		}
 
-		const std::string_view& GetTypeName(uint64_t typeId) const
+		const std::string_view& GetTypeName(ILTypeId typeId) const
 		{
 			if (typeId >= typeMetadata.size())
 			{
@@ -263,7 +307,29 @@ namespace HXSL
 			return typeMetadata[typeId].def->GetName();
 		}
 
-		const std::string_view& GetFuncName(uint64_t funcId) const
+		const std::string_view& GetFieldName(ILFieldAccess access) const
+		{
+			auto typeId = access.typeId;
+			if (typeId >= typeMetadata.size())
+			{
+				return "Unknown";
+			}
+
+			auto fieldId = access.fieldId;
+			auto def = typeMetadata[typeId].def;
+
+			if (auto struct_ = def->As<Struct>())
+			{
+				auto& fields = struct_->GetFields();
+				if (fieldId >= fields.size())
+				{
+					return "Unknown";
+				}
+				return fields[fieldId]->GetName();
+			}
+		}
+
+		const std::string_view& GetFuncName(ILFuncId funcId) const
 		{
 			if (funcId >= functions.size())
 			{
@@ -273,15 +339,30 @@ namespace HXSL
 			return functions[funcId].func->GetName();
 		}
 
-		const std::string_view& GetVarTypeName(uint64_t varId) const
+		const std::string_view& GetVarTypeName(ILVarId varId) const
 		{
-			varId &= SSA_VARIABLE_MASK;
-			if (varId >= variables.size())
+			if ((varId & SSA_VARIABLE_TEMP_FLAG) != 0)
 			{
-				return "Unknown";
+				varId &= SSA_VARIABLE_MASK;
+				if (varId >= tempVariables.size())
+				{
+					return "Unknown";
+				}
+
+				auto& var = tempVariables[varId];
+				return GetTypeName(var.typeId);
 			}
-			auto& var = variables[varId];
-			return GetTypeName(var.typeId);
+			else
+			{
+				varId &= SSA_VARIABLE_MASK;
+				if (varId >= variables.size())
+				{
+					return "Unknown";
+				}
+
+				auto& var = variables[varId];
+				return GetTypeName(var.typeId);
+			}
 		}
 	};
 
@@ -292,13 +373,13 @@ namespace HXSL
 	public:
 		ILMetadataAdapter(ILMetadata& metadata) : metadata(metadata) {}
 
-		uint64_t RegType(SymbolDef* def) { return metadata.RegType(def); }
+		ILTypeId RegType(SymbolDef* def) { return metadata.RegType(def); }
 
-		ILVariable& RegVar(uint64_t typeId, SymbolDef* def) { return metadata.RegVar(typeId, def); }
+		ILVariable& RegVar(ILTypeId typeId, SymbolDef* def) { return metadata.RegVar(typeId, def); }
 
 		ILVariable& RegVar(SymbolDef* type, SymbolDef* var) { return metadata.RegVar(type, var); }
 
-		uint64_t RegFunc(SymbolDef* def) { return metadata.RegFunc(def); }
+		ILFuncId RegFunc(SymbolDef* def) { return metadata.RegFunc(def); }
 
 		ILVariable& FindVar(SymbolDef* var) { return metadata.FindVar(var); }
 
@@ -307,6 +388,23 @@ namespace HXSL
 		ILVariable& FindVar(MemberAccessExpression* expr) { return metadata.FindVar(expr); }
 
 		ILFieldAccess MakeFieldAccess(SymbolDef* fieldDef) { return metadata.MakeFieldAccess(fieldDef); }
+	};
+
+	struct ILTempVariableAllocator
+	{
+		ILMetadata& metadata;
+
+		ILTempVariableAllocator(ILMetadata& metadata) : metadata(metadata) {}
+
+		ILRegister Alloc(SymbolDef* type)
+		{
+			return metadata.RegTempVar(type).id;
+		}
+
+		void Free(ILRegister reg)
+		{
+			if (reg == INVALID_REGISTER) return;
+		}
 	};
 }
 

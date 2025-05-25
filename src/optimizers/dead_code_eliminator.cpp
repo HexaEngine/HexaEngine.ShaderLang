@@ -4,11 +4,7 @@ namespace HXSL
 {
 	void DeadCodeEliminator::ProcessOperand(ILOperand& op)
 	{
-		if (op.IsReg())
-		{
-			usedRegs.insert(op.reg);
-		}
-		else if (op.IsVar())
+		if (op.IsVar())
 		{
 			usedVars.insert(op.varId);
 		}
@@ -30,18 +26,11 @@ namespace HXSL
 
 		if (protectedInstr) return;
 		auto& op = instr.operandResult;
-		if (op.IsReg() && usedRegs.find(op.reg) == usedRegs.end())
+		if (op.IsVar() && usedVars.find(op.varId) == usedVars.end())
 		{
+			deadVars.insert(op.varId);
 			DiscardInstr(idx);
 		}
-		else if (op.IsVar() && usedVars.find(op.varId) == usedVars.end())
-		{
-			DiscardInstr(idx);
-		}
-	}
-
-	void DeadCodeEliminator::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
-	{
 	}
 
 	void DeadCodeEliminator::VisitClose(size_t index, CFGNode& node, EmptyCFGContext& context)

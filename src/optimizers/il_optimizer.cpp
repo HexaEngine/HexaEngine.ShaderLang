@@ -24,6 +24,11 @@ namespace HXSL
 			auto& cfg = function->cfg;
 			auto& metadata = function->metadata;
 
+#if HXSL_DEBUG
+			std::cout << "Converted IL to SSA:" << std::endl;
+			cfg.Print();
+#endif
+
 			SSABuilder ssaBuilder = SSABuilder(metadata, cfg);
 			ssaBuilder.Build();
 
@@ -31,7 +36,9 @@ namespace HXSL
 
 			SSAReducer reducer = SSAReducer(metadata, cfg);
 			reducer.Reduce();
+
 #if HXSL_DEBUG
+			std::cout << "Lowered SSA to IL:" << std::endl;
 			cfg.Print();
 #endif
 		}
@@ -54,16 +61,17 @@ namespace HXSL
 	{
 #if HXSL_DEBUG
 		auto& cfg = function->cfg;
-		cfg.Print();
 #endif
 		auto passes = MakeScope(function);
 
+		//PROFILE_SCOPE("Optimizer Main");
 		for (size_t i = 0; i < 10; i++)
 		{
-			PROFILE_SCOPE("Optimizer");
+			//PROFILE_SCOPE("Optimizer Pass");
 			bool changed = false;
 			for (auto& pass : passes)
 			{
+				//PROFILE_SCOPE("Optimizer Sub Pass");
 				auto result = pass->Run();
 				if (result == OptimizerPassResult_Rerun)
 				{

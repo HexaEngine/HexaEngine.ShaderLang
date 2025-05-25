@@ -433,11 +433,20 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<Expression>, Expression, expression);
 	};
 
+	enum class FunctionCallExpressionFlags : uint32_t
+	{
+		None = 0,
+		ConstructorCall = 1 << 0
+	};
+
+	DEFINE_FLAGS_OPERATORS(FunctionCallExpressionFlags, uint32_t);
+
 	class FunctionCallExpression : public ChainExpression
 	{
 	private:
 		ast_ptr<SymbolRef> symbol;
 		std::vector<ast_ptr<FunctionCallParameter>> parameters;
+		FunctionCallExpressionFlags flags = FunctionCallExpressionFlags::None;
 	public:
 		FunctionCallExpression(TextSpan span, ast_ptr<SymbolRef> symbol, std::vector<ast_ptr<FunctionCallParameter>> parameters)
 			: ChainExpression(span, NodeType_FunctionCallExpression),
@@ -452,6 +461,10 @@ namespace HXSL
 			symbol(std::move(symbol))
 		{
 		}
+
+		DEFINE_FLAGS_MEMBERS(FunctionCallExpressionFlags, FunctionCall, flags);
+
+		bool IsConstructorCall() const noexcept { return HasFunctionCallFlag(FunctionCallExpressionFlags::ConstructorCall); }
 
 		bool CanBuildOverloadSignature()
 		{

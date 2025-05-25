@@ -58,6 +58,7 @@ namespace HXSL
 		NodeType_Struct,
 		NodeType_Class, // Needs parsing logic
 		NodeType_Array,
+		NodeType_Pointer,
 		NodeType_Field,
 		NodeType_IntrinsicFunction, // Placeholder (Will be added in the future.)
 		NodeType_FunctionOverload,

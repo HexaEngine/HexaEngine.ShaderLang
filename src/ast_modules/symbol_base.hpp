@@ -18,6 +18,7 @@ namespace HXSL
 		SymbolType_Struct,
 		SymbolType_Class,
 		SymbolType_Array,
+		SymbolType_Pointer,
 		SymbolType_Enum,
 		SymbolType_Attribute,
 		SymbolType_Primitive,
@@ -225,13 +226,13 @@ namespace HXSL
 		void UpdateName();
 
 	public:
-		SymbolRef(TextSpan span, SymbolRefType type, bool isFullyQualified) : span(span), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
+		SymbolRef(const TextSpan& span, SymbolRefType type, bool isFullyQualified) : span(span), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
 			fullyQualifiedName = make_ast_ptr<std::string>(span.str());
 			UpdateName();
 		}
 
-		SymbolRef(std::string name, SymbolRefType type, bool isFullyQualified) : span(TextSpan()), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
+		SymbolRef(const std::string& name, SymbolRefType type, bool isFullyQualified) : span(TextSpan()), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
 			fullyQualifiedName = make_ast_ptr<std::string>(name);
 			UpdateName();

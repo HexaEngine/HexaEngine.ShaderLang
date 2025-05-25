@@ -2,7 +2,7 @@
 #define CONTROL_FLOW_ANALYZER_HPP
 
 #include "io/logger_interface.hpp"
-#include "pch/ast_ilgen.hpp"
+#include "ast_ilgen.hpp"
 #include "pch/il.hpp"
 
 namespace HXSL

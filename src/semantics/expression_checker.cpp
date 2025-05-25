@@ -169,14 +169,23 @@ namespace HXSL
 				return;
 			}
 
-			auto function = overload->As<FunctionOverload>();
-			if (function == nullptr)
+			SymbolDef* type;
+			if (auto constructor = overload->As<ConstructorOverload>())
 			{
-				HXSL_ASSERT(false, "Declaration in function call expression was not a function, this should never happen.");
-				return;
+				type = constructor->GetTargetType();
+				expression->SetFunctionCallFlag(FunctionCallExpressionFlags::ConstructorCall, true);
+			}
+			else
+			{
+				auto function = overload->As<FunctionOverload>();
+				if (function == nullptr)
+				{
+					HXSL_ASSERT(false, "Declaration in function call expression was not a function, this should never happen.");
+					return;
+				}
+				type = function->GetReturnSymbolRef()->GetDeclaration();
 			}
 
-			auto type = function->GetReturnSymbolRef()->GetDeclaration();
 			auto next = expression->GetNextExpression().get();
 			if (next)
 			{

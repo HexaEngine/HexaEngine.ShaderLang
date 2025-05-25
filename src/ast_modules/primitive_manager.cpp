@@ -5,6 +5,12 @@ namespace HXSL
 {
 	std::once_flag PrimitiveManager::initFlag;
 
+	SymbolHandle PrimitiveManager::Resolve(const StringSpan& span) const
+	{
+		auto table = assembly->GetSymbolTable();
+		return table->FindNodeIndexFullPath(span);
+	}
+
 	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint32_t rows, uint32_t columns)
 	{
 		std::string scalarName = ToString(kind);
@@ -53,6 +59,12 @@ namespace HXSL
 				builder->WithImplicitCast(nameStr, "double", OperatorFlags_Intrinsic);
 				builder->WithExplicitCast(nameStr, "int", OperatorFlags_Explicit | OperatorFlags_Intrinsic);
 				builder->WithBinaryOperators({ Operator_BitwiseShiftLeft, Operator_BitwiseShiftRight, Operator_BitwiseAnd, Operator_BitwiseOr, Operator_BitwiseXor,  Operator_BitwiseNot }, nameStr, OperatorFlags_Intrinsic);
+			}
+			if (kind == PrimitiveKind_Float && primitiveClass == PrimitiveClass_Scalar)
+			{
+				builder->WithExplicitCast(nameStr, "int", OperatorFlags_Intrinsic);
+				builder->WithExplicitCast(nameStr, "uint", OperatorFlags_Intrinsic);
+				builder->WithExplicitCast(nameStr, "half", OperatorFlags_Intrinsic);
 			}
 			if (kind == PrimitiveKind_Bool && primitiveClass == PrimitiveClass_Scalar)
 			{

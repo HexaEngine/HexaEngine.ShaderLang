@@ -3,6 +3,17 @@
 
 namespace HXSL
 {
+	SymbolDef* ILBuilder::GetAddrType(SymbolDef* elementType)
+	{
+		SymbolHandle handle;
+		SymbolDef* def;
+		if (!compilation->GetPointerManager()->TryGetOrCreatePointerType(elementType, handle, def))
+		{
+			return elementType;
+		}
+		return def;
+	}
+
 	bool ILBuilder::TraverseStatement(Statement* statement)
 	{
 		auto type = statement->GetType();
@@ -26,12 +37,19 @@ namespace HXSL
 			if (decl->GetDeclaredType() == nullptr) break;
 			auto init = decl->GetInitializer().get();
 
-			auto typeId = RegType(decl->GetDeclaredType());
-			auto& varId = RegVar(typeId, decl);
-
-			if (varId.IsLargeObject())
+			auto flags = GetVarTypeFlags(decl->GetDeclaredType());
+			ILTypeId typeId;
+			ILVariable varId;
+			if ((flags & ILVariableFlags_LargeObject) != 0)
 			{
+				typeId = RegType(GetAddrType(decl->GetDeclaredType()));
+				varId = RegVar(typeId, decl);
 				AddInstr(OpCode_StackAlloc, ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
+			}
+			else
+			{
+				typeId = RegType(GetAddrType(decl->GetDeclaredType()));
+				varId = RegVar(typeId, decl);
 			}
 
 			if (init)
@@ -39,14 +57,22 @@ namespace HXSL
 				Number imm;
 				if (IsImmediate(init, imm))
 				{
-					AddInstr(VecStoreOp(varId, decl), imm, varId.AsTypeOperand(), varId.AsOperand());
+					AddInstr(VecStoreOp(varId, decl), imm, varId.AsOperand());
 				}
 				else
 				{
 					auto src = TraverseExpression(init);
+					if (auto funcCall = init->As<FunctionCallExpression>())
+					{
+						if (funcCall->IsConstructorCall())
+						{
+							goto initEnd;
+						}
+					}
+
 					if (varId.IsReference())
 					{
-						AddInstr(VecStoreOp(varId, decl), src, varId.AsTypeOperand(), varId.AsOperand());
+						AddInstr(VecStoreOp(varId, decl), src, varId.AsOperand());
 					}
 					else
 					{
@@ -62,6 +88,7 @@ namespace HXSL
 			{
 				AddInstr(OpCode_Zero, ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
 			}
+		initEnd:
 			MappingEnd(statement->GetSpan());
 		}
 		break;

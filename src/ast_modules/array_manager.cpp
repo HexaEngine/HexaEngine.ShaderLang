@@ -18,6 +18,8 @@ namespace HXSL
 		auto handle = arrayTable->FindNodeIndexFullPath(arrayHeadKey);
 		if (handle.valid())
 		{
+			handleOut = handle;
+			arrayOut = handle.GetMetadata()->declaration;
 			ref->SetTable(handle);
 			return true;
 		}

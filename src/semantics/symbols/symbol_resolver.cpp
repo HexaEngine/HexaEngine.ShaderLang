@@ -606,6 +606,15 @@ namespace HXSL
 			PushScope(node, signature, true);
 		}
 		break;
+		case NodeType_ConstructorOverload:
+		{
+			auto function = node->As<ConstructorOverload>();
+			auto& ref = function->GetTargetTypeSymbolRef();
+			ResolveSymbol(ref.get());
+			auto signature = function->BuildOverloadSignature();
+			PushScope(node, signature, true);
+		}
+		break;
 		case NodeType_OperatorOverload:
 		{
 			auto function = node->As<OperatorOverload>();
@@ -681,7 +690,7 @@ namespace HXSL
 		case NodeType_ConstructorOverload:
 		{
 			auto function = node->As<ConstructorOverload>();
-			auto& ref = function->GetReturnSymbolRef();
+			auto& ref = function->GetTargetTypeSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildTemporaryOverloadSignature();
 			PushScope(node, signature);
