@@ -281,14 +281,58 @@ namespace HXSL
 			clear();
 		}
 
-		T& front() const { return *tail; }
-		T& back() const { return *head; }
+		T& front() const { return *head; }
+		T& back() const { return *tail; }
+		BumpAllocator& get_allocator() const { return *allocator; }
 
-		T* append(const T& val)
+		T* pop_front_move()
 		{
-			T* newNode = allocator->Alloc<T>(val);
 			if (!head)
 			{
+				return nullptr;
+			}
+
+			T* node = head;
+			head = node->next;
+			if (head)
+			{
+				head->prev = nullptr;
+			}
+			else
+			{
+				tail = nullptr;
+			}
+
+			return node;
+		}
+
+		T* pop_back_move()
+		{
+			if (!tail)
+			{
+				return nullptr;
+			}
+
+			T* node = tail;
+			tail = node->prev;
+			if (tail)
+			{
+				tail->next = nullptr;
+			}
+			else
+			{
+				head = nullptr;
+			}
+
+			return node;
+		}
+
+		T* append_move(T* newNode)
+		{
+			newNode->next = nullptr;
+			if (!head)
+			{
+				newNode->prev = nullptr;
 				head = tail = newNode;
 			}
 			else
@@ -299,6 +343,12 @@ namespace HXSL
 			}
 
 			return tail;
+		}
+
+		T* append(const T& val)
+		{
+			T* newNode = allocator->Alloc<T>(val);
+			return append_move(newNode);
 		}
 
 		T* append_move(ilist& list)
@@ -323,11 +373,12 @@ namespace HXSL
 			return tail;
 		}
 
-		T* prepend(const T& val)
+		T* prepend_move(T* newNode)
 		{
-			T* newNode = allocator->Alloc<T>(val);
+			newNode->prev = nullptr;
 			if (!head)
 			{
+				newNode->next = nullptr;
 				head = tail = newNode;
 			}
 			else
@@ -338,6 +389,12 @@ namespace HXSL
 			}
 
 			return head;
+		}
+
+		T* prepend(const T& val)
+		{
+			T* newNode = allocator->Alloc<T>(val);
+			return prepend_move(newNode);
 		}
 
 		T* prepend_move(ilist& list)
@@ -398,7 +455,6 @@ namespace HXSL
 			return newNode;
 		}
 
-		template<typename... Args>
 		T* insert(const iterator& it, const T& val)
 		{
 			if (it == end())

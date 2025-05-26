@@ -74,6 +74,7 @@ namespace HXSL
 		OpCode_Vec4Store,
 
 		OpCode_VecExtract,
+		OpCode_VecSet,
 
 		OpCode_BroadcastVec2,
 		OpCode_BroadcastVec3,
@@ -87,16 +88,19 @@ namespace HXSL
 		OpCode_Vec2Subtract,
 		OpCode_Vec2Multiply,
 		OpCode_Vec2Divide,
+		Opcode_Vec2FusedMultiplyAdd,
 
 		OpCode_Vec3Add,
 		OpCode_Vec3Subtract,
 		OpCode_Vec3Multiply,
 		OpCode_Vec3Divide,
+		Opcode_Vec3FusedMultiplyAdd,
 
 		OpCode_Vec4Add,
 		OpCode_Vec4Subtract,
 		OpCode_Vec4Multiply,
 		OpCode_Vec4Divide,
+		Opcode_Vec4FusedMultiplyAdd
 	};
 
 	static bool IsCommutative(ILOpCode code)
@@ -418,6 +422,7 @@ namespace HXSL
 	class ILInstruction : public IntrusiveLinkedBase<ILInstruction>
 	{
 	public:
+		TextSpan* location = nullptr;
 		ILOpCode opcode;
 		ILOpKind opKind;
 		ILOperand operandLeft;

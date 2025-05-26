@@ -24,13 +24,13 @@ namespace HXSL
 			auto& cfg = function->cfg;
 			auto& metadata = function->metadata;
 
+			SSABuilder ssaBuilder = SSABuilder(metadata, cfg);
+			ssaBuilder.Build();
+
 #if HXSL_DEBUG
 			std::cout << "Converted IL to SSA:" << std::endl;
 			cfg.Print();
 #endif
-
-			SSABuilder ssaBuilder = SSABuilder(metadata, cfg);
-			ssaBuilder.Build();
 
 			Optimize(function.get());
 

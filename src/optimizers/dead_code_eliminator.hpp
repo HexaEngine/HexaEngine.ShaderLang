@@ -25,13 +25,7 @@ namespace HXSL
 		{
 		}
 
-		OptimizerPassResult Run() override
-		{
-			changed = false;
-			usedVars.clear();
-			Traverse();
-			return changed ? OptimizerPassResult_Changed : OptimizerPassResult_None;
-		};
+		OptimizerPassResult Run() override;
 	};
 }
 

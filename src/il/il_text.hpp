@@ -199,7 +199,7 @@ namespace HXSL
 				uint32_t version;
 				bool isTemp;
 				DecomposeVariableID(p, varId, version, isTemp);
-				oss << (isTemp ? "%tmp" : "%var") << version << "_" << varId << ": " << metadata.GetVarTypeName(operand.varId);
+				oss << (isTemp ? "%tmp" : "%var") << version << "_" << varId << ": " << metadata.GetVarTypeName(p);
 				oss << "]";
 			}
 		}
@@ -251,6 +251,11 @@ namespace HXSL
 		}
 
 		oss << " " << GetOpKindType(instruction.opKind);
+		if (instruction.location)
+		{
+			auto& span = *instruction.location;
+			oss << "\t; " << " (Line: " << span.line << " Column: " << span.column << ")";
+		}
 
 		return oss.str();
 	}

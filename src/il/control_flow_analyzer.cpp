@@ -18,18 +18,15 @@ namespace HXSL
 				bool first = true;
 				for (auto& instr : node.instructions)
 				{
-					auto map = metadata.FindMappingForInstruction(&instr);
-					if (map)
+					if (!instr.location) continue;
+					if (first)
 					{
-						if (first)
-						{
-							span = map->span;
-							first = false;
-						}
-						else
-						{
-							span.merge(map->span);
-						}
+						span = *instr.location;
+						first = false;
+					}
+					else
+					{
+						span.merge(*instr.location);
 					}
 				}
 

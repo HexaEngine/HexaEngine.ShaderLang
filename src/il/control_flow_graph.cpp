@@ -11,6 +11,7 @@ namespace HXSL
 
 		std::unordered_map<ILInstruction*, size_t> instrToNode;
 		std::unordered_set<ILInstruction*> blockStarts;
+
 		for (auto& loc : jumpTable.locations)
 		{
 			blockStarts.insert(loc);
@@ -18,19 +19,19 @@ namespace HXSL
 
 		size_t currentIdx = AddNode(ControlFlowType_Normal);
 
-		for (auto& instr : container)
+		while (auto instr = container.pop_front_move())
 		{
-			if (blockStarts.contains(&instr))
+			if (blockStarts.contains(instr))
 			{
 				currentIdx = AddNode(ControlFlowType_Normal);
 			}
 
+			auto next = instr->next;
 			auto& node = GetNode(currentIdx);
+			auto newNode = node.instructions.append_move(instr);
+			instrToNode.insert({ instr, currentIdx });
 
-			node.AddInstr(instr);
-			instrToNode.insert({ &instr, currentIdx });
-
-			switch (instr.opcode)
+			switch (instr->opcode)
 			{
 			case OpCode_Jump:
 			{
@@ -48,7 +49,7 @@ namespace HXSL
 			case OpCode_Return:
 			case OpCode_Discard:
 				node.type = ControlFlowType_Exit;
-				if (instr.next)
+				if (next)
 				{
 					currentIdx = AddNode(ControlFlowType_Normal);
 				}
@@ -88,14 +89,12 @@ namespace HXSL
 					Link(node.id, targetNode);
 				}
 
-				if (term->next)
-				{
-					Link(node.id, instrToNode[term->next]);
-				}
+				Link(node.id, node.id + 1);
 				break;
 			}
 			default:
 			{
+				Link(node.id, node.id + 1);
 				if (term->next)
 				{
 					Link(node.id, instrToNode[term->next]);

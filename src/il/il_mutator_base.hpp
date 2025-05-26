@@ -16,9 +16,9 @@ namespace HXSL
 	public:
 		void DiscardMarkedInstructs(CFGNode& node)
 		{
-			for (auto d : discardList)
+			for (auto instr : discardList)
 			{
-				node.instructions.remove(d);
+				node.instructions.remove(instr);
 			}
 			discardList.clear();
 		}

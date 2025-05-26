@@ -56,7 +56,7 @@ namespace HXSL
 			versionStacks[varId].pop();
 		}
 
-		void InsertPhiMeta(CFGNode& node, uint64_t varId, size_t& phiIdOut);
+		void InsertPhiMeta(CFGNode& node, ILVarId varId, size_t& phiIdOut);
 
 		void Visit(size_t index, CFGNode& node, SSACFGContext& context) override;
 

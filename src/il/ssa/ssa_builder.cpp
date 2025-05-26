@@ -62,7 +62,7 @@ namespace HXSL
 			{
 				if (!instr.IsOp(OpCode_Phi)) break;
 				size_t phiId = instr.operandLeft.varId;
-				uint64_t varId = instr.operandResult.varId & SSA_VARIABLE_MASK;
+				uint64_t varId = instr.operandResult.varId.var.id;
 				uint64_t version = TopVersion(varId);
 				phiMetadata[phiId].params[slot] = version;
 			}
@@ -77,7 +77,7 @@ namespace HXSL
 		}
 	}
 
-	void SSABuilder::InsertPhiMeta(CFGNode& node, uint64_t varId, size_t& phiIdOut)
+	void SSABuilder::InsertPhiMeta(CFGNode& node, ILVarId varId, size_t& phiIdOut)
 	{
 		auto& globalMetadata = metadata;
 		auto& phiMetadata = globalMetadata.phiMetadata;
@@ -86,7 +86,7 @@ namespace HXSL
 		auto& meta = phiMetadata.back();
 		meta.params.resize(node.predecessors.size());
 
-		auto& var = globalMetadata.variables[varId];
+		auto& var = globalMetadata.variables[varId.var.id];
 
 		ILInstruction phi = ILInstruction(OpCode_Phi, ILOperand(ILOperandKind_Phi, phiId), var.AsOperand());
 
@@ -103,7 +103,7 @@ namespace HXSL
 		{
 			for (auto& instr : cfg.GetNode(i).instructions)
 			{
-				if (instr.operandResult.IsVar())
+				if (instr.operandResult.IsVar() && !instr.operandResult.varId.var.temp)
 				{
 					defSites[instr.operandResult.varId].insert(i);
 				}

@@ -144,6 +144,7 @@ namespace HXSL
 
 	class ILBuilder : public ILContainerAdapter, public ILMetadataAdapter
 	{
+		BumpAllocator* allocator;
 		LowerCompilationUnit* compilation;
 		std::stack<ILFrame> stack;
 		ILFrame currentFrame;
@@ -171,7 +172,15 @@ namespace HXSL
 			{
 				end = &container.back();
 			}
-			metadata.mappings.push_back(ILMapping(start, end, span));
+
+			auto location = allocator->Alloc<TextSpan>(span);
+			auto current = start->next;
+			while (current)
+			{
+				current->location = location;
+				if (current == end) break;
+				current = current->next;
+			}
 		}
 
 		bool didReturn = false;
@@ -239,8 +248,9 @@ namespace HXSL
 		bool TraverseStatement(Statement* statement);
 		void TraverseBlock(ILBlockFrame& frame);
 	public:
-		ILBuilder(LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, JumpTable& jumpTable)
+		ILBuilder(BumpAllocator& allocator, LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, JumpTable& jumpTable)
 			: ILContainerAdapter(container), ILMetadataAdapter(metadata),
+			allocator(&allocator),
 			compilation(compilation),
 			tempAllocator(metadata),
 			exprBuilder(compilation, container, metadata, tempAllocator, jumpTable),

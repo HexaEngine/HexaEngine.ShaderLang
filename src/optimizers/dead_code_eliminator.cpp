@@ -57,4 +57,21 @@ namespace HXSL
 
 		DiscardMarkedInstructs(node);
 	}
+
+	OptimizerPassResult DeadCodeEliminator::Run()
+	{
+		changed = false;
+		usedVars.clear();
+
+		for (auto& phi : metadata.phiMetadata)
+		{
+			for (auto& p : phi.params)
+			{
+				usedVars.insert(p);
+			}
+		}
+
+		Traverse();
+		return changed ? OptimizerPassResult_Changed : OptimizerPassResult_None;
+	}
 }

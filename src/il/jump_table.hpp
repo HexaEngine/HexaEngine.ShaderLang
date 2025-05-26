@@ -25,6 +25,14 @@ namespace HXSL
 			locations[id] = location;
 		}
 
+		void Prepare()
+		{
+			for (auto& p : locations)
+			{
+				p = p->next;
+			}
+		}
+
 		ILInstruction* GetLocation(uint64_t id) const
 		{
 			return locations[id];
