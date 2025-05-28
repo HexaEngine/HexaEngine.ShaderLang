@@ -9,13 +9,13 @@ namespace HXSL
 	struct ILExpressionFrame
 	{
 		Expression* expression = nullptr;
-		Operand* outRegister = nullptr;
-		Operand* rightRegister = nullptr;
-		Operand* leftRegister = nullptr;
+		ILVarId outRegister = INVALID_VARIABLE;
+		Variable* rightRegister = nullptr;
+		Variable* leftRegister = nullptr;
 		uint64_t state = 0;
 		ILLabel label = INVALID_JUMP_LOCATION;
 
-		ILExpressionFrame(Expression* expression, Operand* reg, Operand* rightRegister = nullptr, Operand* leftRegister = nullptr)
+		ILExpressionFrame(Expression* expression, ILVarId reg, Variable* rightRegister = nullptr, Variable* leftRegister = nullptr)
 			: expression(expression), outRegister(reg), rightRegister(rightRegister), leftRegister(leftRegister), state(0), label(INVALID_JUMP_LOCATION)
 		{
 		}
@@ -82,19 +82,19 @@ namespace HXSL
 		}
 
 		bool IsInlineable(Expression* expr, Operand*& opOut);
-		void ReadVar(Expression* target, Operand* varOut);
+		void ReadVar(Expression* target, ILVarId varOut);
 		void WriteVar(Expression* target, Operand* varIn);
 		SymbolDef* GetAddrType(SymbolDef* elementType);
-		bool MemberAccess(Expression* expr, Operand*, MemberOp op = MemberOp_Read, Operand* writeOp = nullptr);
+		ILVariable& MemberAccess(Expression* expr, bool& isAddress);
 		void FunctionCall(FunctionCallExpression* expr);
-		void OperatorCall(OperatorOverload* op, Operand* left, Operand* right, Operand* result);
-		void OperatorCall(BinaryExpression* binary, Operand* left, Operand* right, Operand* result)
+		void OperatorCall(OperatorOverload* op, Operand* left, Operand* right, ILVarId result);
+		void OperatorCall(BinaryExpression* binary, Operand* left, Operand* right, ILVarId result)
 		{
 			auto op = binary->GetOperatorDeclaration();
 			if (op == nullptr) return;
 			return OperatorCall(op->As<OperatorOverload>(), left, right, result);
 		}
-		Operand* TraverseExpression(Expression* expression, Operand* outOperand = nullptr);
+		ILVarId TraverseExpression(Expression* expression, ILVarId outOperand = INVALID_VARIABLE);
 	};
 }
 

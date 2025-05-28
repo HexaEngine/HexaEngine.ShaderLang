@@ -439,6 +439,7 @@ namespace HXSL
 		}
 
 		auto castExpr = make_ast_ptr<CastExpression>(TextSpan(), std::move(opRef), target->MakeSymbolRef(), nullptr);
+		castExpr->SetInferredType(target);
 		InjectNode(insertPoint, std::move(castExpr), &CastExpression::SetOperand);
 
 		return true;

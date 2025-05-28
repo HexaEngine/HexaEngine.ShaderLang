@@ -57,10 +57,17 @@ namespace HXSL
 		}
 
 		template<typename... Operands>
-		void AddInstr(ILOpCode opcode, Operands&&... operands)
+		void AddInstr(ILOpCode opcode, ILVarId result, Operands&&... operands)
 		{
 			OperandFactory factory{ allocator };
-			container.emplace_append(opcode, factory(std::forward<Operands>(operands))...);
+			container.emplace_append(opcode, result, factory(std::forward<Operands>(operands))...);
+		}
+
+		template<typename... Operands>
+		void AddInstrNO(ILOpCode opcode, Operands&&... operands)
+		{
+			OperandFactory factory{ allocator };
+			container.emplace_append(opcode, INVALID_VARIABLE, factory(std::forward<Operands>(operands))...);
 		}
 
 		void AddInstr(ILOpCode opcode, ILOpKind opKind = ILOpKind_None)

@@ -14,6 +14,8 @@ namespace HXSL
 		{
 		}
 
+		std::string GetName() override { return "AlgebraicSimplifier"; }
+
 		OptimizerPassResult Run() override
 		{
 			changed = false;

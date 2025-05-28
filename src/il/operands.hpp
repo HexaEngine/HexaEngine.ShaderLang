@@ -124,19 +124,19 @@ namespace HXSL
 	protected:
 		Operand(Value_T type) : Value(type) {}
 	public:
-		inline static bool IsDisabled(const Operand* op) noexcept { return op == nullptr; }
+		inline static bool IsDisabled(const Value* op) noexcept { return op == nullptr; }
 
-		inline static bool IsVar(const Operand* op) noexcept { return op != nullptr && op->GetTypeId() == Value::VariableVal; }
+		inline static bool IsVar(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::VariableVal; }
 
-		inline static bool IsImm(const Operand* op) noexcept { return op != nullptr && op->GetTypeId() == Value::ConstantVal; }
+		inline static bool IsImm(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::ConstantVal; }
 
-		inline static bool IsLabel(const Operand* op) noexcept { return op != nullptr && op->GetTypeId() == Value::LabelVal; }
+		inline static bool IsLabel(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::LabelVal; }
 
-		inline static bool IsType(const Operand* op) noexcept { return op != nullptr && op->GetTypeId() == Value::TypeVal; }
+		inline static bool IsType(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::TypeVal; }
 
-		inline static bool IsFunc(const Operand* op) noexcept { return op != nullptr && op->GetTypeId() == Value::FuncVal; }
+		inline static bool IsFunc(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::FuncVal; }
 
-		inline static bool IsPhi(const Operand* op) noexcept { return op != nullptr && op->GetTypeId() == Value::PhiVal; }
+		inline static bool IsPhi(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::PhiVal; }
 	};
 
 	class Constant : public Operand
@@ -157,6 +157,8 @@ namespace HXSL
 		static constexpr Value_T ID = VariableVal;
 		ILVarId varId;
 		Variable(ILVarId varId) : Operand(ID), varId(varId) {}
+
+		operator ILVarId() const { return varId; }
 	};
 
 	class TypeValue : public Operand
@@ -199,7 +201,7 @@ namespace HXSL
 		Phi(ILPhiId phiId) : Operand(ID), phiId(phiId) {}
 	};
 
-	static uint64_t hash(const Operand* val) noexcept
+	static uint64_t hash(const Value* val) noexcept
 	{
 		if (!val) return 0;
 		XXHash3_64 hash{};
@@ -232,8 +234,9 @@ namespace HXSL
 		return hash.Finalize();
 	}
 
-	static bool equals(const Operand* rhs, const Operand* lhs)
+	static bool equals(const Value* rhs, const Value* lhs)
 	{
+		if (rhs == nullptr || lhs == nullptr) return rhs == lhs;
 		auto typeId = rhs->GetTypeId();
 		if (typeId != lhs->GetTypeId()) return false;
 
@@ -257,6 +260,18 @@ namespace HXSL
 
 		return false;
 	}
+}
+
+namespace std
+{
+	template <>
+	struct hash<HXSL::ILVarId>
+	{
+		size_t operator()(const HXSL::ILVarId& var) const noexcept
+		{
+			return hash<uint64_t>{}(var.raw);
+		}
+	};
 }
 
 #endif

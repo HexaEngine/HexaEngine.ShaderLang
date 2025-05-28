@@ -379,9 +379,9 @@ namespace HXSL
 
 		ILTempVariableAllocator(ILMetadata& metadata) : metadata(metadata) {}
 
-		ILVarId Alloc(SymbolDef* type)
+		ILVariable& Alloc(SymbolDef* type)
 		{
-			return metadata.RegTempVar(type).id;
+			return metadata.RegTempVar(type);
 		}
 
 		void Free(ILVarId reg)

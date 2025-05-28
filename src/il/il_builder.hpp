@@ -244,7 +244,7 @@ namespace HXSL
 
 		ILLabel MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
 
-		Operand* TraverseExpression(Expression* expr, Operand* outRegister = nullptr) { return exprBuilder.TraverseExpression(expr, outRegister); }
+		ILVarId TraverseExpression(Expression* expr, ILVarId outRegister = INVALID_VARIABLE) { return exprBuilder.TraverseExpression(expr, outRegister); }
 		SymbolDef* GetAddrType(SymbolDef* elementType);
 		bool TraverseStatement(Statement* statement);
 		void TraverseBlock(ILBlockFrame& frame);

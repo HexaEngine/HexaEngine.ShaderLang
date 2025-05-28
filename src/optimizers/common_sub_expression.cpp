@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	void CommonSubExpression::TryMapOperand(Operand*& op)
+	void CommonSubExpression::TryMapOperand(Value*& op)
 	{
 		if (auto var = dyn_cast<Variable>(op))
 		{
@@ -28,7 +28,7 @@ namespace HXSL
 			if (!it.second)
 			{
 				DiscardInstr(instr);
-				map.insert({ cast<Variable>(instr.operandResult)->varId, cast<Variable>((*it.first)->operandResult)->varId });
+				map.insert({ instr.result, (*it.first)->result });
 			}
 		}
 

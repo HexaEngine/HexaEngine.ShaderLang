@@ -108,7 +108,14 @@ namespace HXSL
 		}
 	}
 
-	static std::string ToString(const Operand* operand, bool first, const ILMetadata& metadata)
+	static std::string ToString(ILVarId varId, const ILMetadata& metadata)
+	{
+		std::ostringstream oss;
+		oss << (varId.var.temp ? "%tmp" : "%var") << varId.var.version << "_" << varId.var.id << ": " << metadata.GetVarTypeName(varId);
+		return oss.str();
+	}
+
+	static std::string ToString(const Value* operand, bool first, const ILMetadata& metadata)
 	{
 		std::ostringstream oss;
 		if (!first)
@@ -124,11 +131,7 @@ namespace HXSL
 		case Value::VariableVal:
 		{
 			auto op = cast<Variable>(operand);
-			uint32_t varId;
-			uint32_t version;
-			bool isTemp;
-			DecomposeVariableID(op->varId, varId, version, isTemp);
-			oss << (isTemp ? "%tmp" : "%var") << version << "_" << varId << ": " << metadata.GetVarTypeName(op->varId);
+			oss << ToString(op->varId, metadata);
 		}
 		break;
 		case Value::FieldVal:
@@ -161,13 +164,7 @@ namespace HXSL
 			auto& phi = metadata.GetPhi(op->phiId);
 			for (auto& p : phi.params)
 			{
-				oss << "[";
-				uint32_t varId;
-				uint32_t version;
-				bool isTemp;
-				DecomposeVariableID(p, varId, version, isTemp);
-				oss << (isTemp ? "%tmp" : "%var") << version << "_" << varId << ": " << metadata.GetVarTypeName(p);
-				oss << "]";
+				oss << "[" << ToString(p, metadata) << "]";
 			}
 		}
 		break;
@@ -186,9 +183,9 @@ namespace HXSL
 	{
 		std::ostringstream oss;
 
-		if (instruction.operandResult)
+		if (instruction.result != INVALID_VARIABLE)
 		{
-			oss << ToString(instruction.operandResult, true, metadata);
+			oss << ToString(instruction.result, metadata);
 			oss << " = ";
 		}
 

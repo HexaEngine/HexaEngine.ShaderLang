@@ -11,7 +11,7 @@ namespace HXSL
 		std::unordered_set<ILInstruction*, ILInstructionPtrHash, ILInstructionPtrEquals> subExpressions;
 		dense_map<ILVarId, ILVarId> map;
 
-		void TryMapOperand(Operand*& op);
+		void TryMapOperand(Value*& op);
 
 		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
 
@@ -19,6 +19,8 @@ namespace HXSL
 		CommonSubExpression(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
 		{
 		}
+
+		std::string GetName() override { return "CommonSubExpression"; }
 
 		OptimizerPassResult Run() override
 		{

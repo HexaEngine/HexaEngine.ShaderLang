@@ -14,7 +14,7 @@ namespace HXSL
 		return (nextInstr == OpCode_Jump || nextInstr == OpCode_JumpNotZero || nextInstr == OpCode_JumpZero);
 	}
 
-	void ConstantFolder::TryFoldOperand(Operand*& op)
+	void ConstantFolder::TryFoldOperand(Value*& op)
 	{
 		if (auto var = dyn_cast<Variable>(op))
 		{
@@ -43,36 +43,34 @@ namespace HXSL
 			{
 			case OpCode_Move:
 			{
-				auto varR = dyn_cast<Variable>(instr.operandResult);
-				if (!varR) break;
+				if (!instr.HasResult()) break;
 
 				if (auto varL = dyn_cast<Variable>(instr.operandLeft))
 				{
 					auto it = constants.find(varL->varId);
 					if (it != constants.end())
 					{
-						constants.insert({ varR->varId, it->second });
+						constants.insert({ instr.result, it->second });
 					}
 					else
 					{
-						varToVar.insert({ varR->varId, varL->varId });
+						varToVar.insert({ instr.result, varL->varId });
 					}
 				}
 				else if (auto immL = dyn_cast<Constant>(instr.operandLeft))
 				{
-					constants.insert({ varR->varId, immL->imm() });
+					constants.insert({ instr.result, immL->imm() });
 				}
 			}
 			break;
 			case OpCode_Cast:
 			{
-				auto varR = dyn_cast<Variable>(instr.operandResult);
-				if (!varR) break;
+				if (!instr.HasResult()) break;
 				if (auto immL = dyn_cast<Constant>(instr.operandLeft))
 				{
 					instr.opcode = OpCode_Move;
 					instr.operandLeft = context->MakeConstant(Cast(immL->imm(), instr.opKind));
-					constants.insert({ varR->varId, immL->imm() });
+					constants.insert({ instr.result, immL->imm() });
 				}
 			}
 
@@ -81,8 +79,7 @@ namespace HXSL
 			case OpCode_BitwiseNot:
 			case OpCode_Negate:
 			{
-				auto varR = dyn_cast<Variable>(instr.operandResult);
-				if (!varR) break;
+				if (!instr.HasResult()) break;
 				if (auto immL = dyn_cast<Constant>(instr.operandLeft))
 				{
 					Number imm = FoldImm(immL->imm(), {}, instr.opcode);
@@ -90,7 +87,7 @@ namespace HXSL
 					{
 						break;
 					}
-					constants.insert({ varR->varId, imm });
+					constants.insert({ instr.result, imm });
 				}
 			}
 			break;
@@ -98,8 +95,7 @@ namespace HXSL
 				break;
 			default:
 			{
-				auto varR = dyn_cast<Variable>(instr.operandResult);
-				if (!varR) break;
+				if (!instr.HasResult()) break;
 				if (!isa<Constant>(instr.operandLeft) || !isa<Constant>(instr.operandRight)) break;
 
 				Number imm;
@@ -109,7 +105,7 @@ namespace HXSL
 					{
 						break;
 					}
-					constants.insert({ varR->varId, imm });
+					constants.insert({ instr.result, imm });
 					instr.opcode = OpCode_Move;
 					instr.operandLeft = context->MakeConstant(imm);
 					instr.operandRight = {};
@@ -164,7 +160,7 @@ namespace HXSL
 							}
 							else
 							{
-								defMap[cast<Variable>(instr.operandResult)->varId] = &instr;
+								defMap[instr.result] = &instr;
 								continue;
 							}
 
@@ -184,9 +180,9 @@ namespace HXSL
 				}
 			}
 
-			if (auto var = dyn_cast<Variable>(instr.operandResult))
+			if (instr.HasResult())
 			{
-				defMap[var->varId] = &instr;
+				defMap[instr.result] = &instr;
 			}
 		}
 

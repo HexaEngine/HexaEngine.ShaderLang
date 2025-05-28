@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	void DeadCodeEliminator::ProcessOperand(Operand* op)
+	void DeadCodeEliminator::ProcessOperand(Value* op)
 	{
 		if (Operand::IsVar(op))
 		{
@@ -25,12 +25,11 @@ namespace HXSL
 		ProcessOperand(instr.operandRight);
 
 		if (protectedInstr) return;
-		auto op = instr.operandResult;
-		if (auto var = dyn_cast<Variable>(op))
+		if (instr.HasResult())
 		{
-			if (usedVars.find(var->varId) == usedVars.end())
+			if (usedVars.find(instr.result) == usedVars.end())
 			{
-				deadVars.insert(var->varId);
+				deadVars.insert(instr.result);
 				DiscardInstr(instr);
 			}
 		}

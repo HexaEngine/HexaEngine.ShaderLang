@@ -181,38 +181,16 @@ namespace HXSL
 		return false;
 	}
 
-	static ILOpCode VecLoadOp(const ILVariable& var, uint32_t components, bool addressOf = false)
+	static ILOpCode VecLoadOp(const ILVariable& var, bool addressOf = false)
 	{
 		if (!var.IsReference()) return OpCode_Move;
 		return addressOf ? OpCode_AddressOf : OpCode_Load;
 	}
 
-	static ILOpCode VecLoadOp(const ILVariable& var, IHasSymbolRef* expr, bool addressOf = false)
-	{
-		auto type = expr->GetSymbolRef()->GetBaseDeclaration();
-		uint32_t comp = -1;
-		if (auto prim = dynamic_cast<Primitive*>(type))
-		{
-			comp = prim->GetRows();
-		}
-		return VecLoadOp(var, comp, addressOf);
-	}
-
-	static ILOpCode VecStoreOp(const ILVariable& var, uint32_t components)
+	static ILOpCode VecStoreOp(const ILVariable& var)
 	{
 		if (!var.IsReference()) return OpCode_Move;
 		return OpCode_Store;
-	}
-
-	static ILOpCode VecStoreOp(const ILVariable& var, IHasSymbolRef* expr)
-	{
-		auto type = expr->GetSymbolRef()->GetBaseDeclaration();
-		uint32_t comp = -1;
-		if (auto prim = dynamic_cast<Primitive*>(type))
-		{
-			comp = prim->GetRows();
-		}
-		return VecStoreOp(var, comp);
 	}
 
 #define DEFINE_CAST(field, type) \
@@ -368,7 +346,7 @@ namespace HXSL
 	}
 
 #define DEFINE_IMM_COMP(name, value) \
-	static bool name##(const Operand* op) { \
+	static bool name##(const Value* op) { \
 	if (!Operand::IsImm(op)) return false; auto imm = cast<Constant>(op)->imm(); \
 	switch (imm.Kind) { \
 	case NumberType_Int8: return imm.i8 == value; \

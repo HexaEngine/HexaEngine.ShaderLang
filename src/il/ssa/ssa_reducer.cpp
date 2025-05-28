@@ -2,15 +2,20 @@
 
 namespace HXSL
 {
-	void SSAReducer::TryClearVersion(Operand* op)
+	void SSAReducer::TryClearVersion(ILVarId& op)
+	{
+		auto it = phiMap.find(op);
+		if (it != phiMap.end())
+		{
+			op = it->second;
+		}
+	}
+
+	void SSAReducer::TryClearVersion(Value* op)
 	{
 		auto var = dyn_cast<Variable>(op);
 		if (!var) return;
-		auto it = phiMap.find(var->varId);
-		if (it != phiMap.end())
-		{
-			var->varId = it->second;
-		}
+		TryClearVersion(var->varId);
 	}
 
 	void SSAReducer::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
@@ -29,7 +34,10 @@ namespace HXSL
 
 			TryClearVersion(instr.operandLeft);
 			TryClearVersion(instr.operandRight);
-			TryClearVersion(instr.operandResult);
+			if (instr.HasResult())
+			{
+				TryClearVersion(instr.result);
+			}
 
 			Prepare(instr);
 		}

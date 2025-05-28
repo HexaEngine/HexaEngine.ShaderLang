@@ -7,7 +7,7 @@ namespace HXSL
 
 	DEFINE_IMM_COMP(IsOne, 1);
 
-	static void ConvertToMove(ILInstruction& instr, Operand* left)
+	static void ConvertToMove(ILInstruction& instr, Value* left)
 	{
 		instr.opcode = OpCode_Move;
 		instr.operandLeft = left;

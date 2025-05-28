@@ -45,7 +45,7 @@ namespace HXSL
 				auto baseTypeId = RegType(decl->GetDeclaredType());
 				typeId = RegType(GetAddrType(decl->GetDeclaredType()));
 				varId = RegVar(typeId, decl);
-				AddInstr(OpCode_StackAlloc, baseTypeId, varId);
+				AddInstr(OpCode_StackAlloc, varId, baseTypeId);
 			}
 			else
 			{
@@ -58,7 +58,7 @@ namespace HXSL
 				Number imm;
 				if (IsImmediate(init, imm))
 				{
-					AddInstr(VecStoreOp(varId, decl), imm, varId);
+					AddInstr(VecStoreOp(varId), varId, imm);
 				}
 				else
 				{
@@ -73,20 +73,20 @@ namespace HXSL
 
 					if (varId.IsReference())
 					{
-						AddInstr(VecStoreOp(varId, decl), src, varId);
+						AddInstr(VecStoreOp(varId), varId, src);
 					}
 					else
 					{
 						if (!container.empty())
 						{
-							container.back().operandResult = context->MakeVariable(varId);
+							container.back().result = varId;
 						}
 					}
 				}
 			}
 			else if (!varId.IsReference())
 			{
-				AddInstr(OpCode_Zero, typeId, varId);
+				AddInstr(OpCode_Zero, varId, typeId);
 			}
 		initEnd:
 			MappingEnd(statement->GetSpan());
@@ -113,7 +113,7 @@ namespace HXSL
 			TraverseExpression(condition);
 			MappingEnd(condition->GetSpan());
 
-			AddInstr(OpCode_JumpZero, endIfId);
+			AddInstrNO(OpCode_JumpZero, endIfId);
 
 			PushFrame(ILFrame(ifStatement, endIfId));
 			PushFrame(ILFrame(ifStatement->GetBody().get(), 0));
@@ -132,7 +132,7 @@ namespace HXSL
 			TraverseExpression(condition);
 			MappingEnd(condition->GetSpan());
 
-			AddInstr(OpCode_JumpZero, whileEndId);
+			AddInstrNO(OpCode_JumpZero, whileEndId);
 
 			PushFrame(ILFrame(whileStatement, whileBeginId, whileEndId));
 			PushFrame(ILFrame(whileStatement->GetBody().get(), 0));
@@ -169,7 +169,7 @@ namespace HXSL
 			TraverseExpression(condition);
 			MappingEnd(condition->GetSpan());
 
-			AddInstr(OpCode_JumpZero, forEndId);
+			AddInstrNO(OpCode_JumpZero, forEndId);
 
 			PushFrame(ILFrame(forStatement, forBeginId, forIncId, forEndId));
 			PushFrame(ILFrame(forStatement->GetBody().get(), 0));
@@ -179,12 +179,12 @@ namespace HXSL
 		break;
 		case NodeType_BreakStatement:
 			MappingStart();
-			AddInstr(OpCode_Jump, currentLoop.breakLocation);
+			AddInstrNO(OpCode_Jump, currentLoop.breakLocation);
 			MappingEnd(statement->GetSpan());
 			break;
 		case NodeType_ContinueStatement:
 			MappingStart();
-			AddInstr(OpCode_Jump, currentLoop.continueLocation);
+			AddInstrNO(OpCode_Jump, currentLoop.continueLocation);
 			MappingEnd(statement->GetSpan());
 			break;
 		case NodeType_DiscardStatement:
@@ -202,7 +202,7 @@ namespace HXSL
 			auto expr = returnStatement->GetReturnValueExpression().get();
 			if (!expr)
 			{
-				AddInstr(OpCode_Return);
+				AddInstrNO(OpCode_Return);
 				break;
 			}
 
@@ -210,19 +210,19 @@ namespace HXSL
 			bool isImm = IsImmediate(expr, imm);
 			if (isImm)
 			{
-				AddInstr(OpCode_Return, imm);
+				AddInstrNO(OpCode_Return, imm);
 			}
 			else
 			{
 				if (expr->GetType() == NodeType_MemberReferenceExpression)
 				{
 					auto member = expr->As<MemberReferenceExpression>();
-					AddInstr(OpCode_Return, FindVar(member));
+					AddInstrNO(OpCode_Return, FindVar(member));
 				}
 				else
 				{
 					auto src = TraverseExpression(expr);
-					AddInstr(OpCode_Return, src);
+					AddInstrNO(OpCode_Return, src);
 				}
 			}
 
@@ -277,7 +277,7 @@ namespace HXSL
 			auto& param = parameters[i];
 			auto typeId = RegType(param->GetDeclaredType());
 			auto& varId = RegVar(typeId, param.get());
-			AddInstr(OpCode_LoadParam, Number(parameterBase + i), varId);
+			AddInstr(OpCode_LoadParam, varId, Number(parameterBase + i));
 		}
 
 		while (!stack.empty())
@@ -299,7 +299,7 @@ namespace HXSL
 				if (frame.state < elseIfStatements.size())
 				{
 					auto endLoc = frame.endLocation == INVALID_JUMP_LOCATION ? frame.endLocation = MakeJumpLocation() : frame.endLocation;
-					AddInstr(OpCode_Jump, endLoc);
+					AddInstrNO(OpCode_Jump, endLoc);
 					SetLocation(frame.nextLocation);
 
 					auto elseIfStatement = elseIfStatements[frame.state].get();
@@ -311,7 +311,7 @@ namespace HXSL
 					MappingEnd(condition->GetSpan());
 
 					frame.nextLocation = MakeJumpLocation();
-					AddInstr(OpCode_JumpZero, frame.nextLocation);
+					AddInstrNO(OpCode_JumpZero, frame.nextLocation);
 
 					frame.state++;
 					PushFrame(currentFrame);
@@ -324,7 +324,7 @@ namespace HXSL
 					if (elseStatement)
 					{
 						auto endLoc = frame.endLocation == INVALID_JUMP_LOCATION ? frame.endLocation = MakeJumpLocation() : frame.endLocation;
-						AddInstr(OpCode_Jump, endLoc);
+						AddInstrNO(OpCode_Jump, endLoc);
 						SetLocation(frame.nextLocation);
 
 						PushFrame(ILFrame(endLoc));
@@ -347,7 +347,7 @@ namespace HXSL
 			case ILFrameType_WhileStatement:
 			{
 				auto& frame = currentFrame.whileFrame;
-				AddInstr(OpCode_Jump, frame.startLocation);
+				AddInstrNO(OpCode_Jump, frame.startLocation);
 				SetLocation(frame.endLocation);
 				PopLoop();
 			}
@@ -359,7 +359,7 @@ namespace HXSL
 				MappingStart();
 				TraverseExpression(frame.statement->GetCondition().get());
 				MappingEnd(frame.statement->GetCondition()->GetSpan());
-				AddInstr(OpCode_JumpNotZero, frame.startLocation);
+				AddInstrNO(OpCode_JumpNotZero, frame.startLocation);
 				SetLocation(frame.endLocation);
 				PopLoop();
 			}
@@ -369,7 +369,7 @@ namespace HXSL
 				auto& frame = currentFrame.forFrame;
 				SetLocation(frame.incrLocation);
 				TraverseExpression(frame.statement->GetIteration().get());
-				AddInstr(OpCode_Jump, frame.startLocation);
+				AddInstrNO(OpCode_Jump, frame.startLocation);
 				SetLocation(frame.endLocation);
 				PopLoop();
 			}

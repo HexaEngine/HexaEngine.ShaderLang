@@ -73,6 +73,7 @@ namespace HXSL
 				if (result == OptimizerPassResult_Rerun)
 				{
 #if HXSL_DEBUG
+					std::cout << "Pass: " << pass->GetName() << std::endl;
 					cfg.Print();
 #endif
 					break;
@@ -80,6 +81,7 @@ namespace HXSL
 				else if (result == OptimizerPassResult_Changed)
 				{
 #if HXSL_DEBUG
+					std::cout << "Pass: " << pass->GetName() << std::endl;
 					cfg.Print();
 #endif
 					changed = true;

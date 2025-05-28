@@ -10,7 +10,7 @@ namespace HXSL
 		std::unordered_set<ILVarId> usedVars;
 		std::unordered_set<ILVarId> deadVars;
 
-		void ProcessOperand(Operand* op);
+		void ProcessOperand(Value* op);
 
 		void ProcessInstr(ILInstruction& instr, bool protectedInstr);
 
@@ -24,6 +24,8 @@ namespace HXSL
 		DeadCodeEliminator(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
 		{
 		}
+
+		std::string GetName() override { return "DeadCodeEliminator"; }
 
 		OptimizerPassResult Run() override;
 	};

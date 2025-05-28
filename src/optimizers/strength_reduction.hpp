@@ -18,6 +18,8 @@ namespace HXSL
 		{
 		}
 
+		std::string GetName() override { return "StrengthReduction"; }
+
 		OptimizerPassResult Run() override
 		{
 			changed = false;

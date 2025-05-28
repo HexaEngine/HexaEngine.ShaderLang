@@ -48,6 +48,10 @@ namespace HXSL
 
 		Operand* operator()(Operand* op) const noexcept
 		{
+			if (auto var = dyn_cast<Variable>(op))
+			{
+				return alloc.Alloc<Variable>(var->varId);
+			}
 			return op;
 		}
 	};

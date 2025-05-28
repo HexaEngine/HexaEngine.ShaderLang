@@ -25,6 +25,7 @@ namespace HXSL
 
 	public:
 		ILOptimizerPass(ILContext* context) : ILMutatorBase(context->GetMetadata()), context(context) {}
+		virtual std::string GetName() = 0;
 		virtual OptimizerPassResult Run() = 0;
 		virtual ~ILOptimizerPass() = default;
 	};

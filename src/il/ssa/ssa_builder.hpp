@@ -23,7 +23,7 @@ namespace HXSL
 		std::unordered_map<ILVarId, uint32_t> versionCounters;
 		std::unordered_map<ILVarId, std::unordered_set<size_t>> defSites;
 
-		uint64_t TopVersion(ILVarId varId)
+		ILVarId TopVersion(ILVarId varId)
 		{
 			if (versionStacks[varId].empty())
 			{
@@ -35,8 +35,8 @@ namespace HXSL
 
 		ILVarId MakeNewVersion(ILVarId varId, bool push = true)
 		{
-			uint32_t version = ++versionCounters[varId];
-			ILVarId newVersion = MakeVersion(varId, version);
+			ILVarId newVersion = varId;
+			newVersion.var.version = ++versionCounters[varId];
 			if (push)
 			{
 				versionStacks[varId].push(newVersion);
@@ -44,12 +44,12 @@ namespace HXSL
 			return newVersion;
 		}
 
-		void PushVersion(uint64_t varId, uint64_t newVersion)
+		void PushVersion(ILVarId varId, ILVarId newVersion)
 		{
 			versionStacks[varId].push(newVersion);
 		}
 
-		void PopVersion(uint64_t varId)
+		void PopVersion(ILVarId varId)
 		{
 			versionStacks[varId].pop();
 		}

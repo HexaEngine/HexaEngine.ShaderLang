@@ -42,51 +42,62 @@ namespace HXSL
 			{
 				lastUseIndex.insert_or_assign(var->varId, &instr);
 			}
-			if (auto var = dyn_cast<Variable>(instr.operandResult))
+			if (instr.HasResult())
 			{
-				seenVars.insert(var->varId & SSA_VERSION_STRIP_MASK);
+				seenVars.insert(instr.result & SSA_VERSION_STRIP_MASK);
 			}
 		}
 
-		void RemapOperand(Operand* op, ILInstruction* instr, bool isResult)
+		void RemapVar(ILVarId& varId, ILInstruction* instr, bool isResult)
+		{
+			if (!IsTempVar(varId)) return;
+
+			ILVarId tmpVarId = varId;
+
+			if (isResult)
+			{
+				varId = GetFinalVarId(tmpVarId, isResult);
+			}
+			else
+			{
+				auto it = varMapping.find(tmpVarId);
+				if (it != varMapping.end())
+				{
+					varId = it->second;
+				}
+			}
+
+			if (lastUseIndex[tmpVarId] != instr) return;
+
+			auto id = tmpVarId & SSA_VARIABLE_MASK;
+
+			auto typeId = metadata.GetTempVar(tmpVarId).typeId;
+
+			freeTemps[typeId.value].push(varId & SSA_VERSION_STRIP_MASK);
+		}
+
+		void RemapOperand(Value* op, ILInstruction* instr, bool isResult)
 		{
 			auto var = dyn_cast<Variable>(op);
 			if (!var) return;
 
 			ILVarId varId = var->varId;
 
-			if (!IsTempVar(varId)) return;
-
-			if (isResult)
-			{
-				var->varId = GetFinalVarId(varId, isResult);
-			}
-			else
-			{
-				auto it = varMapping.find(varId);
-				if (it != varMapping.end())
-				{
-					var->varId = it->second;
-				}
-			}
-
-			if (lastUseIndex[varId] != instr) return;
-
-			auto id = varId & SSA_VARIABLE_MASK;
-
-			auto typeId = metadata.GetTempVar(varId).typeId;
-
-			freeTemps[typeId.value].push(var->varId & SSA_VERSION_STRIP_MASK);
+			RemapVar(var->varId, instr, isResult);
 		}
 
 		void RemapOperandsAndResult(ILInstruction& instr)
 		{
 			RemapOperand(instr.operandLeft, &instr, false);
 			RemapOperand(instr.operandRight, &instr, false);
-			RemapOperand(instr.operandResult, &instr, true);
+			if (instr.HasResult())
+			{
+				RemapVar(instr.result, &instr, true);
+			}
 		}
 
-		void TryClearVersion(Operand* op);
+		void TryClearVersion(ILVarId& op);
+		void TryClearVersion(Value* op);
 		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
 
 	public:

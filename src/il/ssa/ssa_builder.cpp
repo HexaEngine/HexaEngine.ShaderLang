@@ -10,10 +10,10 @@ namespace HXSL
 		{
 			if (instr.IsOp(OpCode_Phi))
 			{
-				auto var = cast<Variable>(instr.operandResult);
-				auto newVersion = MakeNewVersion(var->varId);
-				context.variables.push_back(var->varId);
-				var->varId = newVersion;
+				auto var = instr.result;
+				auto newVersion = MakeNewVersion(var);
+				context.variables.push_back(var);
+				var = newVersion;
 				metadata.phiMetadata[cast<Phi>(instr.operandLeft)->phiId.value].varId = newVersion;
 				continue;
 			}
@@ -27,28 +27,12 @@ namespace HXSL
 				var->varId = TopVersion(var->varId);
 			}
 
-			if (auto var = dyn_cast<Variable>(instr.operandResult))
+			if (instr.HasResult())
 			{
-				auto varId = var->varId;
-				uint64_t newVersion = MakeNewVersion(varId);
+				auto varId = instr.result;
+				ILVarId newVersion = MakeNewVersion(varId);
 				context.variables.push_back(varId);
-				var->varId = newVersion;
-			}
-
-			if (instr.IsOp(OpCode_StackAlloc))
-			{
-			}
-
-			if (instr.IsOp(OpCode_OffsetAddress))
-			{
-			}
-
-			if (instr.IsOp(OpCode_Load))
-			{
-			}
-
-			if (instr.IsOp(OpCode_Store))
-			{
+				instr.result = newVersion;
 			}
 		}
 
@@ -62,8 +46,8 @@ namespace HXSL
 			{
 				if (!instr.IsOp(OpCode_Phi)) break;
 				auto phiId = cast<Phi>(instr.operandLeft)->phiId;
-				uint64_t varId = cast<Variable>(instr.operandResult)->varId.var.id;
-				uint64_t version = TopVersion(varId);
+				ILVarId varId = instr.result;
+				ILVarId version = TopVersion(varId);
 				phiMetadata[phiId.value].params[slot] = version;
 			}
 		}
@@ -88,7 +72,7 @@ namespace HXSL
 
 		auto& var = globalMetadata.variables[varId.var.id];
 
-		ILInstruction phi = ILInstruction(OpCode_Phi, context->MakePhi(phiId), context->MakeVariable(var));
+		ILInstruction phi = ILInstruction(OpCode_Phi, var, context->MakePhi(phiId));
 
 		node.instructions.insert(node.instructions.begin(), phi);
 
@@ -103,12 +87,11 @@ namespace HXSL
 		{
 			for (auto& instr : cfg.GetNode(i).instructions)
 			{
-				auto var = dyn_cast<Variable>(instr.operandResult);
-				if (!var || var->varId.var.temp)
+				if (!instr.HasResult() || instr.result.var.temp)
 				{
 					continue;
 				}
-				defSites[var->varId].insert(i);
+				defSites[instr.result].insert(i);
 			}
 		}
 

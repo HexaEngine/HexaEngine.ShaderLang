@@ -301,6 +301,115 @@ namespace HXSL
 		return (opKind & flag) != 0;
 	}
 
+	class ILInstruction : public IntrusiveLinkedBase<ILInstruction>
+	{
+	public:
+		TextSpan* location = nullptr;
+		ILOpCode opcode;
+		ILOpKind opKind;
+		ILVarId result = INVALID_VARIABLE;
+		Value* operandLeft = nullptr;
+		Value* operandRight = nullptr;
+
+		ILInstruction(ILOpCode opcode, ILVarId result, Value* operandLeft, Value* operandRight, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), operandRight(operandRight), result(result), opKind(opKind)
+		{
+		}
+
+		ILInstruction(ILOpCode opcode, ILVarId result, Value* operandLeft, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), result(result), opKind(opKind)
+		{
+		}
+
+		ILInstruction(ILOpCode opcode, ILVarId result, ILOpKind opKind = ILOpKind_None) : opcode(opcode), result(result), opKind(opKind)
+		{
+		}
+
+		ILInstruction(ILOpCode opcode, Operand* operandLeft, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), opKind(opKind)
+		{
+		}
+
+		ILInstruction(ILOpCode opcode, ILOpKind opKind = ILOpKind_None) : opcode(opcode), opKind(opKind)
+		{
+		}
+
+		ILInstruction() : opcode(OpCode_Noop), opKind(ILOpKind_None)
+		{
+		}
+
+		bool HasResult() const noexcept { return result != INVALID_VARIABLE; }
+
+		bool IsOp(ILOpCode code) const noexcept { return opcode == code; }
+
+		bool IsImmVar() const noexcept { return isa<Constant>(operandLeft) && isa<Variable>(operandRight); }
+
+		bool IsVarImm() const noexcept { return isa<Variable>(operandLeft) && isa<Constant>(operandRight); }
+
+		bool IsImmVar(ILOpCode code) const noexcept { return opcode == code && IsImmVar(); }
+
+		bool IsVarImm(ILOpCode code) const noexcept { return opcode == code && IsVarImm(); }
+
+		uint64_t hash() const noexcept
+		{
+			XXHash3_64 hash{};
+			hash.Combine(opcode);
+			hash.Combine(opKind);
+
+			uint64_t leftHash = HXSL::hash(operandLeft);
+			uint64_t rightHash = HXSL::hash(operandRight);
+
+			if (IsCommutative(opcode) && leftHash > rightHash)
+			{
+				std::swap(leftHash, rightHash);
+			}
+
+			hash.Combine(leftHash);
+			hash.Combine(rightHash);
+
+			return hash.Finalize();
+		}
+
+		bool operator==(const ILInstruction& other) const noexcept
+		{
+			if (opcode != other.opcode || opKind != other.opKind)
+			{
+				return false;
+			}
+
+			if (!equals(operandLeft, other.operandLeft) || !equals(operandRight, other.operandRight))
+			{
+				if (!IsCommutative(opcode) || !equals(operandLeft, other.operandRight) || !equals(operandRight, other.operandLeft))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool operator!=(const ILInstruction& other)
+		{
+			return !(*this == other);
+		}
+	};
+
+	struct ILInstructionPtrHash
+	{
+		std::size_t operator()(const ILInstruction* ptr) const
+		{
+			if (!ptr) return 0;
+			return ptr->hash();
+		}
+	};
+
+	struct ILInstructionPtrEquals
+	{
+		std::size_t operator()(const ILInstruction* lhs, const ILInstruction* rhs) const
+		{
+			if (lhs == nullptr || rhs == nullptr)
+				return lhs == rhs;
+			return *lhs == *rhs;
+		}
+	};
+
 	class Instruction : public IntrusiveLinkedBase<Instruction>
 	{
 	protected:
@@ -401,134 +510,10 @@ namespace HXSL
 		Operand*& OpSrc() noexcept { return src; }
 		Operand* OpSrc() const noexcept { return src; }
 	};
-
-	class ILInstruction : public IntrusiveLinkedBase<ILInstruction>
-	{
-	public:
-		TextSpan* location = nullptr;
-		ILOpCode opcode;
-		ILOpKind opKind;
-		Operand* operandLeft = nullptr;
-		Operand* operandRight = nullptr;
-		Operand* operandResult = nullptr;
-
-		ILInstruction(ILOpCode opcode, Operand* operandLeft, Operand* operandRight, Operand* operandResult, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), operandRight(operandRight), operandResult(operandResult), opKind(opKind)
-		{
-		}
-
-		ILInstruction(ILOpCode opcode, Operand* operandLeft, Operand* operandResult, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), operandResult(operandResult), opKind(opKind)
-		{
-		}
-
-		ILInstruction(ILOpCode opcode, Operand* operandLeft, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), opKind(opKind)
-		{
-		}
-
-		ILInstruction(ILOpCode opcode, ILOpKind opKind = ILOpKind_None) : opcode(opcode), opKind(opKind)
-		{
-		}
-
-		ILInstruction() : opcode(OpCode_Noop), opKind(ILOpKind_None)
-		{
-		}
-
-		bool IsOp(ILOpCode code) const noexcept { return opcode == code; }
-
-		bool IsImmVar() const noexcept { return isa<Constant>(operandLeft) && isa<Variable>(operandRight); }
-
-		bool IsVarImm() const noexcept { return isa<Variable>(operandLeft) && isa<Constant>(operandRight); }
-
-		bool IsImmVar(ILOpCode code) const noexcept { return opcode == code && IsImmVar(); }
-
-		bool IsVarImm(ILOpCode code) const noexcept { return opcode == code && IsVarImm(); }
-
-		uint64_t hash() const noexcept
-		{
-			XXHash3_64 hash{};
-			hash.Combine(opcode);
-			hash.Combine(opKind);
-
-			uint64_t leftHash = HXSL::hash(operandLeft);
-			uint64_t rightHash = HXSL::hash(operandRight);
-
-			if (IsCommutative(opcode) && leftHash > rightHash)
-			{
-				std::swap(leftHash, rightHash);
-			}
-
-			hash.Combine(leftHash);
-			hash.Combine(rightHash);
-
-			return hash.Finalize();
-		}
-
-		bool operator==(const ILInstruction& other) const noexcept
-		{
-			if (opcode != other.opcode || opKind != other.opKind)
-			{
-				return false;
-			}
-
-			if (equals(operandLeft, other.operandLeft) || equals(operandRight, other.operandRight))
-			{
-				if (!IsCommutative(opcode) || equals(operandLeft, other.operandRight) || equals(operandRight, other.operandLeft))
-				{
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		bool operator!=(const ILInstruction& other)
-		{
-			return !(*this == other);
-		}
-	};
-
-	struct ILMapping
-	{
-		ILInstruction* start;
-		ILInstruction* end;
-		TextSpan span;
-
-		ILMapping(ILInstruction* start, ILInstruction* end, const TextSpan& span)
-			: start(start), end(end), span(span)
-		{
-		}
-	};
-
-	struct ILInstructionPtrHash
-	{
-		std::size_t operator()(const ILInstruction* ptr) const
-		{
-			if (!ptr) return 0;
-			return ptr->hash();
-		}
-	};
-
-	struct ILInstructionPtrEquals
-	{
-		std::size_t operator()(const ILInstruction* lhs, const ILInstruction* rhs) const
-		{
-			if (lhs == nullptr || rhs == nullptr)
-				return lhs == rhs;
-			return *lhs == *rhs;
-		}
-	};
 }
 
 namespace std
 {
-	template <>
-	struct hash<HXSL::ILVarId>
-	{
-		size_t operator()(const HXSL::ILVarId& var) const noexcept
-		{
-			return hash<uint64_t>{}(var.raw);
-		}
-	};
-
 	template <>
 	struct hash<HXSL::ILInstruction>
 	{

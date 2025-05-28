@@ -37,16 +37,6 @@ namespace HXSL
 		Variable* MakeVariable(const ILVariable& var) { return allocator.Alloc<Variable>(var.id); }
 		Phi* MakePhi(const ILPhiId& phiId) { return allocator.Alloc<Phi>(phiId); }
 	};
-
-	class ILContextAdapter
-	{
-	protected:
-		ILContext* context;
-		ILContextAdapter(ILContext* context) : context(context) {}
-	public:
-		Constant* MakeConstant(const Number& num) const { return context->MakeConstant(num); }
-		Variable* MakeVariable(const ILVarId& varId) const { return context->MakeVariable(varId); }
-	};
 }
 
 #endif
