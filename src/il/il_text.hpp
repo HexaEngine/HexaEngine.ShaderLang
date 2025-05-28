@@ -16,7 +16,6 @@ namespace HXSL
 		case OpCode_Zero: return "zero";
 		case OpCode_Store: return "sta";
 		case OpCode_Load: return "lda";
-		case OpCode_LoadParam: return "ldarg";
 		case OpCode_OffsetAddress: return "offs";
 		case OpCode_AddressOf: return "addr";
 		case OpCode_Push: return "push";
@@ -29,9 +28,13 @@ namespace HXSL
 		case OpCode_JumpNotZero: return "jnz";
 
 		case OpCode_StoreParam: return "starg";
+		case OpCode_LoadParam: return "ldarg";
 		case OpCode_StoreRefParam: return "strefarg";
 		case OpCode_LoadRefParam: return "ldrefarg";
+
 		case OpCode_Call: return "call";
+
+		case OpCode_Discard: return "discard";
 
 		case OpCode_Phi: return "phi";
 
@@ -42,11 +45,11 @@ namespace HXSL
 		case OpCode_Modulus: return "rem";
 		case OpCode_BitwiseShiftLeft: return "bls";
 		case OpCode_BitwiseShiftRight: return "brs";
-		case OpCode_AndAnd: return "lgAnd";
-		case OpCode_OrOr: return "lgOr";
-		case OpCode_BitwiseAnd: return "bwAnd";
-		case OpCode_BitwiseOr: return "bwOr";
-		case OpCode_BitwiseXor: return "bwXor";
+		case OpCode_AndAnd: return "land";
+		case OpCode_OrOr: return "lor";
+		case OpCode_BitwiseAnd: return "and";
+		case OpCode_BitwiseOr: return "or";
+		case OpCode_BitwiseXor: return "xor";
 		case OpCode_LessThan: return "lt";
 		case OpCode_LessThanOrEqual: return "ltq";
 		case OpCode_GreaterThan: return "gt";
@@ -55,41 +58,25 @@ namespace HXSL
 		case OpCode_NotEqual: return "neq";
 		case OpCode_Increment: return "inc";
 		case OpCode_Decrement: return "dec";
-		case OpCode_LogicalNot: return "lgNot";
-		case OpCode_BitwiseNot: return "bwNot";
+		case OpCode_LogicalNot: return "lnot";
+		case OpCode_BitwiseNot: return "not";
 		case OpCode_Negate: return "neg";
 
-		case OpCode_Vec2Load: return "vec2_lda";
-		case OpCode_Vec2Store: return "vec2_sta";
-		case OpCode_Vec3Load: return "vec3_lda";
-		case OpCode_Vec3Store: return "vec3_sta";
-		case OpCode_Vec4Load: return "vec4_lda";
-		case OpCode_Vec4Store: return "vec4_sta";
+		case OpCode_VecExtract: return "v_extr";
+		case OpCode_VecSetX: return "v_setx";
+		case OpCode_VecSetY: return "v_sety";
+		case OpCode_VecSetZ: return "v_setz";
+		case OpCode_VecSetW: return "v_setw";
 
-		case OpCode_VecExtract: return "v.extract";
+		case OpCode_BroadcastVec: return "vec_bcast";
 
-		case OpCode_BroadcastVec2: return "vec2_bcast";
-		case OpCode_BroadcastVec3: return "vec3_bcast";
-		case OpCode_BroadcastVec4: return "vec4_bcast";
+		case OpCode_VecSwizzle: return "vec_swiz";
 
-		case OpCode_Vec2Swizzle: return "vec2_swiz";
-		case OpCode_Vec3Swizzle: return "vec3_swiz";
-		case OpCode_Vec4Swizzle: return "vec4_swiz";
-
-		case OpCode_Vec2Add: return "vec2_add";
-		case OpCode_Vec2Subtract: return "vec2_sub";
-		case OpCode_Vec2Multiply: return "vec2_mul";
-		case OpCode_Vec2Divide: return "vec2_div";
-
-		case OpCode_Vec3Add: return "vec3_add";
-		case OpCode_Vec3Subtract: return "vec3_sub";
-		case OpCode_Vec3Multiply: return "vec3_mul";
-		case OpCode_Vec3Divide: return "vec3_div";
-
-		case OpCode_Vec4Add: return "vec3_add";
-		case OpCode_Vec4Subtract: return "vec3_sub";
-		case OpCode_Vec4Multiply: return "vec3_mul";
-		case OpCode_Vec4Divide: return "vec3_div";
+		case OpCode_VecAdd: return "vec_add";
+		case OpCode_VecSubtract: return "vec_sub";
+		case OpCode_VecMultiply: return "vec_mul";
+		case OpCode_VecDivide: return "vec_div";
+		case OpCode_VecFusedMultiplyAdd: return "vec_fma";
 
 		default: return "Unknown OpCode";
 		}
@@ -121,31 +108,7 @@ namespace HXSL
 		}
 	}
 
-	static std::string OperandKindToString(ILOperandKind kind)
-	{
-		switch (kind.value)
-		{
-		case ILOperandKind_Variable: return "Variable";
-		case ILOperandKind_Field: return "Field";
-		case ILOperandKind_Label: return "Label";
-		case ILOperandKind_Type: return "Type";
-		case ILOperandKind_Func: return "Func";
-		case ILOperandKind_Imm_i8: return "i8";
-		case ILOperandKind_Imm_u8: return "u8";
-		case ILOperandKind_Imm_i16: return "i16";
-		case ILOperandKind_Imm_u16: return "u16";
-		case ILOperandKind_Imm_i32: return "i32";
-		case ILOperandKind_Imm_u32: return "u32";
-		case ILOperandKind_Imm_i64: return "i64";
-		case ILOperandKind_Imm_u64: return "u64";
-		case ILOperandKind_Imm_f16: return "f16";
-		case ILOperandKind_Imm_f32: return "f32";
-		case ILOperandKind_Imm_f64: return "f64";
-		default: return "Unknown";
-		}
-	}
-
-	static std::string ToString(const ILOperand& operand, bool first, const ILMetadata& metadata)
+	static std::string ToString(const Operand* operand, bool first, const ILMetadata& metadata)
 	{
 		std::ostringstream oss;
 		if (!first)
@@ -153,45 +116,49 @@ namespace HXSL
 			oss << ", ";
 		}
 
-		switch (operand.kind.value)
+		switch (operand->GetTypeId())
 		{
-		case ILOperandKind_Imm_i8:
-		case ILOperandKind_Imm_u8:
-		case ILOperandKind_Imm_i16:
-		case ILOperandKind_Imm_u16:
-		case ILOperandKind_Imm_i32:
-		case ILOperandKind_Imm_u32:
-		case ILOperandKind_Imm_i64:
-		case ILOperandKind_Imm_u64:
-		case ILOperandKind_Imm_f16:
-		case ILOperandKind_Imm_f32:
-		case ILOperandKind_Imm_f64:
-			oss << operand.imm().ToString();
+		case Value::ConstantVal:
+			oss << cast<Constant>(operand)->imm().ToString();
 			break;
-		case ILOperandKind_Variable:
+		case Value::VariableVal:
 		{
+			auto op = cast<Variable>(operand);
 			uint32_t varId;
 			uint32_t version;
 			bool isTemp;
-			DecomposeVariableID(operand.varId, varId, version, isTemp);
-			oss << (isTemp ? "%tmp" : "%var") << version << "_" << varId << ": " << metadata.GetVarTypeName(operand.varId);
+			DecomposeVariableID(op->varId, varId, version, isTemp);
+			oss << (isTemp ? "%tmp" : "%var") << version << "_" << varId << ": " << metadata.GetVarTypeName(op->varId);
 		}
 		break;
-		case ILOperandKind_Field:
-			oss << metadata.GetTypeName(operand.field.typeId) << "::" << metadata.GetFieldName(operand.field);
-			break;
-		case ILOperandKind_Label:
-			oss << "#loc_" << operand.label;
-			break;
-		case ILOperandKind_Func:
-			oss << metadata.GetFuncName(operand.funcId);
-			break;
-		case ILOperandKind_Type:
-			oss << metadata.GetTypeName(operand.typeId);
-			break;
-		case ILOperandKind_Phi:
+		case Value::FieldVal:
 		{
-			auto& phi = metadata.phiMetadata[operand.phiId];
+			auto op = cast<FieldAccess>(operand);
+			oss << metadata.GetTypeName(op->field.typeId) << "::" << metadata.GetFieldName(op->field);
+		}
+		break;
+		case Value::LabelVal:
+		{
+			auto op = cast<Label>(operand);
+			oss << "#loc_" << op->label.value;
+		}
+		break;
+		case Value::FuncVal:
+		{
+			auto op = cast<Function>(operand);
+			oss << metadata.GetFuncName(op->funcId);
+		}
+		break;
+		case Value::TypeVal:
+		{
+			auto op = cast<TypeValue>(operand);
+			oss << metadata.GetTypeName(op->typeId);
+		}
+		break;
+		case Value::PhiVal:
+		{
+			auto op = cast<Phi>(operand);
+			auto& phi = metadata.GetPhi(op->phiId);
 			for (auto& p : phi.params)
 			{
 				oss << "[";
@@ -219,7 +186,7 @@ namespace HXSL
 	{
 		std::ostringstream oss;
 
-		if (instruction.operandResult.kind != ILOperandKind_Disabled)
+		if (instruction.operandResult)
 		{
 			oss << ToString(instruction.operandResult, true, metadata);
 			oss << " = ";
@@ -228,13 +195,13 @@ namespace HXSL
 		oss << OpCodeToString(instruction.opcode) + " ";
 
 		bool first = true;
-		if (instruction.operandLeft.kind != ILOperandKind_Disabled)
+		if (instruction.operandLeft)
 		{
 			oss << ToString(instruction.operandLeft, first, metadata);
 			first = false;
 		}
 
-		if (instruction.operandRight.kind != ILOperandKind_Disabled)
+		if (instruction.operandRight)
 		{
 			oss << ToString(instruction.operandRight, first, metadata);
 			first = false;

@@ -78,32 +78,67 @@ target_include_directories(zstd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/zstd
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fmt)
 
+message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
+
+add_library(CompilerCommon INTERFACE)
+
+target_include_directories(CompilerCommon INTERFACE
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+target_compile_definitions(CompilerCommon INTERFACE
+    HXSL_AVX2=1
+    $<$<CONFIG:Debug>:HXSL_DEBUG=1>
+)
+
+target_compile_features(CompilerCommon INTERFACE cxx_std_20)
+
+target_precompile_headers(CompilerCommon INTERFACE "src/pch/std.hpp" "src/pch/ast.hpp" "src/pch/ast_analyzers.hpp" "src/pch/ast_misc.hpp" "src/pch/localization.hpp")
+
 if (BUILD_SHARED)
     add_library(Compiler SHARED ${SOURCES})
 
-    target_link_libraries(Compiler PRIVATE libzstd_static)
+    target_link_libraries(Compiler PRIVATE CompilerCommon libzstd_static)
     target_link_libraries(Compiler PUBLIC fmt::fmt)
 
     add_dependencies(Compiler generate_locales)
 
-    target_compile_definitions(Compiler PRIVATE $<$<CONFIG:Debug>:HXSL_DEBUG=1>)
-    target_precompile_headers(Compiler PRIVATE ${PCH_HEADERS})
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
+        target_compile_definitions(Compiler PRIVATE HXSL_X86_64)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|AARCH64")
+        target_compile_definitions(Compiler PRIVATE HXSL_AARCH64)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM")
+        target_compile_definitions(Compiler PRIVATE HXSL_ARM)
+    else()
+        target_compile_definitions(Compiler PRIVATE HXSL_UNKNOWN)
+    endif()
+
+    target_compile_definitions(CompilerStatic PRIVATE HXSL_ENABLE_CAPI=1)
 endif()
 
 if (BUILD_STATIC)
     add_library(CompilerStatic STATIC ${SOURCES} "src/preprocessing/evaluator.cpp")
 
-    target_link_libraries(CompilerStatic PRIVATE libzstd_static)
+    target_link_libraries(CompilerStatic PRIVATE CompilerCommon libzstd_static)
     target_link_libraries(CompilerStatic PUBLIC fmt::fmt)
 
     add_dependencies(CompilerStatic generate_locales)
 
-    target_compile_definitions(CompilerStatic PRIVATE $<$<CONFIG:Debug>:HXSL_DEBUG=1> HXSL_ENABLE_CAPI=1)
-    target_precompile_headers(CompilerStatic PRIVATE ${PCH_HEADERS})
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
+        target_compile_definitions(CompilerStatic PRIVATE HXSL_X86_64)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|AARCH64")
+        target_compile_definitions(CompilerStatic PRIVATE HXSL_AARCH64)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM")
+        target_compile_definitions(CompilerStatic PRIVATE HXSL_ARM)
+    else()
+        target_compile_definitions(CompilerStatic PRIVATE HXSL_UNKNOWN)
+    endif()
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
 add_subdirectory(${PROJECT_SOURCE_DIR}/gui)
+add_subdirectory(${PROJECT_SOURCE_DIR}/benchmark)
 
 if(BUILD_TESTS)
     if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/googletest")

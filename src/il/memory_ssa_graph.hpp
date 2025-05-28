@@ -2,6 +2,7 @@
 #define MEMORY_SSA_GRAPH_HPP
 
 #include "pch/std.hpp"
+#include "il_instruction.hpp"
 
 namespace HXSL
 {

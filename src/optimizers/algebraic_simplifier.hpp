@@ -10,7 +10,7 @@ namespace HXSL
 		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
 
 	public:
-		AlgebraicSimplifier(ILMetadata& metadata, ControlFlowGraph& graph) : ILOptimizerPass(metadata), CFGVisitor(graph)
+		AlgebraicSimplifier(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
 		{
 		}
 

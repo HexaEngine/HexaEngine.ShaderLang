@@ -62,47 +62,16 @@ namespace HXSL
 
 	static ILOpCode OperatorToVecOpCode(Operator op, uint32_t components)
 	{
-		if (components == 2)
+		switch (op)
 		{
-			switch (op)
-			{
-			case Operator_Add:
-				return OpCode_Vec2Add;
-			case Operator_Subtract:
-				return OpCode_Vec2Subtract;
-			case Operator_Multiply:
-				return OpCode_Vec2Multiply;
-			case Operator_Divide:
-				return OpCode_Vec2Divide;
-			}
-		}
-		else if (components == 3)
-		{
-			switch (op)
-			{
-			case Operator_Add:
-				return OpCode_Vec3Add;
-			case Operator_Subtract:
-				return OpCode_Vec3Subtract;
-			case Operator_Multiply:
-				return OpCode_Vec3Multiply;
-			case Operator_Divide:
-				return OpCode_Vec3Divide;
-			}
-		}
-		else if (components == 4)
-		{
-			switch (op)
-			{
-			case Operator_Add:
-				return OpCode_Vec4Add;
-			case Operator_Subtract:
-				return OpCode_Vec4Subtract;
-			case Operator_Multiply:
-				return OpCode_Vec4Multiply;
-			case Operator_Divide:
-				return OpCode_Vec4Divide;
-			}
+		case Operator_Add:
+			return OpCode_VecAdd;
+		case Operator_Subtract:
+			return OpCode_VecSubtract;
+		case Operator_Multiply:
+			return OpCode_VecMultiply;
+		case Operator_Divide:
+			return OpCode_VecDivide;
 		}
 
 		return OpCode_Noop;
@@ -214,18 +183,8 @@ namespace HXSL
 
 	static ILOpCode VecLoadOp(const ILVariable& var, uint32_t components, bool addressOf = false)
 	{
-		switch (components)
-		{
-		case 1: return var.IsReference() ? OpCode_Load : OpCode_Move;
-		case 2: return OpCode_Vec2Load;
-		case 3: return OpCode_Vec3Load;
-		case 4: return OpCode_Vec4Load;
-		default:
-		{
-			if (!var.IsReference()) return OpCode_Move;
-			return addressOf ? OpCode_AddressOf : OpCode_Load;
-		}
-		}
+		if (!var.IsReference()) return OpCode_Move;
+		return addressOf ? OpCode_AddressOf : OpCode_Load;
 	}
 
 	static ILOpCode VecLoadOp(const ILVariable& var, IHasSymbolRef* expr, bool addressOf = false)
@@ -242,13 +201,7 @@ namespace HXSL
 	static ILOpCode VecStoreOp(const ILVariable& var, uint32_t components)
 	{
 		if (!var.IsReference()) return OpCode_Move;
-		switch (components)
-		{
-		case 2: return OpCode_Vec2Store;
-		case 3: return OpCode_Vec3Store;
-		case 4: return OpCode_Vec4Store;
-		default: return OpCode_Store;
-		}
+		return OpCode_Store;
 	}
 
 	static ILOpCode VecStoreOp(const ILVariable& var, IHasSymbolRef* expr)
@@ -382,79 +335,41 @@ namespace HXSL
 
 	static bool TryFold(ILInstruction& instr, Number& outImm)
 	{
+		auto immL = dyn_cast<Constant>(instr.operandLeft);
+		if (!immL) return false;
+		auto immR = dyn_cast<Constant>(instr.operandRight);
 		auto code = instr.opcode;
 		switch (code)
 		{
-		case OpCode_Add: outImm = instr.operandLeft.imm() + instr.operandRight.imm(); return true;
-		case OpCode_Subtract: outImm = instr.operandLeft.imm() - instr.operandRight.imm(); return true;
-		case OpCode_Multiply: outImm = instr.operandLeft.imm() * instr.operandRight.imm(); return true;
-		case OpCode_Divide: outImm = instr.operandLeft.imm() / instr.operandRight.imm(); return true;
-		case OpCode_Modulus: outImm = instr.operandLeft.imm() % instr.operandRight.imm(); return true;
-		case OpCode_BitwiseShiftLeft: outImm = instr.operandLeft.imm() << instr.operandRight.imm(); return true;
-		case OpCode_BitwiseShiftRight: outImm = instr.operandLeft.imm() >> instr.operandRight.imm(); return true;
-		case OpCode_AndAnd: outImm = instr.operandLeft.imm().ToBool() && instr.operandRight.imm().ToBool(); return true;
-		case OpCode_OrOr: outImm = instr.operandLeft.imm().ToBool() || instr.operandRight.imm().ToBool(); return true;
-		case OpCode_BitwiseAnd: outImm = instr.operandLeft.imm() & instr.operandRight.imm(); return true;
-		case OpCode_BitwiseOr: outImm = instr.operandLeft.imm() | instr.operandRight.imm(); return true;
-		case OpCode_BitwiseXor: outImm = instr.operandLeft.imm() ^ instr.operandRight.imm(); return true;
-		case OpCode_LessThan: outImm = instr.operandLeft.imm() < instr.operandRight.imm(); return true;
-		case OpCode_LessThanOrEqual: outImm = instr.operandLeft.imm() <= instr.operandRight.imm(); return true;
-		case OpCode_GreaterThan: outImm = instr.operandLeft.imm() > instr.operandRight.imm(); return true;
-		case OpCode_GreaterThanOrEqual: outImm = instr.operandLeft.imm() >= instr.operandRight.imm(); return true;
-		case OpCode_Equal: outImm = instr.operandLeft.imm() == instr.operandRight.imm(); return true;
-		case OpCode_NotEqual: outImm = instr.operandLeft.imm() != instr.operandRight.imm(); return true;
-		case OpCode_LogicalNot: outImm = !instr.operandLeft.imm().ToBool(); return true;
-		case OpCode_BitwiseNot: outImm = ~instr.operandLeft.imm(); return true;
-		case OpCode_Negate: outImm = -instr.operandLeft.imm(); return true;
+		case OpCode_Add: if (!immR) return false; outImm = immL->imm() + immR->imm(); return true;
+		case OpCode_Subtract: if (!immR) return false; outImm = immL->imm() - immR->imm(); return true;
+		case OpCode_Multiply: if (!immR) return false; outImm = immL->imm() * immR->imm(); return true;
+		case OpCode_Divide: if (!immR) return false; outImm = immL->imm() / immR->imm(); return true;
+		case OpCode_Modulus: if (!immR) return false; outImm = immL->imm() % immR->imm(); return true;
+		case OpCode_BitwiseShiftLeft: if (!immR) return false; outImm = immL->imm() << immR->imm(); return true;
+		case OpCode_BitwiseShiftRight: if (!immR) return false; outImm = immL->imm() >> immR->imm(); return true;
+		case OpCode_AndAnd: if (!immR) return false; outImm = immL->imm().ToBool() && immR->imm().ToBool(); return true;
+		case OpCode_OrOr: if (!immR) return false; outImm = immL->imm().ToBool() || immR->imm().ToBool(); return true;
+		case OpCode_BitwiseAnd: if (!immR) return false; outImm = immL->imm() & immR->imm(); return true;
+		case OpCode_BitwiseOr: if (!immR) return false; outImm = immL->imm() | immR->imm(); return true;
+		case OpCode_BitwiseXor: if (!immR) return false; outImm = immL->imm() ^ immR->imm(); return true;
+		case OpCode_LessThan: if (!immR) return false; outImm = immL->imm() < immR->imm(); return true;
+		case OpCode_LessThanOrEqual: if (!immR) return false; outImm = immL->imm() <= immR->imm(); return true;
+		case OpCode_GreaterThan: if (!immR) return false; outImm = immL->imm() > immR->imm(); return true;
+		case OpCode_GreaterThanOrEqual: if (!immR) return false; outImm = immL->imm() >= immR->imm(); return true;
+		case OpCode_Equal: if (!immR) return false; outImm = immL->imm() == immR->imm(); return true;
+		case OpCode_NotEqual: if (!immR) return false; outImm = immL->imm() != immR->imm(); return true;
+		case OpCode_LogicalNot: outImm = !immL->imm().ToBool(); return true;
+		case OpCode_BitwiseNot: outImm = ~immL->imm(); return true;
+		case OpCode_Negate: outImm = -immL->imm(); return true;
 		}
 
 		return false;
 	}
 
-	static bool IsBinaryOp(ILOpCode code)
-	{
-		switch (code)
-		{
-		case OpCode_Add:
-		case OpCode_Subtract:
-		case OpCode_Multiply:
-		case OpCode_Divide:
-		case OpCode_Modulus:
-		case OpCode_BitwiseShiftLeft:
-		case OpCode_BitwiseShiftRight:
-		case OpCode_AndAnd:
-		case OpCode_OrOr:
-		case OpCode_BitwiseAnd:
-		case OpCode_BitwiseOr:
-		case OpCode_BitwiseXor:
-		case OpCode_LessThan:
-		case OpCode_LessThanOrEqual:
-		case OpCode_GreaterThan:
-		case OpCode_GreaterThanOrEqual:
-		case OpCode_Equal:
-		case OpCode_NotEqual:
-			return true;
-		default:
-			return false;
-		}
-	}
-
-	static bool IsUnary(ILOpCode code)
-	{
-		switch (code)
-		{
-		case OpCode_LogicalNot:
-		case OpCode_BitwiseNot:
-		case OpCode_Negate:
-			return true;
-		default:
-			return false;
-		}
-	}
-
 #define DEFINE_IMM_COMP(name, value) \
-	static bool name##(const ILOperand& op) { \
-	if (!op.IsImm()) return false; auto imm = op.imm(); \
+	static bool name##(const Operand* op) { \
+	if (!Operand::IsImm(op)) return false; auto imm = cast<Constant>(op)->imm(); \
 	switch (imm.Kind) { \
 	case NumberType_Int8: return imm.i8 == value; \
 	case NumberType_Int16: return imm.i16 == value; \

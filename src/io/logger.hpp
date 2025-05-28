@@ -5,7 +5,7 @@
 #include "diagnostic_code.hpp"
 #include "utils/interval_tree.hpp"
 
-#include <fmt/core.h>
+#include "fmt/core.h"
 #include "pch/std.hpp"
 
 namespace HXSL

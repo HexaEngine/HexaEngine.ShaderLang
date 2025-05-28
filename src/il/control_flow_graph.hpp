@@ -12,6 +12,8 @@
 
 namespace HXSL
 {
+	class ILContext;
+
 	enum ControlFlowType
 	{
 		ControlFlowType_Unknown,
@@ -98,6 +100,7 @@ namespace HXSL
 
 	class ControlFlowGraph
 	{
+		ILContext* context;
 	public:
 		BumpAllocator& allocator;
 		ILMetadata& metadata;
@@ -106,7 +109,7 @@ namespace HXSL
 		std::vector<std::vector<size_t>> domTreeChildren;
 		std::vector<std::unordered_set<size_t>> domFront;
 
-		ControlFlowGraph(BumpAllocator& allocator, ILMetadata& metadata) : allocator(allocator), metadata(metadata) {}
+		ControlFlowGraph(ILContext* context);
 
 		void Build(ILContainer& container, JumpTable& jumpTable);
 

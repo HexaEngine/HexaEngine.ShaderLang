@@ -5,33 +5,33 @@ namespace HXSL
 {
 	static bool IsJumpCondition(ILInstruction& instruction)
 	{
-		if (!instruction.next)
+		if (!instruction.GetNext())
 		{
 			return false;
 		}
 
-		auto nextInstr = instruction.next->opcode;
+		auto nextInstr = instruction.GetNext()->opcode;
 		return (nextInstr == OpCode_Jump || nextInstr == OpCode_JumpNotZero || nextInstr == OpCode_JumpZero);
 	}
 
-	void ConstantFolder::TryFoldOperand(ILOperand& op)
+	void ConstantFolder::TryFoldOperand(Operand*& op)
 	{
-		if (op.IsVar())
+		if (auto var = dyn_cast<Variable>(op))
 		{
-			auto it = constants.find(op.varId);
+			auto it = constants.find(var->varId);
 			if (it != constants.end())
 			{
-				op = it->second; changed = true;
+				op = context->MakeConstant(it->second); changed = true;
 			}
-			auto itr = varToVar.find(op.varId);
+			auto itr = varToVar.find(var->varId);
 			if (itr != varToVar.end())
 			{
-				op = itr->second; changed = true;
+				op = context->MakeVariable(itr->second); changed = true;
 			}
 		}
 	}
 
-	void ConstantFolder::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
+	void ConstantFolder::Visit(size_t index, CFGNode& node, EmptyCFGContext& ctx)
 	{
 		auto& instructions = node.instructions;
 		for (auto& instr : instructions)
@@ -42,63 +42,80 @@ namespace HXSL
 			switch (instr.opcode)
 			{
 			case OpCode_Move:
-				if (instr.operandLeft.IsVar() && instr.operandResult.IsVar())
+			{
+				auto varR = dyn_cast<Variable>(instr.operandResult);
+				if (!varR) break;
+
+				if (auto varL = dyn_cast<Variable>(instr.operandLeft))
 				{
-					auto it = constants.find(instr.operandLeft.varId);
+					auto it = constants.find(varL->varId);
 					if (it != constants.end())
 					{
-						constants.insert({ instr.operandResult.varId, it->second });
+						constants.insert({ varR->varId, it->second });
 					}
 					else
 					{
-						varToVar.insert({ instr.operandResult.varId, instr.operandLeft.varId });
+						varToVar.insert({ varR->varId, varL->varId });
 					}
 				}
-				else if (instr.operandLeft.IsImm() && instr.operandResult.IsVar())
+				else if (auto immL = dyn_cast<Constant>(instr.operandLeft))
 				{
-					constants.insert({ instr.operandResult.varId, instr.operandLeft.imm() });
+					constants.insert({ varR->varId, immL->imm() });
 				}
-				break;
+			}
+			break;
 			case OpCode_Cast:
-				if (instr.operandLeft.IsImm() && instr.operandResult.IsVar())
+			{
+				auto varR = dyn_cast<Variable>(instr.operandResult);
+				if (!varR) break;
+				if (auto immL = dyn_cast<Constant>(instr.operandLeft))
 				{
 					instr.opcode = OpCode_Move;
-					instr.operandLeft = Cast(instr.operandLeft.imm(), instr.opKind);
-					constants.insert({ instr.operandResult.varId, instr.operandLeft.imm() });
+					instr.operandLeft = context->MakeConstant(Cast(immL->imm(), instr.opKind));
+					constants.insert({ varR->varId, immL->imm() });
 				}
-				break;
+			}
+
+			break;
 			case OpCode_LogicalNot:
 			case OpCode_BitwiseNot:
 			case OpCode_Negate:
-				if (instr.operandLeft.IsImm())
+			{
+				auto varR = dyn_cast<Variable>(instr.operandResult);
+				if (!varR) break;
+				if (auto immL = dyn_cast<Constant>(instr.operandLeft))
 				{
-					Number imm = FoldImm(instr.operandLeft.imm(), {}, instr.opcode);
+					Number imm = FoldImm(immL->imm(), {}, instr.opcode);
 					if (IsJumpCondition(instr))
 					{
 						break;
 					}
-					constants.insert({ instr.operandResult.varId, imm });
+					constants.insert({ varR->varId, imm });
 				}
-				break;
+			}
+			break;
 			case OpCode_Store:
 				break;
 			default:
-				if (instr.operandLeft.IsImm() && instr.operandRight.IsImm())
+			{
+				auto varR = dyn_cast<Variable>(instr.operandResult);
+				if (!varR) break;
+				if (!isa<Constant>(instr.operandLeft) || !isa<Constant>(instr.operandRight)) break;
+
+				Number imm;
+				if (TryFold(instr, imm))
 				{
-					Number imm;
-					if (TryFold(instr, imm))
+					if (IsJumpCondition(instr))
 					{
-						if (IsJumpCondition(instr))
-						{
-							break;
-						}
-						constants.insert({ instr.operandResult.varId, imm });
-						instr.opcode = OpCode_Move;
-						instr.operandLeft = imm;
-						instr.operandRight = {};
+						break;
 					}
+					constants.insert({ varR->varId, imm });
+					instr.opcode = OpCode_Move;
+					instr.operandLeft = context->MakeConstant(imm);
+					instr.operandRight = {};
 				}
-				break;
+			}
+			break;
 			}
 		}
 
@@ -109,7 +126,7 @@ namespace HXSL
 		std::unordered_map<ILVarId, ILInstruction*> defMap;
 		for (auto& instr : instructions)
 		{
-			if (IsBinaryOp(instr.opcode))
+			if (IsBinary(instr.opcode))
 			{
 				bool varImm = instr.IsVarImm();
 				bool immVar = instr.IsImmVar();
@@ -117,8 +134,8 @@ namespace HXSL
 
 				if (varImm || immVar)
 				{
-					ILVarId lhs = varImm ? instr.operandLeft.varId : instr.operandRight.varId;
-					Number rhs = varImm ? instr.operandRight.imm() : instr.operandLeft.imm();
+					ILVarId lhs = varImm ? cast<Variable>(instr.operandLeft)->varId : cast<Variable>(instr.operandRight)->varId;
+					Number rhs = varImm ? cast<Constant>(instr.operandRight)->imm() : cast<Constant>(instr.operandLeft)->imm();
 					auto defIt = defMap.find(lhs);
 					if (defIt != defMap.end())
 					{
@@ -130,24 +147,24 @@ namespace HXSL
 
 						if (defInstr.opcode == instr.opcode || fuseMulDiv)
 						{
-							bool defRegImm = defInstr.operandLeft.IsVar() && defInstr.operandRight.IsImm();
-							bool defImmReg = (isCommutative || fuseMulDiv) && defInstr.operandLeft.IsImm() && defInstr.operandRight.IsVar();
+							bool defRegImm = Operand::IsVar(defInstr.operandLeft) && Operand::IsImm(defInstr.operandRight);
+							bool defImmReg = (isCommutative || fuseMulDiv) && Operand::IsImm(defInstr.operandLeft) && Operand::IsVar(defInstr.operandRight);
 
 							ILVarId base;
 							Number lhs;
 							if (defRegImm)
 							{
-								base = defInstr.operandLeft.varId;
-								lhs = defInstr.operandRight.imm();
+								base = cast<Variable>(defInstr.operandLeft)->varId;
+								lhs = cast<Constant>(defInstr.operandRight)->imm();
 							}
 							else if (defImmReg)
 							{
-								base = defInstr.operandRight.varId;
-								lhs = defInstr.operandLeft.imm();
+								base = cast<Variable>(defInstr.operandRight)->varId;
+								lhs = cast<Constant>(defInstr.operandLeft)->imm();
 							}
 							else
 							{
-								defMap[instr.operandResult.varId] = &instr;
+								defMap[cast<Variable>(instr.operandResult)->varId] = &instr;
 								continue;
 							}
 
@@ -157,9 +174,9 @@ namespace HXSL
 							}
 
 							Number total = FoldImm(lhs, rhs, fuseMulDiv ? OpCode_Divide : instr.opcode);
-							DiscardInstr(*defIt->second);
-							instr.operandLeft.varId = base;
-							instr.operandRight.imm() = total;
+							//DiscardInstr(*defIt->second);
+							instr.operandLeft = context->MakeVariable(base);
+							instr.operandRight = context->MakeConstant(total);
 							instr.opcode = fuseMulDiv ? OpCode_Multiply : defInstr.opcode;
 							continue;
 						}
@@ -167,9 +184,9 @@ namespace HXSL
 				}
 			}
 
-			if (instr.operandResult.IsVar())
+			if (auto var = dyn_cast<Variable>(instr.operandResult))
 			{
-				defMap[instr.operandResult.varId] = &instr;
+				defMap[var->varId] = &instr;
 			}
 		}
 

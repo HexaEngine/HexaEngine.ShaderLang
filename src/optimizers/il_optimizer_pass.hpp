@@ -15,6 +15,7 @@ namespace HXSL
 	class ILOptimizerPass : protected ILMutatorBase
 	{
 	protected:
+		ILContext* context;
 		bool changed = false;
 		void DiscardInstr(ILInstruction& instr) override
 		{
@@ -23,7 +24,7 @@ namespace HXSL
 		}
 
 	public:
-		ILOptimizerPass(ILMetadata& metadata) : ILMutatorBase(metadata) {}
+		ILOptimizerPass(ILContext* context) : ILMutatorBase(context->GetMetadata()), context(context) {}
 		virtual OptimizerPassResult Run() = 0;
 		virtual ~ILOptimizerPass() = default;
 	};

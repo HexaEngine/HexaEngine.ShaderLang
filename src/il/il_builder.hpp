@@ -27,20 +27,20 @@ namespace HXSL
 	struct ILIfFrame
 	{
 		IfStatement* statement;
-		uint64_t nextLocation;
-		uint64_t endLocation;
+		ILLabel nextLocation;
+		ILLabel endLocation;
 		size_t state;
 
-		ILIfFrame(IfStatement* statement, uint64_t nextLocation) : statement(statement), nextLocation(nextLocation), endLocation(-1), state(0) {}
+		ILIfFrame(IfStatement* statement, ILLabel nextLocation) : statement(statement), nextLocation(nextLocation), endLocation(ILLabel(-1)), state(0) {}
 	};
 
 	struct ILWhileFrame
 	{
 		WhileStatement* statement;
-		uint64_t startLocation;
-		uint64_t endLocation;
+		ILLabel startLocation;
+		ILLabel endLocation;
 
-		ILWhileFrame(WhileStatement* statement, uint64_t startLocation, uint64_t endLocation)
+		ILWhileFrame(WhileStatement* statement, ILLabel startLocation, ILLabel endLocation)
 			: statement(statement), startLocation(startLocation), endLocation(endLocation)
 		{
 		}
@@ -49,11 +49,11 @@ namespace HXSL
 	struct ILDoWhileFrame
 	{
 		DoWhileStatement* statement;
-		uint64_t startLocation;
-		uint64_t condLocation;
-		uint64_t endLocation;
+		ILLabel startLocation;
+		ILLabel condLocation;
+		ILLabel endLocation;
 
-		ILDoWhileFrame(DoWhileStatement* statement, uint64_t startLocation, uint64_t condLocation, uint64_t endLocation)
+		ILDoWhileFrame(DoWhileStatement* statement, ILLabel startLocation, ILLabel condLocation, ILLabel endLocation)
 			: statement(statement), startLocation(startLocation), condLocation(condLocation), endLocation(endLocation)
 		{
 		}
@@ -62,11 +62,11 @@ namespace HXSL
 	struct ILForFrame
 	{
 		ForStatement* statement;
-		uint64_t startLocation;
-		uint64_t incrLocation;
-		uint64_t endLocation;
+		ILLabel startLocation;
+		ILLabel incrLocation;
+		ILLabel endLocation;
 
-		ILForFrame(ForStatement* statement, uint64_t startLocation, uint64_t incrLocation, uint64_t endLocation)
+		ILForFrame(ForStatement* statement, ILLabel startLocation, ILLabel incrLocation, ILLabel endLocation)
 			: statement(statement), startLocation(startLocation), incrLocation(incrLocation), endLocation(endLocation)
 		{
 		}
@@ -95,7 +95,7 @@ namespace HXSL
 			ILWhileFrame whileFrame;
 			ILDoWhileFrame doWhileFrame;
 			ILForFrame forFrame;
-			uint64_t location;
+			ILLabel location;
 		};
 
 		ILFrame(BlockStatement* block, size_t index = 0) : block(ILBlockFrame(block, index)), type(ILFrameType_Block)
@@ -106,37 +106,37 @@ namespace HXSL
 		{
 		}
 
-		ILFrame(IfStatement* statement, uint64_t nextLocation = 0) : ifFrame(ILIfFrame(statement, nextLocation)), type(ILFrameType_IfStatement)
+		ILFrame(IfStatement* statement, ILLabel nextLocation = ILLabel(-1)) : ifFrame(ILIfFrame(statement, nextLocation)), type(ILFrameType_IfStatement)
 		{
 		}
 
-		ILFrame(WhileStatement* statement, uint64_t startLocation, uint64_t endLocation) : whileFrame(ILWhileFrame(statement, startLocation, endLocation)), type(ILFrameType_WhileStatement)
+		ILFrame(WhileStatement* statement, ILLabel startLocation, ILLabel endLocation) : whileFrame(ILWhileFrame(statement, startLocation, endLocation)), type(ILFrameType_WhileStatement)
 		{
 		}
 
-		ILFrame(DoWhileStatement* statement, uint64_t startLocation, uint64_t condLocation, uint64_t endLocation) : doWhileFrame(statement, startLocation, condLocation, endLocation), type(ILFrameType_DoWhileStatement)
+		ILFrame(DoWhileStatement* statement, ILLabel startLocation, ILLabel condLocation, ILLabel endLocation) : doWhileFrame(statement, startLocation, condLocation, endLocation), type(ILFrameType_DoWhileStatement)
 		{
 		}
 
-		ILFrame(ForStatement* statement, uint64_t startLocation, uint64_t incrLocation, uint64_t endLocation) : forFrame(statement, startLocation, incrLocation, endLocation), type(ILFrameType_ForStatement)
+		ILFrame(ForStatement* statement, ILLabel startLocation, ILLabel incrLocation, ILLabel endLocation) : forFrame(statement, startLocation, incrLocation, endLocation), type(ILFrameType_ForStatement)
 		{
 		}
 
-		ILFrame(uint64_t location) : location(location), type(ILFrameType_SetLocation) {}
+		ILFrame(ILLabel location) : location(location), type(ILFrameType_SetLocation) {}
 
-		ILFrame(ILFrameType type) : type(type) {}
+		ILFrame(ILFrameType type) : location(0), type(type) {}
 
-		ILFrame() : type(ILFrameType_Unknown) {}
+		ILFrame() : location(0), type(ILFrameType_Unknown) {}
 	};
 
 	struct ILLoopFrame
 	{
-		uint64_t continueLocation = INVALID_JUMP_LOCATION;
-		uint64_t breakLocation = INVALID_JUMP_LOCATION;
+		ILLabel continueLocation = INVALID_JUMP_LOCATION;
+		ILLabel breakLocation = INVALID_JUMP_LOCATION;
 
 		ILLoopFrame() = default;
 
-		ILLoopFrame(uint64_t continueLocation, uint64_t breakLocation)
+		ILLoopFrame(ILLabel continueLocation, ILLabel breakLocation)
 			: continueLocation(continueLocation), breakLocation(breakLocation)
 		{
 		}
@@ -144,6 +144,7 @@ namespace HXSL
 
 	class ILBuilder : public ILContainerAdapter, public ILMetadataAdapter
 	{
+		ILContext* context;
 		BumpAllocator* allocator;
 		LowerCompilationUnit* compilation;
 		std::stack<ILFrame> stack;
@@ -174,12 +175,12 @@ namespace HXSL
 			}
 
 			auto location = allocator->Alloc<TextSpan>(span);
-			auto current = start->next;
+			auto current = start->GetNext();
 			while (current)
 			{
 				current->location = location;
 				if (current == end) break;
-				current = current->next;
+				current = current->GetNext();
 			}
 		}
 
@@ -227,7 +228,7 @@ namespace HXSL
 			loopStack.pop();
 		}
 
-		void SetLocation(uint64_t label, ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		void SetLocation(ILLabel label, ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			if (location == INVALID_JUMP_LOCATION_PTR)
 			{
@@ -236,24 +237,25 @@ namespace HXSL
 			jumpTable.SetLocation(label, location);
 		}
 
-		uint64_t MakeJumpLocation(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		ILLabel MakeJumpLocation(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			return jumpTable.Allocate(location);
 		}
 
-		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
+		ILLabel MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
 
-		ILVarId TraverseExpression(Expression* expr, const ILOperand& outRegister = INVALID_VARIABLE) { return exprBuilder.TraverseExpression(expr, outRegister); }
+		Operand* TraverseExpression(Expression* expr, Operand* outRegister = nullptr) { return exprBuilder.TraverseExpression(expr, outRegister); }
 		SymbolDef* GetAddrType(SymbolDef* elementType);
 		bool TraverseStatement(Statement* statement);
 		void TraverseBlock(ILBlockFrame& frame);
 	public:
-		ILBuilder(BumpAllocator& allocator, LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, JumpTable& jumpTable)
+		ILBuilder(ILContext* context, BumpAllocator& allocator, LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, JumpTable& jumpTable)
 			: ILContainerAdapter(container), ILMetadataAdapter(metadata),
+			context(context),
 			allocator(&allocator),
 			compilation(compilation),
 			tempAllocator(metadata),
-			exprBuilder(compilation, container, metadata, tempAllocator, jumpTable),
+			exprBuilder(context, compilation, container, metadata, tempAllocator, jumpTable),
 			jumpTable(jumpTable)
 		{
 		}

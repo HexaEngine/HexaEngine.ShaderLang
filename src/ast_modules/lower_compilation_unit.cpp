@@ -1,4 +1,5 @@
 #include "lower_compilation_unit.hpp"
+#include "il/il_context.hpp"
 
 namespace HXSL
 {

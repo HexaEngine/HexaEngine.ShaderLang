@@ -7,35 +7,35 @@
 namespace HXSL
 {
 	constexpr ILInstruction* INVALID_JUMP_LOCATION_PTR = nullptr;
-	constexpr uint64_t INVALID_JUMP_LOCATION = -1;
+	constexpr ILLabel INVALID_JUMP_LOCATION = ILLabel(static_cast<uint64_t>(-1));
 
 	struct JumpTable
 	{
 		std::vector<ILInstruction*> locations;
 
-		uint64_t Allocate(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		ILLabel Allocate(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			auto idx = locations.size();
 			locations.push_back(location);
-			return idx;
+			return ILLabel(idx);
 		}
 
-		void SetLocation(uint64_t id, ILInstruction* location)
+		void SetLocation(ILLabel id, ILInstruction* location)
 		{
-			locations[id] = location;
+			locations[id.value] = location;
 		}
 
 		void Prepare()
 		{
 			for (auto& p : locations)
 			{
-				p = p->next;
+				p = p->GetNext();
 			}
 		}
 
-		ILInstruction* GetLocation(uint64_t id) const
+		ILInstruction* GetLocation(ILLabel id) const
 		{
-			return locations[id];
+			return locations[id.value];
 		}
 	};
 }

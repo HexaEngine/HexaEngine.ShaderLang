@@ -12,9 +12,11 @@ namespace HXSL
 	class IntrusiveLinkedBase
 	{
 		friend class ilist<T>;
-	public:
 		T* prev = nullptr;
 		T* next = nullptr;
+	public:
+		T* GetPrev() const noexcept { return prev; }
+		T* GetNext() const noexcept { return next; }
 	};
 
 	template<typename T>
@@ -281,9 +283,9 @@ namespace HXSL
 			clear();
 		}
 
-		T& front() const { return *head; }
-		T& back() const { return *tail; }
-		BumpAllocator& get_allocator() const { return *allocator; }
+		T& front() { return *head; }
+		T& back() { return *tail; }
+		BumpAllocator& get_allocator() { return *allocator; }
 
 		T* pop_front_move()
 		{

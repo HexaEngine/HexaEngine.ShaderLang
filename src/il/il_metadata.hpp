@@ -63,16 +63,6 @@ namespace HXSL
 
 		ILVariable() : id(-1), typeId(-1), var(nullptr), flags(ILVariableFlags_None) {}
 
-		ILOperand AsOperand() const noexcept
-		{
-			return ILOperand(ILOperandKind_Variable, id);
-		}
-
-		ILOperand AsTypeOperand() const noexcept
-		{
-			return ILOperand(ILOperandKind_Type, typeId);
-		}
-
 		bool HasFlag(ILVariableFlags flag) const noexcept
 		{
 			return (flags & flag) != 0;
@@ -99,9 +89,14 @@ namespace HXSL
 		{
 			return HasFlag(ILVariableFlags_LargeObject);
 		}
+
+		inline operator ILVarId() const
+		{
+			return id;
+		}
 	};
 
-	constexpr ILVariable INVALID_VARIABLE_METADATA = ILVariable(-1, -1, nullptr);
+	constexpr ILVariable INVALID_VARIABLE_METADATA = ILVariable(ILVarId(-1), ILTypeId(-1), nullptr);
 
 	struct ILCall
 	{
@@ -155,7 +150,7 @@ namespace HXSL
 
 		void RemoveFunc(ILFuncId funcSlot)
 		{
-			auto& funcCall = functions[funcSlot];
+			auto& funcCall = functions[funcSlot.value];
 			funcMap.erase(funcCall.func);
 			funcCall.func = nullptr;
 		}
@@ -177,7 +172,7 @@ namespace HXSL
 				return it->second;
 			}
 
-			auto idx = typeMetadata.size();
+			auto idx = ILTypeId(static_cast<uint32_t>(typeMetadata.size()));
 			typeMetadata.push_back(ILTypeMetadata(idx, def));
 			typeMap.insert({ def, idx });
 			return idx;
@@ -193,7 +188,7 @@ namespace HXSL
 
 			auto idx = variables.size();
 
-			auto& type = typeMetadata[typeId];
+			auto& type = typeMetadata[typeId.value];
 			ILVariable var = ILVariable(idx, typeId, def, type.GetVarFlags());
 
 			variables.push_back(var);
@@ -211,7 +206,7 @@ namespace HXSL
 		ILVariable& RegTempVar(ILTypeId typeId)
 		{
 			auto idx = tempVariables.size();
-			auto& type = typeMetadata[typeId];
+			auto& type = typeMetadata[typeId.value];
 
 			ILVariable var = ILVariable(idx | SSA_VARIABLE_TEMP_FLAG, typeId, nullptr, type.GetVarFlags());
 			tempVariables.push_back(var);
@@ -239,7 +234,7 @@ namespace HXSL
 				return it->second;
 			}
 
-			auto idx = functions.size();
+			auto idx = ILFuncId(functions.size());
 			functions.push_back(ILCall(def));
 			funcMap.insert({ def, idx });
 			return idx;
@@ -269,31 +264,30 @@ namespace HXSL
 		{
 			auto field = fieldDef->As<Field>();
 			auto type = field->GetParent()->As<Type>();
-			ILFieldAccess access{};
-			access.typeId = static_cast<uint32_t>(RegType(type));
-			access.fieldId = static_cast<uint32_t>(type->GetFieldOffset(field));
-			return access;
+			auto typeId = RegType(type);
+			auto fieldId = ILFieldId(static_cast<uint32_t>(type->GetFieldOffset(field)));
+			return ILFieldAccess(typeId, fieldId);
 		}
 
 		std::string_view GetTypeName(ILTypeId typeId) const
 		{
-			if (typeId >= typeMetadata.size())
+			if (typeId.value >= typeMetadata.size())
 			{
 				return unknownString;
 			}
 
-			return typeMetadata[typeId].def->GetFullyQualifiedName();
+			return typeMetadata[typeId.value].def->GetFullyQualifiedName();
 		}
 
 		std::string_view GetFieldName(ILFieldAccess access) const
 		{
-			auto typeId = access.typeId;
+			auto typeId = access.typeId.value;
 			if (typeId >= typeMetadata.size())
 			{
 				return unknownString;
 			}
 
-			auto fieldId = access.fieldId;
+			auto fieldId = access.fieldId.value;
 			auto def = typeMetadata[typeId].def;
 
 			if (auto struct_ = def->As<Struct>())
@@ -311,12 +305,12 @@ namespace HXSL
 
 		std::string_view GetFuncName(ILFuncId funcId) const
 		{
-			if (funcId >= functions.size())
+			if (funcId.value >= functions.size())
 			{
 				return unknownString;
 			}
 
-			return functions[funcId].func->GetFullyQualifiedName();
+			return functions[funcId.value].func->GetFullyQualifiedName();
 		}
 
 		std::string_view GetVarTypeName(ILVarId varId) const
@@ -342,6 +336,16 @@ namespace HXSL
 				auto& var = variables[id];
 				return GetTypeName(var.typeId);
 			}
+		}
+
+		PhiMetadata& GetPhi(ILPhiId phiId)
+		{
+			return phiMetadata[phiId.value];
+		}
+
+		const PhiMetadata& GetPhi(ILPhiId phiId) const
+		{
+			return phiMetadata[phiId.value];
 		}
 	};
 

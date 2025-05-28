@@ -150,4 +150,49 @@ public:
 	}
 };
 
+template <typename T>
+class StdBumpAllocator
+{
+	BumpAllocator* bumpAllocator = nullptr;
+public:
+	using value_type = T;
+
+	StdBumpAllocator() noexcept = default;
+
+	StdBumpAllocator(BumpAllocator& alloc) noexcept : bumpAllocator(&alloc) {}
+
+	template <typename U>
+	StdBumpAllocator(const StdBumpAllocator<U>& other) noexcept : bumpAllocator(other.bumpAllocator) {}
+
+	T* allocate(std::size_t n)
+	{
+		void* ptr = bumpAllocator->Alloc(n * sizeof(T), alignof(T));
+		if (!ptr) throw std::bad_alloc{};
+		return static_cast<T*>(ptr);
+	}
+
+	void deallocate(T* p, std::size_t n) noexcept
+	{
+	}
+
+	inline operator BumpAllocator&() const
+	{
+		assert(bumpAllocator != nullptr);
+		return *bumpAllocator;
+	}
+
+	template <typename U>
+	inline bool operator==(const StdBumpAllocator<U>& other) const noexcept
+	{
+		return bumpAllocator == other.bumpAllocator;
+	}
+
+	template <typename U>
+	inline bool operator!=(const StdBumpAllocator<U>& other) const noexcept
+	{
+		return !(*this == other);
+	}
+};
+
+
 #endif

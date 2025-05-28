@@ -8,11 +8,11 @@
 #include "il/control_flow_analyzer.hpp"
 #include "optimizers/il_optimizer.hpp"
 #include "utils/ast_flattener.hpp"
-#include "utils/ast_allocator.hpp"
+
+#include "utils/memory.hpp"
+#include "utils/dense_map_simd.hpp"
 
 #include "il/memory_ssa_graph.hpp"
-
-#include <chrono>
 
 namespace HXSL
 {

@@ -7,31 +7,31 @@
 
 namespace HXSL
 {
-	class ILFunction;
+	class ILContext;
 
 	class LowerCompilationUnit : public Container
 	{
 		std::unique_ptr<ArrayManager> arrayManager;
 		std::unique_ptr<PointerManager> pointerManager;
 		std::unique_ptr<SwizzleManager> swizzleManager;
-		FuncCallGraph<ILFunction*> callGraph;
+		FuncCallGraph<ILContext*> callGraph;
 		std::vector<ast_ptr<SymbolDef>> miscDefs;
-		std::vector<std::unique_ptr<ILFunction>> ilFunctions;
+		std::vector<std::unique_ptr<ILContext>> ilFunctions;
 	public:
 		LowerCompilationUnit() : Container({}, NodeType_LowerCompilationUnit), ASTNode({}, NodeType_LowerCompilationUnit) {}
 
-		FuncCallGraph<ILFunction*>& GetCallGraph()
+		FuncCallGraph<ILContext*>& GetCallGraph()
 		{
 			return callGraph;
 		}
 
 		DEFINE_GET_SET_MOVE(std::unique_ptr<ArrayManager>, ArrayManager, arrayManager)
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<PointerManager>, PointerManager, pointerManager)
+			DEFINE_GET_SET_MOVE(std::unique_ptr<PointerManager>, PointerManager, pointerManager)
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<SwizzleManager>, SwizzleManager, swizzleManager)
+			DEFINE_GET_SET_MOVE(std::unique_ptr<SwizzleManager>, SwizzleManager, swizzleManager)
 
-		void AddMiscDef(ast_ptr<SymbolDef> def);
+			void AddMiscDef(ast_ptr<SymbolDef> def);
 
 		const std::vector<ast_ptr<SymbolDef>>& GetMiscDefs() const noexcept
 		{
@@ -43,17 +43,17 @@ namespace HXSL
 			return miscDefs;
 		}
 
-		void AddILFunction(std::unique_ptr<ILFunction>&& context)
+		void AddILFunction(std::unique_ptr<ILContext>&& context)
 		{
 			ilFunctions.push_back(std::move(context));
 		}
 
-		const std::vector<std::unique_ptr<ILFunction>>& GetILFunctions() const noexcept
+		const std::vector<std::unique_ptr<ILContext>>& GetILFunctions() const noexcept
 		{
 			return ilFunctions;
 		}
 
-		std::vector<std::unique_ptr<ILFunction>>& GetILFunctionsMut() noexcept
+		std::vector<std::unique_ptr<ILContext>>& GetILFunctionsMut() noexcept
 		{
 			return ilFunctions;
 		}

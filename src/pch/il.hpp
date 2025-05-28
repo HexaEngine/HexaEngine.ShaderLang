@@ -8,7 +8,7 @@
 #include "il/il_text.hpp"
 #include "il/jump_table.hpp"
 
-#include "il/il_function.hpp"
+#include "il/il_context.hpp"
 
 #include "il/ssa/ssa_instruction.hpp"
 

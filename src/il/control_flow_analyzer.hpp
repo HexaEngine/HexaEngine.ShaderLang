@@ -11,7 +11,7 @@ namespace HXSL
 	{
 		LowerCompilationUnit* compilation;
 
-		void DetectUnreachableCode(ILFunction* function);
+		void DetectUnreachableCode(ILContext* function);
 
 	public:
 		ControlFlowAnalyzer(ILogger* logger, LowerCompilationUnit* compilation) : LoggerAdapter(logger), compilation(compilation)

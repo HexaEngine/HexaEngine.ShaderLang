@@ -18,7 +18,7 @@ namespace HXSL
 		ILVarId GetFinalVarId(ILVarId varId, bool result)
 		{
 			auto typeId = metadata.GetTempVar(varId).typeId;
-			auto& freeTempsQ = freeTemps[typeId];
+			auto& freeTempsQ = freeTemps[typeId.value];
 			if (!freeTempsQ.empty())
 			{
 				ILVarId finalId = freeTempsQ.front();
@@ -34,38 +34,39 @@ namespace HXSL
 
 		void Prepare(const ILInstruction& instr)
 		{
-			if (instr.operandLeft.IsVar())
+			if (auto var = dyn_cast<Variable>(instr.operandLeft))
 			{
-				lastUseIndex.insert_or_assign(instr.operandLeft.varId, &instr);
+				lastUseIndex.insert_or_assign(var->varId, &instr);
 			}
-			if (instr.operandRight.IsVar())
+			if (auto var = dyn_cast<Variable>(instr.operandRight))
 			{
-				lastUseIndex.insert_or_assign(instr.operandRight.varId, &instr);
+				lastUseIndex.insert_or_assign(var->varId, &instr);
 			}
-			if (instr.operandResult.IsVar())
+			if (auto var = dyn_cast<Variable>(instr.operandResult))
 			{
-				seenVars.insert(instr.operandResult.varId & SSA_VERSION_STRIP_MASK);
+				seenVars.insert(var->varId & SSA_VERSION_STRIP_MASK);
 			}
 		}
 
-		void RemapOperand(ILOperand& op, ILInstruction* instr, bool isResult)
+		void RemapOperand(Operand* op, ILInstruction* instr, bool isResult)
 		{
-			if (!op.IsVar()) return;
+			auto var = dyn_cast<Variable>(op);
+			if (!var) return;
 
-			ILVarId varId = op.varId;
+			ILVarId varId = var->varId;
 
 			if (!IsTempVar(varId)) return;
 
 			if (isResult)
 			{
-				op.varId = GetFinalVarId(varId, isResult);
+				var->varId = GetFinalVarId(varId, isResult);
 			}
 			else
 			{
 				auto it = varMapping.find(varId);
 				if (it != varMapping.end())
 				{
-					op.varId = it->second;
+					var->varId = it->second;
 				}
 			}
 
@@ -75,7 +76,7 @@ namespace HXSL
 
 			auto typeId = metadata.GetTempVar(varId).typeId;
 
-			freeTemps[typeId].push(op.varId & SSA_VERSION_STRIP_MASK);
+			freeTemps[typeId.value].push(var->varId & SSA_VERSION_STRIP_MASK);
 		}
 
 		void RemapOperandsAndResult(ILInstruction& instr)
@@ -85,7 +86,7 @@ namespace HXSL
 			RemapOperand(instr.operandResult, &instr, true);
 		}
 
-		void TryClearVersion(ILOperand& op);
+		void TryClearVersion(Operand* op);
 		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
 
 	public:

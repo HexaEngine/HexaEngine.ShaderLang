@@ -8,24 +8,22 @@ namespace HXSL
 {
 	struct SSACFGContext
 	{
-		std::vector<uint64_t> variables;
+		std::vector<ILVarId> variables;
 	};
 
 	class SSABuilder : CFGVisitor<SSACFGContext>
 	{
+		ILContext* context;
 		ILMetadata& metadata;
-		ControlFlowGraph& cfg;
 
 		std::vector<std::vector<size_t>>& domTreeChildren;
 		std::vector<std::unordered_set<size_t>>& domFront;
 
-		std::unordered_map<uint64_t, std::stack<uint64_t>> versionStacks;
-		std::unordered_map<uint64_t, uint32_t> versionCounters;
-		std::unordered_map<uint64_t, std::unordered_set<size_t>> defSites;
+		std::unordered_map<ILVarId, std::stack<ILVarId>> versionStacks;
+		std::unordered_map<ILVarId, uint32_t> versionCounters;
+		std::unordered_map<ILVarId, std::unordered_set<size_t>> defSites;
 
-		std::vector<size_t> discardList;
-
-		uint64_t TopVersion(uint64_t varId)
+		uint64_t TopVersion(ILVarId varId)
 		{
 			if (versionStacks[varId].empty())
 			{
@@ -35,10 +33,10 @@ namespace HXSL
 			return versionStacks[varId].top();
 		}
 
-		uint64_t MakeNewVersion(uint64_t varId, bool push = true)
+		ILVarId MakeNewVersion(ILVarId varId, bool push = true)
 		{
 			uint32_t version = ++versionCounters[varId];
-			uint64_t newVersion = MakeVersion(varId, version);
+			ILVarId newVersion = MakeVersion(varId, version);
 			if (push)
 			{
 				versionStacks[varId].push(newVersion);
@@ -56,14 +54,19 @@ namespace HXSL
 			versionStacks[varId].pop();
 		}
 
-		void InsertPhiMeta(CFGNode& node, ILVarId varId, size_t& phiIdOut);
+		void InsertPhiMeta(CFGNode& node, ILVarId varId, ILPhiId& phiIdOut);
 
 		void Visit(size_t index, CFGNode& node, SSACFGContext& context) override;
 
 		void VisitClose(size_t index, CFGNode& node, SSACFGContext& context) override;
 
 	public:
-		SSABuilder(ILMetadata& metadata, ControlFlowGraph& cfg) : metadata(metadata), CFGVisitor(cfg), cfg(cfg), domTreeChildren(cfg.domTreeChildren), domFront(cfg.domFront)
+		SSABuilder(ILContext* context) :
+			CFGVisitor(context->GetCFG()),
+			context(context),
+			metadata(context->GetMetadata()),
+			domTreeChildren(context->GetCFG().domTreeChildren),
+			domFront(context->GetCFG().domFront)
 		{
 		}
 

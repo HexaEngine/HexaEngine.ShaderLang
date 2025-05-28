@@ -2,11 +2,11 @@
 
 namespace HXSL
 {
-	void DeadCodeEliminator::ProcessOperand(ILOperand& op)
+	void DeadCodeEliminator::ProcessOperand(Operand* op)
 	{
-		if (op.IsVar())
+		if (Operand::IsVar(op))
 		{
-			usedVars.insert(op.varId);
+			usedVars.insert(cast<Variable>(op)->varId);
 		}
 	}
 
@@ -14,7 +14,7 @@ namespace HXSL
 	{
 		if (instr.opcode == OpCode_Phi)
 		{
-			auto& phiNode = metadata.phiMetadata[instr.operandLeft.varId];
+			auto& phiNode = metadata.GetPhi(cast<Phi>(instr.operandLeft)->phiId);
 			for (auto& usedVarId : phiNode.params)
 			{
 				usedVars.insert(usedVarId);
@@ -25,11 +25,14 @@ namespace HXSL
 		ProcessOperand(instr.operandRight);
 
 		if (protectedInstr) return;
-		auto& op = instr.operandResult;
-		if (op.IsVar() && usedVars.find(op.varId) == usedVars.end())
+		auto op = instr.operandResult;
+		if (auto var = dyn_cast<Variable>(op))
 		{
-			deadVars.insert(op.varId);
-			DiscardInstr(instr);
+			if (usedVars.find(var->varId) == usedVars.end())
+			{
+				deadVars.insert(var->varId);
+				DiscardInstr(instr);
+			}
 		}
 	}
 

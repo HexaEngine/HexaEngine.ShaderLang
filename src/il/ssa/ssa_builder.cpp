@@ -10,29 +10,29 @@ namespace HXSL
 		{
 			if (instr.IsOp(OpCode_Phi))
 			{
-				uint64_t varId = instr.operandResult.varId;
-				uint64_t newVersion = MakeNewVersion(varId);
-				context.variables.push_back(varId);
-				instr.operandResult.varId = newVersion;
-				metadata.phiMetadata[instr.operandLeft.varId].varId = newVersion;
+				auto var = cast<Variable>(instr.operandResult);
+				auto newVersion = MakeNewVersion(var->varId);
+				context.variables.push_back(var->varId);
+				var->varId = newVersion;
+				metadata.phiMetadata[cast<Phi>(instr.operandLeft)->phiId.value].varId = newVersion;
 				continue;
 			}
 
-			if (instr.operandLeft.IsVar())
+			if (auto var = dyn_cast<Variable>(instr.operandLeft))
 			{
-				instr.operandLeft.varId = TopVersion(instr.operandLeft.varId);
+				var->varId = TopVersion(var->varId);
 			}
-			if (instr.operandRight.IsVar())
+			if (auto var = dyn_cast<Variable>(instr.operandRight))
 			{
-				instr.operandRight.varId = TopVersion(instr.operandRight.varId);
+				var->varId = TopVersion(var->varId);
 			}
 
-			if (instr.operandResult.IsVar())
+			if (auto var = dyn_cast<Variable>(instr.operandResult))
 			{
-				auto varId = instr.operandResult.varId;
+				auto varId = var->varId;
 				uint64_t newVersion = MakeNewVersion(varId);
 				context.variables.push_back(varId);
-				instr.operandResult.varId = newVersion;
+				var->varId = newVersion;
 			}
 
 			if (instr.IsOp(OpCode_StackAlloc))
@@ -61,10 +61,10 @@ namespace HXSL
 			for (auto& instr : succNode.instructions)
 			{
 				if (!instr.IsOp(OpCode_Phi)) break;
-				size_t phiId = instr.operandLeft.varId;
-				uint64_t varId = instr.operandResult.varId.var.id;
+				auto phiId = cast<Phi>(instr.operandLeft)->phiId;
+				uint64_t varId = cast<Variable>(instr.operandResult)->varId.var.id;
 				uint64_t version = TopVersion(varId);
-				phiMetadata[phiId].params[slot] = version;
+				phiMetadata[phiId.value].params[slot] = version;
 			}
 		}
 	}
@@ -77,18 +77,18 @@ namespace HXSL
 		}
 	}
 
-	void SSABuilder::InsertPhiMeta(CFGNode& node, ILVarId varId, size_t& phiIdOut)
+	void SSABuilder::InsertPhiMeta(CFGNode& node, ILVarId varId, ILPhiId& phiIdOut)
 	{
 		auto& globalMetadata = metadata;
 		auto& phiMetadata = globalMetadata.phiMetadata;
-		size_t phiId = phiMetadata.size();
+		ILPhiId phiId = ILPhiId(static_cast<uint64_t>(phiMetadata.size()));
 		phiMetadata.emplace_back();
 		auto& meta = phiMetadata.back();
 		meta.params.resize(node.predecessors.size());
 
 		auto& var = globalMetadata.variables[varId.var.id];
 
-		ILInstruction phi = ILInstruction(OpCode_Phi, ILOperand(ILOperandKind_Phi, phiId), var.AsOperand());
+		ILInstruction phi = ILInstruction(OpCode_Phi, context->MakePhi(phiId), context->MakeVariable(var));
 
 		node.instructions.insert(node.instructions.begin(), phi);
 
@@ -103,15 +103,17 @@ namespace HXSL
 		{
 			for (auto& instr : cfg.GetNode(i).instructions)
 			{
-				if (instr.operandResult.IsVar() && !instr.operandResult.varId.var.temp)
+				auto var = dyn_cast<Variable>(instr.operandResult);
+				if (!var || var->varId.var.temp)
 				{
-					defSites[instr.operandResult.varId].insert(i);
+					continue;
 				}
+				defSites[var->varId].insert(i);
 			}
 		}
 
 		std::unordered_map<uint64_t, std::unordered_set<size_t>> hasPhi;
-		std::vector<std::vector<size_t>> blockPhis(n);
+		std::vector<std::vector<ILPhiId>> blockPhis(n);
 		for (auto& p : defSites)
 		{
 			uint64_t varId = p.first;
@@ -125,7 +127,7 @@ namespace HXSL
 				{
 					if (hasPhi[varId].insert(df).second)
 					{
-						size_t phiId = 0;
+						ILPhiId phiId;
 						InsertPhiMeta(cfg.GetNode(df), varId, phiId);
 						blockPhis[df].push_back(phiId);
 						if (!p.second.count(df)) wl.push(df);

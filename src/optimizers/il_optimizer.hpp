@@ -16,7 +16,7 @@ namespace HXSL
 
 		void Optimize();
 
-		void Optimize(ILFunction* function);
+		void Optimize(ILContext* function);
 	};
 }
 

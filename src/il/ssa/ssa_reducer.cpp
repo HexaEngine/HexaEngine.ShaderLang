@@ -2,13 +2,14 @@
 
 namespace HXSL
 {
-	void SSAReducer::TryClearVersion(ILOperand& op)
+	void SSAReducer::TryClearVersion(Operand* op)
 	{
-		if (!op.IsVar()) return;
-		auto it = phiMap.find(op.varId);
+		auto var = dyn_cast<Variable>(op);
+		if (!var) return;
+		auto it = phiMap.find(var->varId);
 		if (it != phiMap.end())
 		{
-			op.varId = it->second;
+			var->varId = it->second;
 		}
 	}
 
@@ -39,7 +40,7 @@ namespace HXSL
 			if (!IsTempVar(varId)) continue;
 
 			auto typeId = metadata.GetTempVar(varId).typeId;
-			freeTemps[typeId].push(varId);
+			freeTemps[typeId.value].push(varId);
 		}
 
 		for (auto& instr : instructions)

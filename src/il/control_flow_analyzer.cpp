@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	void ControlFlowAnalyzer::DetectUnreachableCode(ILFunction* function)
+	void ControlFlowAnalyzer::DetectUnreachableCode(ILContext* function)
 	{
 		auto& cfg = function->cfg;
 		auto& metadata = function->metadata;

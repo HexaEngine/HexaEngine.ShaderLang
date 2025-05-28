@@ -2,14 +2,14 @@
 
 namespace HXSL
 {
-	void CommonSubExpression::TryMapOperand(ILOperand& op)
+	void CommonSubExpression::TryMapOperand(Operand*& op)
 	{
-		if (op.IsVar())
+		if (auto var = dyn_cast<Variable>(op))
 		{
-			auto it = map.find(op);
+			auto it = map.find(var->varId);
 			if (it != map.end())
 			{
-				op = it->second; changed = true;
+				op = context->MakeVariable(it->second); changed = true;
 			}
 		}
 	}
@@ -24,15 +24,11 @@ namespace HXSL
 
 			if (instr.opcode == OpCode_Load || instr.opcode == OpCode_Move || instr.opcode == OpCode_Store || instr.opcode == OpCode_StoreParam || instr.opcode == OpCode_LoadParam) continue;
 
-			auto it = subExpressions.find(instr);
-			if (it != subExpressions.end())
+			auto it = subExpressions.insert(&instr);
+			if (!it.second)
 			{
 				DiscardInstr(instr);
-				map.insert({ instr.operandResult, it->operandResult });
-			}
-			else
-			{
-				subExpressions.insert(instr);
+				map.insert({ cast<Variable>(instr.operandResult)->varId, cast<Variable>((*it.first)->operandResult)->varId });
 			}
 		}
 

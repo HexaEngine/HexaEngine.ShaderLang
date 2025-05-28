@@ -14,10 +14,11 @@ namespace HXSL
 			return;
 		}
 
-		if (!instr.operandRight.IsImm()) return;
+		auto immR = dyn_cast<Constant>(instr.operandRight);
+		if (!immR) return;
 
 		uint64_t val = 0;
-		auto imm = instr.operandRight.imm();
+		auto& imm = immR->imm();
 		if (imm.IsNegative()) return;
 		switch (imm.Kind)
 		{
@@ -42,13 +43,13 @@ namespace HXSL
 		{
 			changed = true;
 			instr.opcode = OpCode_BitwiseShiftLeft;
-			instr.operandRight = Cast(shiftNum, instr.opKind);
+			instr.operandRight = context->MakeConstant(Cast(shiftNum, instr.opKind));
 		}
 		else if (instr.opcode == OpCode_Divide)
 		{
 			changed = true;
 			instr.opcode = OpCode_BitwiseShiftRight;
-			instr.operandRight = Cast(shiftNum, instr.opKind);
+			instr.operandRight = context->MakeConstant(Cast(shiftNum, instr.opKind));
 		}
 	}
 

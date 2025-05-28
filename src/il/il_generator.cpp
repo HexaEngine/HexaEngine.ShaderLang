@@ -11,7 +11,7 @@ namespace HXSL
 
 		for (auto& func : compilation->GetFunctions())
 		{
-			auto ilFunc = std::make_unique<ILFunction>(compilation, func.get());
+			auto ilFunc = std::make_unique<ILContext>(compilation, func.get());
 			ilFunc->Build();
 
 			callGraph.AddFunction(ilFunc.get());

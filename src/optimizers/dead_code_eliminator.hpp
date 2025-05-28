@@ -10,7 +10,7 @@ namespace HXSL
 		std::unordered_set<ILVarId> usedVars;
 		std::unordered_set<ILVarId> deadVars;
 
-		void ProcessOperand(ILOperand& op);
+		void ProcessOperand(Operand* op);
 
 		void ProcessInstr(ILInstruction& instr, bool protectedInstr);
 
@@ -21,7 +21,7 @@ namespace HXSL
 		void VisitClose(size_t index, CFGNode& node, EmptyCFGContext& context) override;
 
 	public:
-		DeadCodeEliminator(ILMetadata& metadata, ControlFlowGraph& cfg) : ILOptimizerPass(metadata), CFGVisitor(cfg)
+		DeadCodeEliminator(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
 		{
 		}
 

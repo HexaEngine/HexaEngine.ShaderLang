@@ -5,22 +5,11 @@ struct MyStruct
 	float value0;
 	float value1;
 	float value2;
-
-	MyStruct(float value1_m)
-	{
-		value1 = value1_m;
-	}
-}
-
-void set(MyStruct a)
-{
-	a.value2 = 10;
 }
 
 float test(float x, float y)
 {
 	MyStruct a;
 	a.value1 = 10;
-	//set(a);
 	return x * 80 + x * 80 + x * 80 * a.value1;
 }

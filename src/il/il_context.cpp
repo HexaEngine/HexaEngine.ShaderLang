@@ -1,14 +1,14 @@
-#include "il_function.hpp"
+#include "il_context.hpp"
 #include "il_builder.hpp"
 
 namespace HXSL
 {
-	void ILFunction::Build()
+	void ILContext::Build()
 	{
 		ILContainer container = { allocator };
 		JumpTable jumpTable = {};
 
-		ILBuilder builder = ILBuilder(allocator, compilation, container, metadata, jumpTable);
+		ILBuilder builder = ILBuilder(this, allocator, compilation, container, metadata, jumpTable);
 		builder.Build(overload);
 		jumpTable.Prepare();
 		builder.Print();

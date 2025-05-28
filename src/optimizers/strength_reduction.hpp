@@ -14,7 +14,7 @@ namespace HXSL
 		void MulDivReduce(ILInstruction& instr);
 
 	public:
-		StrengthReduction(ILMetadata& metadata, ControlFlowGraph& cfg) : ILOptimizerPass(metadata), CFGVisitor(cfg)
+		StrengthReduction(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
 		{
 		}
 

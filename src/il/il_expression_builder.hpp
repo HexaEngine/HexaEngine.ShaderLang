@@ -9,14 +9,14 @@ namespace HXSL
 	struct ILExpressionFrame
 	{
 		Expression* expression = nullptr;
-		ILOperand outRegister = INVALID_VARIABLE;
-		ILVarId rightRegister = INVALID_VARIABLE;
-		ILVarId leftRegister = INVALID_VARIABLE;
+		Operand* outRegister = nullptr;
+		Operand* rightRegister = nullptr;
+		Operand* leftRegister = nullptr;
 		uint64_t state = 0;
-		uint64_t data = 0;
+		ILLabel label = INVALID_JUMP_LOCATION;
 
-		ILExpressionFrame(Expression* expression, const ILOperand& reg, ILVarId rightRegister = INVALID_VARIABLE, ILVarId leftRegister = INVALID_VARIABLE)
-			: expression(expression), outRegister(reg), rightRegister(rightRegister), leftRegister(leftRegister), state(0), data(0)
+		ILExpressionFrame(Expression* expression, Operand* reg, Operand* rightRegister = nullptr, Operand* leftRegister = nullptr)
+			: expression(expression), outRegister(reg), rightRegister(rightRegister), leftRegister(leftRegister), state(0), label(INVALID_JUMP_LOCATION)
 		{
 		}
 
@@ -32,6 +32,7 @@ namespace HXSL
 
 	class ILExpressionBuilder : public ILContainerAdapter, public ILMetadataAdapter
 	{
+		ILContext* context;
 		LowerCompilationUnit* compilation;
 		std::stack<ILExpressionFrame> stack;
 		ILExpressionFrame currentFrame;
@@ -54,7 +55,7 @@ namespace HXSL
 			stack.pop();
 		}
 
-		void SetLocation(uint64_t label, ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		void SetLocation(ILLabel label, ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			if (location == INVALID_JUMP_LOCATION_PTR)
 			{
@@ -63,36 +64,37 @@ namespace HXSL
 			jumpTable.SetLocation(label, location);
 		}
 
-		uint64_t MakeJumpLocation(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		ILLabel MakeJumpLocation(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			return jumpTable.Allocate(location);
 		}
 
-		uint64_t MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
+		ILLabel MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
 
 	public:
-		ILExpressionBuilder(LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, ILTempVariableAllocator& tempAllocator, JumpTable& jumpTable)
-			: ILContainerAdapter(container), ILMetadataAdapter(metadata),
-			compilation(compilation),
+		ILExpressionBuilder(ILContext* context, LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, ILTempVariableAllocator& tempAllocator, JumpTable& jumpTable)
+			: ILContainerAdapter(container), ILMetadataAdapter(context->GetMetadata()),
+			context(context),
+			compilation(context->compilation),
 			jumpTable(jumpTable),
 			reg(tempAllocator)
 		{
 		}
 
-		bool IsInlineable(Expression* expr, ILOperand& opOut);
-		void ReadVar(Expression* target, const ILVarId& varOut);
-		void WriteVar(Expression* target, const ILVarId& varIn);
+		bool IsInlineable(Expression* expr, Operand*& opOut);
+		void ReadVar(Expression* target, Operand* varOut);
+		void WriteVar(Expression* target, Operand* varIn);
 		SymbolDef* GetAddrType(SymbolDef* elementType);
-		bool MemberAccess(Expression* expr, const ILVarId& outVar, MemberOp op = MemberOp_Read, ILOperand writeOp = {});
+		bool MemberAccess(Expression* expr, Operand*, MemberOp op = MemberOp_Read, Operand* writeOp = nullptr);
 		void FunctionCall(FunctionCallExpression* expr);
-		void OperatorCall(OperatorOverload* op, const ILOperand& left, const ILOperand& right, const ILOperand& result);
-		void OperatorCall(BinaryExpression* binary, const ILOperand& left, const ILOperand& right, const ILOperand& result)
+		void OperatorCall(OperatorOverload* op, Operand* left, Operand* right, Operand* result);
+		void OperatorCall(BinaryExpression* binary, Operand* left, Operand* right, Operand* result)
 		{
 			auto op = binary->GetOperatorDeclaration();
 			if (op == nullptr) return;
 			return OperatorCall(op->As<OperatorOverload>(), left, right, result);
 		}
-		ILVarId TraverseExpression(Expression* expression, const ILOperand& outOperand = INVALID_VARIABLE);
+		Operand* TraverseExpression(Expression* expression, Operand* outOperand = nullptr);
 	};
 }
 

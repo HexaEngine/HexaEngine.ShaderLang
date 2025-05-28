@@ -1,6 +1,8 @@
 #include "c/stream.h"
 #include "io/stream.hpp"
 
+#if HXSL_ENABLE_CAPI
+
 HXSL_API HXSLStream* HXSL_CreateStream(HXSLStreamDesc* desc)
 {
 	HXSL::Stream* stream = new HXSL::Stream(desc->version, desc->userdata, desc->readFunc, desc->writeFunc, desc->seekFunc, desc->getPositionFunc, desc->getLengthFunc, desc->flushFunc, desc->closeFunc);
@@ -74,3 +76,5 @@ HXSL_API void HXSL_CloseStream(HXSLStream* self)
 	HXSL::Stream* base = reinterpret_cast<HXSL::Stream*>(self);
 	delete base;
 }
+
+#endif

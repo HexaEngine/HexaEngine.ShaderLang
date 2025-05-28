@@ -2,6 +2,7 @@
 #define IL_CONTAINER_HPP
 
 #include "il_instruction.hpp"
+#include "operand_factory.hpp"
 
 namespace HXSL
 {
@@ -16,24 +17,15 @@ namespace HXSL
 			append(instr);
 		}
 
-		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandRight, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None)
+		template<typename... Operands>
+		void AddInstr(ILOpCode opcode, Operands&&... operands)
 		{
-			append(ILInstruction(opcode, operandLeft, operandRight, operandResult, opKind));
-		}
-
-		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None)
-		{
-			append(ILInstruction(opcode, operandLeft, operandResult, opKind));
-		}
-
-		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, ILOpKind opKind = ILOpKind_None)
-		{
-			append(ILInstruction(opcode, operandLeft, opKind));
+			emplace_append(opcode, std::forward<Operands>(operands)...);
 		}
 
 		void AddInstr(ILOpCode opcode, ILOpKind opKind = ILOpKind_None)
 		{
-			append(ILInstruction(opcode, opKind));
+			emplace_append(opcode, opKind);
 		}
 	};
 
@@ -53,33 +45,27 @@ namespace HXSL
 	class ILContainerAdapter
 	{
 	protected:
+		BumpAllocator& allocator;
 		ILContainer& container;
+
 	public:
-		ILContainerAdapter(ILContainer& container) : container(container) {}
+		ILContainerAdapter(ILContainer& container) : allocator(container.get_allocator()), container(container) {}
 
 		void AddInstr(const ILInstruction& instr)
 		{
 			container.AddInstr(instr);
 		}
 
-		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandRight, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None)
+		template<typename... Operands>
+		void AddInstr(ILOpCode opcode, Operands&&... operands)
 		{
-			container.AddInstr(opcode, operandLeft, operandRight, operandResult, opKind);
-		}
-
-		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, const ILOperand& operandResult, ILOpKind opKind = ILOpKind_None)
-		{
-			container.AddInstr(opcode, operandLeft, operandResult, opKind);
-		}
-
-		void AddInstr(ILOpCode opcode, const ILOperand& operandLeft, ILOpKind opKind = ILOpKind_None)
-		{
-			container.AddInstr(opcode, operandLeft, opKind);
+			OperandFactory factory{ allocator };
+			container.emplace_append(opcode, factory(std::forward<Operands>(operands))...);
 		}
 
 		void AddInstr(ILOpCode opcode, ILOpKind opKind = ILOpKind_None)
 		{
-			container.AddInstr(opcode, opKind);
+			container.emplace_append(opcode, opKind);
 		}
 	};
 }

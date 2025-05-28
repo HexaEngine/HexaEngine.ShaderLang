@@ -7,11 +7,11 @@ namespace HXSL
 
 	DEFINE_IMM_COMP(IsOne, 1);
 
-	static void ConvertToMove(ILInstruction& instr, const ILOperand& left)
+	static void ConvertToMove(ILInstruction& instr, Operand* left)
 	{
 		instr.opcode = OpCode_Move;
 		instr.operandLeft = left;
-		instr.operandRight = {};
+		instr.operandRight = nullptr;
 	}
 
 	static void ConvertMoveRight(ILInstruction& instr)
@@ -22,20 +22,20 @@ namespace HXSL
 	static void ConvertMove(ILInstruction& instr)
 	{
 		instr.opcode = OpCode_Move;
-		instr.operandRight = {};
+		instr.operandRight = nullptr;
 	}
 
-	static void ConvertMoveImm(ILInstruction& instr, const Number& num)
+	static void ConvertMoveImm(ILContext* context, ILInstruction& instr, const Number& num)
 	{
-		ConvertToMove(instr, Cast(num, instr.opKind));
+		ConvertToMove(instr, context->MakeConstant(Cast(num, instr.opKind)));
 	}
 
-	static void ConvertMoveZero(ILInstruction& instr)
+	static void ConvertMoveZero(ILContext* context, ILInstruction& instr)
 	{
-		ConvertMoveImm(instr, Number(0));
+		ConvertMoveImm(context, instr, Number(0));
 	}
 
-	void AlgebraicSimplifier::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
+	void AlgebraicSimplifier::Visit(size_t index, CFGNode& node, EmptyCFGContext& ctx)
 	{
 		auto& instructions = node.instructions;
 
@@ -47,7 +47,7 @@ namespace HXSL
 			{
 				if (IsZero(instr.operandLeft) || IsZero(instr.operandRight))
 				{
-					ConvertMoveZero(instr); changed = true;
+					ConvertMoveZero(context, instr); changed = true;
 				}
 
 				if (IsOne(instr.operandLeft))
@@ -65,7 +65,7 @@ namespace HXSL
 			{
 				if (IsZero(instr.operandLeft))
 				{
-					ConvertMoveZero(instr); changed = true;
+					ConvertMoveZero(context, instr); changed = true;
 				}
 				if (IsZero(instr.operandRight))
 				{
@@ -82,7 +82,7 @@ namespace HXSL
 
 				if (instr.operandLeft == instr.operandRight)
 				{
-					ConvertMoveImm(instr, Number(1)); changed = true;
+					ConvertMoveImm(context, instr, Number(1)); changed = true;
 				}
 			}
 			break;
@@ -98,7 +98,7 @@ namespace HXSL
 				}
 				if (instr.operandLeft == instr.operandRight)
 				{
-					ConvertMoveZero(instr); changed = true;
+					ConvertMoveZero(context, instr); changed = true;
 				}
 			}
 			break;
@@ -118,7 +118,7 @@ namespace HXSL
 			{
 				if (IsZero(instr.operandLeft))
 				{
-					ConvertMoveZero(instr); changed = true;
+					ConvertMoveZero(context, instr); changed = true;
 				}
 			}
 			break;
@@ -126,7 +126,7 @@ namespace HXSL
 			{
 				if (IsZero(instr.operandRight))
 				{
-					ConvertMoveZero(instr); changed = true;
+					ConvertMoveZero(context, instr); changed = true;
 				}
 			}
 			break;
@@ -147,18 +147,15 @@ namespace HXSL
 
 				if (instr.operandLeft == instr.operandRight)
 				{
-					ConvertMoveZero(instr); changed = true;
+					ConvertMoveZero(context, instr); changed = true;
 				}
 			}
 			break;
 			case OpCode_AndAnd:
 			{
-				if (!instr.operandRight.IsImm())
-				{
-					break;
-				}
-
-				if (instr.operandRight.imm().ToBool())
+				auto immR = dyn_cast<Constant>(instr.operandRight);
+				if (!immR) break;
+				if (immR->imm().ToBool())
 				{
 					ConvertMove(instr); changed = true;
 				}
@@ -167,14 +164,14 @@ namespace HXSL
 					changed = true;
 
 					bool condition = false;
-					if (instr.next)
+					if (instr.GetNext())
 					{
-						auto& nextInstr = *instr.next;
+						auto& nextInstr = *instr.GetNext();
 						bool isTrueBranch = nextInstr.opcode == OpCode_JumpNotZero;
 						if (isTrueBranch || nextInstr.opcode == OpCode_JumpZero)
 						{
 							bool willJump = (isTrueBranch && condition) || (!isTrueBranch && !condition);
-							auto& target = nextInstr.operandLeft.label;
+							auto& target = cast<Label>(nextInstr.operandLeft)->label.value;
 
 							if (willJump)
 							{

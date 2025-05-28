@@ -1,10 +1,13 @@
 #include "control_flow_graph.hpp"
 #include "lt_dominator_tree.hpp"
+#include "il/il_context.hpp"
 
 #include "pch/std.hpp"
 
 namespace HXSL
 {
+	ControlFlowGraph::ControlFlowGraph(ILContext* context) : context(context), allocator(context->allocator), metadata(context->GetMetadata()) {}
+
 	void ControlFlowGraph::Build(ILContainer& container, JumpTable& jumpTable)
 	{
 		nodes.clear();
@@ -26,7 +29,7 @@ namespace HXSL
 				currentIdx = AddNode(ControlFlowType_Normal);
 			}
 
-			auto next = instr->next;
+			auto next = instr->GetNext();
 			auto& node = GetNode(currentIdx);
 			auto newNode = node.instructions.append_move(instr);
 			instrToNode.insert({ instr, currentIdx });
@@ -69,11 +72,11 @@ namespace HXSL
 			{
 			case OpCode_Jump:
 			{
-				if (lastInstr.operandLeft.kind == ILOperandKind_Label)
+				if (auto label = dyn_cast<Label>(lastInstr.operandLeft))
 				{
-					auto target = jumpTable.GetLocation(lastInstr.operandLeft.varId);
+					auto target = jumpTable.GetLocation(label->label);
 					auto targetNode = instrToNode[target];
-					lastInstr.operandLeft.varId = targetNode;
+					label->label = ILLabel(targetNode);
 					Link(node.id, instrToNode[target]);
 				}
 				break;
@@ -81,11 +84,11 @@ namespace HXSL
 			case OpCode_JumpZero:
 			case OpCode_JumpNotZero:
 			{
-				if (lastInstr.operandLeft.kind == ILOperandKind_Label)
+				if (auto label = dyn_cast<Label>(lastInstr.operandLeft))
 				{
-					auto target = jumpTable.GetLocation(lastInstr.operandLeft.varId);
+					auto target = jumpTable.GetLocation(label->label);
 					auto targetNode = instrToNode[target];
-					lastInstr.operandLeft.varId = targetNode;
+					label->label = ILLabel(targetNode);
 					Link(node.id, targetNode);
 				}
 
@@ -95,9 +98,9 @@ namespace HXSL
 			default:
 			{
 				Link(node.id, node.id + 1);
-				if (term->next)
+				if (term->GetNext())
 				{
-					Link(node.id, instrToNode[term->next]);
+					Link(node.id, instrToNode[term->GetNext()]);
 				}
 				break;
 			}
@@ -136,8 +139,8 @@ namespace HXSL
 			if (instr.opcode != OpCode_Phi)
 				break;
 
-			uint64_t phiIndex = instr.operandLeft.varId;
-			auto& phiInputs = phiMetadata[phiIndex].params;
+			auto phiIndex = cast<Phi>(instr.operandLeft)->phiId;
+			auto& phiInputs = phiMetadata[phiIndex.value].params;
 
 			if (removedPred >= phiInputs.size())
 				continue;
@@ -146,7 +149,7 @@ namespace HXSL
 			if (phiInputs.size() == 1)
 			{
 				instr.opcode = OpCode_Move;
-				instr.operandLeft = ILOperand(ILOperandKind_Variable, phiInputs[0]);
+				instr.operandLeft = context->MakeVariable(phiInputs[0]); //ILOperand(ILOperandKind_Variable, phiInputs[0]);
 			}
 		}
 	}
@@ -194,9 +197,10 @@ namespace HXSL
 					{
 						if (instr.opcode == OpCode_Jump || instr.opcode == OpCode_JumpNotZero || instr.opcode == OpCode_JumpZero)
 						{
-							if (instr.operandLeft.label == last)
+							auto label = dyn_cast<Label>(instr.operandLeft);
+							if (label->label.value == last)
 							{
-								instr.operandLeft.label = index;
+								label->label = ILLabel(index);
 							}
 						}
 					}

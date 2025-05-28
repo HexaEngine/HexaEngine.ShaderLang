@@ -3,6 +3,7 @@
 
 #include "pch/ast_analyzers.hpp"
 #include "ast_ilgen.hpp"
+#include "il/il_context.hpp"
 
 namespace HXSL
 {

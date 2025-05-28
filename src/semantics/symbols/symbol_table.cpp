@@ -220,7 +220,7 @@ namespace HXSL
 		std::vector<SymbolTableNode> output;
 		output.reserve(nodes.size());
 
-		std::stack<std::unordered_map<StringSpan, size_t>::iterator> walkStack;
+		std::stack<dense_map<StringSpan, size_t>::iterator> walkStack;
 
 		output.push_back(std::move(nodes[rootIndex]));
 		auto& rootNode = output[rootIndex];

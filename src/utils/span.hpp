@@ -214,15 +214,27 @@ namespace HXSL
 			return std::string(data + this->start + start, length);
 		}
 
-		bool operator==(const std::string& other) const
+		bool operator==(const StringSpan& other) const
 		{
-			if (this->length != other.size()) return false;
-			return std::memcmp(this->begin(), other.c_str(), this->length * sizeof(char)) == 0;
+			if (this->length != other.length) return false;
+			return std::memcmp(this->begin(), other.begin(), this->length * sizeof(char)) == 0;
 		}
 
-		bool operator!=(const std::string& other) const
+		bool operator!=(const StringSpan& other) const
 		{
 			return !(*this == other);
+		}
+	};
+}
+
+namespace std
+{
+	template <>
+	struct hash<HXSL::StringSpan>
+	{
+		size_t operator()(const HXSL::StringSpan& span) const noexcept
+		{
+			return static_cast<size_t>(span.hash());
 		}
 	};
 }

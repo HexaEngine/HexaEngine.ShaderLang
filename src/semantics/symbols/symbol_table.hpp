@@ -7,6 +7,7 @@
 #include "io/stream.hpp"
 #include "utils/string_pool.hpp"
 #include "utils/span.hpp"
+#include "utils/dense_map.hpp"
 
 namespace HXSL
 {
@@ -39,7 +40,7 @@ namespace HXSL
 	struct SymbolTableNode
 	{
 		std::unique_ptr<std::string> Name;
-		std::unordered_map<StringSpan, size_t, StringSpanHash, StringSpanEqual> Children;
+		dense_map<StringSpan, size_t> Children;
 		std::shared_ptr<SymbolMetadata> Metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
 		std::shared_ptr<size_t> handle; // Pointer to own index, this is crucial to support stable indices even if the node gets moved see SymbolHandle for more info.
 		size_t Depth;

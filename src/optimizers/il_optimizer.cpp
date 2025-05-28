@@ -24,7 +24,7 @@ namespace HXSL
 			auto& cfg = function->cfg;
 			auto& metadata = function->metadata;
 
-			SSABuilder ssaBuilder = SSABuilder(metadata, cfg);
+			SSABuilder ssaBuilder = SSABuilder(function.get());
 			ssaBuilder.Build();
 
 #if HXSL_DEBUG
@@ -44,20 +44,17 @@ namespace HXSL
 		}
 	}
 
-	static std::vector<std::unique_ptr<ILOptimizerPass>> MakeScope(ILFunction* function)
+	static std::vector<std::unique_ptr<ILOptimizerPass>> MakeScope(ILContext* function)
 	{
-		auto& cfg = function->cfg;
-		auto& metadata = function->metadata;
-
 		std::vector<std::unique_ptr<ILOptimizerPass>> passes;
-		passes.push_back(std::make_unique<ConstantFolder>(metadata, cfg));
-		passes.push_back(std::make_unique<AlgebraicSimplifier>(metadata, cfg));
-		passes.push_back(std::make_unique<CommonSubExpression>(metadata, cfg));
-		passes.push_back(std::make_unique<DeadCodeEliminator>(metadata, cfg));
+		passes.push_back(std::make_unique<ConstantFolder>(function));
+		passes.push_back(std::make_unique<AlgebraicSimplifier>(function));
+		passes.push_back(std::make_unique<CommonSubExpression>(function));
+		passes.push_back(std::make_unique<DeadCodeEliminator>(function));
 		return std::move(passes);
 	}
 
-	void ILOptimizer::Optimize(ILFunction* function)
+	void ILOptimizer::Optimize(ILContext* function)
 	{
 #if HXSL_DEBUG
 		auto& cfg = function->cfg;
