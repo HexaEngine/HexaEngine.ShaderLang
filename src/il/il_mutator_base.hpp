@@ -14,7 +14,7 @@ namespace HXSL
 		ILMutatorBase(ILMetadata& metadata) : metadata(metadata) {}
 
 	public:
-		void DiscardMarkedInstructs(CFGNode& node)
+		void DiscardMarkedInstructs(BasicBlock& node)
 		{
 			for (auto instr : discardList)
 			{

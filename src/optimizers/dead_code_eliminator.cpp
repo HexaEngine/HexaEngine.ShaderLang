@@ -35,7 +35,7 @@ namespace HXSL
 		}
 	}
 
-	void DeadCodeEliminator::VisitClose(size_t index, CFGNode& node, EmptyCFGContext& context)
+	void DeadCodeEliminator::VisitClose(size_t index, BasicBlock& node, EmptyCFGContext& context)
 	{
 		auto& instructions = node.instructions;
 		const size_t n = instructions.size();

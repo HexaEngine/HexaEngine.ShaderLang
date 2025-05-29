@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	void SSABuilder::Visit(size_t index, CFGNode& node, SSACFGContext& context)
+	void SSABuilder::Visit(size_t index, BasicBlock& node, SSACFGContext& context)
 	{
 		auto& instructs = node.instructions;
 		for (auto& instr : instructs)
@@ -53,7 +53,7 @@ namespace HXSL
 		}
 	}
 
-	void SSABuilder::VisitClose(size_t index, CFGNode& node, SSACFGContext& context)
+	void SSABuilder::VisitClose(size_t index, BasicBlock& node, SSACFGContext& context)
 	{
 		for (auto& varId : context.variables)
 		{
@@ -61,7 +61,7 @@ namespace HXSL
 		}
 	}
 
-	void SSABuilder::InsertPhiMeta(CFGNode& node, ILVarId varId, ILPhiId& phiIdOut)
+	void SSABuilder::InsertPhiMeta(BasicBlock& node, ILVarId varId, ILPhiId& phiIdOut)
 	{
 		auto& globalMetadata = metadata;
 		auto& phiMetadata = globalMetadata.phiMetadata;

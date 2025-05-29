@@ -7,6 +7,7 @@
 #include "lexical/numbers.hpp"
 #include "utils/hashing.hpp"
 #include "utils/ilist.hpp"
+#include "utils/static_vector.hpp"
 #include "value.hpp"
 #include "operands.hpp"
 
@@ -410,180 +411,180 @@ namespace HXSL
 		}
 	};
 
+	struct BasicBlock;
+
 	class Instruction : public IntrusiveLinkedBase<Instruction>, public Value
 	{
 	protected:
+		BasicBlock* parent;
 		TextSpan* location = nullptr;
 		ILOpCode opcode;
-		Instruction(ILOpCode opcode) : Value(ID), opcode(opcode) {}
-		Instruction(Value_T id, ILOpCode opcode) : Value(id), opcode(opcode) {}
+		static_vector<Operand*, StdBumpAllocator<Operand*>> operands;
+		Instruction(BumpAllocator& alloc, Value_T id, ILOpCode opcode) : Value(id), opcode(opcode), operands({ alloc }) {}
 	public:
 		static constexpr Value_T ID = InstructionVal;
 		TextSpan* GetLocation() const noexcept { return location; }
 		void SetLocation(TextSpan* value) noexcept { location = value; }
 
 		ILOpCode GetOpCode() const noexcept { return opcode; }
-		void SetOpCode(ILOpCode value) noexcept { opcode = value; }
 
-		inline bool IsBasic() const { return HXSL::IsBasic(opcode); }
-		inline bool IsUnary() const { return HXSL::IsUnary(opcode); }
-		inline bool IsBinary() const { return HXSL::IsBinary(opcode); }
-		inline bool IsLoadStore() const { return HXSL::IsLoadStore(opcode); }
-		inline bool IsDestination() const { return HXSL::IsDestination(opcode); }
-		inline bool IsJump() const { return HXSL::IsJump(opcode); }
-		inline bool IsCall() const { return HXSL::IsCall(opcode); }
-		inline bool IsReturn() const { return HXSL::IsReturn(opcode); }
-		inline bool IsPhi() const { return HXSL::IsPhi(opcode); }
+		Operand* GetOperand(size_t idx) const { return operands[idx]; }
+		Operand*& GetOperand(size_t idx) { return operands[idx]; }
+		size_t OperandCount() const noexcept { return operands.size(); }
+
+		BasicBlock* GetParent() const noexcept { return parent; }
+		void SetParent(BasicBlock* newParent) noexcept { parent = newParent; }
+
+		void Dump() const;
 	};
 
 	class BasicInstruction : public Instruction
 	{
 	public:
-		BasicInstruction(ILOpCode opcode) : Instruction(opcode) {}
+		static constexpr Value_T ID = BasicInstrVal;
+		BasicInstruction(BumpAllocator& alloc, ILOpCode opcode) : Instruction(alloc, ID, opcode) {}
 	};
 
 	class DestinationInstruction : public Instruction
 	{
 	protected:
 		ILVarId dst;
-		DestinationInstruction(ILOpCode opcode, const ILVarId& dst) : Instruction(opcode), dst(dst) {}
-		DestinationInstruction(Value_T id, ILOpCode opcode, const ILVarId& dst) : Instruction(id, opcode), dst(dst) {}
+		DestinationInstruction(BumpAllocator& alloc, Value_T id, ILOpCode opcode, const ILVarId& dst) : Instruction(alloc, id, opcode), dst(dst) {}
 
 	public:
+		static constexpr Value_T ID = DestInstrVal;
 		ILVarId& OpDst() noexcept { return dst; }
 		const ILVarId& OpDst() const noexcept { return dst; }
 	};
 
 	class StackAllocInstruction : public DestinationInstruction
 	{
-		TypeValue* typeId;
 	public:
 		static constexpr Value_T ID = StackAllocInstrVal;
-		StackAllocInstruction(const ILVarId& dst, TypeValue* typeId) : DestinationInstruction(ID, OpCode_StackAlloc, dst), typeId(typeId)
+		StackAllocInstruction(BumpAllocator& alloc, const ILVarId& dst, TypeValue* typeId) : DestinationInstruction(alloc, ID, OpCode_StackAlloc, dst)
 		{
+			operands.assign(typeId);
 		}
-
-		TypeValue*& GetTypeId() noexcept { return typeId; }
-		TypeValue* GetTypeId() const noexcept { return typeId; }
 	};
 
 	class OffsetInstruction : public DestinationInstruction
 	{
-		Variable* src;
-		FieldAccess* access;
 	public:
 		static constexpr Value_T ID = OffsetInstrVal;
-		OffsetInstruction(const ILVarId& dst, Variable* src, FieldAccess* access) : DestinationInstruction(ID, OpCode_OffsetAddress, dst), src(src), access(access)
+		OffsetInstruction(BumpAllocator& alloc, const ILVarId& dst, Variable* src, FieldAccess* access) : DestinationInstruction(alloc, ID, OpCode_OffsetAddress, dst)
 		{
+			operands.assign(src, access);
 		}
 	};
 
 	class ReturnInstruction : public Instruction
 	{
-		Operand* target;
 	public:
-		ReturnInstruction(Operand* target) : Instruction(OpCode_Return), target(target) {}
-		ReturnInstruction() : Instruction(OpCode_Return), target(nullptr) {}
+		static constexpr Value_T ID = ReturnInstrVal;
+		ReturnInstruction(BumpAllocator& alloc, Operand* target) : Instruction(alloc, ID, OpCode_Return)
+		{
+			operands.assign(target);
+		}
+		ReturnInstruction(BumpAllocator& alloc) : Instruction(alloc, ID, OpCode_Return)
+		{
+			operands.assign(nullptr);
+		}
 	};
 
 	class CallInstruction : public DestinationInstruction
 	{
-		Operand* function;
-
 	public:
-		CallInstruction(const ILVarId& dst, Operand* function) : DestinationInstruction(OpCode_Call, dst), function(function) {}
-		CallInstruction(Operand* function) : DestinationInstruction(OpCode_Call, INVALID_VARIABLE), function(function) {}
+		static constexpr Value_T ID = CallInstrVal;
+		CallInstruction(BumpAllocator& alloc, const ILVarId& dst, Operand* function) : DestinationInstruction(alloc, ID, OpCode_Call, dst)
+		{
+			operands.assign(function);
+		}
 
-		Operand*& Function() noexcept { return function; }
-		Operand* Function() const noexcept { return function; }
+		CallInstruction(BumpAllocator& alloc, Operand* function) : DestinationInstruction(alloc, ID, OpCode_Call, INVALID_VARIABLE)
+		{
+			operands.assign(function);
+		}
 	};
 
 	class JumpInstruction : public Instruction
 	{
-		Label* target;
-
 	public:
-		JumpInstruction(ILOpCode opcode, Label* target) : Instruction(opcode), target(target) {}
-
-		Label*& Target() noexcept { return target; }
-		Label* Target() const noexcept { return target; }
+		static constexpr Value_T ID = JumpInstrVal;
+		JumpInstruction(BumpAllocator& alloc, ILOpCode opcode, Label* target) : Instruction(alloc, ID, opcode)
+		{
+			operands.assign(target);
+		}
 	};
 
 	class BinaryInstruction : public DestinationInstruction
 	{
-		Operand* lhs;
-		Operand* rhs;
-
 	public:
-		BinaryInstruction(ILOpCode opcode, const ILVarId& dst, Operand* lhs, Operand* rhs) : DestinationInstruction(opcode, dst), lhs(lhs), rhs(rhs) {}
-		Operand*& OpLhs() noexcept { return lhs; }
-		Operand*& OpRhs() noexcept { return rhs; }
-		Operand* OpLhs() const noexcept { return lhs; }
-		Operand* OpRhs() const noexcept { return rhs; }
+		static constexpr Value_T ID = BinaryInstrVal;
+		BinaryInstruction(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* lhs, Operand* rhs) : DestinationInstruction(alloc, ID, opcode, dst)
+		{
+			operands.assign(lhs, rhs);
+		}
 	};
 
 	class UnaryInstruction : public DestinationInstruction
 	{
 		Operand* op;
 	public:
-		UnaryInstruction(ILOpCode opcode, const ILVarId& dst, Operand* op) : DestinationInstruction(opcode, dst), op(op) {}
-		Operand*& Op() noexcept { return op; }
-		Operand* Op() const noexcept { return op; }
+		static constexpr Value_T ID = UnaryInstrVal;
+		UnaryInstruction(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* op) : DestinationInstruction(alloc, ID, opcode, dst), op(op)
+		{
+			operands.assign(op);
+		}
 	};
 
 	class StoreInstruction : public Instruction
 	{
-		Operand* dst;
-		Operand* src;
 	public:
 		static constexpr Value_T ID = StoreInstrVal;
-		StoreInstruction(Operand* dst, Operand* src) : Instruction(ID, OpCode_Store), dst(dst), src(src) {}
-		Operand*& OpSrc() noexcept { return src; }
-		Operand* OpSrc() const noexcept { return src; }
-		Operand*& OpDst() noexcept { return dst; }
-		Operand* OpDst() const noexcept { return dst; }
+		StoreInstruction(BumpAllocator& alloc, Operand* dst, Operand* src) : Instruction(alloc, ID, OpCode_Store)
+		{
+			operands.assign(dst, src);
+		}
 	};
 
 	class LoadInstruction : public DestinationInstruction
 	{
-		Operand* src;
 	public:
 		static constexpr Value_T ID = LoadInstrVal;
-		LoadInstruction(const ILVarId& dst, Operand* src) : DestinationInstruction(ID, OpCode_Load, dst), src(src) {}
-		Operand*& OpSrc() noexcept { return src; }
-		Operand* OpSrc() const noexcept { return src; }
+		LoadInstruction(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : DestinationInstruction(alloc, ID, OpCode_Load, dst)
+		{
+			operands.assign(src);
+		}
 	};
 
 	class StoreParamInstruction : public Instruction
 	{
-		Operand* dst;
-		Operand* src;
 	public:
 		static constexpr Value_T ID = StoreParamInstrVal;
-		StoreParamInstruction(Operand* dst, Operand* src) : Instruction(ID, OpCode_StoreParam), dst(dst), src(src) {}
-		Operand*& OpSrc() noexcept { return src; }
-		Operand* OpSrc() const noexcept { return src; }
-		Operand*& OpDst() noexcept { return dst; }
-		Operand* OpDst() const noexcept { return dst; }
+		StoreParamInstruction(BumpAllocator& alloc, Operand* dst, Operand* src) : Instruction(alloc, ID, OpCode_StoreParam)
+		{
+			operands.assign(dst, src);
+		}
 	};
 
 	class LoadParamInstruction : public DestinationInstruction
 	{
-		Operand* src;
 	public:
 		static constexpr Value_T ID = LoadParamInstrVal;
-		LoadParamInstruction(const ILVarId& dst, Operand* src) : DestinationInstruction(ID, OpCode_LoadParam, dst), src(src) {}
-		Operand*& OpSrc() noexcept { return src; }
-		Operand* OpSrc() const noexcept { return src; }
+		LoadParamInstruction(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : DestinationInstruction(alloc, ID, OpCode_LoadParam, dst)
+		{
+			operands.assign(src);
+		}
 	};
 
 	class MoveInstruction : public DestinationInstruction
 	{
-		Operand* src;
 	public:
-		MoveInstruction(const ILVarId& dst, Operand* src) : DestinationInstruction(OpCode_Move, dst), src(src) {}
-		Operand*& OpSrc() noexcept { return src; }
-		Operand* OpSrc() const noexcept { return src; }
+		static constexpr Value_T ID = MoveInstrVal;
+		MoveInstruction(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : DestinationInstruction(alloc, ID, OpCode_Move, dst)
+		{
+			operands.assign(src);
+		}
 	};
 }
 

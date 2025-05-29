@@ -35,7 +35,7 @@ namespace HXSL
 		ConvertMoveImm(context, instr, Number(0));
 	}
 
-	void AlgebraicSimplifier::Visit(size_t index, CFGNode& node, EmptyCFGContext& ctx)
+	void AlgebraicSimplifier::Visit(size_t index, BasicBlock& node, EmptyCFGContext& ctx)
 	{
 		auto& instructions = node.instructions;
 

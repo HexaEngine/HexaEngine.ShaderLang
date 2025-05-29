@@ -98,7 +98,7 @@ namespace HXSL
 
 		void TryClearVersion(ILVarId& op);
 		void TryClearVersion(Value* op);
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 	public:
 		SSAReducer(ILMetadata& metadata, ControlFlowGraph& cfg) : ILMutatorBase(metadata), CFGVisitor(cfg)

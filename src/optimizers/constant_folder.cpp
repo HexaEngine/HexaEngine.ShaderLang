@@ -31,7 +31,7 @@ namespace HXSL
 		}
 	}
 
-	void ConstantFolder::Visit(size_t index, CFGNode& node, EmptyCFGContext& ctx)
+	void ConstantFolder::Visit(size_t index, BasicBlock& node, EmptyCFGContext& ctx)
 	{
 		auto& instructions = node.instructions;
 		for (auto& instr : instructions)

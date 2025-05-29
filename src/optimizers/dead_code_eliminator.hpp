@@ -14,11 +14,11 @@ namespace HXSL
 
 		void ProcessInstr(ILInstruction& instr, bool protectedInstr);
 
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override
+		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override
 		{
 		}
 
-		void VisitClose(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		void VisitClose(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 	public:
 		DeadCodeEliminator(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())

@@ -10,10 +10,10 @@ namespace HXSL
 
 		if (baseType->GetClass() == PrimitiveClass_Scalar)
 		{
-			return UnaryInstruction(OpCode_BroadcastVec, outOp, inOp);
+			return UnaryInstruction(context->allocator, OpCode_BroadcastVec, outOp, inOp);
 		}
 
-		return BinaryInstruction(OpCode_VecSwizzle, outOp, inOp, context->MakeConstant(Number(swizzle->GetMask())));
+		return BinaryInstruction(context->allocator, OpCode_VecSwizzle, outOp, inOp, context->MakeConstant(Number(swizzle->GetMask())));
 	}
 
 	bool ILExpressionBuilder::IsInlineable(Expression* expr, Operand*& opOut)

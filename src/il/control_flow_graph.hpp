@@ -41,15 +41,20 @@ namespace HXSL
 		}
 	}
 
-	struct CFGNode : public GraphNode<CFGNode>
+	struct BasicBlock : public GraphNode<BasicBlock>
 	{
+		friend class ControlFlowGraph;
 		size_t id;
+		ILContext* parent;
 		ControlFlowType type;
 		ilist<ILInstruction> instructions;
 		std::vector<size_t> predecessors;
 		std::vector<size_t> successors;
 
-		CFGNode(BumpAllocator& allocator, size_t id, ControlFlowType type) : id(id), type(type), instructions({ allocator }) {}
+	public:
+		BasicBlock(BumpAllocator& allocator, size_t id, ILContext* parent, ControlFlowType type) : id(id), parent(parent), type(type), instructions({ allocator }) {}
+
+		ILContext* GetParent() const { return parent; }
 
 		const std::vector<size_t>& GetDependencies() const
 		{
@@ -61,9 +66,10 @@ namespace HXSL
 			return successors;
 		}
 
-		void AddInstr(const ILInstruction& instr)
+		void AddInstr(Instruction* instr)
 		{
-			instructions.append(instr);
+			instr->SetParent(this);
+			//instructions.append_move(instr);
 		}
 
 		void AddPredecessor(size_t predId)
@@ -98,13 +104,13 @@ namespace HXSL
 		}
 	};
 
-	class ControlFlowGraph
+	class ControlFlowGraph : public GraphBase<BasicBlock>
 	{
+		friend class LTDominatorTree;
 		ILContext* context;
 	public:
 		BumpAllocator& allocator;
 		ILMetadata& metadata;
-		std::vector<CFGNode> nodes;
 		std::vector<size_t> idom;
 		std::vector<std::vector<size_t>> domTreeChildren;
 		std::vector<std::unordered_set<size_t>> domFront;
@@ -116,16 +122,6 @@ namespace HXSL
 		void RebuildDomTree();
 
 		void UpdatePhiInputs(size_t removedPred, size_t targetBlock);
-
-		size_t size() const noexcept { return nodes.size(); }
-		bool empty() const noexcept { return nodes.empty(); }
-
-		const std::vector<CFGNode>& GetNodes() const { return nodes; }
-
-		CFGNode& GetNode(size_t index)
-		{
-			return nodes[index];
-		}
 
 		size_t AddNode(ControlFlowType type)
 		{
@@ -140,7 +136,7 @@ namespace HXSL
 			}
 
 			auto index = nodes.size();
-			nodes.emplace_back(allocator, index, type);
+			nodes.emplace_back(allocator, index, context, type);
 			return index;
 		}
 
@@ -205,9 +201,9 @@ namespace HXSL
 		{
 		}
 
-		virtual void Visit(size_t index, CFGNode& node, TContext& context) = 0;
+		virtual void Visit(size_t index, BasicBlock& node, TContext& context) = 0;
 
-		virtual void VisitClose(size_t index, CFGNode& node, TContext& context) {}
+		virtual void VisitClose(size_t index, BasicBlock& node, TContext& context) {}
 
 	public:
 		void Traverse(size_t entryIdx = 0)

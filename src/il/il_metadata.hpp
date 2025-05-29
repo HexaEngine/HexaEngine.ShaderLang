@@ -18,7 +18,6 @@ namespace HXSL
 
 		static ILVariableFlags GetVarTypeFlags(SymbolDef* def)
 	{
-		
 		ILVariableFlags flags = ILVariableFlags_None;
 		if (auto prim = def->As<Primitive>())
 		{
@@ -26,6 +25,10 @@ namespace HXSL
 			{
 				flags |= ILVariableFlags_LargeObject | ILVariableFlags_Reference;
 			}
+		}
+		else
+		{
+			flags |= ILVariableFlags_LargeObject;
 		}
 
 		if (auto ptr = def->As<Pointer>())

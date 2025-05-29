@@ -13,7 +13,7 @@ namespace HXSL
 
 		void TryMapOperand(Value*& op);
 
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 	public:
 		CommonSubExpression(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())

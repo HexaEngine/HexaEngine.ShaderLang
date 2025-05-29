@@ -18,7 +18,7 @@ namespace HXSL
 		TryClearVersion(var->varId);
 	}
 
-	void SSAReducer::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
+	void SSAReducer::Visit(size_t index, BasicBlock& node, EmptyCFGContext& context)
 	{
 		lastUseIndex.clear();
 

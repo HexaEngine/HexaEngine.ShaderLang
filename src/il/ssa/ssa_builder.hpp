@@ -54,11 +54,11 @@ namespace HXSL
 			versionStacks[varId].pop();
 		}
 
-		void InsertPhiMeta(CFGNode& node, ILVarId varId, ILPhiId& phiIdOut);
+		void InsertPhiMeta(BasicBlock& node, ILVarId varId, ILPhiId& phiIdOut);
 
-		void Visit(size_t index, CFGNode& node, SSACFGContext& context) override;
+		void Visit(size_t index, BasicBlock& node, SSACFGContext& context) override;
 
-		void VisitClose(size_t index, CFGNode& node, SSACFGContext& context) override;
+		void VisitClose(size_t index, BasicBlock& node, SSACFGContext& context) override;
 
 	public:
 		SSABuilder(ILContext* context) :

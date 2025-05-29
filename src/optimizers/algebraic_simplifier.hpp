@@ -7,7 +7,7 @@ namespace HXSL
 {
 	class AlgebraicSimplifier : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 	{
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 	public:
 		AlgebraicSimplifier(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())

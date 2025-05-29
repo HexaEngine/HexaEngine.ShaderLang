@@ -13,12 +13,20 @@ namespace HXSL
 		enum Value_T : uint16_t
 		{
 			InstructionVal,
+			DestInstrVal,
+			BasicInstrVal,
+			ReturnInstrVal,
+			CallInstrVal,
+			JumpInstrVal,
+			BinaryInstrVal,
+			UnaryInstrVal,
 			StackAllocInstrVal,
 			OffsetInstrVal,
 			LoadInstrVal,
 			StoreInstrVal,
 			LoadParamInstrVal,
 			StoreParamInstrVal,
+			MoveInstrVal,
 			ConstantVal,
 			VariableVal,
 			FieldVal,
@@ -38,6 +46,43 @@ namespace HXSL
 	inline static bool isa(const Value* N)
 	{
 		return N && N->GetTypeId() == T::ID;
+	}
+
+	template<auto... Values>
+	struct value_type_equals_checker
+	{
+		template<typename T>
+		constexpr bool operator()(T&& value) const
+		{
+			return ((std::forward<T>(value) == Values) || ...);
+		}
+
+		template<typename T>
+		static constexpr bool check(T&& value)
+		{
+			return ((std::forward<T>(value) == Values) || ...);
+		}
+	};
+
+	using dest_instr_checker = value_type_equals_checker<
+		Value::DestInstrVal,
+		Value::StackAllocInstrVal,
+		Value::OffsetInstrVal,
+		Value::CallInstrVal,
+		Value::BinaryInstrVal,
+		Value::UnaryInstrVal,
+		Value::LoadInstrVal,
+		Value::LoadParamInstrVal,
+		Value::MoveInstrVal>;
+
+	class DestinationInstruction;
+
+	template<>
+	inline static bool isa<DestinationInstruction>(const Value* N)
+	{
+		if (!N) return false;
+		auto id = N->GetTypeId();
+		return dest_instr_checker::check(id);
 	}
 
 	template <typename T>

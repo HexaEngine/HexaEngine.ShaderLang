@@ -41,7 +41,7 @@ namespace HXSL
 		{
 			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			OperandFactory factory{ allocator };
-			container.append_move(allocator.Alloc<T>(opcode, result, factory(std::forward<Operands>(operands))...));
+			container.append_move(allocator.Alloc<T>(allocator, opcode, result, factory(std::forward<Operands>(operands))...));
 		}
 
 		template<typename T, typename... Operands>
@@ -49,7 +49,7 @@ namespace HXSL
 		{
 			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			OperandFactory factory{ allocator };
-			container.append_move(allocator.Alloc<T>(result, factory(std::forward<Operands>(operands))...));
+			container.append_move(allocator.Alloc<T>(allocator, result, factory(std::forward<Operands>(operands))...));
 		}
 
 		template<typename T, typename... Operands>
@@ -57,7 +57,7 @@ namespace HXSL
 		{
 			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			OperandFactory factory{ allocator };
-			container.append_move(allocator.Alloc<T>(opcode, factory(std::forward<Operands>(operands))...));
+			container.append_move(allocator.Alloc<T>(allocator, opcode, factory(std::forward<Operands>(operands))...));
 		}
 
 		template<typename T, typename... Operands>
@@ -65,12 +65,12 @@ namespace HXSL
 		{
 			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			OperandFactory factory{ allocator };
-			container.append_move(allocator.Alloc<T>(factory(std::forward<Operands>(operands))...));
+			container.append_move(allocator.Alloc<T>(allocator, factory(std::forward<Operands>(operands))...));
 		}
 
 		void AddBasicInstr(ILOpCode opcode)
 		{
-			container.append_move(allocator.Alloc<BasicInstruction>(opcode));
+			container.append_move(allocator.Alloc<BasicInstruction>(allocator, opcode));
 		}
 
 		template<typename U>
@@ -84,7 +84,6 @@ namespace HXSL
 			OperandFactory factory{ allocator };
 			AddInstrONO<StoreInstruction>(dst.id, factory(std::forward<U>(src)));
 		}
-
 
 		template<typename U>
 		void AddLoadInstr(const ILVariable& src, U&& dst)

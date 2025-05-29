@@ -179,9 +179,37 @@ namespace HXSL
 		return OpKindToString(opKind);
 	}
 
-	static std::string ToString(const Instruction& instr, const ILMetadata& metadata)
+	static std::string ToString(const Instruction& instruction, const ILMetadata& metadata)
 	{
-		return "FIX ME";
+		auto instr = &instruction;
+		std::ostringstream oss;
+
+		if (auto res = dyn_cast<DestinationInstruction>(instr))
+		{
+			oss << ToString(res->OpDst(), metadata);
+			oss << " = ";
+		}
+
+		oss << OpCodeToString(instr->GetOpCode()) + " ";
+
+		bool first = true;
+		auto n = instr->OperandCount();
+		for (size_t i = 0; i < n; ++i)
+		{
+			auto op = instr->GetOperand(i);
+			oss << ToString(op, first, metadata);
+			first = false;
+		}
+
+		if (auto loc = instr->GetLocation())
+		{
+			auto& span = *loc;
+			auto len = oss.view().length();
+			for (size_t i = len; i < 75; ++i) oss << " ";
+			oss << "; " << " (Line: " << span.line << " Column: " << span.column << ")";
+		}
+
+		return oss.str();
 	}
 
 	static std::string ToString(const ILInstruction& instruction, const ILMetadata& metadata)

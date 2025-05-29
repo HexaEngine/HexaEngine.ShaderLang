@@ -53,7 +53,7 @@ namespace HXSL
 		}
 	}
 
-	void StrengthReduction::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
+	void StrengthReduction::Visit(size_t index, BasicBlock& node, EmptyCFGContext& context)
 	{
 		auto& instructions = node.instructions;
 		for (auto& instr : instructions)

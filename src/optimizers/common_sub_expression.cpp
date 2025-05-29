@@ -14,7 +14,7 @@ namespace HXSL
 		}
 	}
 
-	void CommonSubExpression::Visit(size_t index, CFGNode& node, EmptyCFGContext& context)
+	void CommonSubExpression::Visit(size_t index, BasicBlock& node, EmptyCFGContext& context)
 	{
 		auto& instructions = node.instructions;
 		for (auto& instr : instructions)
