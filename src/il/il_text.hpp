@@ -82,32 +82,6 @@ namespace HXSL
 		}
 	}
 
-	static std::string OpKindToString(ILOpKind opKind)
-	{
-		switch (opKind)
-		{
-		case ILOpKind_None: return "";
-		case ILOpKind_I8: return "i8";
-		case ILOpKind_I16: return "i16";
-		case ILOpKind_I32: return "i32";
-		case ILOpKind_I64: return "i64";
-		case ILOpKind_U8: return "u8";
-		case ILOpKind_U16: return "u16";
-		case ILOpKind_U32: return "u32";
-		case ILOpKind_U64: return "u64";
-		case ILOpKind_Half: return "f16";
-		case ILOpKind_Float: return "f32";
-		case ILOpKind_Double: return "f64";
-		case ILOpKind_Min8Float: return "m8f";
-		case ILOpKind_Min10Float: return "m10f";
-		case ILOpKind_Min16Float: return "m16f";
-		case ILOpKind_Min12Int: return "m12i";
-		case ILOpKind_Min16Int: return "m16i";
-		case ILOpKind_Min16Uint: return "m16u";
-		default: return "Unknown OpKind";
-		}
-	}
-
 	static std::string ToString(ILVarId varId, const ILMetadata& metadata)
 	{
 		std::ostringstream oss;
@@ -163,12 +137,6 @@ namespace HXSL
 		return oss.str();
 	}
 
-	static std::string GetOpKindType(ILOpKind opKind)
-	{
-		opKind &= static_cast<ILOpKind>(ILOpKindTypeMask);
-		return OpKindToString(opKind);
-	}
-
 	static std::string ToString(const Instruction& instruction, const ILMetadata& metadata)
 	{
 		auto instr = &instruction;
@@ -197,51 +165,6 @@ namespace HXSL
 			auto len = oss.view().length();
 			for (size_t i = len; i < 75; ++i) oss << " ";
 			oss << "; " << " (Line: " << span.line << " Column: " << span.column << ")";
-		}
-
-		return oss.str();
-	}
-
-	static std::string ToString(const ILInstruction& instruction, const ILMetadata& metadata)
-	{
-		std::ostringstream oss;
-
-		if (instruction.result != INVALID_VARIABLE)
-		{
-			oss << ToString(instruction.result, metadata);
-			oss << " = ";
-		}
-
-		oss << OpCodeToString(instruction.opcode) + " ";
-
-		bool first = true;
-		if (instruction.operandLeft)
-		{
-			oss << ToString(instruction.operandLeft, first, metadata);
-			first = false;
-		}
-
-		if (instruction.operandRight)
-		{
-			oss << ToString(instruction.operandRight, first, metadata);
-			first = false;
-		}
-
-		if (IsFlagSet(instruction.opKind, ILOpKind_Const))
-		{
-			oss << " const";
-		}
-
-		if (IsFlagSet(instruction.opKind, ILOpKind_Precise))
-		{
-			oss << " precise";
-		}
-
-		oss << " " << GetOpKindType(instruction.opKind);
-		if (instruction.location)
-		{
-			auto& span = *instruction.location;
-			oss << "\t; " << " (Line: " << span.line << " Column: " << span.column << ")";
 		}
 
 		return oss.str();

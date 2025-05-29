@@ -39,8 +39,6 @@ namespace HXSL
 			return alloc.Alloc<FieldAccess>(field);
 		}
 
-		ILOpKind operator()(ILOpKind kind) const noexcept { return kind; }
-
 		Variable* operator()(Variable* op) const noexcept
 		{
 			return alloc.Alloc<Variable>(op->varId);
