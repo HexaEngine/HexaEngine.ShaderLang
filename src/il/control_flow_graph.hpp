@@ -99,7 +99,8 @@ namespace HXSL
 		template<typename U>
 		U* InsertInstr(const instr_iterator& it, const U& instr)
 		{
-			auto res = instructions.insert(it, instr);
+			auto& allocator = instructions.get_allocator();
+			auto res = instructions.insert(it, allocator.Alloc<U>(instr));
 			res->SetParent(this);
 			return static_cast<U*>(res);
 		}
@@ -107,7 +108,8 @@ namespace HXSL
 		template<typename U>
 		U* InsertInstr(const instr_iterator& it, U&& instr)
 		{
-			auto res = instructions.insert(it, std::forward<U>(instr));
+			auto& allocator = instructions.get_allocator();
+			auto res = instructions.insert(it, allocator.Alloc<U>(std::forward<U>(instr)));
 			res->SetParent(this);
 			return static_cast<U*>(res);
 		}
@@ -124,7 +126,10 @@ namespace HXSL
 			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			auto& allocator = instructions.get_allocator();
 			OperandFactory factory{ allocator };
-			auto res = instructions.replace(instr, T(allocator, opcode, result, factory(std::forward<Operands>(operands))...));
+			auto loc = instr->GetLocation();
+			auto res = instructions.emplace_replace<T>(instr, allocator, opcode, result, factory(std::forward<Operands>(operands))...);
+			res->SetLocation(loc);
+			res->SetParent(this);
 			return res;
 		}
 
@@ -134,7 +139,10 @@ namespace HXSL
 			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			auto& allocator = instructions.get_allocator();
 			OperandFactory factory{ allocator };
-			auto res = instructions.replace(instr, T(allocator, opcode, factory(std::forward<Operands>(operands))...));
+			auto loc = instr->GetLocation();
+			auto res = instructions.emplace_replace<T>(instr, allocator, opcode, factory(std::forward<Operands>(operands))...);
+			res->SetLocation(loc);
+			res->SetParent(this);
 			return res;
 		}
 
@@ -144,7 +152,10 @@ namespace HXSL
 			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			auto& allocator = instructions.get_allocator();
 			OperandFactory factory{ allocator };
-			auto res = instructions.replace(instr, T(allocator, result, factory(std::forward<Operands>(operands))...));
+			auto loc = instr->GetLocation();
+			auto res = instructions.emplace_replace<T>(instr, allocator, result, factory(std::forward<Operands>(operands))...);
+			res->SetLocation(loc);
+			res->SetParent(this);
 			return res;
 		}
 
@@ -154,7 +165,11 @@ namespace HXSL
 			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			auto& allocator = instructions.get_allocator();
 			OperandFactory factory{ allocator };
-			auto res = instructions.replace(instr, T(allocator, factory(std::forward<Operands>(operands))...));
+			auto loc = instr->GetLocation();
+			auto res = instructions.emplace_replace<T>(instr, allocator, factory(std::forward<Operands>(operands))...);
+			res->SetLocation(loc);
+			res->SetParent(this);
+			return res;
 		}
 
 		void InstructionsTrimEnd(Instruction* instr)

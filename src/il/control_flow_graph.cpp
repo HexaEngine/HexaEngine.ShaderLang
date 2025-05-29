@@ -10,11 +10,10 @@ namespace HXSL
 
 	void ControlFlowGraph::Build(ILContainer& container, JumpTable& jumpTable)
 	{
-		/*
 		nodes.clear();
 
-		std::unordered_map<ILInstruction*, size_t> instrToNode;
-		std::unordered_set<ILInstruction*> blockStarts;
+		std::unordered_map<Instruction*, size_t> instrToNode;
+		std::unordered_set<Instruction*> blockStarts;
 
 		for (auto& loc : jumpTable.locations)
 		{
@@ -32,10 +31,10 @@ namespace HXSL
 
 			auto next = instr->GetNext();
 			auto& node = GetNode(currentIdx);
-			auto newNode = node.instructions.append_move(instr);
+			node.AddInstr(instr);
 			instrToNode.insert({ instr, currentIdx });
 
-			switch (instr->opcode)
+			switch (instr->GetOpCode())
 			{
 			case OpCode_Jump:
 			{
@@ -67,32 +66,29 @@ namespace HXSL
 				continue;
 
 			auto& lastInstr = node.instructions.back();
-			ILInstruction* term = &lastInstr;
+			Instruction* term = &lastInstr;
 
-			switch (lastInstr.opcode)
+			switch (lastInstr.GetOpCode())
 			{
 			case OpCode_Jump:
 			{
-				if (auto label = dyn_cast<Label>(lastInstr.operandLeft))
-				{
-					auto target = jumpTable.GetLocation(label->label);
-					auto targetNode = instrToNode[target];
-					label->label = ILLabel(targetNode);
-					Link(node.id, instrToNode[target]);
-				}
+				auto& jump = *cast<JumpInstr>(&lastInstr);
+				auto label = jump.GetLabel();
+				auto target = jumpTable.GetLocation(label->label);
+				auto targetNode = instrToNode[target];
+				label->label = ILLabel(targetNode);
+				Link(node.id, instrToNode[target]);
 				break;
 			}
 			case OpCode_JumpZero:
 			case OpCode_JumpNotZero:
 			{
-				if (auto label = dyn_cast<Label>(lastInstr.operandLeft))
-				{
-					auto target = jumpTable.GetLocation(label->label);
-					auto targetNode = instrToNode[target];
-					label->label = ILLabel(targetNode);
-					Link(node.id, targetNode);
-				}
-
+				auto& jump = *cast<JumpInstr>(&lastInstr);
+				auto label = jump.GetLabel();
+				auto target = jumpTable.GetLocation(label->label);
+				auto targetNode = instrToNode[target];
+				label->label = ILLabel(targetNode);
+				Link(node.id, targetNode);
 				Link(node.id, node.id + 1);
 				break;
 			}
@@ -109,7 +105,6 @@ namespace HXSL
 		}
 
 		RebuildDomTree();
-		*/
 	}
 
 	void ControlFlowGraph::RebuildDomTree()

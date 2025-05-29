@@ -483,6 +483,31 @@ namespace HXSL
 			return newNode;
 		}
 
+		T* insert(const iterator& it, T* newNode)
+		{
+			if (it == end())
+			{
+				return append_move(newNode);
+			}
+
+			T* currentNode = &*it;
+
+			newNode->next = currentNode;
+			newNode->prev = currentNode->prev;
+
+			if (currentNode->prev)
+			{
+				currentNode->prev->next = newNode;
+			}
+			else
+			{
+				head = newNode;
+			}
+			currentNode->prev = newNode;
+
+			return newNode;
+		}
+
 		template<typename... Args>
 		T* emplace_insert(const iterator& it, Args&&... args)
 		{
@@ -561,10 +586,10 @@ namespace HXSL
 			return newNode;
 		}
 
-		template<typename... Args>
+		template<typename U, typename... Args>
 		T* emplace_replace(T* node, Args&&... args)
 		{
-			T* newNode = allocator->Alloc<T>(std::forward<Args>(args)...);
+			T* newNode = allocator->Alloc<U>(std::forward<Args>(args)...);
 			newNode->prev = node->prev;
 			newNode->next = node->next;
 			if (newNode->next)

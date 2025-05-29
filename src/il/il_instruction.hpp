@@ -280,7 +280,9 @@ namespace HXSL
 	{
 	protected:
 		ILVarId dst;
-		ResultInstr(BumpAllocator& alloc, Value_T id, ILOpCode opcode, const ILVarId& dst) : Instruction(alloc, id, opcode), dst(dst) {}
+		ResultInstr(BumpAllocator& alloc, Value_T id, ILOpCode opcode, const ILVarId& dst) : Instruction(alloc, id, opcode), dst(dst)
+		{
+		}
 
 	public:
 		static constexpr Value_T ID = ResultInstrVal;

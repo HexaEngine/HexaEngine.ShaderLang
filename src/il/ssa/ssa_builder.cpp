@@ -61,7 +61,7 @@ namespace HXSL
 	{
 		auto& globalMetadata = metadata;
 		auto& var = globalMetadata.variables[varId.var.id];
-		auto incomingCount = node.GetDependencies().size();
+		auto incomingCount = node.NumPredecessors();
 		auto instr = node.InsertInstr(node.begin(), PhiInstr(context->allocator, var, incomingCount));
 		globalMetadata.phiNodes.push_back(instr);
 	}
@@ -87,7 +87,6 @@ namespace HXSL
 		}
 
 		std::unordered_map<uint64_t, std::unordered_set<size_t>> hasPhi;
-		std::vector<std::vector<ILPhiId>> blockPhis(n);
 		for (auto& p : defSites)
 		{
 			uint64_t varId = p.first;
@@ -102,7 +101,6 @@ namespace HXSL
 					if (hasPhi[varId].insert(df).second)
 					{
 						InsertPhiMeta(cfg.GetNode(df), varId);
-						//blockPhis[df].push_back(phiId);
 						if (!p.second.count(df)) wl.push(df);
 					}
 				}

@@ -94,7 +94,7 @@ namespace HXSL
 				auto res = dyn_cast<ResultInstr>(&instr);
 				if (!res) break;
 				if (!isa<Constant>(instr.GetOperand(0))) break;
-				if (opCount > 0)
+				if (opCount > 1)
 				{
 					if (!isa<Constant>(instr.GetOperand(1))) break;
 				}

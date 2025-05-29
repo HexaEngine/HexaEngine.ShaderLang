@@ -12,7 +12,7 @@ namespace HXSL
 		for (size_t i = 1; i < nodes.size(); i++)
 		{
 			auto& node = nodes[i];
-			if (node.GetDependencies().empty())
+			if (node.IsPredecessorsEmpty())
 			{
 				TextSpan span;
 				bool first = true;
