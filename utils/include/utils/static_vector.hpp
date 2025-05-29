@@ -31,6 +31,9 @@ public:
 	{
 		resize(size);
 	}
+	explicit static_vector(const allocator_type& alloc = allocator_type()) : alloc_m(alloc)
+	{
+	}
 
 	~static_vector()
 	{
@@ -38,6 +41,14 @@ public:
 		alloc_m.deallocate(data_m, size_m);
 		data_m = nullptr;
 		size_m = 0;
+	}
+
+	template<typename... Args>
+	void assign(Args&&... args)
+	{
+		resize(sizeof...(args));
+		std::size_t i = 0;
+		((data_m[i++] = std::forward<Args>(args)), ...);
 	}
 
 	reference operator[](size_type index)

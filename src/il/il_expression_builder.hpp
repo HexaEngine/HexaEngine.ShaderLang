@@ -55,7 +55,7 @@ namespace HXSL
 			stack.pop();
 		}
 
-		void SetLocation(ILLabel label, ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		void SetLocation(ILLabel label, Instruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			if (location == INVALID_JUMP_LOCATION_PTR)
 			{
@@ -64,7 +64,7 @@ namespace HXSL
 			jumpTable.SetLocation(label, location);
 		}
 
-		ILLabel MakeJumpLocation(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		ILLabel MakeJumpLocation(Instruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			return jumpTable.Allocate(location);
 		}

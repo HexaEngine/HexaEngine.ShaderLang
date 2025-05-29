@@ -483,6 +483,58 @@ namespace HXSL
 			return newNode;
 		}
 
+		T* insert(const iterator& it, T* newNode)
+		{
+			if (it == end())
+			{
+				return append_move(newNode);
+			}
+
+			T* currentNode = &*it;
+
+			newNode->next = currentNode;
+			newNode->prev = currentNode->prev;
+
+			if (currentNode->prev)
+			{
+				currentNode->prev->next = newNode;
+			}
+			else
+			{
+				head = newNode;
+			}
+			currentNode->prev = newNode;
+
+			return newNode;
+		}
+
+		template<typename... Args>
+		T* emplace_insert(const iterator& it, Args&&... args)
+		{
+			if (it == end())
+			{
+				return emplace_append(std::forward<Args>(args)...);
+			}
+
+			T* newNode = allocator->Alloc<T>(std::forward<Args>(args)...);
+			T* currentNode = &*it;
+
+			newNode->next = currentNode;
+			newNode->prev = currentNode->prev;
+
+			if (currentNode->prev)
+			{
+				currentNode->prev->next = newNode;
+			}
+			else
+			{
+				head = newNode;
+			}
+			currentNode->prev = newNode;
+
+			return newNode;
+		}
+
 		void remove(T* node)
 		{
 			if (!node) return;
@@ -507,6 +559,57 @@ namespace HXSL
 
 			node->prev = node->next = nullptr;
 			node->~T();
+		}
+
+		T* replace(T* node, const T& val)
+		{
+			T* newNode = allocator->Alloc<T>(val);
+			newNode->prev = node->prev;
+			newNode->next = node->next;
+			if (newNode->next)
+			{
+				newNode->next->prev = newNode;
+			}
+			if (newNode->prev)
+			{
+				newNode->prev->next = newNode;
+			}
+			if (node == tail)
+			{
+				tail = newNode;
+			}
+			if (node == head)
+			{
+				head = newNode;
+			}
+			node->~T();
+			return newNode;
+		}
+
+		template<typename U, typename... Args>
+		T* emplace_replace(T* node, Args&&... args)
+		{
+			T* newNode = allocator->Alloc<U>(std::forward<Args>(args)...);
+			newNode->prev = node->prev;
+			newNode->next = node->next;
+			if (newNode->next)
+			{
+				newNode->next->prev = newNode;
+			}
+			if (newNode->prev)
+			{
+				newNode->prev->next = newNode;
+			}
+			if (node == tail)
+			{
+				tail = newNode;
+			}
+			if (node == head)
+			{
+				head = newNode;
+			}
+			node->~T();
+			return newNode;
 		}
 
 		void clear()

@@ -16,11 +16,15 @@ namespace HXSL
 		ILMetadata metadata;
 		ControlFlowGraph cfg;
 
-		ILContext(LowerCompilationUnit* compilation, FunctionOverload* overload) : compilation(compilation), overload(overload), cfg(this)
+		ILContext(LowerCompilationUnit* compilation, FunctionOverload* overload) : compilation(compilation), overload(overload), metadata(allocator), cfg(this)
 		{
 		}
 
+		bool empty() const noexcept { return cfg.empty(); }
+
 		ILMetadata& GetMetadata() { return metadata; }
+
+		const ILMetadata& GetMetadata() const { return metadata; }
 
 		ControlFlowGraph& GetCFG() { return cfg; }
 
@@ -35,7 +39,6 @@ namespace HXSL
 		Constant* MakeConstant(const Number& num) { return allocator.Alloc<Constant>(num); }
 		Variable* MakeVariable(const ILVarId& varId) { return allocator.Alloc<Variable>(varId); }
 		Variable* MakeVariable(const ILVariable& var) { return allocator.Alloc<Variable>(var.id); }
-		Phi* MakePhi(const ILPhiId& phiId) { return allocator.Alloc<Phi>(phiId); }
 	};
 }
 

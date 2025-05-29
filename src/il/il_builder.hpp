@@ -155,14 +155,14 @@ namespace HXSL
 		ILExpressionBuilder exprBuilder;
 		JumpTable& jumpTable;
 
-		std::stack<ILInstruction*> mappingStarts;
+		std::stack<Instruction*> mappingStarts;
 
 		void MappingStart()
 		{
 			mappingStarts.push(&container.back());
 		}
 
-		void MappingEnd(const TextSpan& span, ILInstruction* start = nullptr, ILInstruction* end = nullptr)
+		void MappingEnd(const TextSpan& span, Instruction* start = nullptr, Instruction* end = nullptr)
 		{
 			if (start == nullptr)
 			{
@@ -178,7 +178,7 @@ namespace HXSL
 			auto current = start->GetNext();
 			while (current)
 			{
-				current->location = location;
+				current->SetLocation(location);
 				if (current == end) break;
 				current = current->GetNext();
 			}
@@ -228,7 +228,7 @@ namespace HXSL
 			loopStack.pop();
 		}
 
-		void SetLocation(ILLabel label, ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		void SetLocation(ILLabel label, Instruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			if (location == INVALID_JUMP_LOCATION_PTR)
 			{
@@ -237,7 +237,7 @@ namespace HXSL
 			jumpTable.SetLocation(label, location);
 		}
 
-		ILLabel MakeJumpLocation(ILInstruction* location = INVALID_JUMP_LOCATION_PTR)
+		ILLabel MakeJumpLocation(Instruction* location = INVALID_JUMP_LOCATION_PTR)
 		{
 			return jumpTable.Allocate(location);
 		}

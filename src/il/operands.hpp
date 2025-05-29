@@ -3,21 +3,16 @@
 
 #include "config.h"
 #include "pch/std.hpp"
+#include "ast_ilgen.hpp"
 #include "lexical/numbers.hpp"
 #include "utils/hashing.hpp"
 #include "value.hpp"
 
 namespace HXSL
 {
-	struct ILTypeId
-	{
-		uint32_t value;
-		ILTypeId() = default;
-		constexpr explicit ILTypeId(uint32_t val) : value(val) {}
+	class ILTypeMetadata;
 
-		bool operator==(const ILTypeId& other) const { return value == other.value; }
-		bool operator!=(const ILTypeId& other) const { return value != other.value; }
-	};
+	using ILType = ILTypeMetadata*;
 
 	struct ILFieldId
 	{
@@ -61,11 +56,11 @@ namespace HXSL
 
 	struct ILFieldAccess
 	{
-		ILTypeId typeId;
+		ILType typeId;
 		ILFieldId fieldId;
 
 		ILFieldAccess() = default;
-		constexpr explicit ILFieldAccess(ILTypeId typeId, ILFieldId fieldId) : typeId(typeId), fieldId(fieldId) {}
+		constexpr explicit ILFieldAccess(ILType typeId, ILFieldId fieldId) : typeId(typeId), fieldId(fieldId) {}
 
 		bool operator==(const ILFieldAccess& other) const
 		{
@@ -80,7 +75,7 @@ namespace HXSL
 		uint64_t hash() const
 		{
 			XXHash3_64 hash{};
-			hash.Combine(typeId.value);
+			hash.Combine(reinterpret_cast<size_t>(typeId));
 			hash.Combine(fieldId.value);
 			return hash.Finalize();
 		}
@@ -104,6 +99,10 @@ namespace HXSL
 		constexpr ILVarId(uint64_t raw) : raw(raw) {}
 		constexpr ILVarId(ILVarId_T var) : var(var) {}
 		constexpr ILVarId() : raw(0) {}
+
+		constexpr bool id() const { return var.id; }
+		constexpr bool version() const { return var.version; }
+		constexpr bool temp() const { return var.temp; }
 
 		constexpr operator uint64_t() const { return raw; }
 		constexpr operator ILVarId_T() const { return var; }
@@ -135,8 +134,6 @@ namespace HXSL
 		inline static bool IsType(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::TypeVal; }
 
 		inline static bool IsFunc(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::FuncVal; }
-
-		inline static bool IsPhi(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::PhiVal; }
 	};
 
 	class Constant : public Operand
@@ -165,8 +162,8 @@ namespace HXSL
 	{
 	public:
 		static constexpr Value_T ID = TypeVal;
-		ILTypeId typeId;
-		TypeValue(ILTypeId typeId) : Operand(ID), typeId(typeId) {}
+		ILType typeId;
+		TypeValue(ILType typeId) : Operand(ID), typeId(typeId) {}
 	};
 
 	class Function : public Operand
@@ -193,14 +190,6 @@ namespace HXSL
 		FieldAccess(ILFieldAccess field) : Operand(ID), field(field) {}
 	};
 
-	class Phi : public Operand
-	{
-	public:
-		static constexpr Value_T ID = PhiVal;
-		ILPhiId phiId;
-		Phi(ILPhiId phiId) : Operand(ID), phiId(phiId) {}
-	};
-
 	static uint64_t hash(const Value* val) noexcept
 	{
 		if (!val) return 0;
@@ -216,7 +205,7 @@ namespace HXSL
 			hash.Combine(static_cast<const Variable*>(val)->varId.raw);
 			break;
 		case Value::TypeVal:
-			hash.Combine(static_cast<const TypeValue*>(val)->typeId.value);
+			hash.Combine(reinterpret_cast<size_t>(static_cast<const TypeValue*>(val)->typeId));
 			break;
 		case Value::FuncVal:
 			hash.Combine(static_cast<const Function*>(val)->funcId.value);
@@ -226,9 +215,6 @@ namespace HXSL
 			break;
 		case Value::FieldVal:
 			hash.Combine(static_cast<const FieldAccess*>(val)->field.hash());
-			break;
-		case Value::PhiVal:
-			hash.Combine(static_cast<const Phi*>(val)->phiId.value);
 			break;
 		}
 		return hash.Finalize();
@@ -254,8 +240,6 @@ namespace HXSL
 			return static_cast<const Label*>(rhs)->label == static_cast<const Label*>(lhs)->label;
 		case Value::FieldVal:
 			return static_cast<const FieldAccess*>(rhs)->field == static_cast<const FieldAccess*>(lhs)->field;
-		case Value::PhiVal:
-			return static_cast<const Phi*>(rhs)->phiId == static_cast<const Phi*>(lhs)->phiId;
 		}
 
 		return false;

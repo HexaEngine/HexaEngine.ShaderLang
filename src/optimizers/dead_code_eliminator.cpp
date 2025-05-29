@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	void DeadCodeEliminator::ProcessOperand(Value* op)
+	void DeadCodeEliminator::ProcessOperand(Operand* op)
 	{
 		if (Operand::IsVar(op))
 		{
@@ -10,44 +10,35 @@ namespace HXSL
 		}
 	}
 
-	void DeadCodeEliminator::ProcessInstr(ILInstruction& instr, bool protectedInstr)
+	void DeadCodeEliminator::ProcessInstr(Instruction& instr, bool protectedInstr)
 	{
-		if (instr.opcode == OpCode_Phi)
+		for (auto& operand : instr.GetOperands())
 		{
-			auto& phiNode = metadata.GetPhi(cast<Phi>(instr.operandLeft)->phiId);
-			for (auto& usedVarId : phiNode.params)
-			{
-				usedVars.insert(usedVarId);
-			}
+			ProcessOperand(operand);
 		}
 
-		ProcessOperand(instr.operandLeft);
-		ProcessOperand(instr.operandRight);
-
 		if (protectedInstr) return;
-		if (instr.HasResult())
+		if (auto res = dyn_cast<ResultInstr>(&instr))
 		{
-			if (usedVars.find(instr.result) == usedVars.end())
+			if (usedVars.find(res->GetResult()) == usedVars.end())
 			{
-				deadVars.insert(instr.result);
+				deadVars.insert(res->GetResult());
 				DiscardInstr(instr);
 			}
 		}
 	}
 
-	void DeadCodeEliminator::VisitClose(size_t index, CFGNode& node, EmptyCFGContext& context)
+	void DeadCodeEliminator::VisitClose(size_t index, BasicBlock& node, EmptyCFGContext& context)
 	{
-		auto& instructions = node.instructions;
-		const size_t n = instructions.size();
-
 		bool protectedInstr = false;
-		for (auto it = instructions.rbegin(); it != instructions.rend(); ++it)
+		for (auto it = node.rbegin(); it != node.rend(); ++it)
 		{
 			auto& instr = *it;
-			protectedInstr |= instr.opcode == OpCode_Store;
+			auto opcode = instr.GetOpCode();
+			protectedInstr |= opcode == OpCode_Store;
 
 			ProcessInstr(instr, protectedInstr);
-			if (instr.opcode == OpCode_JumpZero || instr.opcode == OpCode_JumpNotZero)
+			if (opcode == OpCode_JumpZero || opcode == OpCode_JumpNotZero)
 			{
 				protectedInstr = true;
 			}
@@ -65,11 +56,11 @@ namespace HXSL
 		changed = false;
 		usedVars.clear();
 
-		for (auto& phi : metadata.phiMetadata)
+		for (auto& phi : metadata.phiNodes)
 		{
-			for (auto& p : phi.params)
+			for (auto& p : phi->GetOperands())
 			{
-				usedVars.insert(p);
+				usedVars.insert(cast<Variable>(p)->varId);
 			}
 		}
 

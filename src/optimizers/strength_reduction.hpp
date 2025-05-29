@@ -9,9 +9,9 @@ namespace HXSL
 	{
 		bool changed = false;
 
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
-		void MulDivReduce(ILInstruction& instr);
+		void MulDivReduce(BinaryInstr& instr);
 
 	public:
 		StrengthReduction(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())

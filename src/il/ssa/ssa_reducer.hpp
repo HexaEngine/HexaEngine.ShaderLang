@@ -9,46 +9,50 @@ namespace HXSL
 	{
 		std::unordered_map<ILVarId, ILVarId> phiMap;
 		std::unordered_map<ILVarId, ILVarId> varMapping;
-		std::unordered_map<ILVarId, const ILInstruction*> lastUseIndex;
-		std::vector<std::queue<ILVarId>> freeTemps;
+		std::unordered_map<ILVarId, const Instruction*> lastUseIndex;
+		std::unordered_map<ILType, std::queue<ILVarId>> freeTemps;
 		std::unordered_set<ILVarId> seenVars;
 
 		ILVarId nextVarId = SSA_VARIABLE_TEMP_FLAG;
 
 		ILVarId GetFinalVarId(ILVarId varId, bool result)
 		{
-			auto typeId = metadata.GetTempVar(varId).typeId;
-			auto& freeTempsQ = freeTemps[typeId.value];
-			if (!freeTempsQ.empty())
+			auto type = metadata.GetTempVar(varId).typeId;
+			auto it = freeTemps.find(type);
+			if (it != freeTemps.end())
 			{
-				ILVarId finalId = freeTempsQ.front();
-				freeTempsQ.pop();
-				varMapping[varId] = finalId;
-				return finalId;
+				auto& freeTempsQ = it->second;
+				if (!freeTempsQ.empty())
+				{
+					ILVarId finalId = freeTempsQ.front();
+					freeTempsQ.pop();
+					varMapping[varId] = finalId;
+					return finalId;
+				}
 			}
 
-			ILVarId finalId = metadata.RegTempVar(typeId).id;
+			ILVarId finalId = metadata.RegTempVar(type).id;
 			varMapping[varId] = finalId;
 			return finalId;
 		}
 
-		void Prepare(const ILInstruction& instr)
+		void Prepare(const Instruction& instr)
 		{
-			if (auto var = dyn_cast<Variable>(instr.operandLeft))
+			for (auto& operand : instr.GetOperands())
 			{
-				lastUseIndex.insert_or_assign(var->varId, &instr);
+				if (auto var = dyn_cast<Variable>(operand))
+				{
+					lastUseIndex.insert_or_assign(var->varId, &instr);
+				}
 			}
-			if (auto var = dyn_cast<Variable>(instr.operandRight))
+
+			if (auto res = dyn_cast<ResultInstr>(&instr))
 			{
-				lastUseIndex.insert_or_assign(var->varId, &instr);
-			}
-			if (instr.HasResult())
-			{
-				seenVars.insert(instr.result & SSA_VERSION_STRIP_MASK);
+				seenVars.insert(res->GetResult() & SSA_VERSION_STRIP_MASK);
 			}
 		}
 
-		void RemapVar(ILVarId& varId, ILInstruction* instr, bool isResult)
+		void RemapVar(ILVarId& varId, Instruction* instr, bool isResult)
 		{
 			if (!IsTempVar(varId)) return;
 
@@ -71,12 +75,27 @@ namespace HXSL
 
 			auto id = tmpVarId & SSA_VARIABLE_MASK;
 
-			auto typeId = metadata.GetTempVar(tmpVarId).typeId;
+			auto type = metadata.GetTempVar(tmpVarId).typeId;
 
-			freeTemps[typeId.value].push(varId & SSA_VERSION_STRIP_MASK);
+			MarkAsFree(type, varId);
 		}
 
-		void RemapOperand(Value* op, ILInstruction* instr, bool isResult)
+		void MarkAsFree(ILType type, ILVarId varId)
+		{
+			auto it = freeTemps.find(type);
+			if (it == freeTemps.end())
+			{
+				std::queue<ILVarId> que;
+				que.push(varId & SSA_VERSION_STRIP_MASK);
+				freeTemps.insert({ type, que });
+			}
+			else
+			{
+				it->second.push(varId & SSA_VERSION_STRIP_MASK);
+			}
+		}
+
+		void RemapOperand(Operand* op, Instruction* instr, bool isResult)
 		{
 			auto var = dyn_cast<Variable>(op);
 			if (!var) return;
@@ -86,19 +105,22 @@ namespace HXSL
 			RemapVar(var->varId, instr, isResult);
 		}
 
-		void RemapOperandsAndResult(ILInstruction& instr)
+		void RemapOperandsAndResult(Instruction& instr)
 		{
-			RemapOperand(instr.operandLeft, &instr, false);
-			RemapOperand(instr.operandRight, &instr, false);
-			if (instr.HasResult())
+			for (auto& operand : instr.GetOperands())
 			{
-				RemapVar(instr.result, &instr, true);
+				RemapOperand(operand, &instr, false);
+			}
+
+			if (auto res = dyn_cast<ResultInstr>(&instr))
+			{
+				RemapVar(res->GetResult(), &instr, true);
 			}
 		}
 
 		void TryClearVersion(ILVarId& op);
-		void TryClearVersion(Value* op);
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		void TryClearVersion(Operand* op);
+		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 	public:
 		SSAReducer(ILMetadata& metadata, ControlFlowGraph& cfg) : ILMutatorBase(metadata), CFGVisitor(cfg)

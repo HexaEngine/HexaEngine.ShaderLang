@@ -30,15 +30,12 @@ namespace HXSL
 		std::vector<TNode> nodes;
 
 	public:
-		const std::vector<TNode>& GetNodes()
-		{
-			return nodes;
-		}
+		size_t size() const noexcept { return nodes.size(); }
+		bool empty() const noexcept { return nodes.empty(); }
 
-		TNode& GetNode(size_t index)
-		{
-			return nodes[index];
-		}
+		const std::vector<TNode>& GetNodes() const noexcept { return nodes; }
+		TNode& GetNode(size_t index) { return nodes[index]; }
+		const TNode& GetNode(size_t index) const { return nodes[index]; }
 	};
 }
 

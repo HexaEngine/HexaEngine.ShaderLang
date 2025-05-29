@@ -7,6 +7,7 @@
 #include "lexical/numbers.hpp"
 #include "utils/hashing.hpp"
 #include "utils/ilist.hpp"
+#include "utils/static_vector.hpp"
 #include "value.hpp"
 #include "operands.hpp"
 
@@ -25,7 +26,7 @@ namespace HXSL
 		OpCode_Pop,				// <dst> pop
 		OpCode_Move,			// <dst> mov <src/imm>
 
-		OpCode_Return,			// ret <src/imm/dis>
+		OpCode_Return,			// ret <src/imm/void>
 
 		OpCode_StoreParam,		// <param_id> starg <src/imm>
 		OpCode_LoadParam,		// <dst> ldarg <param_id>
@@ -233,293 +234,237 @@ namespace HXSL
 		}
 	}
 
-	constexpr size_t ILOpKindFlagBits = 2;
+	struct BasicBlock;
 
-	constexpr uint8_t ILOpKindTypeMask = ~((1 << ILOpKindFlagBits) - 1);
-
-	enum ILOpKind : uint8_t
-	{
-		ILOpKind_None = 0,
-		ILOpKind_Const = 1,
-		ILOpKind_Precise = 2,
-		ILOpKind_I8 = 1 << ILOpKindFlagBits,
-		ILOpKind_I16 = 2 << ILOpKindFlagBits,
-		ILOpKind_I32 = 3 << ILOpKindFlagBits,
-		ILOpKind_I64 = 4 << ILOpKindFlagBits,
-		ILOpKind_U8 = 5 << ILOpKindFlagBits,
-		ILOpKind_U16 = 6 << ILOpKindFlagBits,
-		ILOpKind_U32 = 7 << ILOpKindFlagBits,
-		ILOpKind_U64 = 8 << ILOpKindFlagBits,
-		ILOpKind_Half = 9 << ILOpKindFlagBits,
-		ILOpKind_Float = 10 << ILOpKindFlagBits,
-		ILOpKind_Double = 11 << ILOpKindFlagBits,
-		ILOpKind_Min8Float = 12 << ILOpKindFlagBits,
-		ILOpKind_Min10Float = 13 << ILOpKindFlagBits,
-		ILOpKind_Min16Float = 14 << ILOpKindFlagBits,
-		ILOpKind_Min12Int = 15 << ILOpKindFlagBits,
-		ILOpKind_Min16Int = 16 << ILOpKindFlagBits,
-		ILOpKind_Min16Uint = 17 << ILOpKindFlagBits,
-	};
-
-	inline static ILOpKind operator~(ILOpKind value)
-	{
-		return (ILOpKind)~(uint8_t)value;
-	}
-
-	inline static ILOpKind operator|(ILOpKind lhs, ILOpKind rhs)
-	{
-		return (ILOpKind)((uint8_t)lhs | (uint8_t)rhs);
-	}
-
-	inline static ILOpKind operator&(ILOpKind lhs, ILOpKind rhs)
-	{
-		return (ILOpKind)((uint8_t)lhs & (uint8_t)rhs);
-	}
-
-	inline static ILOpKind operator^(ILOpKind lhs, ILOpKind rhs)
-	{
-		return (ILOpKind)((uint8_t)lhs ^ (uint8_t)rhs);
-	}
-
-	inline static ILOpKind& operator|=(ILOpKind& lhs, ILOpKind rhs)
-	{
-		return (ILOpKind&)((uint8_t&)lhs |= (uint8_t)rhs);
-	}
-
-	inline static ILOpKind& operator&=(ILOpKind& lhs, ILOpKind rhs)
-	{
-		return (ILOpKind&)((uint8_t&)lhs &= (uint8_t)rhs);
-	}
-
-	inline static ILOpKind& operator^=(ILOpKind& lhs, ILOpKind rhs)
-	{
-		return (ILOpKind&)((uint8_t&)lhs ^= (uint8_t)rhs);
-	}
-
-	static bool IsFlagSet(ILOpKind opKind, ILOpKind flag)
-	{
-		return (opKind & flag) != 0;
-	}
-
-	class ILInstruction : public IntrusiveLinkedBase<ILInstruction>
+	class Instruction : public IntrusiveLinkedBase<Instruction>, public Value
 	{
 	public:
+		using operands_vector = static_vector<Operand*, StdBumpAllocator<Operand*>>;
+	protected:
+		BasicBlock* parent = nullptr;
 		TextSpan* location = nullptr;
 		ILOpCode opcode;
-		ILOpKind opKind;
-		ILVarId result = INVALID_VARIABLE;
-		Value* operandLeft = nullptr;
-		Value* operandRight = nullptr;
+		operands_vector operands;
+		Instruction(BumpAllocator& alloc, Value_T id, ILOpCode opcode) : Value(id), opcode(opcode), operands({ alloc }) {}
+	public:
+		static constexpr Value_T ID = InstructionVal;
+		TextSpan* GetLocation() const noexcept { return location; }
+		void SetLocation(TextSpan* value) noexcept { location = value; }
 
-		ILInstruction(ILOpCode opcode, ILVarId result, Value* operandLeft, Value* operandRight, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), operandRight(operandRight), result(result), opKind(opKind)
-		{
-		}
-
-		ILInstruction(ILOpCode opcode, ILVarId result, Value* operandLeft, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), result(result), opKind(opKind)
-		{
-		}
-
-		ILInstruction(ILOpCode opcode, ILVarId result, ILOpKind opKind = ILOpKind_None) : opcode(opcode), result(result), opKind(opKind)
-		{
-		}
-
-		ILInstruction(ILOpCode opcode, Operand* operandLeft, ILOpKind opKind = ILOpKind_None) : opcode(opcode), operandLeft(operandLeft), opKind(opKind)
-		{
-		}
-
-		ILInstruction(ILOpCode opcode, ILOpKind opKind = ILOpKind_None) : opcode(opcode), opKind(opKind)
-		{
-		}
-
-		ILInstruction() : opcode(OpCode_Noop), opKind(ILOpKind_None)
-		{
-		}
-
-		bool HasResult() const noexcept { return result != INVALID_VARIABLE; }
-
+		ILOpCode GetOpCode() const noexcept { return opcode; }
 		bool IsOp(ILOpCode code) const noexcept { return opcode == code; }
 
-		bool IsImmVar() const noexcept { return isa<Constant>(operandLeft) && isa<Variable>(operandRight); }
+		Operand* GetOperand(size_t idx) const { return operands[idx]; }
+		Operand*& GetOperand(size_t idx) { return operands[idx]; }
+		const operands_vector& GetOperands() const { return operands; }
+		operands_vector& GetOperands() { return operands; }
+		size_t OperandCount() const noexcept { return operands.size(); }
 
-		bool IsVarImm() const noexcept { return isa<Variable>(operandLeft) && isa<Constant>(operandRight); }
+		BasicBlock* GetParent() const noexcept { return parent; }
+		void SetParent(BasicBlock* newParent) noexcept { parent = newParent; }
 
-		bool IsImmVar(ILOpCode code) const noexcept { return opcode == code && IsImmVar(); }
+		void Dump() const;
+		uint64_t hash() const;
+		bool operator==(const Instruction& other) const;
+		bool operator!=(const Instruction& other) const { return !(*this == other); }
+	};
 
-		bool IsVarImm(ILOpCode code) const noexcept { return opcode == code && IsVarImm(); }
+	class BasicInstr : public Instruction
+	{
+	public:
+		static constexpr Value_T ID = BasicInstrVal;
+		BasicInstr(BumpAllocator& alloc, ILOpCode opcode) : Instruction(alloc, ID, opcode) {}
+	};
 
-		uint64_t hash() const noexcept
+	class ResultInstr : public Instruction
+	{
+	protected:
+		ILVarId dst;
+		ResultInstr(BumpAllocator& alloc, Value_T id, ILOpCode opcode, const ILVarId& dst) : Instruction(alloc, id, opcode), dst(dst)
 		{
-			XXHash3_64 hash{};
-			hash.Combine(opcode);
-			hash.Combine(opKind);
-
-			uint64_t leftHash = HXSL::hash(operandLeft);
-			uint64_t rightHash = HXSL::hash(operandRight);
-
-			if (IsCommutative(opcode) && leftHash > rightHash)
-			{
-				std::swap(leftHash, rightHash);
-			}
-
-			hash.Combine(leftHash);
-			hash.Combine(rightHash);
-
-			return hash.Finalize();
 		}
 
-		bool operator==(const ILInstruction& other) const noexcept
+	public:
+		static constexpr Value_T ID = ResultInstrVal;
+		ILVarId& GetResult() noexcept { return dst; }
+		const ILVarId& GetResult() const noexcept { return dst; }
+		void SetResult(const ILVarId& newRes) noexcept { dst = newRes; }
+	};
+
+	class StackAllocInstr : public ResultInstr
+	{
+	public:
+		static constexpr Value_T ID = StackAllocInstrVal;
+		StackAllocInstr(BumpAllocator& alloc, const ILVarId& dst, TypeValue* typeId) : ResultInstr(alloc, ID, OpCode_StackAlloc, dst)
 		{
-			if (opcode != other.opcode || opKind != other.opKind)
-			{
-				return false;
-			}
-
-			if (!equals(operandLeft, other.operandLeft) || !equals(operandRight, other.operandRight))
-			{
-				if (!IsCommutative(opcode) || !equals(operandLeft, other.operandRight) || !equals(operandRight, other.operandLeft))
-				{
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		bool operator!=(const ILInstruction& other)
-		{
-			return !(*this == other);
+			operands.assign(typeId);
 		}
 	};
 
-	struct ILInstructionPtrHash
+	class OffsetInstr : public ResultInstr
 	{
-		std::size_t operator()(const ILInstruction* ptr) const
+	public:
+		static constexpr Value_T ID = OffsetInstrVal;
+		OffsetInstr(BumpAllocator& alloc, const ILVarId& dst, Variable* src, FieldAccess* access) : ResultInstr(alloc, ID, OpCode_OffsetAddress, dst)
+		{
+			operands.assign(src, access);
+		}
+	};
+
+	class ReturnInstr : public Instruction
+	{
+	public:
+		static constexpr Value_T ID = ReturnInstrVal;
+		ReturnInstr(BumpAllocator& alloc, Operand* target) : Instruction(alloc, ID, OpCode_Return)
+		{
+			operands.assign(target);
+		}
+		ReturnInstr(BumpAllocator& alloc) : Instruction(alloc, ID, OpCode_Return)
+		{
+			operands.assign(nullptr);
+		}
+	};
+
+	class CallInstr : public ResultInstr
+	{
+	public:
+		static constexpr Value_T ID = CallInstrVal;
+		CallInstr(BumpAllocator& alloc, const ILVarId& dst, Operand* function) : ResultInstr(alloc, ID, OpCode_Call, dst)
+		{
+			operands.assign(function);
+		}
+
+		CallInstr(BumpAllocator& alloc, Operand* function) : ResultInstr(alloc, ID, OpCode_Call, INVALID_VARIABLE)
+		{
+			operands.assign(function);
+		}
+	};
+
+	class JumpInstr : public Instruction
+	{
+	public:
+		static constexpr Value_T ID = JumpInstrVal;
+		JumpInstr(BumpAllocator& alloc, ILOpCode opcode, Label* target) : Instruction(alloc, ID, opcode)
+		{
+			operands.assign(target);
+		}
+
+		Label* GetLabel() const { return cast<Label>(operands[0]); }
+	};
+
+	class BinaryInstr : public ResultInstr
+	{
+	public:
+		static constexpr Value_T ID = BinaryInstrVal;
+		BinaryInstr(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* lhs, Operand* rhs) : ResultInstr(alloc, ID, opcode, dst)
+		{
+			operands.assign(lhs, rhs);
+		}
+
+		void OverwriteOpCode(ILOpCode value) { opcode = value; }
+
+		Operand* GetLHS() const { return operands[0]; }
+		Operand* GetRHS() const { return operands[1]; }
+
+		Operand*& GetLHS() { return operands[0]; }
+		Operand*& GetRHS() { return operands[1]; }
+
+		bool IsImmVar() const noexcept { return isa<Constant>(GetLHS()) && isa<Variable>(GetRHS()); }
+		bool IsVarImm() const noexcept { return isa<Variable>(GetLHS()) && isa<Constant>(GetRHS()); }
+		bool IsImmVar(ILOpCode code) const noexcept { return opcode == code && IsImmVar(); }
+		bool IsVarImm(ILOpCode code) const noexcept { return opcode == code && IsVarImm(); }
+	};
+
+	class UnaryInstr : public ResultInstr
+	{
+	public:
+		static constexpr Value_T ID = UnaryInstrVal;
+		UnaryInstr(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* op) : ResultInstr(alloc, ID, opcode, dst)
+		{
+			operands.assign(op);
+		}
+
+		Operand* GetOperand() const { return operands[0]; }
+	};
+
+	class StoreInstr : public Instruction
+	{
+	public:
+		static constexpr Value_T ID = StoreInstrVal;
+		StoreInstr(BumpAllocator& alloc, Operand* dst, Operand* src) : Instruction(alloc, ID, OpCode_Store)
+		{
+			operands.assign(dst, src);
+		}
+	};
+
+	class LoadInstr : public ResultInstr
+	{
+	public:
+		static constexpr Value_T ID = LoadInstrVal;
+		LoadInstr(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : ResultInstr(alloc, ID, OpCode_Load, dst)
+		{
+			operands.assign(src);
+		}
+	};
+
+	class StoreParamInstr : public Instruction
+	{
+	public:
+		static constexpr Value_T ID = StoreParamInstrVal;
+		StoreParamInstr(BumpAllocator& alloc, Operand* dst, Operand* src) : Instruction(alloc, ID, OpCode_StoreParam)
+		{
+			operands.assign(dst, src);
+		}
+	};
+
+	class LoadParamInstr : public ResultInstr
+	{
+	public:
+		static constexpr Value_T ID = LoadParamInstrVal;
+		LoadParamInstr(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : ResultInstr(alloc, ID, OpCode_LoadParam, dst)
+		{
+			operands.assign(src);
+		}
+	};
+
+	class MoveInstr : public ResultInstr
+	{
+	public:
+		static constexpr Value_T ID = MoveInstrVal;
+		MoveInstr(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : ResultInstr(alloc, ID, OpCode_Move, dst)
+		{
+			operands.assign(src);
+		}
+
+		Operand* GetSource() { return operands[0]; }
+	};
+
+	class PhiInstr : public ResultInstr
+	{
+	public:
+		static constexpr Value_T ID = PhiInstrVal;
+		PhiInstr(BumpAllocator& alloc, const ILVarId& dst, size_t operandCount) : ResultInstr(alloc, ID, OpCode_Phi, dst)
+		{
+			operands.resize(operandCount);
+		}
+	};
+
+	struct InstructionPtrHash
+	{
+		std::size_t operator()(const Instruction* ptr) const
 		{
 			if (!ptr) return 0;
 			return ptr->hash();
 		}
 	};
 
-	struct ILInstructionPtrEquals
+	struct InstructionPtrEquals
 	{
-		std::size_t operator()(const ILInstruction* lhs, const ILInstruction* rhs) const
+		std::size_t operator()(const Instruction* lhs, const Instruction* rhs) const
 		{
 			if (lhs == nullptr || rhs == nullptr)
 				return lhs == rhs;
 			return *lhs == *rhs;
-		}
-	};
-
-	class Instruction : public IntrusiveLinkedBase<Instruction>
-	{
-	protected:
-		TextSpan* location = nullptr;
-		ILOpCode opcode;
-		Instruction(ILOpCode opcode) : opcode(opcode) {}
-	public:
-		TextSpan* GetLocation() const noexcept { return location; }
-		void SetLocation(TextSpan* value) noexcept { location = value; }
-
-		ILOpCode GetOpCode() const noexcept { return opcode; }
-		void SetOpCode(ILOpCode value) noexcept { opcode = value; }
-
-		inline bool IsBasic() const { return HXSL::IsBasic(opcode); }
-		inline bool IsUnary() const { return HXSL::IsUnary(opcode); }
-		inline bool IsBinary() const { return HXSL::IsBinary(opcode); }
-		inline bool IsLoadStore() const { return HXSL::IsLoadStore(opcode); }
-		inline bool IsDestination() const { return HXSL::IsDestination(opcode); }
-		inline bool IsJump() const { return HXSL::IsJump(opcode); }
-		inline bool IsCall() const { return HXSL::IsCall(opcode); }
-		inline bool IsReturn() const { return HXSL::IsReturn(opcode); }
-		inline bool IsPhi() const { return HXSL::IsPhi(opcode); }
-	};
-
-	class BasicInstruction : public Instruction
-	{
-	public:
-		BasicInstruction(ILOpCode opcode) : Instruction(opcode) {}
-	};
-
-	class DestinationInstruction : public Instruction
-	{
-	protected:
-		Operand* dst;
-		DestinationInstruction(ILOpCode opcode) : Instruction(opcode) {}
-
-	public:
-		Operand*& OpDst() noexcept { return dst; }
-		Operand* OpDst() const noexcept { return dst; }
-	};
-
-	class ReturnInstruction : public DestinationInstruction
-	{
-	public:
-		ReturnInstruction() : DestinationInstruction(OpCode_Return) {}
-	};
-
-	class CallInstruction : public DestinationInstruction
-	{
-		Operand* function;
-
-	public:
-		CallInstruction() : DestinationInstruction(OpCode_Call) {}
-
-		Operand*& Function() noexcept { return function; }
-		Operand* Function() const noexcept { return function; }
-	};
-
-	class JumpInstruction : public Instruction
-	{
-		Operand* target;
-
-	public:
-		JumpInstruction(ILOpCode opcode) : Instruction(opcode) {}
-
-		Operand*& Target() noexcept { return target; }
-		Operand* Target() const noexcept { return target; }
-	};
-
-	class BinaryInstruction : public DestinationInstruction
-	{
-		Operand* lhs;
-		Operand* rhs;
-
-	public:
-		BinaryInstruction(ILOpCode opcode) : DestinationInstruction(opcode) {}
-		Operand*& OpLhs() noexcept { return lhs; }
-		Operand*& OpRhs() noexcept { return rhs; }
-		Operand* OpLhs() const noexcept { return lhs; }
-		Operand* OpRhs() const noexcept { return rhs; }
-	};
-
-	class UnaryInstruction : public DestinationInstruction
-	{
-		Operand* op;
-	public:
-		UnaryInstruction(ILOpCode opcode) : DestinationInstruction(opcode) {}
-		Operand*& Op() noexcept { return op; }
-		Operand* Op() const noexcept { return op; }
-	};
-
-	class LoadStoreInstruction : public DestinationInstruction
-	{
-		Operand* src;
-
-	public:
-		LoadStoreInstruction(ILOpCode opcode) : DestinationInstruction(opcode) {}
-		Operand*& OpSrc() noexcept { return src; }
-		Operand* OpSrc() const noexcept { return src; }
-	};
-}
-
-namespace std
-{
-	template <>
-	struct hash<HXSL::ILInstruction>
-	{
-		size_t operator()(const HXSL::ILInstruction& instr) const noexcept
-		{
-			return static_cast<size_t>(instr.hash());
 		}
 	};
 }

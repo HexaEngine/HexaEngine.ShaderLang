@@ -10,9 +10,9 @@ namespace HXSL
 		std::unordered_map<ILVarId, Number> constants;
 		std::unordered_map<ILVarId, ILVarId> varToVar;
 
-		void TryFoldOperand(Value*& op);
+		void TryFoldOperand(Operand*& op);
 
-		void Visit(size_t index, CFGNode& node, EmptyCFGContext& context) override;
+		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 	public:
 		ConstantFolder(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())

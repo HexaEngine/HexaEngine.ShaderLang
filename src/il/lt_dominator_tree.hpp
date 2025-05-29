@@ -8,6 +8,7 @@ namespace HXSL
 {
 	class LTDominatorTree
 	{
+		static constexpr size_t INVALID_INDEX = std::numeric_limits<size_t>::max();
 		const ControlFlowGraph& cfg;
 		size_t n;
 
@@ -19,14 +20,14 @@ namespace HXSL
 		size_t time = 0;
 
 	public:
-		LTDominatorTree(const ControlFlowGraph& cfg) : cfg(cfg), n(cfg.nodes.size())
+		LTDominatorTree(const ControlFlowGraph& cfg) : cfg(cfg), n(cfg.size())
 		{
-			semi.resize(n, -1);
-			idom.resize(n, -1);
-			ancestor.resize(n, -1);
+			semi.resize(n, INVALID_INDEX);
+			idom.resize(n, INVALID_INDEX);
+			ancestor.resize(n, INVALID_INDEX);
 			label.resize(n);
-			parent.resize(n, -1);
-			vertex.resize(n, -1);
+			parent.resize(n, INVALID_INDEX);
+			vertex.resize(n, INVALID_INDEX);
 			bucket.resize(n);
 			dfsOrder.reserve(n);
 		}
@@ -41,7 +42,7 @@ namespace HXSL
 				size_t v = walkStack.top();
 				walkStack.pop();
 
-				if (semi[v] != -1)
+				if (semi[v] != INVALID_INDEX)
 					continue;
 
 				semi[v] = time;
@@ -49,11 +50,11 @@ namespace HXSL
 				label[v] = v;
 				time++;
 
-				auto& successors = cfg.nodes[v].successors;
+				auto& successors = cfg.nodes[v].GetSuccessors();
 				for (auto it = successors.rbegin(); it != successors.rend(); ++it)
 				{
 					auto w = *it;
-					if (semi[w] == -1)
+					if (semi[w] == INVALID_INDEX)
 					{
 						parent[w] = v;
 						walkStack.push(w);
@@ -69,14 +70,14 @@ namespace HXSL
 
 		size_t Eval(size_t v)
 		{
-			if (ancestor[v] == -1) return label[v];
+			if (ancestor[v] == INVALID_INDEX) return label[v];
 			Compress(v);
 			return label[v];
 		}
 
 		void Compress(size_t v)
 		{
-			if (ancestor[ancestor[v]] != -1)
+			if (ancestor[ancestor[v]] != INVALID_INDEX)
 			{
 				Compress(ancestor[v]);
 				if (semi[label[ancestor[v]]] < semi[label[v]])
@@ -95,7 +96,7 @@ namespace HXSL
 			for (int i = (int)time - 1; i >= 1; i--)
 			{
 				size_t w = vertex[i];
-				for (auto v : cfg.nodes[w].predecessors)
+				for (auto v : cfg.nodes[w].GetPredecessors())
 				{
 					size_t u = Eval(v);
 					if (semi[u] < semi[w])
@@ -161,7 +162,7 @@ namespace HXSL
 					continue;
 				}
 
-				for (size_t succ : cfg.nodes[node].successors)
+				for (size_t succ : cfg.nodes[node].GetSuccessors())
 				{
 					if (idom[succ] != node)
 					{

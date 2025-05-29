@@ -9,49 +9,43 @@ namespace HXSL
 	{
 		BumpAllocator& alloc;
 
-		Operand* operator()(ILVarId id) const
+		Variable* operator()(ILVarId id) const
 		{
 			return alloc.Alloc<Variable>(id);
 		}
 
-		Operand* operator()(Number num) const
+		Constant* operator()(Number num) const
 		{
 			return alloc.Alloc<Constant>(num);
 		}
 
-		Operand* operator()(ILTypeId typeId) const
+		TypeValue* operator()(ILType typeId) const
 		{
 			return alloc.Alloc<TypeValue>(typeId);
 		}
 
-		Operand* operator()(ILFuncId funcId) const
+		Function* operator()(ILFuncId funcId) const
 		{
 			return alloc.Alloc<Function>(funcId);
 		}
 
-		Operand* operator()(ILLabel label) const
+		Label* operator()(ILLabel label) const
 		{
 			return alloc.Alloc<Label>(label);
 		}
 
-		Operand* operator()(ILFieldAccess field) const
+		FieldAccess* operator()(ILFieldAccess field) const
 		{
 			return alloc.Alloc<FieldAccess>(field);
 		}
 
-		Operand* operator()(ILPhiId phiId) const
+		Variable* operator()(Variable* op) const noexcept
 		{
-			return alloc.Alloc<Phi>(phiId);
+			return alloc.Alloc<Variable>(op->varId);
 		}
-
-		ILOpKind operator()(ILOpKind kind) const noexcept { return kind; }
 
 		Operand* operator()(Operand* op) const noexcept
 		{
-			if (auto var = dyn_cast<Variable>(op))
-			{
-				return alloc.Alloc<Variable>(var->varId);
-			}
 			return op;
 		}
 	};
