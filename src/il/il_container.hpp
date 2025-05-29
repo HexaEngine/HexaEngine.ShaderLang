@@ -70,7 +70,7 @@ namespace HXSL
 
 		void AddBasicInstr(ILOpCode opcode)
 		{
-			container.append_move(allocator.Alloc<BasicInstruction>(allocator, opcode));
+			container.append_move(allocator.Alloc<BasicInstr>(allocator, opcode));
 		}
 
 		template<typename U>
@@ -82,7 +82,7 @@ namespace HXSL
 				return;
 			}
 			OperandFactory factory{ allocator };
-			AddInstrONO<StoreInstruction>(dst.id, factory(std::forward<U>(src)));
+			AddInstrONO<StoreInstr>(dst.id, factory(std::forward<U>(src)));
 		}
 
 		template<typename U>
@@ -94,7 +94,7 @@ namespace HXSL
 				return;
 			}
 			OperandFactory factory{ allocator };
-			AddInstrO<LoadInstruction>(src.id, factory(std::forward<U>(dst)));
+			AddInstrO<LoadInstr>(src.id, factory(std::forward<U>(dst)));
 		}
 
 		template<typename U>

@@ -10,10 +10,10 @@ namespace HXSL
 
 		if (baseType->GetClass() == PrimitiveClass_Scalar)
 		{
-			return UnaryInstruction(context->allocator, OpCode_BroadcastVec, outOp, inOp);
+			return UnaryInstr(context->allocator, OpCode_BroadcastVec, outOp, inOp);
 		}
 
-		return BinaryInstruction(context->allocator, OpCode_VecSwizzle, outOp, inOp, context->MakeConstant(Number(swizzle->GetMask())));
+		return BinaryInstr(context->allocator, OpCode_VecSwizzle, outOp, inOp, context->MakeConstant(Number(swizzle->GetMask())));
 	}
 
 	bool ILExpressionBuilder::IsInlineable(Expression* expr, Operand*& opOut)
@@ -54,7 +54,7 @@ namespace HXSL
 			{
 				if (!container.empty())
 				{
-					cast<DestinationInstruction>(&container.back())->OpDst() = var;
+					cast<ResultInstr>(&container.back())->OpDst() = var;
 				}
 				return;
 			}
@@ -117,13 +117,13 @@ namespace HXSL
 			{
 			case NodeType_MemberAccessExpression:
 			{
-				AddInstrO<OffsetInstruction>(*nextVar, currentVar, MakeFieldAccess(decl));
+				AddInstrO<OffsetInstr>(*nextVar, currentVar, MakeFieldAccess(decl));
 				isAddress = true;
 			}
 			break;
 			case NodeType_MemberReferenceExpression:
 			{
-				AddInstrO<OffsetInstruction>(*nextVar, currentVar, MakeFieldAccess(decl));
+				AddInstrO<OffsetInstr>(*nextVar, currentVar, MakeFieldAccess(decl));
 				isAddress = true;
 				return *nextVar;
 			}
@@ -148,7 +148,7 @@ namespace HXSL
 		{
 			auto prim = op->GetParent()->As<Primitive>();
 			bool vec = prim->GetClass() == PrimitiveClass_Vector;
-			AddInstr<BinaryInstruction>(vec ? OperatorToVecOpCode(op->GetOperator(), prim->GetRows()) : OperatorToOpCode(op->GetOperator()), result, left, right);
+			AddInstr<BinaryInstr>(vec ? OperatorToVecOpCode(op->GetOperator(), prim->GetRows()) : OperatorToOpCode(op->GetOperator()), result, left, right);
 		}
 		else
 		{
@@ -222,12 +222,12 @@ namespace HXSL
 				if (token.isNumeric())
 				{
 					auto num = token.Numeric;
-					AddInstrO<MoveInstruction>(currentFrame.outRegister, num);
+					AddInstrO<MoveInstr>(currentFrame.outRegister, num);
 				}
 				else if (token.isBool())
 				{
 					bool value = token.Value == Keyword_True;
-					AddInstr<BinaryInstruction>(OpCode_Equal, currentFrame.outRegister, Number(value), Number(true));
+					AddInstr<BinaryInstr>(OpCode_Equal, currentFrame.outRegister, Number(value), Number(true));
 				}
 				else
 				{
@@ -259,17 +259,17 @@ namespace HXSL
 				{
 					if (operator_ == Operator_Increment)
 					{
-						AddInstr<BinaryInstruction>(OpCode_Add, currentFrame.outRegister, ilOperand, Number(1));
+						AddInstr<BinaryInstr>(OpCode_Add, currentFrame.outRegister, ilOperand, Number(1));
 						WriteVar(operand, context->MakeVariable(currentFrame.outRegister));
 					}
 					else if (operator_ == Operator_Decrement)
 					{
-						AddInstr<BinaryInstruction>(OpCode_Subtract, currentFrame.outRegister, ilOperand, Number(1));
+						AddInstr<BinaryInstr>(OpCode_Subtract, currentFrame.outRegister, ilOperand, Number(1));
 						WriteVar(operand, context->MakeVariable(currentFrame.outRegister));
 					}
 					else if (operator_ == Operator_Subtract)
 					{
-						AddInstr<UnaryInstruction>(OpCode_Negate, currentFrame.outRegister, ilOperand);
+						AddInstr<UnaryInstr>(OpCode_Negate, currentFrame.outRegister, ilOperand);
 					}
 				}
 				else
@@ -292,11 +292,11 @@ namespace HXSL
 					auto& temp = reg.Alloc(operand->GetInferredType());
 					if (operator_ == Operator_Increment)
 					{
-						AddInstr<BinaryInstruction>(OpCode_Add, temp, currentFrame.outRegister, Number(1));
+						AddInstr<BinaryInstr>(OpCode_Add, temp, currentFrame.outRegister, Number(1));
 					}
 					else
 					{
-						AddInstr<BinaryInstruction>(OpCode_Subtract, temp, currentFrame.outRegister, Number(1));
+						AddInstr<BinaryInstr>(OpCode_Subtract, temp, currentFrame.outRegister, Number(1));
 					}
 					WriteVar(operand, context->MakeVariable(temp));
 				}
@@ -322,9 +322,9 @@ namespace HXSL
 						if (!container.empty())
 						{
 							auto last = &container.back();
-							if (auto alloc = dyn_cast<StackAllocInstruction>(last))
+							if (auto alloc = dyn_cast<StackAllocInstr>(last))
 							{
-								AddInstrONO<StoreParamInstruction>(alloc->OpDst(), Number(0));
+								AddInstrONO<StoreParamInstr>(alloc->OpDst(), Number(0));
 							}
 						}
 					}
@@ -338,7 +338,7 @@ namespace HXSL
 					{
 						if (currentFrame.state != 0 && !looped)
 						{
-							AddInstrONO<StoreParamInstruction>(currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
+							AddInstrONO<StoreParamInstr>(currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
 						}
 
 						auto param = parameters[currentFrame.state].get();
@@ -349,7 +349,7 @@ namespace HXSL
 						if (isImm)
 						{
 							looped = true;
-							AddInstrONO<StoreParamInstruction>(imm, Number(paramOffset + currentFrame.state - 1));
+							AddInstrONO<StoreParamInstr>(imm, Number(paramOffset + currentFrame.state - 1));
 						}
 						else
 						{
@@ -358,7 +358,7 @@ namespace HXSL
 								looped = true;
 								auto member = static_cast<MemberReferenceExpression*>(operand);
 								auto& var = FindVar(member);
-								AddInstrONO<StoreParamInstruction>(var, Number(paramOffset + currentFrame.state - 1));
+								AddInstrONO<StoreParamInstr>(var, Number(paramOffset + currentFrame.state - 1));
 							}
 							else
 							{
@@ -373,16 +373,16 @@ namespace HXSL
 					{
 						if (currentFrame.state != 0 && !looped)
 						{
-							AddInstrONO<StoreParamInstruction>(currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
+							AddInstrONO<StoreParamInstr>(currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
 						}
 
 						if (returnType != nullptr && !expression->IsVoidType())
 						{
-							AddInstrO<CallInstruction>(currentFrame.outRegister, RegFunc(overload));
+							AddInstrO<CallInstr>(currentFrame.outRegister, RegFunc(overload));
 						}
 						else
 						{
-							AddInstrONO<CallInstruction>(RegFunc(overload));
+							AddInstrONO<CallInstr>(RegFunc(overload));
 						}
 						break;
 					}
@@ -409,7 +409,7 @@ namespace HXSL
 
 					if ((op->GetOperatorFlags() & OperatorFlags_Intrinsic) != 0)
 					{
-						AddInstr<UnaryInstruction>(OpCode_Cast, currentFrame.outRegister, ilOperand);
+						AddInstr<UnaryInstr>(OpCode_Cast, currentFrame.outRegister, ilOperand);
 					}
 					else
 					{
@@ -495,7 +495,7 @@ namespace HXSL
 				if (currentFrame.state == 1)
 				{
 					currentFrame.label = MakeJumpLocation();
-					AddInstrNO<JumpInstruction>(OpCode_JumpZero, currentFrame.label);
+					AddInstrNO<JumpInstr>(OpCode_JumpZero, currentFrame.label);
 
 					currentFrame.state++;
 					PushCurrent();
@@ -504,7 +504,7 @@ namespace HXSL
 				else if (currentFrame.state == 2)
 				{
 					auto endLoc = MakeJumpLocation();
-					AddInstrNO<JumpInstruction>(OpCode_Jump, endLoc);
+					AddInstrNO<JumpInstr>(OpCode_Jump, endLoc);
 
 					SetLocation(currentFrame.label);
 					currentFrame.label = endLoc;

@@ -13,7 +13,7 @@ namespace HXSL
 		enum Value_T : uint16_t
 		{
 			InstructionVal,
-			DestInstrVal,
+			ResultInstrVal,
 			BasicInstrVal,
 			ReturnInstrVal,
 			CallInstrVal,
@@ -64,8 +64,8 @@ namespace HXSL
 		}
 	};
 
-	using dest_instr_checker = value_type_equals_checker<
-		Value::DestInstrVal,
+	using result_instr_checker = value_type_equals_checker<
+		Value::ResultInstrVal,
 		Value::StackAllocInstrVal,
 		Value::OffsetInstrVal,
 		Value::CallInstrVal,
@@ -75,14 +75,14 @@ namespace HXSL
 		Value::LoadParamInstrVal,
 		Value::MoveInstrVal>;
 
-	class DestinationInstruction;
+	class ResultInstr;
 
 	template<>
-	inline static bool isa<DestinationInstruction>(const Value* N)
+	inline static bool isa<ResultInstr>(const Value* N)
 	{
 		if (!N) return false;
 		auto id = N->GetTypeId();
-		return dest_instr_checker::check(id);
+		return result_instr_checker::check(id);
 	}
 
 	template <typename T>

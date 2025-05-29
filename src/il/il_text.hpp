@@ -184,7 +184,7 @@ namespace HXSL
 		auto instr = &instruction;
 		std::ostringstream oss;
 
-		if (auto res = dyn_cast<DestinationInstruction>(instr))
+		if (auto res = dyn_cast<ResultInstr>(instr))
 		{
 			oss << ToString(res->OpDst(), metadata);
 			oss << " = ";

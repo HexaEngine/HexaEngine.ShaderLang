@@ -416,7 +416,7 @@ namespace HXSL
 	class Instruction : public IntrusiveLinkedBase<Instruction>, public Value
 	{
 	protected:
-		BasicBlock* parent;
+		BasicBlock* parent = nullptr;
 		TextSpan* location = nullptr;
 		ILOpCode opcode;
 		static_vector<Operand*, StdBumpAllocator<Operand*>> operands;
@@ -438,153 +438,157 @@ namespace HXSL
 		void Dump() const;
 	};
 
-	class BasicInstruction : public Instruction
+	class BasicInstr : public Instruction
 	{
 	public:
 		static constexpr Value_T ID = BasicInstrVal;
-		BasicInstruction(BumpAllocator& alloc, ILOpCode opcode) : Instruction(alloc, ID, opcode) {}
+		BasicInstr(BumpAllocator& alloc, ILOpCode opcode) : Instruction(alloc, ID, opcode) {}
 	};
 
-	class DestinationInstruction : public Instruction
+	class ResultInstr : public Instruction
 	{
 	protected:
 		ILVarId dst;
-		DestinationInstruction(BumpAllocator& alloc, Value_T id, ILOpCode opcode, const ILVarId& dst) : Instruction(alloc, id, opcode), dst(dst) {}
+		ResultInstr(BumpAllocator& alloc, Value_T id, ILOpCode opcode, const ILVarId& dst) : Instruction(alloc, id, opcode), dst(dst) {}
 
 	public:
-		static constexpr Value_T ID = DestInstrVal;
+		static constexpr Value_T ID = ResultInstrVal;
 		ILVarId& OpDst() noexcept { return dst; }
 		const ILVarId& OpDst() const noexcept { return dst; }
 	};
 
-	class StackAllocInstruction : public DestinationInstruction
+	class StackAllocInstr : public ResultInstr
 	{
 	public:
 		static constexpr Value_T ID = StackAllocInstrVal;
-		StackAllocInstruction(BumpAllocator& alloc, const ILVarId& dst, TypeValue* typeId) : DestinationInstruction(alloc, ID, OpCode_StackAlloc, dst)
+		StackAllocInstr(BumpAllocator& alloc, const ILVarId& dst, TypeValue* typeId) : ResultInstr(alloc, ID, OpCode_StackAlloc, dst)
 		{
 			operands.assign(typeId);
 		}
 	};
 
-	class OffsetInstruction : public DestinationInstruction
+	class OffsetInstr : public ResultInstr
 	{
 	public:
 		static constexpr Value_T ID = OffsetInstrVal;
-		OffsetInstruction(BumpAllocator& alloc, const ILVarId& dst, Variable* src, FieldAccess* access) : DestinationInstruction(alloc, ID, OpCode_OffsetAddress, dst)
+		OffsetInstr(BumpAllocator& alloc, const ILVarId& dst, Variable* src, FieldAccess* access) : ResultInstr(alloc, ID, OpCode_OffsetAddress, dst)
 		{
 			operands.assign(src, access);
 		}
 	};
 
-	class ReturnInstruction : public Instruction
+	class ReturnInstr : public Instruction
 	{
 	public:
 		static constexpr Value_T ID = ReturnInstrVal;
-		ReturnInstruction(BumpAllocator& alloc, Operand* target) : Instruction(alloc, ID, OpCode_Return)
+		ReturnInstr(BumpAllocator& alloc, Operand* target) : Instruction(alloc, ID, OpCode_Return)
 		{
 			operands.assign(target);
 		}
-		ReturnInstruction(BumpAllocator& alloc) : Instruction(alloc, ID, OpCode_Return)
+		ReturnInstr(BumpAllocator& alloc) : Instruction(alloc, ID, OpCode_Return)
 		{
 			operands.assign(nullptr);
 		}
 	};
 
-	class CallInstruction : public DestinationInstruction
+	class CallInstr : public ResultInstr
 	{
 	public:
 		static constexpr Value_T ID = CallInstrVal;
-		CallInstruction(BumpAllocator& alloc, const ILVarId& dst, Operand* function) : DestinationInstruction(alloc, ID, OpCode_Call, dst)
+		CallInstr(BumpAllocator& alloc, const ILVarId& dst, Operand* function) : ResultInstr(alloc, ID, OpCode_Call, dst)
 		{
 			operands.assign(function);
 		}
 
-		CallInstruction(BumpAllocator& alloc, Operand* function) : DestinationInstruction(alloc, ID, OpCode_Call, INVALID_VARIABLE)
+		CallInstr(BumpAllocator& alloc, Operand* function) : ResultInstr(alloc, ID, OpCode_Call, INVALID_VARIABLE)
 		{
 			operands.assign(function);
 		}
 	};
 
-	class JumpInstruction : public Instruction
+	class JumpInstr : public Instruction
 	{
 	public:
 		static constexpr Value_T ID = JumpInstrVal;
-		JumpInstruction(BumpAllocator& alloc, ILOpCode opcode, Label* target) : Instruction(alloc, ID, opcode)
+		JumpInstr(BumpAllocator& alloc, ILOpCode opcode, Label* target) : Instruction(alloc, ID, opcode)
 		{
 			operands.assign(target);
 		}
 	};
 
-	class BinaryInstruction : public DestinationInstruction
+	class BinaryInstr : public ResultInstr
 	{
 	public:
 		static constexpr Value_T ID = BinaryInstrVal;
-		BinaryInstruction(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* lhs, Operand* rhs) : DestinationInstruction(alloc, ID, opcode, dst)
+		BinaryInstr(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* lhs, Operand* rhs) : ResultInstr(alloc, ID, opcode, dst)
 		{
 			operands.assign(lhs, rhs);
 		}
 	};
 
-	class UnaryInstruction : public DestinationInstruction
+	class UnaryInstr : public ResultInstr
 	{
 		Operand* op;
 	public:
 		static constexpr Value_T ID = UnaryInstrVal;
-		UnaryInstruction(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* op) : DestinationInstruction(alloc, ID, opcode, dst), op(op)
+		UnaryInstr(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* op) : ResultInstr(alloc, ID, opcode, dst), op(op)
 		{
 			operands.assign(op);
 		}
 	};
 
-	class StoreInstruction : public Instruction
+	class StoreInstr : public Instruction
 	{
 	public:
 		static constexpr Value_T ID = StoreInstrVal;
-		StoreInstruction(BumpAllocator& alloc, Operand* dst, Operand* src) : Instruction(alloc, ID, OpCode_Store)
+		StoreInstr(BumpAllocator& alloc, Operand* dst, Operand* src) : Instruction(alloc, ID, OpCode_Store)
 		{
 			operands.assign(dst, src);
 		}
 	};
 
-	class LoadInstruction : public DestinationInstruction
+	class LoadInstr : public ResultInstr
 	{
 	public:
 		static constexpr Value_T ID = LoadInstrVal;
-		LoadInstruction(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : DestinationInstruction(alloc, ID, OpCode_Load, dst)
+		LoadInstr(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : ResultInstr(alloc, ID, OpCode_Load, dst)
 		{
 			operands.assign(src);
 		}
 	};
 
-	class StoreParamInstruction : public Instruction
+	class StoreParamInstr : public Instruction
 	{
 	public:
 		static constexpr Value_T ID = StoreParamInstrVal;
-		StoreParamInstruction(BumpAllocator& alloc, Operand* dst, Operand* src) : Instruction(alloc, ID, OpCode_StoreParam)
+		StoreParamInstr(BumpAllocator& alloc, Operand* dst, Operand* src) : Instruction(alloc, ID, OpCode_StoreParam)
 		{
 			operands.assign(dst, src);
 		}
 	};
 
-	class LoadParamInstruction : public DestinationInstruction
+	class LoadParamInstr : public ResultInstr
 	{
 	public:
 		static constexpr Value_T ID = LoadParamInstrVal;
-		LoadParamInstruction(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : DestinationInstruction(alloc, ID, OpCode_LoadParam, dst)
+		LoadParamInstr(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : ResultInstr(alloc, ID, OpCode_LoadParam, dst)
 		{
 			operands.assign(src);
 		}
 	};
 
-	class MoveInstruction : public DestinationInstruction
+	class MoveInstr : public ResultInstr
 	{
 	public:
 		static constexpr Value_T ID = MoveInstrVal;
-		MoveInstruction(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : DestinationInstruction(alloc, ID, OpCode_Move, dst)
+		MoveInstr(BumpAllocator& alloc, const ILVarId& dst, Operand* src) : ResultInstr(alloc, ID, OpCode_Move, dst)
 		{
 			operands.assign(src);
 		}
+	};
+
+	class PhiInstr
+	{
 	};
 }
 
