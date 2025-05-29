@@ -1,5 +1,5 @@
-#include "text_helper.hpp"
-#include "endianness.hpp"
+#include "utils/text_helper.hpp"
+#include "utils/endianness.hpp"
 
 namespace TextHelper
 {

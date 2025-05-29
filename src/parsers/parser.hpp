@@ -6,7 +6,6 @@
 #include "pch/ast.hpp"
 #include "io/logger_interface.hpp"
 #include "lazy.hpp"
-#include "utils/object_pool.hpp"
 
 namespace HXSL
 {

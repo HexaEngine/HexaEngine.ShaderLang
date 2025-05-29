@@ -1,4 +1,4 @@
-#include "ast_allocator.hpp"
+#include "utils/ast_allocator.hpp"
 
 static thread_local ASTAllocator* allocator = new ASTAllocator();
 

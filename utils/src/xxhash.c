@@ -32,11 +32,11 @@
  *   - xxHash source repository: https://github.com/Cyan4973/xxHash
  */
 
-/*
- * xxhash.c instantiates functions defined in xxhash.h
- */
+ /*
+  * xxhash.c instantiates functions defined in xxhash.h
+  */
 
 #define XXH_STATIC_LINKING_ONLY /* access advanced declarations */
 #define XXH_IMPLEMENTATION      /* access definitions */
 
-#include "xxhash.h"
+#include "utils/xxhash.h"

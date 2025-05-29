@@ -77,6 +77,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/build/cmake)
 target_include_directories(zstd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/lib/)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fmt)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/utils)
 
 message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
 
@@ -100,7 +101,7 @@ if (BUILD_SHARED)
     add_library(Compiler SHARED ${SOURCES})
 
     target_link_libraries(Compiler PRIVATE CompilerCommon libzstd_static)
-    target_link_libraries(Compiler PUBLIC fmt::fmt)
+    target_link_libraries(Compiler PUBLIC fmt::fmt HXSLUtils)
 
     add_dependencies(Compiler generate_locales)
 
@@ -118,10 +119,10 @@ if (BUILD_SHARED)
 endif()
 
 if (BUILD_STATIC)
-    add_library(CompilerStatic STATIC ${SOURCES} "src/preprocessing/evaluator.cpp")
+    add_library(CompilerStatic STATIC ${SOURCES})
 
     target_link_libraries(CompilerStatic PRIVATE CompilerCommon libzstd_static)
-    target_link_libraries(CompilerStatic PUBLIC fmt::fmt)
+    target_link_libraries(CompilerStatic PUBLIC fmt::fmt HXSLUtils)
 
     add_dependencies(CompilerStatic generate_locales)
 

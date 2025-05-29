@@ -1,7 +1,6 @@
 #ifndef LEXER_CONFIG_HPP
 #define LEXER_CONFIG_HPP
 
-#include "utils/tst.hpp"
 #include "utils/radix_tree.hpp"
 #include "pch/std.hpp"
 
