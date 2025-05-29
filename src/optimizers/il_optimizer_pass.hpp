@@ -17,7 +17,7 @@ namespace HXSL
 	protected:
 		ILContext* context;
 		bool changed = false;
-		void DiscardInstr(ILInstruction& instr) override
+		void DiscardInstr(Instruction& instr) override
 		{
 			ILMutatorBase::DiscardInstr(instr);
 			changed = true;

@@ -38,7 +38,7 @@ namespace HXSL
 			auto init = decl->GetInitializer().get();
 
 			auto flags = GetVarTypeFlags(decl->GetDeclaredType());
-			ILTypeId typeId;
+			ILType typeId;
 			ILVariable varId;
 			if ((flags & ILVariableFlags_LargeObject) != 0)
 			{
@@ -79,7 +79,7 @@ namespace HXSL
 					{
 						if (!container.empty())
 						{
-							cast<ResultInstr>(&container.back())->OpDst() = varId;
+							cast<ResultInstr>(&container.back())->GetResult() = varId;
 						}
 					}
 				}

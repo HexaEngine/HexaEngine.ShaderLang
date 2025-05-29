@@ -7,157 +7,162 @@ namespace HXSL
 
 	DEFINE_IMM_COMP(IsOne, 1);
 
-	static void ConvertToMove(ILInstruction& instr, Value* left)
+	static void ConvertToMove(ResultInstr& instr, Value* left)
 	{
-		instr.opcode = OpCode_Move;
-		instr.operandLeft = left;
-		instr.operandRight = nullptr;
+		auto block = instr.GetParent();
+		block->ReplaceInstrO<MoveInstr>(&instr, instr.GetResult(), left);
 	}
 
-	static void ConvertMoveRight(ILInstruction& instr)
+	static void ConvertMoveRight(BinaryInstr& instr)
 	{
-		ConvertToMove(instr, instr.operandRight);
+		ConvertToMove(instr, instr.GetRHS());
 	}
 
-	static void ConvertMove(ILInstruction& instr)
+	static void ConvertMoveLeft(BinaryInstr& instr)
 	{
-		instr.opcode = OpCode_Move;
-		instr.operandRight = nullptr;
+		ConvertToMove(instr, instr.GetLHS());
 	}
 
-	static void ConvertMoveImm(ILContext* context, ILInstruction& instr, const Number& num)
+	static void ConvertMoveImm(ILContext* context, ResultInstr& instr, const Number& num)
 	{
 		ConvertToMove(instr, context->MakeConstant(Cast(num, instr.opKind)));
 	}
 
-	static void ConvertMoveZero(ILContext* context, ILInstruction& instr)
+	static void ConvertMoveZero(ILContext* context, ResultInstr& instr)
 	{
 		ConvertMoveImm(context, instr, Number(0));
 	}
 
 	void AlgebraicSimplifier::Visit(size_t index, BasicBlock& node, EmptyCFGContext& ctx)
 	{
-		auto& instructions = node.instructions;
-
-		for (auto& instr : instructions)
+		for (auto& instr : node)
 		{
-			switch (instr.opcode)
+			switch (instr.GetOpCode())
 			{
 			case OpCode_Multiply:
 			{
-				if (IsZero(instr.operandLeft) || IsZero(instr.operandRight))
+				auto& in = *cast<BinaryInstr>(&instr);
+				if (IsZero(in.GetLHS()) || IsZero(in.GetRHS()))
 				{
-					ConvertMoveZero(context, instr); changed = true;
+					ConvertMoveZero(context, in); changed = true;
 				}
 
-				if (IsOne(instr.operandLeft))
+				if (IsOne(in.GetLHS()))
 				{
-					ConvertMoveRight(instr); changed = true;
+					ConvertMoveRight(in); changed = true;
 				}
 
-				if (IsOne(instr.operandRight))
+				if (IsOne(in.GetRHS()))
 				{
-					ConvertMove(instr); changed = true;
+					ConvertMoveLeft(in); changed = true;
 				}
 			}
 			break;
 			case OpCode_Divide:
 			{
-				if (IsZero(instr.operandLeft))
+				auto& in = *cast<BinaryInstr>(&instr);
+				if (IsZero(in.GetLHS()))
 				{
-					ConvertMoveZero(context, instr); changed = true;
+					ConvertMoveZero(context, in); changed = true;
 				}
-				if (IsZero(instr.operandRight))
+				if (IsZero(in.GetRHS()))
 				{
 					// TODO: add warning or error.
-					instr.opcode = OpCode_Move;
-					instr.operandRight = {};
+					//instr.opcode = OpCode_Move;
+					//instr.GetRHS() = {};
 					changed = true;
 				}
 
-				if (IsOne(instr.operandRight))
+				if (IsOne(in.GetRHS()))
 				{
-					ConvertMove(instr); changed = true;
+					ConvertMoveLeft(in); changed = true;
 				}
 
-				if (instr.operandLeft == instr.operandRight)
+				if (in.GetLHS() == in.GetRHS())
 				{
-					ConvertMoveImm(context, instr, Number(1)); changed = true;
+					ConvertMoveImm(context, in, Number(1)); changed = true;
 				}
 			}
 			break;
 			case OpCode_Subtract:
 			{
-				if (IsZero(instr.operandLeft))
+				auto& in = *cast<BinaryInstr>(&instr);
+				if (IsZero(in.GetLHS()))
 				{
-					ConvertMoveRight(instr); changed = true;
+					ConvertMoveRight(in); changed = true;
 				}
-				if (IsZero(instr.operandRight))
+				if (IsZero(in.GetRHS()))
 				{
-					ConvertMove(instr); changed = true;
+					ConvertMoveLeft(in); changed = true;
 				}
-				if (instr.operandLeft == instr.operandRight)
+				if (in.GetLHS() == in.GetRHS())
 				{
-					ConvertMoveZero(context, instr); changed = true;
+					ConvertMoveZero(context, in); changed = true;
 				}
 			}
 			break;
 			case OpCode_Add:
 			{
-				if (IsZero(instr.operandLeft))
+				auto& in = *cast<BinaryInstr>(&instr);
+				if (IsZero(in.GetLHS()))
 				{
-					ConvertMoveRight(instr); changed = true;
+					ConvertMoveRight(in); changed = true;
 				}
-				if (IsZero(instr.operandRight))
+				if (IsZero(in.GetRHS()))
 				{
-					ConvertMove(instr); changed = true;
+					ConvertMoveLeft(in); changed = true;
 				}
 			}
 			break;
 			case OpCode_Modulus:
 			{
-				if (IsZero(instr.operandLeft))
+				auto& in = *cast<BinaryInstr>(&instr);
+				if (IsZero(in.GetLHS()))
 				{
-					ConvertMoveZero(context, instr); changed = true;
+					ConvertMoveZero(context, in); changed = true;
 				}
 			}
 			break;
 			case OpCode_BitwiseAnd:
 			{
-				if (IsZero(instr.operandRight))
+				auto& in = *cast<BinaryInstr>(&instr);
+				if (IsZero(in.GetRHS()))
 				{
-					ConvertMoveZero(context, instr); changed = true;
+					ConvertMoveZero(context, in); changed = true;
 				}
 			}
 			break;
 			case OpCode_BitwiseOr:
 			{
-				if (IsZero(instr.operandRight))
+				auto& in = *cast<BinaryInstr>(&instr);
+				if (IsZero(in.GetRHS()))
 				{
-					ConvertMove(instr); changed = true;
+					ConvertMoveLeft(in); changed = true;
 				}
 			}
 			break;
 			case OpCode_BitwiseXor:
 			{
-				if (IsZero(instr.operandRight))
+				auto& in = *cast<BinaryInstr>(&instr);
+				if (IsZero(in.GetRHS()))
 				{
-					ConvertMove(instr); changed = true;
+					ConvertMoveLeft(in); changed = true;
 				}
 
-				if (instr.operandLeft == instr.operandRight)
+				if (in.GetLHS() == in.GetRHS())
 				{
-					ConvertMoveZero(context, instr); changed = true;
+					ConvertMoveZero(context, in); changed = true;
 				}
 			}
 			break;
 			case OpCode_AndAnd:
 			{
-				auto immR = dyn_cast<Constant>(instr.operandRight);
+				auto& in = *cast<BinaryInstr>(&instr);
+				auto immR = dyn_cast<Constant>(in.GetRHS());
 				if (!immR) break;
 				if (immR->imm().ToBool())
 				{
-					ConvertMove(instr); changed = true;
+					ConvertMoveLeft(in); changed = true;
 				}
 				else
 				{
@@ -166,16 +171,17 @@ namespace HXSL
 					bool condition = false;
 					if (instr.GetNext())
 					{
-						auto& nextInstr = *instr.GetNext();
-						bool isTrueBranch = nextInstr.opcode == OpCode_JumpNotZero;
-						if (isTrueBranch || nextInstr.opcode == OpCode_JumpZero)
+						auto jumpInstr = dyn_cast<JumpInstr>(instr.GetNext());
+						if (jumpInstr && jumpInstr->GetOpCode() == OpCode_Jump)
 						{
+							auto& jump = *jumpInstr;
+							bool isTrueBranch = jump.GetOpCode() == OpCode_JumpNotZero;
 							bool willJump = (isTrueBranch && condition) || (!isTrueBranch && !condition);
-							auto& target = cast<Label>(nextInstr.operandLeft)->label.value;
+							auto& target = jump.GetLabel()->label.value;
 
 							if (willJump)
 							{
-								auto& successors = node.successors;
+								auto& successors = node.GetSuccessors();
 								for (size_t i = 0; i < successors.size(); i++)
 								{
 									auto succs = successors[i];
@@ -185,18 +191,18 @@ namespace HXSL
 										i--;
 
 										auto& succsNode = cfg.GetNode(succs);
-										if (succsNode.predecessors.empty())
+										if (succsNode.IsPredecessorsEmpty())
 										{
 											cfg.RemoveNode(succs);
 										}
 									}
 								}
 
-								node.type = ControlFlowType_Normal;
-								instructions.trim_end(&instr);
+								node.SetType(ControlFlowType_Normal);
+								node.InstructionsTrimEnd(&instr);
 
 								auto& targetNode = cfg.GetNode(target);
-								if (targetNode.predecessors.size() == 1 && targetNode.predecessors[0] == index)
+								if (targetNode.NumPredecessors() == 1 && targetNode.GetPredecessors()[0] == index)
 								{
 									cfg.MergeNodes(index, target);
 								}
@@ -205,13 +211,13 @@ namespace HXSL
 							{
 								cfg.Unlink(index, target);
 								auto& succsNode = cfg.GetNode(target);
-								if (succsNode.predecessors.empty())
+								if (succsNode.IsPredecessorsEmpty())
 								{
 									cfg.RemoveNode(target);
 								}
 
-								node.type = ControlFlowType_Normal;
-								instructions.trim_end(&instr);
+								node.SetType(ControlFlowType_Normal);
+								node.InstructionsTrimEnd(&instr);
 							}
 
 							cfg.RebuildDomTree();

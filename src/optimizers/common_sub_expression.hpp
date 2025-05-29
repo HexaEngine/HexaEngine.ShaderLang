@@ -8,10 +8,10 @@ namespace HXSL
 {
 	class CommonSubExpression : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 	{
-		std::unordered_set<ILInstruction*, ILInstructionPtrHash, ILInstructionPtrEquals> subExpressions;
+		std::unordered_set<ResultInstr*, InstructionPtrHash, InstructionPtrEquals> subExpressions;
 		dense_map<ILVarId, ILVarId> map;
 
-		void TryMapOperand(Value*& op);
+		void TryMapOperand(Operand*& op);
 
 		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 

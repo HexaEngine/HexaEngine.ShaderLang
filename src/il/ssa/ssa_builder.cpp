@@ -5,50 +5,46 @@ namespace HXSL
 {
 	void SSABuilder::Visit(size_t index, BasicBlock& node, SSACFGContext& context)
 	{
-		auto& instructs = node.instructions;
-		for (auto& instr : instructs)
+		for (auto& instr : node)
 		{
-			if (instr.IsOp(OpCode_Phi))
+			if (auto phi = dyn_cast<PhiInstr>(&instr))
 			{
-				auto var = instr.result;
+				auto& var = phi->GetResult();
 				auto newVersion = MakeNewVersion(var);
 				context.variables.push_back(var);
-				var = newVersion;
-				metadata.phiMetadata[cast<Phi>(instr.operandLeft)->phiId.value].varId = newVersion;
+				phi->SetResult(newVersion);
 				continue;
 			}
 
-			if (auto var = dyn_cast<Variable>(instr.operandLeft))
+			for (auto operand : instr.GetOperands())
 			{
-				var->varId = TopVersion(var->varId);
-			}
-			if (auto var = dyn_cast<Variable>(instr.operandRight))
-			{
-				var->varId = TopVersion(var->varId);
+				if (auto var = dyn_cast<Variable>(operand))
+				{
+					var->varId = TopVersion(var->varId);
+				}
 			}
 
-			if (instr.HasResult())
+			if (auto res = dyn_cast<ResultInstr>(&instr))
 			{
-				auto varId = instr.result;
+				auto& varId = res->GetResult();
 				ILVarId newVersion = MakeNewVersion(varId);
 				context.variables.push_back(varId);
-				instr.result = newVersion;
+				res->SetResult(newVersion);
 			}
 		}
 
-		auto& phiMetadata = metadata.phiMetadata;
-		for (auto succ : node.successors)
+		for (auto succ : node.GetDependants())
 		{
 			auto& succNode = cfg.GetNode(succ);
 			size_t slot = succNode.GetPredecessorIndex(index);
 
-			for (auto& instr : succNode.instructions)
+			for (auto& instr : succNode)
 			{
-				if (!instr.IsOp(OpCode_Phi)) break;
-				auto phiId = cast<Phi>(instr.operandLeft)->phiId;
-				ILVarId varId = instr.result;
+				auto phi = dyn_cast<PhiInstr>(&instr);
+				if (!phi) break;
+				ILVarId varId = phi->GetResult();
 				ILVarId version = TopVersion(varId);
-				phiMetadata[phiId.value].params[slot] = version;
+				phi->GetOperand(slot) = this->context->MakeVariable(version);
 			}
 		}
 	}
@@ -61,37 +57,32 @@ namespace HXSL
 		}
 	}
 
-	void SSABuilder::InsertPhiMeta(BasicBlock& node, ILVarId varId, ILPhiId& phiIdOut)
+	void SSABuilder::InsertPhiMeta(BasicBlock& node, ILVarId varId)
 	{
 		auto& globalMetadata = metadata;
-		auto& phiMetadata = globalMetadata.phiMetadata;
-		ILPhiId phiId = ILPhiId(static_cast<uint64_t>(phiMetadata.size()));
-		phiMetadata.emplace_back();
-		auto& meta = phiMetadata.back();
-		meta.params.resize(node.predecessors.size());
-
 		auto& var = globalMetadata.variables[varId.var.id];
-
-		ILInstruction phi = ILInstruction(OpCode_Phi, var, context->MakePhi(phiId));
-
-		node.instructions.insert(node.instructions.begin(), phi);
-
-		phiIdOut = phiId;
+		auto incomingCount = node.GetDependencies().size();
+		auto instr = node.InsertInstr(node.begin(), PhiInstr(context->allocator, var, incomingCount));
+		globalMetadata.phiNodes.push_back(instr);
 	}
 
 	void SSABuilder::Build()
 	{
 		const size_t n = cfg.size();
 
+		std::unordered_map<ILVarId, std::unordered_set<size_t>> defSites;
 		for (size_t i = 0; i < n; ++i)
 		{
-			for (auto& instr : cfg.GetNode(i).instructions)
+			for (auto& instr : cfg.GetNode(i))
 			{
-				if (!instr.HasResult() || instr.result.var.temp)
+				auto res = dyn_cast<ResultInstr>(&instr);
+				if (!res) continue;
+				auto& var = res->GetResult();
+				if (var.temp())
 				{
 					continue;
 				}
-				defSites[instr.result].insert(i);
+				defSites[var].insert(i);
 			}
 		}
 
@@ -110,9 +101,8 @@ namespace HXSL
 				{
 					if (hasPhi[varId].insert(df).second)
 					{
-						ILPhiId phiId;
-						InsertPhiMeta(cfg.GetNode(df), varId, phiId);
-						blockPhis[df].push_back(phiId);
+						InsertPhiMeta(cfg.GetNode(df), varId);
+						//blockPhis[df].push_back(phiId);
 						if (!p.second.count(df)) wl.push(df);
 					}
 				}

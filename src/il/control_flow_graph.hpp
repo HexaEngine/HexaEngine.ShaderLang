@@ -43,11 +43,17 @@ namespace HXSL
 
 	struct BasicBlock : public GraphNode<BasicBlock>
 	{
+	public:
+		using instr_iterator = ilist<Instruction>::iterator;
+		using const_instr_iterator = ilist<Instruction>::const_iterator;
+		using reverse_instr_iterator = ilist<Instruction>::reverse_iterator;
+		using const_reverse_instr_iterator = ilist<Instruction>::const_reverse_iterator;
+	private:
 		friend class ControlFlowGraph;
 		size_t id;
 		ILContext* parent;
 		ControlFlowType type;
-		ilist<ILInstruction> instructions;
+		ilist<Instruction> instructions;
 		std::vector<size_t> predecessors;
 		std::vector<size_t> successors;
 
@@ -56,20 +62,104 @@ namespace HXSL
 
 		ILContext* GetParent() const { return parent; }
 
-		const std::vector<size_t>& GetDependencies() const
-		{
-			return predecessors;
-		}
+		void SetType(ControlFlowType value) noexcept { type = value; }
+		ControlFlowType GetType() const noexcept { return type; }
 
-		const std::vector<size_t>& GetDependants() const
-		{
-			return successors;
-		}
+		const std::vector<size_t>& GetDependencies() const { return predecessors; }
+		const std::vector<size_t>& GetDependants() const { return successors; }
+		const std::vector<size_t>& GetPredecessors() const { return predecessors; }
+		const std::vector<size_t>& GetSuccessors() const { return successors; }
+		size_t NumPredecessors() const noexcept { return predecessors.size(); }
+		size_t NumSuccessors() const noexcept { return successors.size(); }
+		bool IsPredecessorsEmpty() const noexcept { return predecessors.empty(); }
+		bool IsSuccessorsEmpty() const noexcept { return successors.empty(); }
+
+		const ilist<Instruction>& GetInstructions() const { return instructions; }
+
+		instr_iterator begin() { return instructions.begin(); }
+		instr_iterator end() { return instructions.end(); }
+		const_instr_iterator begin() const { return instructions.begin(); }
+		const_instr_iterator end() const { return instructions.end(); }
+		const_instr_iterator cbegin() const { return instructions.begin(); }
+		const_instr_iterator cend() const { return instructions.end(); }
+
+		reverse_instr_iterator rbegin() { return instructions.rbegin(); }
+		reverse_instr_iterator rend() { return instructions.rend(); }
+		const_reverse_instr_iterator rbegin() const { return instructions.rbegin(); }
+		const_reverse_instr_iterator rend() const { return instructions.rend(); }
+		const_reverse_instr_iterator rcbegin() const { return instructions.rbegin(); }
+		const_reverse_instr_iterator rcend() const { return instructions.rend(); }
 
 		void AddInstr(Instruction* instr)
 		{
 			instr->SetParent(this);
-			//instructions.append_move(instr);
+			instructions.append_move(instr);
+		}
+
+		template<typename U>
+		U* InsertInstr(const instr_iterator& it, const U& instr)
+		{
+			auto res = instructions.insert(it, instr);
+			res->SetParent(this);
+			return static_cast<U*>(res);
+		}
+
+		template<typename U>
+		U* InsertInstr(const instr_iterator& it, U&& instr)
+		{
+			auto res = instructions.insert(it, std::forward<U>(instr));
+			res->SetParent(this);
+			return static_cast<U*>(res);
+		}
+
+		void RemoveInstr(Instruction* instr)
+		{
+			instr->SetParent(nullptr);
+			instructions.remove(instr);
+		}
+
+		template<typename T, typename... Operands>
+		Instruction* ReplaceInstr(Instruction* instr, ILOpCode opcode, ILVarId result, Operands&&... operands)
+		{
+			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+			auto& allocator = instructions.get_allocator();
+			OperandFactory factory{ allocator };
+			auto res = instructions.replace(instr, T(allocator, opcode, result, factory(std::forward<Operands>(operands))...));
+			return res;
+		}
+
+		template<typename T, typename... Operands>
+		Instruction* ReplaceInstrNO(Instruction* instr, ILOpCode opcode, Operands&&... operands)
+		{
+			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+			auto& allocator = instructions.get_allocator();
+			OperandFactory factory{ allocator };
+			auto res = instructions.replace(instr, T(allocator, opcode, factory(std::forward<Operands>(operands))...));
+			return res;
+		}
+
+		template<typename T, typename... Operands>
+		Instruction* ReplaceInstrO(Instruction* instr, ILVarId result, Operands&&... operands)
+		{
+			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+			auto& allocator = instructions.get_allocator();
+			OperandFactory factory{ allocator };
+			auto res = instructions.replace(instr, T(allocator, result, factory(std::forward<Operands>(operands))...));
+			return res;
+		}
+
+		template<typename T, typename... Operands>
+		Instruction* ReplaceInstrONO(Instruction* instr, Operands&&... operands)
+		{
+			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+			auto& allocator = instructions.get_allocator();
+			OperandFactory factory{ allocator };
+			auto res = instructions.replace(instr, T(allocator, factory(std::forward<Operands>(operands))...));
+		}
+
+		void InstructionsTrimEnd(Instruction* instr)
+		{
+			instructions.trim_end(instr);
 		}
 
 		void AddPredecessor(size_t predId)

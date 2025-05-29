@@ -9,7 +9,7 @@ namespace HXSL
 	{
 		std::unordered_map<ILVarId, ILVarId> phiMap;
 		std::unordered_map<ILVarId, ILVarId> varMapping;
-		std::unordered_map<ILVarId, const ILInstruction*> lastUseIndex;
+		std::unordered_map<ILVarId, const Instruction*> lastUseIndex;
 		std::vector<std::queue<ILVarId>> freeTemps;
 		std::unordered_set<ILVarId> seenVars;
 
@@ -32,23 +32,23 @@ namespace HXSL
 			return finalId;
 		}
 
-		void Prepare(const ILInstruction& instr)
+		void Prepare(const Instruction& instr)
 		{
-			if (auto var = dyn_cast<Variable>(instr.operandLeft))
+			for (auto& operand : instr.GetOperands())
 			{
-				lastUseIndex.insert_or_assign(var->varId, &instr);
+				if (auto var = dyn_cast<Variable>(operand))
+				{
+					lastUseIndex.insert_or_assign(var->varId, &instr);
+				}
 			}
-			if (auto var = dyn_cast<Variable>(instr.operandRight))
+
+			if (auto res = dyn_cast<ResultInstr>(&instr))
 			{
-				lastUseIndex.insert_or_assign(var->varId, &instr);
-			}
-			if (instr.HasResult())
-			{
-				seenVars.insert(instr.result & SSA_VERSION_STRIP_MASK);
+				seenVars.insert(res->GetResult() & SSA_VERSION_STRIP_MASK);
 			}
 		}
 
-		void RemapVar(ILVarId& varId, ILInstruction* instr, bool isResult)
+		void RemapVar(ILVarId& varId, Instruction* instr, bool isResult)
 		{
 			if (!IsTempVar(varId)) return;
 
@@ -76,7 +76,7 @@ namespace HXSL
 			freeTemps[typeId.value].push(varId & SSA_VERSION_STRIP_MASK);
 		}
 
-		void RemapOperand(Value* op, ILInstruction* instr, bool isResult)
+		void RemapOperand(Operand* op, Instruction* instr, bool isResult)
 		{
 			auto var = dyn_cast<Variable>(op);
 			if (!var) return;
@@ -86,18 +86,21 @@ namespace HXSL
 			RemapVar(var->varId, instr, isResult);
 		}
 
-		void RemapOperandsAndResult(ILInstruction& instr)
+		void RemapOperandsAndResult(Instruction& instr)
 		{
-			RemapOperand(instr.operandLeft, &instr, false);
-			RemapOperand(instr.operandRight, &instr, false);
-			if (instr.HasResult())
+			for (auto& operand : instr.GetOperands())
 			{
-				RemapVar(instr.result, &instr, true);
+				RemapOperand(operand, &instr, false);
+			}
+
+			if (auto res = dyn_cast<ResultInstr>(&instr))
+			{
+				RemapVar(res->GetResult(), &instr, true);
 			}
 		}
 
 		void TryClearVersion(ILVarId& op);
-		void TryClearVersion(Value* op);
+		void TryClearVersion(Operand* op);
 		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 	public:

@@ -21,7 +21,6 @@ namespace HXSL
 
 		std::unordered_map<ILVarId, std::stack<ILVarId>> versionStacks;
 		std::unordered_map<ILVarId, uint32_t> versionCounters;
-		std::unordered_map<ILVarId, std::unordered_set<size_t>> defSites;
 
 		ILVarId TopVersion(ILVarId varId)
 		{
@@ -54,7 +53,7 @@ namespace HXSL
 			versionStacks[varId].pop();
 		}
 
-		void InsertPhiMeta(BasicBlock& node, ILVarId varId, ILPhiId& phiIdOut);
+		void InsertPhiMeta(BasicBlock& node, ILVarId varId);
 
 		void Visit(size_t index, BasicBlock& node, SSACFGContext& context) override;
 

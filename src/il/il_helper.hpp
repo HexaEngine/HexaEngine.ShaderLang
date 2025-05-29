@@ -311,12 +311,18 @@ namespace HXSL
 		return Number{};
 	}
 
-	static bool TryFold(ILInstruction& instr, Number& outImm)
+	static bool TryFold(Instruction& instr, Number& outImm)
 	{
-		auto immL = dyn_cast<Constant>(instr.operandLeft);
+		auto opCount = instr.OperandCount();
+		if (opCount == 0) return false;
+
+		auto immL = dyn_cast<Constant>(instr.GetOperand(0));
 		if (!immL) return false;
-		auto immR = dyn_cast<Constant>(instr.operandRight);
-		auto code = instr.opcode;
+
+		Constant* immR = nullptr;
+		if (opCount > 1) immR = dyn_cast<Constant>(instr.GetOperand(1));
+
+		auto code = instr.GetOpCode();
 		switch (code)
 		{
 		case OpCode_Add: if (!immR) return false; outImm = immL->imm() + immR->imm(); return true;

@@ -54,7 +54,7 @@ namespace HXSL
 			{
 				if (!container.empty())
 				{
-					cast<ResultInstr>(&container.back())->OpDst() = var;
+					cast<ResultInstr>(&container.back())->GetResult() = var;
 				}
 				return;
 			}
@@ -324,7 +324,7 @@ namespace HXSL
 							auto last = &container.back();
 							if (auto alloc = dyn_cast<StackAllocInstr>(last))
 							{
-								AddInstrONO<StoreParamInstr>(alloc->OpDst(), Number(0));
+								AddInstrONO<StoreParamInstr>(alloc->GetResult(), Number(0));
 							}
 						}
 					}

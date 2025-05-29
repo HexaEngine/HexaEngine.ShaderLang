@@ -158,16 +158,6 @@ namespace HXSL
 			oss << metadata.GetTypeName(op->typeId);
 		}
 		break;
-		case Value::PhiVal:
-		{
-			auto op = cast<Phi>(operand);
-			auto& phi = metadata.GetPhi(op->phiId);
-			for (auto& p : phi.params)
-			{
-				oss << "[" << ToString(p, metadata) << "]";
-			}
-		}
-		break;
 		}
 
 		return oss.str();
@@ -186,7 +176,7 @@ namespace HXSL
 
 		if (auto res = dyn_cast<ResultInstr>(instr))
 		{
-			oss << ToString(res->OpDst(), metadata);
+			oss << ToString(res->GetResult(), metadata);
 			oss << " = ";
 		}
 

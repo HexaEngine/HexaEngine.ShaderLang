@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	void CommonSubExpression::TryMapOperand(Value*& op)
+	void CommonSubExpression::TryMapOperand(Operand*& op)
 	{
 		if (auto var = dyn_cast<Variable>(op))
 		{
@@ -16,19 +16,24 @@ namespace HXSL
 
 	void CommonSubExpression::Visit(size_t index, BasicBlock& node, EmptyCFGContext& context)
 	{
-		auto& instructions = node.instructions;
-		for (auto& instr : instructions)
+		for (auto& instr : node)
 		{
-			TryMapOperand(instr.operandLeft);
-			TryMapOperand(instr.operandRight);
-
-			if (instr.opcode == OpCode_Load || instr.opcode == OpCode_Move || instr.opcode == OpCode_Store || instr.opcode == OpCode_StoreParam || instr.opcode == OpCode_LoadParam) continue;
-
-			auto it = subExpressions.insert(&instr);
-			if (!it.second)
+			for (auto& operand : instr.GetOperands())
 			{
-				DiscardInstr(instr);
-				map.insert({ instr.result, (*it.first)->result });
+				TryMapOperand(operand);
+			}
+
+			auto opcode = instr.GetOpCode();
+			if (opcode == OpCode_Load || opcode == OpCode_Move || opcode == OpCode_Store || opcode == OpCode_StoreParam || opcode == OpCode_LoadParam) continue;
+
+			if (auto res = dyn_cast<ResultInstr>(&instr))
+			{
+				auto it = subExpressions.insert(res);
+				if (!it.second)
+				{
+					DiscardInstr(instr);
+					map.insert({ res->GetResult(), (*it.first)->GetResult() });
+				}
 			}
 		}
 

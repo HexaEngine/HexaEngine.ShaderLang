@@ -10,7 +10,7 @@ namespace HXSL
 	{
 	protected:
 		ILMetadata& metadata;
-		std::unordered_set<ILInstruction*> discardList;
+		std::unordered_set<Instruction*> discardList;
 		ILMutatorBase(ILMetadata& metadata) : metadata(metadata) {}
 
 	public:
@@ -18,12 +18,12 @@ namespace HXSL
 		{
 			for (auto instr : discardList)
 			{
-				node.instructions.remove(instr);
+				node.RemoveInstr(instr);
 			}
 			discardList.clear();
 		}
 
-		virtual void DiscardInstr(ILInstruction& instr)
+		virtual void DiscardInstr(Instruction& instr)
 		{
 			discardList.insert(&instr);
 		}

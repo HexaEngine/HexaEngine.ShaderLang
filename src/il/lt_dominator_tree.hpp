@@ -50,7 +50,7 @@ namespace HXSL
 				label[v] = v;
 				time++;
 
-				auto& successors = cfg.nodes[v].successors;
+				auto& successors = cfg.nodes[v].GetSuccessors();
 				for (auto it = successors.rbegin(); it != successors.rend(); ++it)
 				{
 					auto w = *it;
@@ -96,7 +96,7 @@ namespace HXSL
 			for (int i = (int)time - 1; i >= 1; i--)
 			{
 				size_t w = vertex[i];
-				for (auto v : cfg.nodes[w].predecessors)
+				for (auto v : cfg.nodes[w].GetPredecessors())
 				{
 					size_t u = Eval(v);
 					if (semi[u] < semi[w])
@@ -162,7 +162,7 @@ namespace HXSL
 					continue;
 				}
 
-				for (size_t succ : cfg.nodes[node].successors)
+				for (size_t succ : cfg.nodes[node].GetSuccessors())
 				{
 					if (idom[succ] != node)
 					{

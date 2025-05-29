@@ -11,7 +11,7 @@ namespace HXSL
 		}
 	}
 
-	void SSAReducer::TryClearVersion(Value* op)
+	void SSAReducer::TryClearVersion(Operand* op)
 	{
 		auto var = dyn_cast<Variable>(op);
 		if (!var) return;
@@ -22,21 +22,22 @@ namespace HXSL
 	{
 		lastUseIndex.clear();
 
-		auto& instructions = node.instructions;
-		const size_t n = instructions.size();
-		for (auto& instr : instructions)
+		for (auto& instr : node)
 		{
-			if (instr.opcode == OpCode_Phi)
+			if (isa<PhiInstr>(&instr))
 			{
 				DiscardInstr(instr);
 				continue;
 			}
 
-			TryClearVersion(instr.operandLeft);
-			TryClearVersion(instr.operandRight);
-			if (instr.HasResult())
+			for (auto& op : instr.GetOperands())
 			{
-				TryClearVersion(instr.result);
+				TryClearVersion(op);
+			}
+
+			if (auto res = dyn_cast<ResultInstr>(&instr))
+			{
+				TryClearVersion(res->GetResult());
 			}
 
 			Prepare(instr);
@@ -51,7 +52,7 @@ namespace HXSL
 			freeTemps[typeId.value].push(varId);
 		}
 
-		for (auto& instr : instructions)
+		for (auto& instr : node)
 		{
 			RemapOperandsAndResult(instr);
 		}
@@ -61,11 +62,11 @@ namespace HXSL
 
 	void SSAReducer::Reduce()
 	{
-		for (auto& phi : metadata.phiMetadata)
+		for (auto& phi : metadata.phiNodes)
 		{
-			for (auto& p : phi.params)
+			for (auto& p : phi->GetOperands())
 			{
-				phiMap.insert({ p, phi.varId });
+				phiMap.insert({ cast<Variable>(p)->varId, phi->GetResult() });
 			}
 		}
 		freeTemps.resize(metadata.typeMetadata.size());

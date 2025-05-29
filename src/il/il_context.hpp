@@ -37,7 +37,6 @@ namespace HXSL
 		Constant* MakeConstant(const Number& num) { return allocator.Alloc<Constant>(num); }
 		Variable* MakeVariable(const ILVarId& varId) { return allocator.Alloc<Variable>(varId); }
 		Variable* MakeVariable(const ILVariable& var) { return allocator.Alloc<Variable>(var.id); }
-		Phi* MakePhi(const ILPhiId& phiId) { return allocator.Alloc<Phi>(phiId); }
 	};
 }
 

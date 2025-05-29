@@ -19,7 +19,7 @@ namespace HXSL
 			return alloc.Alloc<Constant>(num);
 		}
 
-		TypeValue* operator()(ILTypeId typeId) const
+		TypeValue* operator()(ILType typeId) const
 		{
 			return alloc.Alloc<TypeValue>(typeId);
 		}
@@ -37,11 +37,6 @@ namespace HXSL
 		FieldAccess* operator()(ILFieldAccess field) const
 		{
 			return alloc.Alloc<FieldAccess>(field);
-		}
-
-		Phi* operator()(ILPhiId phiId) const
-		{
-			return alloc.Alloc<Phi>(phiId);
 		}
 
 		ILOpKind operator()(ILOpKind kind) const noexcept { return kind; }

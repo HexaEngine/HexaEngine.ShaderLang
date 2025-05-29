@@ -133,25 +133,21 @@ namespace HXSL
 
 	void ControlFlowGraph::UpdatePhiInputs(size_t removedPred, size_t targetBlock)
 	{
-		auto& phiMetadata = metadata.phiMetadata;
-		auto& targetNode = nodes[targetBlock];
+		auto& block = nodes[targetBlock];
 
-		for (auto& instr : targetNode.instructions)
+		for (auto& instr : block)
 		{
-			if (instr.opcode != OpCode_Phi)
-				break;
+			auto phi = dyn_cast<PhiInstr>(&instr);
+			if (!phi) break;
 
-			auto phiIndex = cast<Phi>(instr.operandLeft)->phiId;
-			auto& phiInputs = phiMetadata[phiIndex.value].params;
+			auto& phiInputs = phi->GetOperands();
 
 			if (removedPred >= phiInputs.size())
 				continue;
 
-			phiInputs.erase(phiInputs.begin() + removedPred);
 			if (phiInputs.size() == 1)
 			{
-				instr.opcode = OpCode_Move;
-				instr.operandLeft = context->MakeVariable(phiInputs[0]);
+				block.ReplaceInstrO<MoveInstr>(&instr, phi->GetResult(), phiInputs[0]);
 			}
 		}
 	}
@@ -197,9 +193,9 @@ namespace HXSL
 					s = index;
 					for (auto& instr : nodes[pred].instructions)
 					{
-						if (instr.opcode == OpCode_Jump || instr.opcode == OpCode_JumpNotZero || instr.opcode == OpCode_JumpZero)
+						if (auto jump = dyn_cast<JumpInstr>(&instr))
 						{
-							auto label = dyn_cast<Label>(instr.operandLeft);
+							auto label = jump->GetLabel();
 							if (label->label.value == last)
 							{
 								label->label = ILLabel(index);

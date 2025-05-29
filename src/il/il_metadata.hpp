@@ -16,7 +16,7 @@ namespace HXSL
 
 	DEFINE_FLAGS_OPERATORS(ILVariableFlags, int)
 
-		static ILVariableFlags GetVarTypeFlags(SymbolDef* def)
+		inline static ILVariableFlags GetVarTypeFlags(SymbolDef* def)
 	{
 		ILVariableFlags flags = ILVariableFlags_None;
 		if (auto prim = def->As<Primitive>())
@@ -41,28 +41,28 @@ namespace HXSL
 
 	struct ILTypeMetadata
 	{
-		ILTypeId id;
+		ILType id;
 		SymbolDef* def;
 
-		ILTypeMetadata(const ILTypeId& id, SymbolDef* def)
+		ILTypeMetadata(const ILType& id, SymbolDef* def)
 			: id(id), def(def)
 		{
 		}
 
-		ILVariableFlags GetVarFlags() const
+		ILVariableFlags GetVarTypeFlags() const
 		{
-			return GetVarTypeFlags(def);
+			return HXSL::GetVarTypeFlags(def);
 		}
 	};
 
 	struct ILVariable
 	{
 		ILVarId id;
-		ILTypeId typeId;
+		ILType typeId;
 		SymbolDef* var;
 		ILVariableFlags flags;
 
-		constexpr ILVariable(const ILVarId& id, const ILTypeId& typeId, SymbolDef* var, ILVariableFlags flags = ILVariableFlags_None)
+		constexpr ILVariable(const ILVarId& id, const ILType& typeId, SymbolDef* var, ILVariableFlags flags = ILVariableFlags_None)
 			: id(id), typeId(typeId), var(var), flags(flags)
 		{
 		}
@@ -102,7 +102,7 @@ namespace HXSL
 		}
 	};
 
-	constexpr ILVariable INVALID_VARIABLE_METADATA = ILVariable(ILVarId(-1), ILTypeId(-1), nullptr);
+	constexpr ILVariable INVALID_VARIABLE_METADATA = ILVariable(ILVarId(-1), ILType(-1), nullptr);
 
 	struct ILCall
 	{
@@ -139,7 +139,7 @@ namespace HXSL
 		std::string unknownString = "Unknown";
 		ILVariable invalid = INVALID_VARIABLE_METADATA;
 		std::vector<ILTypeMetadata> typeMetadata;
-		std::unordered_map<SymbolDef*, ILTypeId> typeMap;
+		std::unordered_map<SymbolDef*, ILType> typeMap;
 
 		std::vector<ILVariable> variables;
 		std::vector<ILVariable> tempVariables;
@@ -148,7 +148,7 @@ namespace HXSL
 		std::vector<ILCall> functions;
 		std::unordered_map<SymbolDef*, ILFuncId> funcMap;
 
-		std::vector<PhiMetadata> phiMetadata;
+		std::vector<PhiInstr*> phiNodes;
 
 		ILMetadata()
 		{
@@ -170,7 +170,7 @@ namespace HXSL
 			}
 		}
 
-		ILTypeId RegType(SymbolDef* def)
+		ILType RegType(SymbolDef* def)
 		{
 			auto it = typeMap.find(def);
 			if (it != typeMap.end())
@@ -178,13 +178,13 @@ namespace HXSL
 				return it->second;
 			}
 
-			auto idx = ILTypeId(static_cast<uint32_t>(typeMetadata.size()));
+			auto idx = ILType(static_cast<uint32_t>(typeMetadata.size()));
 			typeMetadata.push_back(ILTypeMetadata(idx, def));
 			typeMap.insert({ def, idx });
 			return idx;
 		}
 
-		ILVariable& RegVar(ILTypeId typeId, SymbolDef* def)
+		ILVariable& RegVar(ILType typeId, SymbolDef* def)
 		{
 			auto it = varMap.find(def);
 			if (it != varMap.end())
@@ -195,7 +195,7 @@ namespace HXSL
 			auto idx = variables.size();
 
 			auto& type = typeMetadata[typeId.value];
-			ILVariable var = ILVariable(idx, typeId, def, type.GetVarFlags());
+			ILVariable var = ILVariable(idx, typeId, def, type.GetVarTypeFlags());
 
 			variables.push_back(var);
 			varMap.insert({ def, idx });
@@ -209,12 +209,12 @@ namespace HXSL
 			return RegVar(typeId, var);
 		}
 
-		ILVariable& RegTempVar(ILTypeId typeId)
+		ILVariable& RegTempVar(ILType typeId)
 		{
 			auto idx = tempVariables.size();
 			auto& type = typeMetadata[typeId.value];
 
-			ILVariable var = ILVariable(idx | SSA_VARIABLE_TEMP_FLAG, typeId, nullptr, type.GetVarFlags());
+			ILVariable var = ILVariable(idx | SSA_VARIABLE_TEMP_FLAG, typeId, nullptr, type.GetVarTypeFlags());
 			tempVariables.push_back(var);
 
 			return tempVariables[idx];
@@ -275,7 +275,7 @@ namespace HXSL
 			return ILFieldAccess(typeId, fieldId);
 		}
 
-		std::string_view GetTypeName(ILTypeId typeId) const
+		std::string_view GetTypeName(ILType typeId) const
 		{
 			if (typeId.value >= typeMetadata.size())
 			{
@@ -343,16 +343,6 @@ namespace HXSL
 				return GetTypeName(var.typeId);
 			}
 		}
-
-		PhiMetadata& GetPhi(ILPhiId phiId)
-		{
-			return phiMetadata[phiId.value];
-		}
-
-		const PhiMetadata& GetPhi(ILPhiId phiId) const
-		{
-			return phiMetadata[phiId.value];
-		}
 	};
 
 	class ILMetadataAdapter
@@ -362,9 +352,9 @@ namespace HXSL
 	public:
 		ILMetadataAdapter(ILMetadata& metadata) : metadata(metadata) {}
 
-		ILTypeId RegType(SymbolDef* def) { return metadata.RegType(def); }
+		ILType RegType(SymbolDef* def) { return metadata.RegType(def); }
 
-		ILVariable& RegVar(ILTypeId typeId, SymbolDef* def) { return metadata.RegVar(typeId, def); }
+		ILVariable& RegVar(ILType typeId, SymbolDef* def) { return metadata.RegVar(typeId, def); }
 
 		ILVariable& RegVar(SymbolDef* type, SymbolDef* var) { return metadata.RegVar(type, var); }
 

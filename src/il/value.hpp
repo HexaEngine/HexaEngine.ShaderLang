@@ -27,13 +27,13 @@ namespace HXSL
 			LoadParamInstrVal,
 			StoreParamInstrVal,
 			MoveInstrVal,
+			PhiInstrVal,
 			ConstantVal,
 			VariableVal,
 			FieldVal,
 			LabelVal,
 			TypeVal,
 			FuncVal,
-			PhiVal,
 		};
 
 		ValueId GetTypeId() const noexcept { return typeId; }

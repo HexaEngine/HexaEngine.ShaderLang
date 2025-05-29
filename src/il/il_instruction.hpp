@@ -339,13 +339,9 @@ namespace HXSL
 		bool HasResult() const noexcept { return result != INVALID_VARIABLE; }
 
 		bool IsOp(ILOpCode code) const noexcept { return opcode == code; }
-
 		bool IsImmVar() const noexcept { return isa<Constant>(operandLeft) && isa<Variable>(operandRight); }
-
 		bool IsVarImm() const noexcept { return isa<Variable>(operandLeft) && isa<Constant>(operandRight); }
-
 		bool IsImmVar(ILOpCode code) const noexcept { return opcode == code && IsImmVar(); }
-
 		bool IsVarImm(ILOpCode code) const noexcept { return opcode == code && IsVarImm(); }
 
 		uint64_t hash() const noexcept
@@ -415,11 +411,13 @@ namespace HXSL
 
 	class Instruction : public IntrusiveLinkedBase<Instruction>, public Value
 	{
+	public:
+		using operands_vector = static_vector<Operand*, StdBumpAllocator<Operand*>>;
 	protected:
 		BasicBlock* parent = nullptr;
 		TextSpan* location = nullptr;
 		ILOpCode opcode;
-		static_vector<Operand*, StdBumpAllocator<Operand*>> operands;
+		operands_vector operands;
 		Instruction(BumpAllocator& alloc, Value_T id, ILOpCode opcode) : Value(id), opcode(opcode), operands({ alloc }) {}
 	public:
 		static constexpr Value_T ID = InstructionVal;
@@ -427,15 +425,21 @@ namespace HXSL
 		void SetLocation(TextSpan* value) noexcept { location = value; }
 
 		ILOpCode GetOpCode() const noexcept { return opcode; }
+		bool IsOp(ILOpCode code) const noexcept { return opcode == code; }
 
 		Operand* GetOperand(size_t idx) const { return operands[idx]; }
 		Operand*& GetOperand(size_t idx) { return operands[idx]; }
+		const operands_vector& GetOperands() const { return operands; }
+		operands_vector& GetOperands() { return operands; }
 		size_t OperandCount() const noexcept { return operands.size(); }
 
 		BasicBlock* GetParent() const noexcept { return parent; }
 		void SetParent(BasicBlock* newParent) noexcept { parent = newParent; }
 
 		void Dump() const;
+		uint64_t hash() const;
+		bool operator==(const Instruction& other) const;
+		bool operator!=(const Instruction& other) const { return !(*this == other); }
 	};
 
 	class BasicInstr : public Instruction
@@ -453,8 +457,9 @@ namespace HXSL
 
 	public:
 		static constexpr Value_T ID = ResultInstrVal;
-		ILVarId& OpDst() noexcept { return dst; }
-		const ILVarId& OpDst() const noexcept { return dst; }
+		ILVarId& GetResult() noexcept { return dst; }
+		const ILVarId& GetResult() const noexcept { return dst; }
+		void SetResult(const ILVarId& newRes) noexcept { dst = newRes; }
 	};
 
 	class StackAllocInstr : public ResultInstr
@@ -514,6 +519,8 @@ namespace HXSL
 		{
 			operands.assign(target);
 		}
+
+		Label* GetLabel() const { return cast<Label>(operands[0]); }
 	};
 
 	class BinaryInstr : public ResultInstr
@@ -524,17 +531,26 @@ namespace HXSL
 		{
 			operands.assign(lhs, rhs);
 		}
+
+		Operand* GetLHS() const { return operands[0]; }
+		Operand* GetRHS() const { return operands[1]; }
+
+		bool IsImmVar() const noexcept { return isa<Constant>(GetLHS()) && isa<Variable>(GetRHS()); }
+		bool IsVarImm() const noexcept { return isa<Variable>(GetLHS()) && isa<Constant>(GetRHS()); }
+		bool IsImmVar(ILOpCode code) const noexcept { return opcode == code && IsImmVar(); }
+		bool IsVarImm(ILOpCode code) const noexcept { return opcode == code && IsVarImm(); }
 	};
 
 	class UnaryInstr : public ResultInstr
 	{
-		Operand* op;
 	public:
 		static constexpr Value_T ID = UnaryInstrVal;
-		UnaryInstr(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* op) : ResultInstr(alloc, ID, opcode, dst), op(op)
+		UnaryInstr(BumpAllocator& alloc, ILOpCode opcode, const ILVarId& dst, Operand* op) : ResultInstr(alloc, ID, opcode, dst)
 		{
 			operands.assign(op);
 		}
+
+		Operand* GetOperand() const { return operands[0]; }
 	};
 
 	class StoreInstr : public Instruction
@@ -585,10 +601,37 @@ namespace HXSL
 		{
 			operands.assign(src);
 		}
+
+		Operand* GetSource() { return operands[0]; }
 	};
 
-	class PhiInstr
+	class PhiInstr : public ResultInstr
 	{
+	public:
+		static constexpr Value_T ID = PhiInstrVal;
+		PhiInstr(BumpAllocator& alloc, const ILVarId& dst, size_t operandCount) : ResultInstr(alloc, ID, OpCode_Phi, dst)
+		{
+			operands.resize(operandCount);
+		}
+	};
+
+	struct InstructionPtrHash
+	{
+		std::size_t operator()(const Instruction* ptr) const
+		{
+			if (!ptr) return 0;
+			return ptr->hash();
+		}
+	};
+
+	struct InstructionPtrEquals
+	{
+		std::size_t operator()(const Instruction* lhs, const Instruction* rhs) const
+		{
+			if (lhs == nullptr || rhs == nullptr)
+				return lhs == rhs;
+			return *lhs == *rhs;
+		}
 	};
 }
 

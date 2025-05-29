@@ -3,18 +3,12 @@
 
 namespace HXSL
 {
-	static bool IsJumpCondition(ILInstruction& instruction)
+	static bool IsJumpCondition(Instruction& instruction)
 	{
-		if (!instruction.GetNext())
-		{
-			return false;
-		}
-
-		auto nextInstr = instruction.GetNext()->opcode;
-		return (nextInstr == OpCode_Jump || nextInstr == OpCode_JumpNotZero || nextInstr == OpCode_JumpZero);
+		return isa<JumpInstr>(instruction.GetNext());
 	}
 
-	void ConstantFolder::TryFoldOperand(Value*& op)
+	void ConstantFolder::TryFoldOperand(Operand*& op)
 	{
 		if (auto var = dyn_cast<Variable>(op))
 		{
@@ -33,44 +27,43 @@ namespace HXSL
 
 	void ConstantFolder::Visit(size_t index, BasicBlock& node, EmptyCFGContext& ctx)
 	{
-		auto& instructions = node.instructions;
-		for (auto& instr : instructions)
+		for (auto& instr : node)
 		{
-			TryFoldOperand(instr.operandLeft);
-			TryFoldOperand(instr.operandRight);
+			for (Operand*& operand : instr.GetOperands())
+			{
+				TryFoldOperand(operand);
+			}
 
-			switch (instr.opcode)
+			switch (instr.GetOpCode())
 			{
 			case OpCode_Move:
 			{
-				if (!instr.HasResult()) break;
-
-				if (auto varL = dyn_cast<Variable>(instr.operandLeft))
+				auto in = *cast<MoveInstr>(&instr);
+				if (auto varL = dyn_cast<Variable>(in.GetSource()))
 				{
 					auto it = constants.find(varL->varId);
 					if (it != constants.end())
 					{
-						constants.insert({ instr.result, it->second });
+						constants.insert({ in.GetResult(), it->second });
 					}
 					else
 					{
-						varToVar.insert({ instr.result, varL->varId });
+						varToVar.insert({ in.GetResult(), varL->varId });
 					}
 				}
-				else if (auto immL = dyn_cast<Constant>(instr.operandLeft))
+				else if (auto immL = dyn_cast<Constant>(in.GetSource()))
 				{
-					constants.insert({ instr.result, immL->imm() });
+					constants.insert({ in.GetResult(), immL->imm() });
 				}
 			}
 			break;
 			case OpCode_Cast:
 			{
-				if (!instr.HasResult()) break;
-				if (auto immL = dyn_cast<Constant>(instr.operandLeft))
+				auto in = *cast<UnaryInstr>(&instr);
+				if (auto immL = dyn_cast<Constant>(in.GetOperand()))
 				{
-					instr.opcode = OpCode_Move;
-					instr.operandLeft = context->MakeConstant(Cast(immL->imm(), instr.opKind));
-					constants.insert({ instr.result, immL->imm() });
+					node.ReplaceInstrO<MoveInstr>(&instr, in.GetResult(), Cast(immL->imm(), instr.opKind));
+					constants.insert({ in.GetResult(), immL->imm() });
 				}
 			}
 
@@ -79,15 +72,15 @@ namespace HXSL
 			case OpCode_BitwiseNot:
 			case OpCode_Negate:
 			{
-				if (!instr.HasResult()) break;
-				if (auto immL = dyn_cast<Constant>(instr.operandLeft))
+				auto in = *cast<UnaryInstr>(&instr);
+				if (auto immL = dyn_cast<Constant>(in.GetOperand()))
 				{
-					Number imm = FoldImm(immL->imm(), {}, instr.opcode);
+					Number imm = FoldImm(immL->imm(), {}, in.GetOpCode());
 					if (IsJumpCondition(instr))
 					{
 						break;
 					}
-					constants.insert({ instr.result, imm });
+					constants.insert({ in.GetResult(), imm });
 				}
 			}
 			break;
@@ -95,8 +88,16 @@ namespace HXSL
 				break;
 			default:
 			{
-				if (!instr.HasResult()) break;
-				if (!isa<Constant>(instr.operandLeft) || !isa<Constant>(instr.operandRight)) break;
+				auto opCount = instr.OperandCount();
+				if (opCount == 0) break;
+
+				auto res = dyn_cast<ResultInstr>(&instr);
+				if (!res) break;
+				if (!isa<Constant>(instr.GetOperand(0))) break;
+				if (opCount > 0)
+				{
+					if (!isa<Constant>(instr.GetOperand(1))) break;
+				}
 
 				Number imm;
 				if (TryFold(instr, imm))
@@ -105,10 +106,8 @@ namespace HXSL
 					{
 						break;
 					}
-					constants.insert({ instr.result, imm });
-					instr.opcode = OpCode_Move;
-					instr.operandLeft = context->MakeConstant(imm);
-					instr.operandRight = {};
+					constants.insert({ res->GetResult(), imm });
+					node.ReplaceInstrO<MoveInstr>(&instr, res->GetResult(), context->MakeConstant(imm));
 				}
 			}
 			break;
@@ -119,48 +118,49 @@ namespace HXSL
 		constants.clear();
 		varToVar.clear();
 
-		std::unordered_map<ILVarId, ILInstruction*> defMap;
-		for (auto& instr : instructions)
+		std::unordered_map<ILVarId, BinaryInstr*> defMap;
+		for (auto& instr : node)
 		{
-			if (IsBinary(instr.opcode))
+			if (auto bin = dyn_cast<BinaryInstr>(&instr))
 			{
-				bool varImm = instr.IsVarImm();
-				bool immVar = instr.IsImmVar();
-				bool isCommutative = (instr.IsOp(OpCode_Add) || instr.IsOp(OpCode_Multiply));
+				auto& binary = *bin;
+				bool varImm = binary.IsVarImm();
+				bool immVar = binary.IsImmVar();
+				bool isCommutative = (binary.IsOp(OpCode_Add) || binary.IsOp(OpCode_Multiply));
 
 				if (varImm || immVar)
 				{
-					ILVarId lhs = varImm ? cast<Variable>(instr.operandLeft)->varId : cast<Variable>(instr.operandRight)->varId;
-					Number rhs = varImm ? cast<Constant>(instr.operandRight)->imm() : cast<Constant>(instr.operandLeft)->imm();
+					ILVarId lhs = varImm ? cast<Variable>(binary.GetLHS())->varId : cast<Variable>(binary.GetRHS())->varId;
+					Number rhs = varImm ? cast<Constant>(binary.GetRHS())->imm() : cast<Constant>(binary.GetLHS())->imm();
 					auto defIt = defMap.find(lhs);
 					if (defIt != defMap.end())
 					{
 						auto& defInstr = *defIt->second;
 
-						auto isMulDivCandidate0 = defInstr.IsOp(OpCode_Multiply) && instr.IsOp(OpCode_Divide);
-						auto isMulDivCandidate1 = defInstr.IsOp(OpCode_Divide) && instr.IsOp(OpCode_Multiply);
+						auto isMulDivCandidate0 = defInstr.IsOp(OpCode_Multiply) && binary.IsOp(OpCode_Divide);
+						auto isMulDivCandidate1 = defInstr.IsOp(OpCode_Divide) && binary.IsOp(OpCode_Multiply);
 						bool fuseMulDiv = isMulDivCandidate0 || isMulDivCandidate1;
 
-						if (defInstr.opcode == instr.opcode || fuseMulDiv)
+						if (defInstr.GetOpCode() == binary.GetOpCode() || fuseMulDiv)
 						{
-							bool defRegImm = Operand::IsVar(defInstr.operandLeft) && Operand::IsImm(defInstr.operandRight);
-							bool defImmReg = (isCommutative || fuseMulDiv) && Operand::IsImm(defInstr.operandLeft) && Operand::IsVar(defInstr.operandRight);
+							bool defRegImm = Operand::IsVar(defInstr.GetLHS()) && Operand::IsImm(defInstr.GetRHS());
+							bool defImmReg = (isCommutative || fuseMulDiv) && Operand::IsImm(defInstr.GetLHS()) && Operand::IsVar(defInstr.GetRHS());
 
 							ILVarId base;
 							Number lhs;
 							if (defRegImm)
 							{
-								base = cast<Variable>(defInstr.operandLeft)->varId;
-								lhs = cast<Constant>(defInstr.operandRight)->imm();
+								base = cast<Variable>(defInstr.GetLHS())->varId;
+								lhs = cast<Constant>(defInstr.GetRHS())->imm();
 							}
 							else if (defImmReg)
 							{
-								base = cast<Variable>(defInstr.operandRight)->varId;
-								lhs = cast<Constant>(defInstr.operandLeft)->imm();
+								base = cast<Variable>(defInstr.GetRHS())->varId;
+								lhs = cast<Constant>(defInstr.GetLHS())->imm();
 							}
 							else
 							{
-								defMap[instr.result] = &instr;
+								defMap[binary.GetResult()] = bin;
 								continue;
 							}
 
@@ -169,20 +169,15 @@ namespace HXSL
 								std::swap(lhs, rhs);
 							}
 
-							Number total = FoldImm(lhs, rhs, fuseMulDiv ? OpCode_Divide : instr.opcode);
-							//DiscardInstr(*defIt->second);
-							instr.operandLeft = context->MakeVariable(base);
-							instr.operandRight = context->MakeConstant(total);
-							instr.opcode = fuseMulDiv ? OpCode_Multiply : defInstr.opcode;
+							Number total = FoldImm(lhs, rhs, fuseMulDiv ? OpCode_Divide : binary.GetOpCode());
+							auto opcode = fuseMulDiv ? OpCode_Multiply : defInstr.GetOpCode();
+							node.ReplaceInstr<BinaryInstr>(&instr, opcode, binary.GetResult(), base, total);
 							continue;
 						}
 					}
 				}
-			}
 
-			if (instr.HasResult())
-			{
-				defMap[instr.result] = &instr;
+				defMap[binary.GetResult()] = bin;
 			}
 		}
 
