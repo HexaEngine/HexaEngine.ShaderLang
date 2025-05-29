@@ -4,6 +4,7 @@
 #include "pch/ast.hpp"
 #include "il_instruction.hpp"
 #include "il_metadata.hpp"
+#include "il_context.hpp"
 
 namespace HXSL
 {
@@ -212,74 +213,91 @@ namespace HXSL
   } \
   __pragma(warning(pop))
 
-	static Number Cast(Number input, ILOpKind kind)
+	static Number Cast(const Number& input, ILType type)
 	{
 		auto numType = input.Kind;
-		auto type = static_cast<ILOpKind>(kind & static_cast<ILOpKind>(ILOpKindTypeMask));
+
+		auto prim = dynamic_cast<Primitive*>(type->def);
+		assert(prim);
+		auto kind = prim->GetKind();
 		Number out;
 
-		switch (type)
+		switch (kind)
 		{
-		case ILOpKind_I8:
+		case PrimitiveKind_Int8:
 			out.Kind = NumberType_Int8;
 			DEFINE_CAST(i8, int8_t)
 				break;
-		case ILOpKind_I16:
+		case PrimitiveKind_Int16:
 			out.Kind = NumberType_Int16;
 			DEFINE_CAST(i16, int16_t)
 				break;
-		case ILOpKind_I32:
+		case PrimitiveKind_Int:
 			out.Kind = NumberType_Int32;
 			DEFINE_CAST(i32, int32_t)
 				break;
-		case ILOpKind_I64:
+		case PrimitiveKind_Int64:
 			out.Kind = NumberType_Int64;
 			DEFINE_CAST(i64, int64_t)
 				break;
-		case ILOpKind_U8:
+		case PrimitiveKind_UInt8:
 			out.Kind = NumberType_UInt8;
 			DEFINE_CAST(u8, uint8_t)
 				break;
-		case ILOpKind_U16:
+		case PrimitiveKind_UInt16:
 			out.Kind = NumberType_UInt16;
 			DEFINE_CAST(u16, uint16_t)
 				break;
-		case ILOpKind_U32:
+		case PrimitiveKind_UInt:
 			out.Kind = NumberType_UInt32;
 			DEFINE_CAST(u32, uint32_t)
 				break;
-		case ILOpKind_U64:
+		case PrimitiveKind_UInt64:
 			out.Kind = NumberType_UInt64;
 			DEFINE_CAST(u64, uint64_t)
 				break;
-		case ILOpKind_Half:
+		case PrimitiveKind_Half:
 			out.Kind = NumberType_Half;
 			DEFINE_CAST(half_, half)
 				break;
-		case ILOpKind_Float:
+		case PrimitiveKind_Float:
 			out.Kind = NumberType_Float;
 			DEFINE_CAST(float_, float)
 				break;
-		case ILOpKind_Double:
+		case PrimitiveKind_Double:
 			out.Kind = NumberType_Double;
 			DEFINE_CAST(double_, double)
 				break;
-		case ILOpKind_Min8Float:
+		case PrimitiveKind_Min8Float:
 			break;
-		case ILOpKind_Min10Float:
+		case PrimitiveKind_Min10Float:
 			break;
-		case ILOpKind_Min16Float:
+		case PrimitiveKind_Min16Float:
 			break;
-		case ILOpKind_Min12Int:
+		case PrimitiveKind_Min12Int:
 			break;
-		case ILOpKind_Min16Int:
+		case PrimitiveKind_Min16Int:
 			break;
-		case ILOpKind_Min16Uint:
+		case PrimitiveKind_Min16UInt:
 			break;
 		default:
 			break;
 		}
 		return {};
+	}
+	static Number Cast(const ILMetadata& metadata, const ILVarId& targetVarId, const Number& input)
+	{
+		return Cast(input, metadata.GetVar(targetVarId).typeId);
+	}
+
+	static Number Cast(const ILContext* context, const ILVarId& targetVarId, const Number& input)
+	{
+		return Cast(context->GetMetadata(), targetVarId, input);
+	}
+
+	static Number Cast(const Instruction& instr, const ILVarId& targetVarId, const Number& input)
+	{
+		return Cast(instr.GetParent()->GetParent(), targetVarId, input);
 	}
 
 	static Number FoldImm(const Number& left, const Number& right, ILOpCode code)

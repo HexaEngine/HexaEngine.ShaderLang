@@ -10,15 +10,9 @@
 
 namespace HXSL
 {
-	struct ILType
-	{
-		uint32_t value;
-		ILType() = default;
-		constexpr explicit ILType(uint32_t val) : value(val) {}
+	class ILTypeMetadata;
 
-		bool operator==(const ILType& other) const { return value == other.value; }
-		bool operator!=(const ILType& other) const { return value != other.value; }
-	};
+	using ILType = ILTypeMetadata*;
 
 	struct ILFieldId
 	{
@@ -81,7 +75,7 @@ namespace HXSL
 		uint64_t hash() const
 		{
 			XXHash3_64 hash{};
-			hash.Combine(typeId.value);
+			hash.Combine(reinterpret_cast<size_t>(typeId));
 			hash.Combine(fieldId.value);
 			return hash.Finalize();
 		}
@@ -211,7 +205,7 @@ namespace HXSL
 			hash.Combine(static_cast<const Variable*>(val)->varId.raw);
 			break;
 		case Value::TypeVal:
-			hash.Combine(static_cast<const TypeValue*>(val)->typeId.value);
+			hash.Combine(reinterpret_cast<size_t>(static_cast<const TypeValue*>(val)->typeId));
 			break;
 		case Value::FuncVal:
 			hash.Combine(static_cast<const Function*>(val)->funcId.value);

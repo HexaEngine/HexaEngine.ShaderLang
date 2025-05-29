@@ -11,7 +11,7 @@ namespace HXSL
 
 		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
-		void MulDivReduce(ILInstruction& instr);
+		void MulDivReduce(BinaryInstr& instr);
 
 	public:
 		StrengthReduction(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())

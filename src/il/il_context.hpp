@@ -16,13 +16,15 @@ namespace HXSL
 		ILMetadata metadata;
 		ControlFlowGraph cfg;
 
-		ILContext(LowerCompilationUnit* compilation, FunctionOverload* overload) : compilation(compilation), overload(overload), cfg(this)
+		ILContext(LowerCompilationUnit* compilation, FunctionOverload* overload) : compilation(compilation), overload(overload), metadata(allocator), cfg(this)
 		{
 		}
 
 		bool empty() const noexcept { return cfg.empty(); }
 
 		ILMetadata& GetMetadata() { return metadata; }
+
+		const ILMetadata& GetMetadata() const { return metadata; }
 
 		ControlFlowGraph& GetCFG() { return cfg; }
 

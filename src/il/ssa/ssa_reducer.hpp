@@ -10,24 +10,28 @@ namespace HXSL
 		std::unordered_map<ILVarId, ILVarId> phiMap;
 		std::unordered_map<ILVarId, ILVarId> varMapping;
 		std::unordered_map<ILVarId, const Instruction*> lastUseIndex;
-		std::vector<std::queue<ILVarId>> freeTemps;
+		std::unordered_map<ILType, std::queue<ILVarId>> freeTemps;
 		std::unordered_set<ILVarId> seenVars;
 
 		ILVarId nextVarId = SSA_VARIABLE_TEMP_FLAG;
 
 		ILVarId GetFinalVarId(ILVarId varId, bool result)
 		{
-			auto typeId = metadata.GetTempVar(varId).typeId;
-			auto& freeTempsQ = freeTemps[typeId.value];
-			if (!freeTempsQ.empty())
+			auto type = metadata.GetTempVar(varId).typeId;
+			auto it = freeTemps.find(type);
+			if (it != freeTemps.end())
 			{
-				ILVarId finalId = freeTempsQ.front();
-				freeTempsQ.pop();
-				varMapping[varId] = finalId;
-				return finalId;
+				auto& freeTempsQ = it->second;
+				if (!freeTempsQ.empty())
+				{
+					ILVarId finalId = freeTempsQ.front();
+					freeTempsQ.pop();
+					varMapping[varId] = finalId;
+					return finalId;
+				}
 			}
 
-			ILVarId finalId = metadata.RegTempVar(typeId).id;
+			ILVarId finalId = metadata.RegTempVar(type).id;
 			varMapping[varId] = finalId;
 			return finalId;
 		}
@@ -71,9 +75,24 @@ namespace HXSL
 
 			auto id = tmpVarId & SSA_VARIABLE_MASK;
 
-			auto typeId = metadata.GetTempVar(tmpVarId).typeId;
+			auto type = metadata.GetTempVar(tmpVarId).typeId;
 
-			freeTemps[typeId.value].push(varId & SSA_VERSION_STRIP_MASK);
+			MarkAsFree(type, varId);
+		}
+
+		void MarkAsFree(ILType type, ILVarId varId)
+		{
+			auto it = freeTemps.find(type);
+			if (it == freeTemps.end())
+			{
+				std::queue<ILVarId> que;
+				que.push(varId & SSA_VERSION_STRIP_MASK);
+				freeTemps.insert({ type, que });
+			}
+			else
+			{
+				it->second.push(varId & SSA_VERSION_STRIP_MASK);
+			}
 		}
 
 		void RemapOperand(Operand* op, Instruction* instr, bool isResult)

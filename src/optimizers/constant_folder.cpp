@@ -62,7 +62,7 @@ namespace HXSL
 				auto in = *cast<UnaryInstr>(&instr);
 				if (auto immL = dyn_cast<Constant>(in.GetOperand()))
 				{
-					node.ReplaceInstrO<MoveInstr>(&instr, in.GetResult(), Cast(immL->imm(), instr.opKind));
+					node.ReplaceInstrO<MoveInstr>(&instr, in.GetResult(), Cast(instr, in.GetResult(), immL->imm()));
 					constants.insert({ in.GetResult(), immL->imm() });
 				}
 			}

@@ -4,17 +4,18 @@ namespace HXSL
 {
 	DEFINE_IMM_COMP(IsTwo, 2);
 
-	void StrengthReduction::MulDivReduce(ILInstruction& instr)
+	void StrengthReduction::MulDivReduce(BinaryInstr& instr)
 	{
-		if (instr.opcode == OpCode_Multiply && IsTwo(instr.operandRight))
+		auto opcode = instr.GetOpCode();
+		if (opcode == OpCode_Multiply && IsTwo(instr.GetRHS()))
 		{
 			changed = true;
-			instr.opcode = OpCode_Add;
-			instr.operandRight = instr.operandLeft;
+			instr.OverwriteOpCode(OpCode_Add);
+			instr.GetRHS() = instr.GetLHS();
 			return;
 		}
 
-		auto immR = dyn_cast<Constant>(instr.operandRight);
+		auto immR = dyn_cast<Constant>(instr.GetRHS());
 		if (!immR) return;
 
 		uint64_t val = 0;
@@ -39,31 +40,30 @@ namespace HXSL
 		int shiftAmount = 0;
 		Number shiftNum(shiftAmount);
 
-		if (instr.opcode == OpCode_Multiply)
+		if (opcode == OpCode_Multiply)
 		{
 			changed = true;
-			instr.opcode = OpCode_BitwiseShiftLeft;
-			instr.operandRight = context->MakeConstant(Cast(shiftNum, instr.opKind));
+			instr.OverwriteOpCode(OpCode_BitwiseShiftLeft);
+			instr.GetRHS() = context->MakeConstant(Cast(instr, instr.GetResult(), shiftNum));
 		}
-		else if (instr.opcode == OpCode_Divide)
+		else if (opcode == OpCode_Divide)
 		{
 			changed = true;
-			instr.opcode = OpCode_BitwiseShiftRight;
-			instr.operandRight = context->MakeConstant(Cast(shiftNum, instr.opKind));
+			instr.OverwriteOpCode(OpCode_BitwiseShiftRight);
+			instr.GetRHS() = context->MakeConstant(Cast(instr, instr.GetResult(), shiftNum));
 		}
 	}
 
 	void StrengthReduction::Visit(size_t index, BasicBlock& node, EmptyCFGContext& context)
 	{
-		auto& instructions = node.instructions;
-		for (auto& instr : instructions)
+		for (auto& instr : node)
 		{
-			switch (instr.opcode)
+			switch (instr.GetOpCode())
 			{
 			case OpCode_Multiply:
 			case OpCode_Divide:
 			{
-				MulDivReduce(instr);
+				MulDivReduce(*cast<BinaryInstr>(&instr));
 			}
 			break;
 			}

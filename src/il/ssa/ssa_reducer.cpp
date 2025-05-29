@@ -48,8 +48,8 @@ namespace HXSL
 			ILVarId varId = p;
 			if (!IsTempVar(varId)) continue;
 
-			auto typeId = metadata.GetTempVar(varId).typeId;
-			freeTemps[typeId.value].push(varId);
+			auto type = metadata.GetTempVar(varId).typeId;
+			MarkAsFree(type, varId);
 		}
 
 		for (auto& instr : node)
@@ -69,7 +69,7 @@ namespace HXSL
 				phiMap.insert({ cast<Variable>(p)->varId, phi->GetResult() });
 			}
 		}
-		freeTemps.resize(metadata.typeMetadata.size());
+
 		Traverse();
 	}
 }

@@ -28,6 +28,7 @@ namespace HXSL
 		PrimitiveKind_Min12Int,
 		PrimitiveKind_Min16Int,
 		PrimitiveKind_Min16UInt,
+		PrimitiveKind_Int8,
 		PrimitiveKind_UInt8,
 		PrimitiveKind_Int16,
 		PrimitiveKind_UInt16,

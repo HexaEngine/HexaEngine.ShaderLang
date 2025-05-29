@@ -25,7 +25,7 @@ namespace HXSL
 
 	static void ConvertMoveImm(ILContext* context, ResultInstr& instr, const Number& num)
 	{
-		ConvertToMove(instr, context->MakeConstant(Cast(num, instr.opKind)));
+		ConvertToMove(instr, context->MakeConstant(Cast(instr, instr.GetResult(), num)));
 	}
 
 	static void ConvertMoveZero(ILContext* context, ResultInstr& instr)

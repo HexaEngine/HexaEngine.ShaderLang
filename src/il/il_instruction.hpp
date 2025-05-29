@@ -532,8 +532,13 @@ namespace HXSL
 			operands.assign(lhs, rhs);
 		}
 
+		void OverwriteOpCode(ILOpCode value) { opcode = value; }
+
 		Operand* GetLHS() const { return operands[0]; }
 		Operand* GetRHS() const { return operands[1]; }
+
+		Operand*& GetLHS() { return operands[0]; }
+		Operand*& GetRHS() { return operands[1]; }
 
 		bool IsImmVar() const noexcept { return isa<Constant>(GetLHS()) && isa<Variable>(GetRHS()); }
 		bool IsVarImm() const noexcept { return isa<Variable>(GetLHS()) && isa<Constant>(GetRHS()); }

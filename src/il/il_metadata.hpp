@@ -39,13 +39,12 @@ namespace HXSL
 		return flags;
 	}
 
-	struct ILTypeMetadata
+	class ILTypeMetadata
 	{
-		ILType id;
+	public:
 		SymbolDef* def;
 
-		ILTypeMetadata(const ILType& id, SymbolDef* def)
-			: id(id), def(def)
+		ILTypeMetadata(SymbolDef* def) : def(def)
 		{
 		}
 
@@ -62,12 +61,12 @@ namespace HXSL
 		SymbolDef* var;
 		ILVariableFlags flags;
 
-		constexpr ILVariable(const ILVarId& id, const ILType& typeId, SymbolDef* var, ILVariableFlags flags = ILVariableFlags_None)
+		constexpr ILVariable(const ILVarId& id, ILType typeId, SymbolDef* var, ILVariableFlags flags = ILVariableFlags_None)
 			: id(id), typeId(typeId), var(var), flags(flags)
 		{
 		}
 
-		ILVariable() : id(-1), typeId(-1), var(nullptr), flags(ILVariableFlags_None) {}
+		ILVariable() : id(-1), typeId(nullptr), var(nullptr), flags(ILVariableFlags_None) {}
 
 		bool HasFlag(ILVariableFlags flag) const noexcept
 		{
@@ -102,7 +101,7 @@ namespace HXSL
 		}
 	};
 
-	constexpr ILVariable INVALID_VARIABLE_METADATA = ILVariable(ILVarId(-1), ILType(-1), nullptr);
+	constexpr ILVariable INVALID_VARIABLE_METADATA = ILVariable(ILVarId(-1), ILType(nullptr), nullptr);
 
 	struct ILCall
 	{
@@ -136,9 +135,10 @@ namespace HXSL
 
 	struct ILMetadata
 	{
+		BumpAllocator& allocator;
 		std::string unknownString = "Unknown";
 		ILVariable invalid = INVALID_VARIABLE_METADATA;
-		std::vector<ILTypeMetadata> typeMetadata;
+		std::vector<ILType> typeMetadata;
 		std::unordered_map<SymbolDef*, ILType> typeMap;
 
 		std::vector<ILVariable> variables;
@@ -150,7 +150,7 @@ namespace HXSL
 
 		std::vector<PhiInstr*> phiNodes;
 
-		ILMetadata()
+		ILMetadata(BumpAllocator& allocator) : allocator(allocator)
 		{
 		}
 
@@ -178,13 +178,13 @@ namespace HXSL
 				return it->second;
 			}
 
-			auto idx = ILType(static_cast<uint32_t>(typeMetadata.size()));
-			typeMetadata.push_back(ILTypeMetadata(idx, def));
-			typeMap.insert({ def, idx });
-			return idx;
+			auto meta = allocator.Alloc<ILTypeMetadata>(def);
+			typeMetadata.push_back(meta);
+			typeMap.insert({ def, meta });
+			return meta;
 		}
 
-		ILVariable& RegVar(ILType typeId, SymbolDef* def)
+		ILVariable& RegVar(ILType type, SymbolDef* def)
 		{
 			auto it = varMap.find(def);
 			if (it != varMap.end())
@@ -194,8 +194,7 @@ namespace HXSL
 
 			auto idx = variables.size();
 
-			auto& type = typeMetadata[typeId.value];
-			ILVariable var = ILVariable(idx, typeId, def, type.GetVarTypeFlags());
+			ILVariable var = ILVariable(idx, type, def, type->GetVarTypeFlags());
 
 			variables.push_back(var);
 			varMap.insert({ def, idx });
@@ -209,12 +208,11 @@ namespace HXSL
 			return RegVar(typeId, var);
 		}
 
-		ILVariable& RegTempVar(ILType typeId)
+		ILVariable& RegTempVar(ILType type)
 		{
 			auto idx = tempVariables.size();
-			auto& type = typeMetadata[typeId.value];
 
-			ILVariable var = ILVariable(idx | SSA_VARIABLE_TEMP_FLAG, typeId, nullptr, type.GetVarTypeFlags());
+			ILVariable var = ILVariable(idx | SSA_VARIABLE_TEMP_FLAG, type, nullptr, type->GetVarTypeFlags());
 			tempVariables.push_back(var);
 
 			return tempVariables[idx];
@@ -266,6 +264,48 @@ namespace HXSL
 			return FindVar(expr->GetSymbolRef()->GetDeclaration());
 		}
 
+		ILVariable& GetVar(const ILVarId& varId)
+		{
+			auto id = varId.var.id;
+			if (varId.var.temp)
+			{
+				if (id >= tempVariables.size())
+				{
+					return invalid;
+				}
+				return tempVariables[id];
+			}
+			else
+			{
+				if (id >= variables.size())
+				{
+					return invalid;
+				}
+				return variables[id];
+			}
+		}
+
+		const ILVariable& GetVar(const ILVarId& varId) const
+		{
+			auto id = varId.var.id;
+			if (varId.var.temp)
+			{
+				if (id >= tempVariables.size())
+				{
+					return invalid;
+				}
+				return tempVariables[id];
+			}
+			else
+			{
+				if (id >= variables.size())
+				{
+					return invalid;
+				}
+				return variables[id];
+			}
+		}
+
 		ILFieldAccess MakeFieldAccess(SymbolDef* fieldDef)
 		{
 			auto field = fieldDef->As<Field>();
@@ -275,26 +315,26 @@ namespace HXSL
 			return ILFieldAccess(typeId, fieldId);
 		}
 
-		std::string_view GetTypeName(ILType typeId) const
+		std::string_view GetTypeName(ILType type) const
 		{
-			if (typeId.value >= typeMetadata.size())
+			if (type == nullptr)
 			{
 				return unknownString;
 			}
 
-			return typeMetadata[typeId.value].def->GetFullyQualifiedName();
+			return type->def->GetFullyQualifiedName();
 		}
 
 		std::string_view GetFieldName(ILFieldAccess access) const
 		{
-			auto typeId = access.typeId.value;
-			if (typeId >= typeMetadata.size())
+			auto type = access.typeId;
+			if (type == nullptr)
 			{
 				return unknownString;
 			}
 
 			auto fieldId = access.fieldId.value;
-			auto def = typeMetadata[typeId].def;
+			auto def = type->def;
 
 			if (auto struct_ = def->As<Struct>())
 			{
