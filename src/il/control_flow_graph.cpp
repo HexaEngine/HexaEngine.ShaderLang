@@ -10,6 +10,7 @@ namespace HXSL
 
 	void ControlFlowGraph::Build(ILContainer& container, JumpTable& jumpTable)
 	{
+		/*
 		nodes.clear();
 
 		std::unordered_map<ILInstruction*, size_t> instrToNode;
@@ -108,6 +109,7 @@ namespace HXSL
 		}
 
 		RebuildDomTree();
+		*/
 	}
 
 	void ControlFlowGraph::RebuildDomTree()
@@ -149,7 +151,7 @@ namespace HXSL
 			if (phiInputs.size() == 1)
 			{
 				instr.opcode = OpCode_Move;
-				instr.operandLeft = context->MakeVariable(phiInputs[0]); //ILOperand(ILOperandKind_Variable, phiInputs[0]);
+				instr.operandLeft = context->MakeVariable(phiInputs[0]);
 			}
 		}
 	}

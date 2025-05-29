@@ -25,7 +25,7 @@ namespace HXSL
 		OpCode_Pop,				// <dst> pop
 		OpCode_Move,			// <dst> mov <src/imm>
 
-		OpCode_Return,			// ret <src/imm/dis>
+		OpCode_Return,			// ret <src/imm/void>
 
 		OpCode_StoreParam,		// <param_id> starg <src/imm>
 		OpCode_LoadParam,		// <dst> ldarg <param_id>
@@ -410,13 +410,15 @@ namespace HXSL
 		}
 	};
 
-	class Instruction : public IntrusiveLinkedBase<Instruction>
+	class Instruction : public IntrusiveLinkedBase<Instruction>, public Value
 	{
 	protected:
 		TextSpan* location = nullptr;
 		ILOpCode opcode;
-		Instruction(ILOpCode opcode) : opcode(opcode) {}
+		Instruction(ILOpCode opcode) : Value(ID), opcode(opcode) {}
+		Instruction(Value_T id, ILOpCode opcode) : Value(id), opcode(opcode) {}
 	public:
+		static constexpr Value_T ID = InstructionVal;
 		TextSpan* GetLocation() const noexcept { return location; }
 		void SetLocation(TextSpan* value) noexcept { location = value; }
 
@@ -443,18 +445,45 @@ namespace HXSL
 	class DestinationInstruction : public Instruction
 	{
 	protected:
-		Operand* dst;
-		DestinationInstruction(ILOpCode opcode) : Instruction(opcode) {}
+		ILVarId dst;
+		DestinationInstruction(ILOpCode opcode, const ILVarId& dst) : Instruction(opcode), dst(dst) {}
+		DestinationInstruction(Value_T id, ILOpCode opcode, const ILVarId& dst) : Instruction(id, opcode), dst(dst) {}
 
 	public:
-		Operand*& OpDst() noexcept { return dst; }
-		Operand* OpDst() const noexcept { return dst; }
+		ILVarId& OpDst() noexcept { return dst; }
+		const ILVarId& OpDst() const noexcept { return dst; }
 	};
 
-	class ReturnInstruction : public DestinationInstruction
+	class StackAllocInstruction : public DestinationInstruction
 	{
+		TypeValue* typeId;
 	public:
-		ReturnInstruction() : DestinationInstruction(OpCode_Return) {}
+		static constexpr Value_T ID = StackAllocInstrVal;
+		StackAllocInstruction(const ILVarId& dst, TypeValue* typeId) : DestinationInstruction(ID, OpCode_StackAlloc, dst), typeId(typeId)
+		{
+		}
+
+		TypeValue*& GetTypeId() noexcept { return typeId; }
+		TypeValue* GetTypeId() const noexcept { return typeId; }
+	};
+
+	class OffsetInstruction : public DestinationInstruction
+	{
+		Variable* src;
+		FieldAccess* access;
+	public:
+		static constexpr Value_T ID = OffsetInstrVal;
+		OffsetInstruction(const ILVarId& dst, Variable* src, FieldAccess* access) : DestinationInstruction(ID, OpCode_OffsetAddress, dst), src(src), access(access)
+		{
+		}
+	};
+
+	class ReturnInstruction : public Instruction
+	{
+		Operand* target;
+	public:
+		ReturnInstruction(Operand* target) : Instruction(OpCode_Return), target(target) {}
+		ReturnInstruction() : Instruction(OpCode_Return), target(nullptr) {}
 	};
 
 	class CallInstruction : public DestinationInstruction
@@ -462,7 +491,8 @@ namespace HXSL
 		Operand* function;
 
 	public:
-		CallInstruction() : DestinationInstruction(OpCode_Call) {}
+		CallInstruction(const ILVarId& dst, Operand* function) : DestinationInstruction(OpCode_Call, dst), function(function) {}
+		CallInstruction(Operand* function) : DestinationInstruction(OpCode_Call, INVALID_VARIABLE), function(function) {}
 
 		Operand*& Function() noexcept { return function; }
 		Operand* Function() const noexcept { return function; }
@@ -470,13 +500,13 @@ namespace HXSL
 
 	class JumpInstruction : public Instruction
 	{
-		Operand* target;
+		Label* target;
 
 	public:
-		JumpInstruction(ILOpCode opcode) : Instruction(opcode) {}
+		JumpInstruction(ILOpCode opcode, Label* target) : Instruction(opcode), target(target) {}
 
-		Operand*& Target() noexcept { return target; }
-		Operand* Target() const noexcept { return target; }
+		Label*& Target() noexcept { return target; }
+		Label* Target() const noexcept { return target; }
 	};
 
 	class BinaryInstruction : public DestinationInstruction
@@ -485,7 +515,7 @@ namespace HXSL
 		Operand* rhs;
 
 	public:
-		BinaryInstruction(ILOpCode opcode) : DestinationInstruction(opcode) {}
+		BinaryInstruction(ILOpCode opcode, const ILVarId& dst, Operand* lhs, Operand* rhs) : DestinationInstruction(opcode, dst), lhs(lhs), rhs(rhs) {}
 		Operand*& OpLhs() noexcept { return lhs; }
 		Operand*& OpRhs() noexcept { return rhs; }
 		Operand* OpLhs() const noexcept { return lhs; }
@@ -496,17 +526,62 @@ namespace HXSL
 	{
 		Operand* op;
 	public:
-		UnaryInstruction(ILOpCode opcode) : DestinationInstruction(opcode) {}
+		UnaryInstruction(ILOpCode opcode, const ILVarId& dst, Operand* op) : DestinationInstruction(opcode, dst), op(op) {}
 		Operand*& Op() noexcept { return op; }
 		Operand* Op() const noexcept { return op; }
 	};
 
-	class LoadStoreInstruction : public DestinationInstruction
+	class StoreInstruction : public Instruction
+	{
+		Operand* dst;
+		Operand* src;
+	public:
+		static constexpr Value_T ID = StoreInstrVal;
+		StoreInstruction(Operand* dst, Operand* src) : Instruction(ID, OpCode_Store), dst(dst), src(src) {}
+		Operand*& OpSrc() noexcept { return src; }
+		Operand* OpSrc() const noexcept { return src; }
+		Operand*& OpDst() noexcept { return dst; }
+		Operand* OpDst() const noexcept { return dst; }
+	};
+
+	class LoadInstruction : public DestinationInstruction
 	{
 		Operand* src;
-
 	public:
-		LoadStoreInstruction(ILOpCode opcode) : DestinationInstruction(opcode) {}
+		static constexpr Value_T ID = LoadInstrVal;
+		LoadInstruction(const ILVarId& dst, Operand* src) : DestinationInstruction(ID, OpCode_Load, dst), src(src) {}
+		Operand*& OpSrc() noexcept { return src; }
+		Operand* OpSrc() const noexcept { return src; }
+	};
+
+	class StoreParamInstruction : public Instruction
+	{
+		Operand* dst;
+		Operand* src;
+	public:
+		static constexpr Value_T ID = StoreParamInstrVal;
+		StoreParamInstruction(Operand* dst, Operand* src) : Instruction(ID, OpCode_StoreParam), dst(dst), src(src) {}
+		Operand*& OpSrc() noexcept { return src; }
+		Operand* OpSrc() const noexcept { return src; }
+		Operand*& OpDst() noexcept { return dst; }
+		Operand* OpDst() const noexcept { return dst; }
+	};
+
+	class LoadParamInstruction : public DestinationInstruction
+	{
+		Operand* src;
+	public:
+		static constexpr Value_T ID = LoadParamInstrVal;
+		LoadParamInstruction(const ILVarId& dst, Operand* src) : DestinationInstruction(ID, OpCode_LoadParam, dst), src(src) {}
+		Operand*& OpSrc() noexcept { return src; }
+		Operand* OpSrc() const noexcept { return src; }
+	};
+
+	class MoveInstruction : public DestinationInstruction
+	{
+		Operand* src;
+	public:
+		MoveInstruction(const ILVarId& dst, Operand* src) : DestinationInstruction(OpCode_Move, dst), src(src) {}
 		Operand*& OpSrc() noexcept { return src; }
 		Operand* OpSrc() const noexcept { return src; }
 	};

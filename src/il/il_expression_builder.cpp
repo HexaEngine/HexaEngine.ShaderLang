@@ -3,17 +3,17 @@
 
 namespace HXSL
 {
-	static ILInstruction VecSwizzleExpr(ILContext* context, SwizzleDefinition* swizzle, Operand* inOp, const ILVarId& outOp)
+	static Instruction VecSwizzleExpr(ILContext* context, SwizzleDefinition* swizzle, Operand* inOp, const ILVarId& outOp)
 	{
 		auto baseType = swizzle->GetBasePrim();
 		auto targetType = swizzle->GetTargetPrim();
 
 		if (baseType->GetClass() == PrimitiveClass_Scalar)
 		{
-			return ILInstruction(OpCode_BroadcastVec, outOp, inOp, PrimToOpKind(baseType->GetKind()));
+			return UnaryInstruction(OpCode_BroadcastVec, outOp, inOp);
 		}
 
-		return ILInstruction(OpCode_VecSwizzle, outOp, inOp, context->MakeConstant(Number(swizzle->GetMask())));
+		return BinaryInstruction(OpCode_VecSwizzle, outOp, inOp, context->MakeConstant(Number(swizzle->GetMask())));
 	}
 
 	bool ILExpressionBuilder::IsInlineable(Expression* expr, Operand*& opOut)
@@ -41,14 +41,7 @@ namespace HXSL
 	{
 		bool isAddress;
 		auto& var = MemberAccess(target, isAddress);
-		if (isAddress)
-		{
-			AddInstr(OpCode_Load, varOut, var);
-		}
-		else
-		{
-			AddInstr(VecStoreOp(var), varOut, var);
-		}
+		AddLoadInstr(var, varOut);
 	}
 
 	void ILExpressionBuilder::WriteVar(Expression* target, Operand* varsIn)
@@ -61,7 +54,7 @@ namespace HXSL
 			{
 				if (!container.empty())
 				{
-					container.back().result = var;
+					cast<DestinationInstruction>(&container.back())->OpDst() = var;
 				}
 				return;
 			}
@@ -69,14 +62,7 @@ namespace HXSL
 
 		bool isAddress;
 		auto& var = MemberAccess(target, isAddress);
-		if (isAddress)
-		{
-			AddInstrNO(OpCode_Store, varsIn, var);
-		}
-		else
-		{
-			AddInstrNO(VecStoreOp(var), varsIn, var);
-		}
+		AddStoreInstr(var, varsIn);
 	}
 
 	SymbolDef* ILExpressionBuilder::GetAddrType(SymbolDef* elementType)
@@ -131,13 +117,13 @@ namespace HXSL
 			{
 			case NodeType_MemberAccessExpression:
 			{
-				AddInstr(OpCode_OffsetAddress, *nextVar, currentVar, MakeFieldAccess(decl));
+				AddInstrO<OffsetInstruction>(*nextVar, currentVar, MakeFieldAccess(decl));
 				isAddress = true;
 			}
 			break;
 			case NodeType_MemberReferenceExpression:
 			{
-				AddInstr(OpCode_OffsetAddress, *nextVar, currentVar, MakeFieldAccess(decl));
+				AddInstrO<OffsetInstruction>(*nextVar, currentVar, MakeFieldAccess(decl));
 				isAddress = true;
 				return *nextVar;
 			}
@@ -162,7 +148,7 @@ namespace HXSL
 		{
 			auto prim = op->GetParent()->As<Primitive>();
 			bool vec = prim->GetClass() == PrimitiveClass_Vector;
-			AddInstr(vec ? OperatorToVecOpCode(op->GetOperator(), prim->GetRows()) : OperatorToOpCode(op->GetOperator()), result, left, right, PrimToOpKind(prim->GetKind()));
+			AddInstr<BinaryInstruction>(vec ? OperatorToVecOpCode(op->GetOperator(), prim->GetRows()) : OperatorToOpCode(op->GetOperator()), result, left, right);
 		}
 		else
 		{
@@ -236,12 +222,12 @@ namespace HXSL
 				if (token.isNumeric())
 				{
 					auto num = token.Numeric;
-					AddInstr(OpCode_Move, currentFrame.outRegister, num, NumToOpKind(num.Kind));
+					AddInstrO<MoveInstruction>(currentFrame.outRegister, num);
 				}
 				else if (token.isBool())
 				{
 					bool value = token.Value == Keyword_True;
-					AddInstr(OpCode_Equal, currentFrame.outRegister, Number(value), Number(true), ILOpKind_U8);
+					AddInstr<BinaryInstruction>(OpCode_Equal, currentFrame.outRegister, Number(value), Number(true));
 				}
 				else
 				{
@@ -273,17 +259,17 @@ namespace HXSL
 				{
 					if (operator_ == Operator_Increment)
 					{
-						AddInstr(OpCode_Add, currentFrame.outRegister, ilOperand, Number(1), PrimToOpKind(op));
+						AddInstr<BinaryInstruction>(OpCode_Add, currentFrame.outRegister, ilOperand, Number(1));
 						WriteVar(operand, context->MakeVariable(currentFrame.outRegister));
 					}
 					else if (operator_ == Operator_Decrement)
 					{
-						AddInstr(OpCode_Subtract, currentFrame.outRegister, ilOperand, Number(1), PrimToOpKind(op));
+						AddInstr<BinaryInstruction>(OpCode_Subtract, currentFrame.outRegister, ilOperand, Number(1));
 						WriteVar(operand, context->MakeVariable(currentFrame.outRegister));
 					}
 					else if (operator_ == Operator_Subtract)
 					{
-						AddInstr(OpCode_Negate, currentFrame.outRegister, ilOperand, PrimToOpKind(op));
+						AddInstr<UnaryInstruction>(OpCode_Negate, currentFrame.outRegister, ilOperand);
 					}
 				}
 				else
@@ -306,11 +292,11 @@ namespace HXSL
 					auto& temp = reg.Alloc(operand->GetInferredType());
 					if (operator_ == Operator_Increment)
 					{
-						AddInstr(OpCode_Add, temp, currentFrame.outRegister, Number(1), PrimToOpKind(op));
+						AddInstr<BinaryInstruction>(OpCode_Add, temp, currentFrame.outRegister, Number(1));
 					}
 					else
 					{
-						AddInstr(OpCode_Subtract, temp, currentFrame.outRegister, Number(1), PrimToOpKind(op));
+						AddInstr<BinaryInstruction>(OpCode_Subtract, temp, currentFrame.outRegister, Number(1));
 					}
 					WriteVar(operand, context->MakeVariable(temp));
 				}
@@ -335,10 +321,10 @@ namespace HXSL
 					{
 						if (!container.empty())
 						{
-							auto& last = container.back();
-							if (last.opcode == OpCode_StackAlloc)
+							auto last = &container.back();
+							if (auto alloc = dyn_cast<StackAllocInstruction>(last))
 							{
-								AddInstr(OpCode_StoreParam, last.result, Number(0));
+								AddInstrONO<StoreParamInstruction>(alloc->OpDst(), Number(0));
 							}
 						}
 					}
@@ -352,7 +338,7 @@ namespace HXSL
 					{
 						if (currentFrame.state != 0 && !looped)
 						{
-							AddInstrNO(OpCode_StoreParam, currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
+							AddInstrONO<StoreParamInstruction>(currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
 						}
 
 						auto param = parameters[currentFrame.state].get();
@@ -363,7 +349,7 @@ namespace HXSL
 						if (isImm)
 						{
 							looped = true;
-							AddInstrNO(OpCode_StoreParam, imm);
+							AddInstrONO<StoreParamInstruction>(imm, Number(paramOffset + currentFrame.state - 1));
 						}
 						else
 						{
@@ -372,7 +358,7 @@ namespace HXSL
 								looped = true;
 								auto member = static_cast<MemberReferenceExpression*>(operand);
 								auto& var = FindVar(member);
-								AddInstr(OpCode_StoreParam, var, nullptr, Number(paramOffset + currentFrame.state - 1));
+								AddInstrONO<StoreParamInstruction>(var, Number(paramOffset + currentFrame.state - 1));
 							}
 							else
 							{
@@ -387,16 +373,16 @@ namespace HXSL
 					{
 						if (currentFrame.state != 0 && !looped)
 						{
-							AddInstrNO(OpCode_StoreParam, currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
+							AddInstrONO<StoreParamInstruction>(currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
 						}
 
 						if (returnType != nullptr && !expression->IsVoidType())
 						{
-							AddInstr(OpCode_Call, currentFrame.outRegister, RegFunc(overload));
+							AddInstrO<CallInstruction>(currentFrame.outRegister, RegFunc(overload));
 						}
 						else
 						{
-							AddInstrNO(OpCode_Call, RegFunc(overload));
+							AddInstrONO<CallInstruction>(RegFunc(overload));
 						}
 						break;
 					}
@@ -423,7 +409,7 @@ namespace HXSL
 
 					if ((op->GetOperatorFlags() & OperatorFlags_Intrinsic) != 0)
 					{
-						AddInstr(OpCode_Cast, currentFrame.outRegister, ilOperand, PrimToOpKind(op));
+						AddInstr<UnaryInstruction>(OpCode_Cast, currentFrame.outRegister, ilOperand);
 					}
 					else
 					{
@@ -509,7 +495,7 @@ namespace HXSL
 				if (currentFrame.state == 1)
 				{
 					currentFrame.label = MakeJumpLocation();
-					AddInstrNO(OpCode_JumpZero, currentFrame.label);
+					AddInstrNO<JumpInstruction>(OpCode_JumpZero, currentFrame.label);
 
 					currentFrame.state++;
 					PushCurrent();
@@ -518,7 +504,7 @@ namespace HXSL
 				else if (currentFrame.state == 2)
 				{
 					auto endLoc = MakeJumpLocation();
-					AddInstrNO(OpCode_Jump, endLoc);
+					AddInstrNO<JumpInstruction>(OpCode_Jump, endLoc);
 
 					SetLocation(currentFrame.label);
 					currentFrame.label = endLoc;

@@ -20,6 +20,8 @@ namespace HXSL
 		{
 		}
 
+		bool empty() const noexcept { return cfg.empty(); }
+
 		ILMetadata& GetMetadata() { return metadata; }
 
 		ControlFlowGraph& GetCFG() { return cfg; }

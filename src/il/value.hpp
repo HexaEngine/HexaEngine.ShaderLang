@@ -12,6 +12,13 @@ namespace HXSL
 	public:
 		enum Value_T : uint16_t
 		{
+			InstructionVal,
+			StackAllocInstrVal,
+			OffsetInstrVal,
+			LoadInstrVal,
+			StoreInstrVal,
+			LoadParamInstrVal,
+			StoreParamInstrVal,
 			ConstantVal,
 			VariableVal,
 			FieldVal,

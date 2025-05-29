@@ -3,29 +3,14 @@
 
 #include "il_instruction.hpp"
 #include "operand_factory.hpp"
+#include "il_metadata.hpp"
 
 namespace HXSL
 {
-	struct ILContainer : public ilist<ILInstruction>
+	struct ILContainer : public ilist<Instruction>
 	{
-		ILContainer(BumpAllocator& allocator) : ilist<ILInstruction>(allocator)
+		ILContainer(BumpAllocator& allocator) : ilist<Instruction>(allocator)
 		{
-		}
-
-		void AddInstr(const ILInstruction& instr)
-		{
-			append(instr);
-		}
-
-		template<typename... Operands>
-		void AddInstr(ILOpCode opcode, Operands&&... operands)
-		{
-			emplace_append(opcode, std::forward<Operands>(operands)...);
-		}
-
-		void AddInstr(ILOpCode opcode, ILOpKind opKind = ILOpKind_None)
-		{
-			emplace_append(opcode, opKind);
 		}
 	};
 
@@ -51,28 +36,80 @@ namespace HXSL
 	public:
 		ILContainerAdapter(ILContainer& container) : allocator(container.get_allocator()), container(container) {}
 
-		void AddInstr(const ILInstruction& instr)
-		{
-			container.AddInstr(instr);
-		}
-
-		template<typename... Operands>
+		template<typename T, typename... Operands>
 		void AddInstr(ILOpCode opcode, ILVarId result, Operands&&... operands)
 		{
+			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			OperandFactory factory{ allocator };
-			container.emplace_append(opcode, result, factory(std::forward<Operands>(operands))...);
+			container.append_move(allocator.Alloc<T>(opcode, result, factory(std::forward<Operands>(operands))...));
 		}
 
-		template<typename... Operands>
+		template<typename T, typename... Operands>
+		void AddInstrO(const ILVarId& result, Operands&&... operands)
+		{
+			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+			OperandFactory factory{ allocator };
+			container.append_move(allocator.Alloc<T>(result, factory(std::forward<Operands>(operands))...));
+		}
+
+		template<typename T, typename... Operands>
 		void AddInstrNO(ILOpCode opcode, Operands&&... operands)
 		{
+			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 			OperandFactory factory{ allocator };
-			container.emplace_append(opcode, INVALID_VARIABLE, factory(std::forward<Operands>(operands))...);
+			container.append_move(allocator.Alloc<T>(opcode, factory(std::forward<Operands>(operands))...));
 		}
 
-		void AddInstr(ILOpCode opcode, ILOpKind opKind = ILOpKind_None)
+		template<typename T, typename... Operands>
+		void AddInstrONO(Operands&&... operands)
 		{
-			container.emplace_append(opcode, opKind);
+			static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+			OperandFactory factory{ allocator };
+			container.append_move(allocator.Alloc<T>(factory(std::forward<Operands>(operands))...));
+		}
+
+		void AddBasicInstr(ILOpCode opcode)
+		{
+			container.append_move(allocator.Alloc<BasicInstruction>(opcode));
+		}
+
+		template<typename U>
+		void AddStoreInstr(const ILVariable& dst, U&& src)
+		{
+			if (!dst.IsReference())
+			{
+				//OpCode_Move
+				return;
+			}
+			OperandFactory factory{ allocator };
+			AddInstrONO<StoreInstruction>(dst.id, factory(std::forward<U>(src)));
+		}
+
+
+		template<typename U>
+		void AddLoadInstr(const ILVariable& src, U&& dst)
+		{
+			if (!src.IsReference())
+			{
+				//OpCode_Move
+				return;
+			}
+			OperandFactory factory{ allocator };
+			AddInstrO<LoadInstruction>(src.id, factory(std::forward<U>(dst)));
+		}
+
+		template<typename U>
+		void AddInstr(U&& v)
+		{
+			static_assert(std::is_base_of_v<Instruction, U>, "U must derive from Instruction");
+			container.append_move(allocator.Alloc<U>(std::forward<U>(v)));
+		}
+
+		template<typename U>
+		void AddInstr(const U& v)
+		{
+			static_assert(std::is_base_of_v<Instruction, U>, "U must derive from Instruction");
+			container.append_move(allocator.Alloc<U>(v));
 		}
 	};
 }

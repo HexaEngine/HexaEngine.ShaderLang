@@ -117,7 +117,8 @@ namespace HXSL
 
 		void UpdatePhiInputs(size_t removedPred, size_t targetBlock);
 
-		size_t size() const { return nodes.size(); }
+		size_t size() const noexcept { return nodes.size(); }
+		bool empty() const noexcept { return nodes.empty(); }
 
 		const std::vector<CFGNode>& GetNodes() const { return nodes; }
 
@@ -211,6 +212,8 @@ namespace HXSL
 	public:
 		void Traverse(size_t entryIdx = 0)
 		{
+			if (cfg.empty()) return;
+
 			auto& domTreeChildren = cfg.domTreeChildren;
 
 			std::stack<std::tuple<size_t, bool, TContext>> walkStack;

@@ -179,6 +179,11 @@ namespace HXSL
 		return OpKindToString(opKind);
 	}
 
+	static std::string ToString(const Instruction& instr, const ILMetadata& metadata)
+	{
+		return "FIX ME";
+	}
+
 	static std::string ToString(const ILInstruction& instruction, const ILMetadata& metadata)
 	{
 		std::ostringstream oss;

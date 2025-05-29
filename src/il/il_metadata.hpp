@@ -18,16 +18,19 @@ namespace HXSL
 
 		static ILVariableFlags GetVarTypeFlags(SymbolDef* def)
 	{
-		bool isLargeObject = true;
+		
+		ILVariableFlags flags = ILVariableFlags_None;
 		if (auto prim = def->As<Primitive>())
 		{
-			isLargeObject = prim->GetClass() == PrimitiveClass_Matrix;
+			if (prim->GetClass() == PrimitiveClass_Matrix)
+			{
+				flags |= ILVariableFlags_LargeObject | ILVariableFlags_Reference;
+			}
 		}
 
-		ILVariableFlags flags = ILVariableFlags_None;
-		if (isLargeObject)
+		if (auto ptr = def->As<Pointer>())
 		{
-			flags |= ILVariableFlags_LargeObject | ILVariableFlags_Reference;
+			flags |= ILVariableFlags_Reference;
 		}
 
 		return flags;

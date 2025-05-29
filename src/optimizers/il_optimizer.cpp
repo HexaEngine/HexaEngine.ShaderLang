@@ -24,6 +24,8 @@ namespace HXSL
 			auto& cfg = function->cfg;
 			auto& metadata = function->metadata;
 
+			if (function->empty()) continue;
+
 			SSABuilder ssaBuilder = SSABuilder(function.get());
 			ssaBuilder.Build();
 
