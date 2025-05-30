@@ -53,7 +53,7 @@ namespace HXSL
 			auto it = defToVar.find(var);
 			if (it != defToVar.end())
 			{
-				return metadata.variables[it->second.id()];
+				return metadata.variables[it->second];
 			}
 			return metadata.invalid;
 		}

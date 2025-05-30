@@ -10,8 +10,28 @@
 
 namespace HXSL
 {
+	static StringSpan textSpanGetSpan(const TextSpan& span)
+	{
+		if (span.source == nullptr) return {};
+		auto source = reinterpret_cast<SourceFile*>(span.source);
+		return source->GetSpan(span.start, span.length);
+	}
+
+	static std::string textSpanGetStr(const TextSpan& span)
+	{
+		if (span.source == nullptr) return {};
+		auto source = reinterpret_cast<SourceFile*>(span.source);
+		return source->GetString(span.start, span.length);
+	}
+
 	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
 	{
+		TextSpan::textSpanGetSpan = textSpanGetSpan;
+		TextSpan::textSpanGetStr = textSpanGetStr;
+		DiagnosticCode::encodeDiagnosticCode = EncodeCodeId;
+		DiagnosticCode::getMessageForCode = GetMessageForCode;
+		DiagnosticCode::getStringForCode = GetStringForCode;
+
 		Parser::InitializeSubSystems();
 
 		GetThreadAllocator()->Reset();

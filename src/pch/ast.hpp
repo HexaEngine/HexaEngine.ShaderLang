@@ -2,7 +2,7 @@
 #define AST_HPP
 
 #include "pch/localization.hpp"
-#include "diagnostic_code.hpp"
+#include "logging/diagnostic_code.hpp"
 
 #include "ast_modules/ast_base.hpp"
 #include "ast_modules/container.hpp"

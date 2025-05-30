@@ -2,7 +2,7 @@
 #define SEMANTIC_ANALYZER_HPP
 
 #include "pch/ast_analyzers.hpp"
-#include "io/logger_interface.hpp"
+#include "logging/logger_adapter.hpp"
 
 namespace HXSL
 {

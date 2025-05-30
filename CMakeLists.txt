@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.12)
 project(Compiler VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -14,8 +14,6 @@ else()
     add_compile_options(-Wall -Wextra -pedantic)
 endif()
 
-include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${PROJECT_SOURCE_DIR}/include)
 
 option(BUILD_TESTS "Enable Unit tests for compiler" ON)
 option(BUILD_SHARED "Build shared lib" OFF)
@@ -76,8 +74,9 @@ add_definitions(-DHXSL_LOCALE_PATH="${LOCALES_OUT_DIR}")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/build/cmake)
 target_include_directories(zstd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/lib/)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fmt)
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/utils)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/backend)
 
 message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
 
@@ -94,14 +93,15 @@ target_compile_definitions(CompilerCommon INTERFACE
 )
 
 target_compile_features(CompilerCommon INTERFACE cxx_std_20)
-
+target_include_directories(CompilerCommon INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(CompilerCommon INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_precompile_headers(CompilerCommon INTERFACE "src/pch/std.hpp" "src/pch/ast.hpp" "src/pch/ast_analyzers.hpp" "src/pch/ast_misc.hpp" "src/pch/localization.hpp")
 
 if (BUILD_SHARED)
     add_library(Compiler SHARED ${SOURCES})
 
-    target_link_libraries(Compiler PRIVATE CompilerCommon libzstd_static)
-    target_link_libraries(Compiler PUBLIC fmt::fmt HXSLUtils)
+    target_link_libraries(Compiler PRIVATE libzstd_static)
+    target_link_libraries(Compiler PUBLIC CompilerCommon HXSLUtils HXSLBackend)
 
     add_dependencies(Compiler generate_locales)
 
@@ -121,8 +121,8 @@ endif()
 if (BUILD_STATIC)
     add_library(CompilerStatic STATIC ${SOURCES})
 
-    target_link_libraries(CompilerStatic PRIVATE CompilerCommon libzstd_static)
-    target_link_libraries(CompilerStatic PUBLIC fmt::fmt HXSLUtils)
+    target_link_libraries(CompilerStatic PRIVATE libzstd_static)
+    target_link_libraries(CompilerStatic PUBLIC CompilerCommon HXSLUtils HXSLBackend)
 
     add_dependencies(CompilerStatic generate_locales)
 

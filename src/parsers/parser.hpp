@@ -4,7 +4,7 @@
 #include "lexical/token_stream.hpp"
 #include "lexical/text_span.hpp"
 #include "pch/ast.hpp"
-#include "io/logger_interface.hpp"
+#include "logging/logger_adapter.hpp"
 #include "lazy.hpp"
 
 namespace HXSL

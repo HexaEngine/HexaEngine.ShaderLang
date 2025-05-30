@@ -3,12 +3,12 @@
 
 #include "utils/text_helper.hpp"
 #include "io/source_file.hpp"
-#include "io/logger.hpp"
+#include "logging/logger.hpp"
+#include "logging/diagnostic_code.hpp"
 #include "lang/language.hpp"
 #include "token.hpp"
 #include "lexer_config.hpp"
 #include "input_stream.hpp"
-#include "diagnostic_code.hpp"
 
 #include "pch/std.hpp"
 

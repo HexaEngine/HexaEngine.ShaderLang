@@ -1,6 +1,5 @@
 #include "lexer.hpp"
 #include "utils/text_helper.hpp"
-#include "io/logger.hpp"
 #include "numbers.hpp"
 #include "pch/localization.hpp"
 

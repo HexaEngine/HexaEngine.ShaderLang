@@ -142,8 +142,8 @@ def generate_header_file(output_file: str, messages: list[DiagMessage]):
         writer.writeln("#include <memory>")
         writer.writeln("#include <unordered_map>")
         writer.writeln("#include <string>")
-        writer.writeln("#include \"diagnostic_code.hpp\"")
-        writer.writeln("#include \"io/logger.hpp\"")
+        writer.writeln("#include \"logging/diagnostic_code.hpp\"")
+        writer.writeln("#include \"logging/logger.hpp\"")
         writer.writeln()
 
         writer.writeln("// Automatically generated locale codes")

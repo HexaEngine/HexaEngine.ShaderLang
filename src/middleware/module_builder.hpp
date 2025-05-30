@@ -2,8 +2,8 @@
 #define AST_TO_MODULE_CONVERTER_HPP
 
 #include "pch/ast_analyzers.hpp"
-#include "il/core/module.hpp"
-#include "il/core/layout_builder.hpp"
+#include "core/module.hpp"
+#include "core/layout_builder.hpp"
 #include "utils/dense_map.hpp"
 
 namespace HXSL

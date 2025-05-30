@@ -1,7 +1,7 @@
 #ifndef CONTROL_FLOW_ANALYZER_HPP
 #define CONTROL_FLOW_ANALYZER_HPP
 
-#include "io/logger_interface.hpp"
+#include "logging/logger_adapter.hpp"
 #include "pch/il.hpp"
 
 namespace HXSL

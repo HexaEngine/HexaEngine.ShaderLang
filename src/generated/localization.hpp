@@ -4,8 +4,8 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
-#include "diagnostic_code.hpp"
-#include "io/logger.hpp"
+#include "logging/diagnostic_code.hpp"
+#include "logging/logger.hpp"
 
 // Automatically generated locale codes
 

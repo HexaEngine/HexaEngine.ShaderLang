@@ -2,7 +2,7 @@
 #define TOKEN_STREAM_HPP
 
 #include "lexical/lexer.hpp"
-#include "io/logger.hpp"
+#include "logging/logger.hpp"
 #include "pch/localization.hpp"
 
 namespace HXSL

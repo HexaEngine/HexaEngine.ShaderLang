@@ -1,5 +1,6 @@
 #include "il_builder.hpp"
 #include "il/il_helper.hpp"
+#include "helper.hpp"
 
 namespace HXSL
 {
