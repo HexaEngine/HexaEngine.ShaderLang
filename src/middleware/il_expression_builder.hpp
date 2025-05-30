@@ -1,11 +1,15 @@
 #ifndef IL_EXPRESSION_BUILDER_HPP
 #define IL_EXPRESSION_BUILDER_HPP
 
-#include "ast_ilgen.hpp"
+#include "pch/ast.hpp"
 #include "pch/il.hpp"
+#include "metadata_builder.hpp"
 
 namespace HXSL
 {
+	using namespace Backend;
+	using ILContext = Backend::ILContext;
+
 	struct ILExpressionFrame
 	{
 		Expression* expression = nullptr;
@@ -33,10 +37,9 @@ namespace HXSL
 	class ILExpressionBuilder : public ILContainerAdapter, public ILMetadataAdapter
 	{
 		ILContext* context;
-		LowerCompilationUnit* compilation;
+		Backend::Module* module;
 		std::stack<ILExpressionFrame> stack;
 		ILExpressionFrame currentFrame;
-		ILTempVariableAllocator& reg;
 		JumpTable& jumpTable;
 
 		void PushCurrent()
@@ -72,19 +75,17 @@ namespace HXSL
 		ILLabel MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
 
 	public:
-		ILExpressionBuilder(ILContext* context, LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, ILTempVariableAllocator& tempAllocator, JumpTable& jumpTable)
-			: ILContainerAdapter(container), ILMetadataAdapter(context->GetMetadata()),
+		ILExpressionBuilder(ILContext* context, ILMetadataBuilder& metaBuilder, ILContainer& container, JumpTable& jumpTable)
+			: ILContainerAdapter(container), ILMetadataAdapter(metaBuilder),
 			context(context),
-			compilation(context->compilation),
-			jumpTable(jumpTable),
-			reg(tempAllocator)
+			module(context->GetModule()),
+			jumpTable(jumpTable)
 		{
 		}
 
 		bool IsInlineable(Expression* expr, Operand*& opOut);
 		void ReadVar(Expression* target, ILVarId varOut);
 		void WriteVar(Expression* target, Operand* varIn);
-		SymbolDef* GetAddrType(SymbolDef* elementType);
 		ILVariable& MemberAccess(Expression* expr, bool& isAddress);
 		void FunctionCall(FunctionCallExpression* expr);
 		void OperatorCall(OperatorOverload* op, Operand* left, Operand* right, ILVarId result);

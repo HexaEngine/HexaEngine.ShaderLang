@@ -146,7 +146,7 @@ namespace HXSL
 			uint32_t len = static_cast<uint32_t>(str.length);
 			WriteUInt(len);
 			if (len == 0) return;
-			Write(str.data + str.start, len);
+			Write(str.data, len);
 		}
 
 		std::string ReadString() const

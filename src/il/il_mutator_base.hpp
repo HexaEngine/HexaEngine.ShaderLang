@@ -6,28 +6,31 @@
 
 namespace HXSL
 {
-	class ILMutatorBase
+	namespace Backend
 	{
-	protected:
-		ILMetadata& metadata;
-		std::unordered_set<Instruction*> discardList;
-		ILMutatorBase(ILMetadata& metadata) : metadata(metadata) {}
-
-	public:
-		void DiscardMarkedInstructs(BasicBlock& node)
+		class ILMutatorBase
 		{
-			for (auto instr : discardList)
+		protected:
+			ILMetadata& metadata;
+			std::unordered_set<Instruction*> discardList;
+			ILMutatorBase(ILMetadata& metadata) : metadata(metadata) {}
+
+		public:
+			void DiscardMarkedInstructs(BasicBlock& node)
 			{
-				node.RemoveInstr(instr);
+				for (auto instr : discardList)
+				{
+					node.RemoveInstr(instr);
+				}
+				discardList.clear();
 			}
-			discardList.clear();
-		}
 
-		virtual void DiscardInstr(Instruction& instr)
-		{
-			discardList.insert(&instr);
-		}
-	};
+			virtual void DiscardInstr(Instruction& instr)
+			{
+				discardList.insert(&instr);
+			}
+		};
+	}
 }
 
 #endif

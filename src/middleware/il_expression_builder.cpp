@@ -1,5 +1,5 @@
 #include "il_expression_builder.hpp"
-#include "il_helper.hpp"
+#include "il/il_helper.hpp"
 
 namespace HXSL
 {
@@ -65,14 +65,6 @@ namespace HXSL
 		AddStoreInstr(var, varsIn);
 	}
 
-	SymbolDef* ILExpressionBuilder::GetAddrType(SymbolDef* elementType)
-	{
-		SymbolHandle handle;
-		SymbolDef* def;
-		compilation->GetPointerManager()->TryGetOrCreatePointerType(elementType, handle, def);
-		return def;
-	}
-
 	ILVariable& ILExpressionBuilder::MemberAccess(Expression* expr, bool& isAddress)
 	{
 		isAddress = false;
@@ -99,7 +91,7 @@ namespace HXSL
 			ILVariable* nextVar;
 			if (auto swizzle = decl->As<SwizzleDefinition>())
 			{
-				nextVar = &reg.Alloc(next->GetInferredType());
+				nextVar = &MakeTemp(next->GetInferredType());
 				if (first)
 				{
 					container.back() = VecSwizzleExpr(context, swizzle, context->MakeVariable(varId), *nextVar);
@@ -112,7 +104,7 @@ namespace HXSL
 				goto end;
 			}
 
-			nextVar = &reg.Alloc(GetAddrType(next->GetSymbolRef()->GetBaseDeclaration()));
+			nextVar = &MakeTemp(MakeAddrType(next->GetSymbolRef()->GetBaseDeclaration()));
 			switch (type)
 			{
 			case NodeType_MemberAccessExpression:
@@ -160,7 +152,7 @@ namespace HXSL
 	{
 		auto outOp = outOperand;
 
-		outOp = outOperand != INVALID_VARIABLE ? outOperand : reg.Alloc(expression->GetInferredType());
+		outOp = outOperand != INVALID_VARIABLE ? outOperand : MakeTemp(expression->GetInferredType());
 
 		if (expression->GetInferredType() == nullptr)
 		{
@@ -199,8 +191,8 @@ namespace HXSL
 				else
 				{
 					currentFrame.state++;
-					currentFrame.leftRegister = isImm0 ? nullptr : context->MakeVariable(reg.Alloc(left->GetInferredType()));
-					currentFrame.rightRegister = isImm1 ? nullptr : context->MakeVariable(reg.Alloc(right->GetInferredType()));
+					currentFrame.leftRegister = isImm0 ? nullptr : context->MakeVariable(MakeTemp(left->GetInferredType()));
+					currentFrame.rightRegister = isImm1 ? nullptr : context->MakeVariable(MakeTemp(right->GetInferredType()));
 					PushFrame(currentFrame);
 
 					if (!isImm1)
@@ -248,7 +240,7 @@ namespace HXSL
 				Variable* operandReg = nullptr;
 				if (!isImm)
 				{
-					operandReg = context->MakeVariable(reg.Alloc(operand->GetInferredType()));
+					operandReg = context->MakeVariable(MakeTemp(operand->GetInferredType()));
 					ReadVar(operand, operandReg->varId);
 				}
 
@@ -289,7 +281,7 @@ namespace HXSL
 				auto op = static_cast<OperatorOverload*>(pref->GetOperatorSymbolRef()->GetDeclaration());
 				if ((op->GetOperatorFlags() & OperatorFlags_Intrinsic) != 0)
 				{
-					auto& temp = reg.Alloc(operand->GetInferredType());
+					auto& temp = MakeTemp(operand->GetInferredType());
 					if (operator_ == Operator_Increment)
 					{
 						AddInstr<BinaryInstr>(OpCode_Add, temp, currentFrame.outRegister, Number(1));
@@ -362,7 +354,7 @@ namespace HXSL
 							}
 							else
 							{
-								currentFrame.rightRegister = context->MakeVariable(reg.Alloc(operand->GetInferredType()));
+								currentFrame.rightRegister = context->MakeVariable(MakeTemp(operand->GetInferredType()));
 								PushFrame(currentFrame);
 								PushFrame({ operand, currentFrame.rightRegister->varId });
 								break;
@@ -418,7 +410,7 @@ namespace HXSL
 				}
 				else
 				{
-					currentFrame.rightRegister = context->MakeVariable(reg.Alloc(operand->GetInferredType()));
+					currentFrame.rightRegister = context->MakeVariable(MakeTemp(operand->GetInferredType()));
 					currentFrame.state++;
 					PushFrame(currentFrame);
 					PushFrame({ operand, currentFrame.rightRegister->varId });
@@ -447,7 +439,7 @@ namespace HXSL
 				}
 				else
 				{
-					currentFrame.leftRegister = context->MakeVariable(reg.Alloc(operand->GetInferredType()));
+					currentFrame.leftRegister = context->MakeVariable(MakeTemp(operand->GetInferredType()));
 					currentFrame.state++;
 					PushCurrent();
 					PushFrame({ operand, currentFrame.leftRegister->varId });
@@ -464,7 +456,7 @@ namespace HXSL
 				bool isImm = IsInlineable(operand, imm);
 				if (isImm || currentFrame.state == 0)
 				{
-					currentFrame.leftRegister = context->MakeVariable(reg.Alloc(operand->GetInferredType()));
+					currentFrame.leftRegister = context->MakeVariable(MakeTemp(operand->GetInferredType()));
 					ReadVar(target, currentFrame.leftRegister->varId);
 				}
 
@@ -482,7 +474,7 @@ namespace HXSL
 				else
 				{
 					currentFrame.state++;
-					currentFrame.rightRegister = context->MakeVariable(reg.Alloc(operand->GetInferredType()));
+					currentFrame.rightRegister = context->MakeVariable(MakeTemp(operand->GetInferredType()));
 					PushCurrent();
 					PushFrame({ operand, currentFrame.rightRegister->varId });
 				}

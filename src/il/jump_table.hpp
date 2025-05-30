@@ -2,42 +2,45 @@
 #define JUMP_TABLE_HPP
 
 #include "pch/ast.hpp"
-#include "il_instruction.hpp"
+#include "instruction.hpp"
 
 namespace HXSL
 {
-	constexpr Instruction* INVALID_JUMP_LOCATION_PTR = nullptr;
-	constexpr ILLabel INVALID_JUMP_LOCATION = ILLabel(static_cast<uint64_t>(-1));
-
-	struct JumpTable
+	namespace Backend
 	{
-		std::vector<Instruction*> locations;
+		constexpr Instruction* INVALID_JUMP_LOCATION_PTR = nullptr;
+		constexpr ILLabel INVALID_JUMP_LOCATION = ILLabel(static_cast<uint64_t>(-1));
 
-		ILLabel Allocate(Instruction* location = INVALID_JUMP_LOCATION_PTR)
+		struct JumpTable
 		{
-			auto idx = locations.size();
-			locations.push_back(location);
-			return ILLabel(idx);
-		}
+			std::vector<Instruction*> locations;
 
-		void SetLocation(ILLabel id, Instruction* location)
-		{
-			locations[id.value] = location;
-		}
-
-		void Prepare()
-		{
-			for (auto& p : locations)
+			ILLabel Allocate(Instruction* location = INVALID_JUMP_LOCATION_PTR)
 			{
-				p = p->GetNext();
+				auto idx = locations.size();
+				locations.push_back(location);
+				return ILLabel(idx);
 			}
-		}
 
-		Instruction* GetLocation(ILLabel id) const
-		{
-			return locations[id.value];
-		}
-	};
+			void SetLocation(ILLabel id, Instruction* location)
+			{
+				locations[id.value] = location;
+			}
+
+			void Prepare()
+			{
+				for (auto& p : locations)
+				{
+					p = p->GetNext();
+				}
+			}
+
+			Instruction* GetLocation(ILLabel id) const
+			{
+				return locations[id.value];
+			}
+		};
+	}
 }
 
 #endif

@@ -5,38 +5,41 @@
 
 namespace HXSL
 {
-	template<class Derived>
-	class GraphNode
+	namespace Backend
 	{
-	public:
-		const std::vector<size_t>& GetDependencies() const
+		template<class Derived>
+		class GraphNode
 		{
-			return static_cast<const Derived*>(this)->GetDependencies();
-		}
+		public:
+			const std::vector<size_t>& GetDependencies() const
+			{
+				return static_cast<const Derived*>(this)->GetDependencies();
+			}
 
-		const std::vector<size_t>& GetDependants() const
+			const std::vector<size_t>& GetDependants() const
+			{
+				return static_cast<const Derived*>(this)->GetDependants();
+			}
+		};
+
+		template <typename T>
+		concept IsGraphNode = std::is_base_of_v<GraphNode<T>, T>;
+
+		template <IsGraphNode TNode>
+		class GraphBase
 		{
-			return static_cast<const Derived*>(this)->GetDependants();
-		}
-	};
+		protected:
+			std::vector<TNode> nodes;
 
-	template <typename T>
-	concept IsGraphNode = std::is_base_of_v<GraphNode<T>, T>;
+		public:
+			size_t size() const noexcept { return nodes.size(); }
+			bool empty() const noexcept { return nodes.empty(); }
 
-	template <IsGraphNode TNode>
-	class GraphBase
-	{
-	protected:
-		std::vector<TNode> nodes;
-
-	public:
-		size_t size() const noexcept { return nodes.size(); }
-		bool empty() const noexcept { return nodes.empty(); }
-
-		const std::vector<TNode>& GetNodes() const noexcept { return nodes; }
-		TNode& GetNode(size_t index) { return nodes[index]; }
-		const TNode& GetNode(size_t index) const { return nodes[index]; }
-	};
+			const std::vector<TNode>& GetNodes() const noexcept { return nodes; }
+			TNode& GetNode(size_t index) { return nodes[index]; }
+			const TNode& GetNode(size_t index) const { return nodes[index]; }
+		};
+	}
 }
 
 #endif

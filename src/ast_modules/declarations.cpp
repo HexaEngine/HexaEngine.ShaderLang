@@ -53,7 +53,7 @@ namespace HXSL
 
 	void Parameter::Write(Stream& stream) const
 	{
-		stream.WriteUInt(flags);
+		stream.WriteUInt(paramaterFlags);
 		stream.WriteUInt(interpolationModifiers);
 		stream.WriteString(semantic);
 		symbol->Write(stream);
@@ -61,7 +61,7 @@ namespace HXSL
 
 	void Parameter::Read(Stream& stream, StringPool& container)
 	{
-		flags = static_cast<ParameterFlags>(stream.ReadUInt());
+		paramaterFlags = static_cast<ParameterFlags>(stream.ReadUInt());
 		interpolationModifiers = static_cast<InterpolationModifier>(stream.ReadUInt());
 		semantic = stream.ReadString();
 		symbol = make_ast_ptr<SymbolRef>();

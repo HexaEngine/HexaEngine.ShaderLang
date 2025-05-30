@@ -12,67 +12,6 @@
 
 namespace HXSL
 {
-	// The primitive root type.
-	enum PrimitiveKind
-	{
-		PrimitiveKind_Void,
-		PrimitiveKind_Bool,
-		PrimitiveKind_Int,
-		PrimitiveKind_UInt,
-		PrimitiveKind_Half,
-		PrimitiveKind_Float,
-		PrimitiveKind_Double,
-		PrimitiveKind_Min8Float,
-		PrimitiveKind_Min10Float,
-		PrimitiveKind_Min16Float,
-		PrimitiveKind_Min12Int,
-		PrimitiveKind_Min16Int,
-		PrimitiveKind_Min16UInt,
-		PrimitiveKind_Int8,
-		PrimitiveKind_UInt8,
-		PrimitiveKind_Int16,
-		PrimitiveKind_UInt16,
-		PrimitiveKind_Int64,
-		PrimitiveKind_UInt64,
-	};
-
-	static PrimitiveKind& operator++(PrimitiveKind& kind)
-	{
-		kind = static_cast<PrimitiveKind>(static_cast<int>(kind) + 1);
-		return kind;
-	}
-
-	static std::string ToString(PrimitiveKind kind)
-	{
-		switch (kind)
-		{
-		case PrimitiveKind_Void: return "void";
-		case PrimitiveKind_Bool: return "bool";
-		case PrimitiveKind_Int: return "int";
-		case PrimitiveKind_UInt: return "uint";
-		case PrimitiveKind_Half: return "half";
-		case PrimitiveKind_Float: return "float";
-		case PrimitiveKind_Double: return "double";
-		case PrimitiveKind_Min8Float: return "min8float";
-		case PrimitiveKind_Min10Float: return "min10float";
-		case PrimitiveKind_Min16Float: return "min16float";
-		case PrimitiveKind_Min12Int: return "min12int";
-		case PrimitiveKind_Min16Int: return "min16int";
-		case PrimitiveKind_Min16UInt: return "min16uint";
-
-		default:
-			return "";
-			break;
-		}
-	}
-
-	enum PrimitiveClass
-	{
-		PrimitiveClass_Scalar = 0,
-		PrimitiveClass_Vector = 1,
-		PrimitiveClass_Matrix = 2,
-	};
-
 	class Primitive : public Type, public IHasOperatorOverloads
 	{
 	private:
@@ -84,7 +23,7 @@ namespace HXSL
 		uint32_t columns;
 	public:
 		Primitive()
-			: Type(TextSpan(), NodeType_Primitive, TextSpan()),
+			: Type(TextSpan(), NodeType_Primitive, TextSpan(), AccessModifier_Public),
 			ASTNode(TextSpan(), NodeType_Primitive),
 			kind(PrimitiveKind_Void),
 			_class(PrimitiveClass_Scalar),
@@ -94,7 +33,7 @@ namespace HXSL
 			this->name = backingName;
 		}
 		Primitive(TextSpan span, PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
-			: Type(span, NodeType_Primitive, name),
+			: Type(span, NodeType_Primitive, name, AccessModifier_Public),
 			ASTNode(span, NodeType_Primitive),
 			kind(kind),
 			_class(_class),
@@ -106,7 +45,7 @@ namespace HXSL
 		}
 
 		Primitive(PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
-			: Type(TextSpan(), NodeType_Primitive, name),
+			: Type(TextSpan(), NodeType_Primitive, name, AccessModifier_Public),
 			ASTNode(TextSpan(), NodeType_Primitive),
 			kind(kind),
 			_class(_class),

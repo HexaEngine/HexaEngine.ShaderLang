@@ -47,6 +47,7 @@ namespace HXSL
 	class Namespace : virtual public ASTNode, public Container, public SymbolDef
 	{
 	private:
+		std::vector<ast_ptr<Namespace>> nestedNamespaces;
 		std::vector<UsingDeclaration> usings;
 		std::vector<AssemblySymbolRef> references;
 	public:
@@ -63,14 +64,22 @@ namespace HXSL
 		{
 		}
 
+		void AddNestedNamespace(ast_ptr<Namespace>& nestedNs)
+		{
+			RegisterChild(nestedNs);
+			nestedNamespaces.push_back(std::move(nestedNs));
+		}
+
 		void AddUsing(UsingDeclaration _using)
 		{
 			usings.push_back(_using);
 		}
 
+		const std::vector<ast_ptr<Namespace>>& GetNestedNamespaces() const { return nestedNamespaces; }
+
 		std::vector<UsingDeclaration>& GetUsings() { return usings; }
 
-		const std::vector<AssemblySymbolRef>& GetAssemblyReferences() { return references; }
+		const std::vector<AssemblySymbolRef>& GetAssemblyReferences() const { return references; }
 
 		virtual SymbolType GetSymbolType() const { return SymbolType_Namespace; }
 

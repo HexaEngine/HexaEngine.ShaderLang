@@ -4,23 +4,22 @@
 #include "pch/ast.hpp"
 #include "pch/ast_misc.hpp"
 #include "il/func_call_graph.hpp"
+#include "il/il_context.hpp"
 
 namespace HXSL
 {
-	class ILContext;
-
 	class LowerCompilationUnit : public Container
 	{
 		std::unique_ptr<ArrayManager> arrayManager;
 		std::unique_ptr<PointerManager> pointerManager;
 		std::unique_ptr<SwizzleManager> swizzleManager;
-		FuncCallGraph<ILContext*> callGraph;
+		Backend::FuncCallGraph<Backend::ILContext*> callGraph;
 		std::vector<ast_ptr<SymbolDef>> miscDefs;
-		std::vector<std::unique_ptr<ILContext>> ilFunctions;
+		std::vector<std::unique_ptr<Backend::ILContext>> ilFunctions;
 	public:
 		LowerCompilationUnit() : Container({}, NodeType_LowerCompilationUnit), ASTNode({}, NodeType_LowerCompilationUnit) {}
 
-		FuncCallGraph<ILContext*>& GetCallGraph()
+		Backend::FuncCallGraph<Backend::ILContext*>& GetCallGraph()
 		{
 			return callGraph;
 		}
@@ -43,17 +42,17 @@ namespace HXSL
 			return miscDefs;
 		}
 
-		void AddILFunction(std::unique_ptr<ILContext>&& context)
+		void AddILFunction(std::unique_ptr<Backend::ILContext>&& context)
 		{
 			ilFunctions.push_back(std::move(context));
 		}
 
-		const std::vector<std::unique_ptr<ILContext>>& GetILFunctions() const noexcept
+		const std::vector<std::unique_ptr<Backend::ILContext>>& GetILFunctions() const noexcept
 		{
 			return ilFunctions;
 		}
 
-		std::vector<std::unique_ptr<ILContext>>& GetILFunctionsMut() noexcept
+		std::vector<std::unique_ptr<Backend::ILContext>>& GetILFunctionsMut() noexcept
 		{
 			return ilFunctions;
 		}

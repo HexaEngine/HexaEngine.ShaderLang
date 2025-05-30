@@ -5,28 +5,31 @@
 
 namespace HXSL
 {
-	class StrengthReduction : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
+	namespace Backend
 	{
-		bool changed = false;
-
-		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
-
-		void MulDivReduce(BinaryInstr& instr);
-
-	public:
-		StrengthReduction(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
+		class StrengthReduction : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 		{
-		}
+			bool changed = false;
 
-		std::string GetName() override { return "StrengthReduction"; }
+			void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
-		OptimizerPassResult Run() override
-		{
-			changed = false;
-			Traverse();
-			return changed ? OptimizerPassResult_Changed : OptimizerPassResult_None;
-		}
-	};
+			void MulDivReduce(BinaryInstr& instr);
+
+		public:
+			StrengthReduction(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
+			{
+			}
+
+			std::string GetName() override { return "StrengthReduction"; }
+
+			OptimizerPassResult Run() override
+			{
+				changed = false;
+				Traverse();
+				return changed ? OptimizerPassResult_Changed : OptimizerPassResult_None;
+			}
+		};
+	}
 }
 
 #endif

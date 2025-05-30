@@ -1,23 +1,26 @@
 #ifndef IL_OPTIMIZER_HPP
 #define IL_OPTIMIZER_HPP
 
-#include "ast_ilgen.hpp"
+#include "pch/il.hpp"
 
 namespace HXSL
 {
-	class ILOptimizer
+	namespace Backend
 	{
-		LowerCompilationUnit* compilation;
-
-	public:
-		ILOptimizer(ILogger* logger, LowerCompilationUnit* compilation) : compilation(compilation)
+		class ILOptimizer
 		{
-		}
+			Module* module;
 
-		void Optimize();
+		public:
+			ILOptimizer(ILogger* logger, Module* compilation) : module(compilation)
+			{
+			}
 
-		void Optimize(ILContext* function);
-	};
+			void Optimize();
+
+			void Optimize(ILContext* function);
+		};
+	}
 }
 
 #endif

@@ -5,24 +5,27 @@
 
 namespace HXSL
 {
-	class AlgebraicSimplifier : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
+	namespace Backend
 	{
-		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
-
-	public:
-		AlgebraicSimplifier(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
+		class AlgebraicSimplifier : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 		{
-		}
+			void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
-		std::string GetName() override { return "AlgebraicSimplifier"; }
+		public:
+			AlgebraicSimplifier(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
+			{
+			}
 
-		OptimizerPassResult Run() override
-		{
-			changed = false;
-			Traverse();
-			return changed ? OptimizerPassResult_Rerun : OptimizerPassResult_None;
-		}
-	};
+			std::string GetName() override { return "AlgebraicSimplifier"; }
+
+			OptimizerPassResult Run() override
+			{
+				changed = false;
+				Traverse();
+				return changed ? OptimizerPassResult_Rerun : OptimizerPassResult_None;
+			}
+		};
+	}
 }
 
 #endif

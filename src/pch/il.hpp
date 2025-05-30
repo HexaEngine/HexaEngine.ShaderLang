@@ -1,7 +1,8 @@
 #ifndef IL_HPP
 #define IL_HPP
 
-#include "il/il_instruction.hpp"
+#include "il/core/module.hpp"
+#include "il/instruction.hpp"
 #include "il/il_metadata.hpp"
 #include "il/il_container.hpp"
 #include "il/il_helper.hpp"

@@ -15,7 +15,7 @@ namespace HXSL
 
 	public:
 		Pointer(std::string& name, ast_ptr<SymbolRef>& elementType)
-			: Type(TextSpan(), NodeType_Pointer, TextSpan()),
+			: Type(TextSpan(), NodeType_Pointer, TextSpan(), AccessModifier_Public),
 			ASTNode(TextSpan(), NodeType_Pointer),
 			elementType(std::move(elementType)),
 			backingName(std::move(name))

@@ -5,9 +5,12 @@
 
 namespace HXSL
 {
-	class LivenessAnalyzer : CFGVisitor<EmptyCFGContext>
+	namespace Backend
 	{
-	};
+		class LivenessAnalyzer : CFGVisitor<EmptyCFGContext>
+		{
+		};
+	}
 }
 
 #endif

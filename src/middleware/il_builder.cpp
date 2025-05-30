@@ -1,18 +1,9 @@
 #include "il_builder.hpp"
-#include "il_helper.hpp"
+#include "il/il_helper.hpp"
 
 namespace HXSL
 {
-	SymbolDef* ILBuilder::GetAddrType(SymbolDef* elementType)
-	{
-		SymbolHandle handle;
-		SymbolDef* def;
-		if (!compilation->GetPointerManager()->TryGetOrCreatePointerType(elementType, handle, def))
-		{
-			return elementType;
-		}
-		return def;
-	}
+	using namespace Backend;
 
 	bool ILBuilder::TraverseStatement(Statement* statement)
 	{
@@ -37,13 +28,13 @@ namespace HXSL
 			if (decl->GetDeclaredType() == nullptr) break;
 			auto init = decl->GetInitializer().get();
 
-			auto flags = GetVarTypeFlags(decl->GetDeclaredType());
+			auto flags = RegType(decl->GetDeclaredType())->GetVarTypeFlags();
 			ILType typeId;
 			ILVariable varId;
 			if ((flags & ILVariableFlags_LargeObject) != 0)
 			{
 				auto baseTypeId = RegType(decl->GetDeclaredType());
-				typeId = RegType(GetAddrType(decl->GetDeclaredType()));
+				typeId = RegType(MakeAddrType(decl->GetDeclaredType()));
 				varId = RegVar(typeId, decl);
 				AddInstrO<StackAllocInstr>(varId, baseTypeId);
 			}
@@ -257,8 +248,8 @@ namespace HXSL
 	{
 		stack.push(ILFrame(func->GetBody().get(), 0));
 
-		auto canonicalParent = func->GetCanonicalParent();
-		auto type = canonicalParent->GetType();
+		auto parent = func->GetParent();
+		auto type = parent->GetType();
 
 		size_t parameterBase = 0;
 		/*

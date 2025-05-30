@@ -334,20 +334,24 @@ namespace HXSL
 
 	class Type : public SymbolDef
 	{
+	protected:
+		AccessModifier accessModifiers;
 	private:
 		Type() = delete;
 	public:
-		Type(TextSpan span, NodeType type, TextSpan name, bool isExtern = false) : SymbolDef(span, type, name, isExtern)
+		Type(TextSpan span, NodeType type, TextSpan name, AccessModifier accessModifiers, bool isExtern = false) : SymbolDef(span, type, name, isExtern), accessModifiers(accessModifiers)
 		{
 		}
 
-		Type(TextSpan span, NodeType type, const std::string& name, bool isExtern = false) : SymbolDef(span, type, name, isExtern)
+		Type(TextSpan span, NodeType type, const std::string& name, AccessModifier accessModifiers, bool isExtern = false) : SymbolDef(span, type, name, isExtern), accessModifiers(accessModifiers)
 		{
 		}
 
 		virtual size_t GetFieldOffset(Field* field) const = 0;
 
 		virtual ~Type() {}
+
+		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
 
 	static SymbolRefType ConvertSymbolTypeToSymbolRefType(SymbolType type)

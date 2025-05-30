@@ -2,56 +2,59 @@
 
 namespace HXSL
 {
-	void ControlFlowAnalyzer::DetectUnreachableCode(ILContext* function)
+	namespace Backend
 	{
-		auto& cfg = function->cfg;
-		auto& metadata = function->metadata;
-
-		bool changed = false;
-		auto& nodes = cfg.GetNodes();
-		for (size_t i = 1; i < nodes.size(); i++)
+		void ControlFlowAnalyzer::DetectUnreachableCode(ILContext* function)
 		{
-			auto& node = nodes[i];
-			if (node.IsPredecessorsEmpty())
+			auto& cfg = function->GetCFG();
+			auto& metadata = function->GetMetadata();
+
+			bool changed = false;
+			auto& nodes = cfg.GetNodes();
+			for (size_t i = 1; i < nodes.size(); i++)
 			{
-				TextSpan span;
-				bool first = true;
-				for (auto& instr : node)
+				auto& node = nodes[i];
+				if (node.IsPredecessorsEmpty())
 				{
-					auto loc = instr.GetLocation();
-					if (!loc) continue;
-					if (first)
+					TextSpan span;
+					bool first = true;
+					for (auto& instr : node)
 					{
-						span = *loc;
-						first = false;
+						auto loc = instr.GetLocation();
+						if (!loc) continue;
+						if (first)
+						{
+							span = *loc;
+							first = false;
+						}
+						else
+						{
+							span.merge(*loc);
+						}
 					}
-					else
-					{
-						span.merge(*loc);
-					}
+
+					Log(UNREACHABLE_CODE, span);
+
+					cfg.RemoveNode(i);
+					changed = true;
+					i--;
 				}
+			}
 
-				Log(UNREACHABLE_CODE, span);
-
-				cfg.RemoveNode(i);
-				changed = true;
-				i--;
+			if (changed)
+			{
+				cfg.RebuildDomTree();
 			}
 		}
 
-		if (changed)
+		void ControlFlowAnalyzer::Analyze()
 		{
-			cfg.RebuildDomTree();
-		}
-	}
+			auto& functions = module->GetAllFunctions();
 
-	void ControlFlowAnalyzer::Analyze()
-	{
-		auto& functions = compilation->GetILFunctionsMut();
-
-		for (auto& func : functions)
-		{
-			DetectUnreachableCode(func.get());
+			for (auto& func : functions)
+			{
+				DetectUnreachableCode(func->GetContext());
+			}
 		}
 	}
 }

@@ -12,7 +12,7 @@ namespace HXSL
 	class Parameter : public SymbolDef, public IHasSymbolRef
 	{
 	private:
-		ParameterFlags flags;
+		ParameterFlags paramaterFlags;
 		InterpolationModifier interpolationModifiers;
 		ast_ptr<SymbolRef> symbol;
 		std::string semantic;
@@ -21,14 +21,14 @@ namespace HXSL
 		Parameter()
 			: ASTNode(TextSpan(), NodeType_Parameter, true),
 			SymbolDef(TextSpan(), NodeType_Parameter, TextSpan(), true),
-			flags(ParameterFlags_In),
+			paramaterFlags(ParameterFlags_In),
 			interpolationModifiers(InterpolationModifier_Linear)
 		{
 		}
 		Parameter(TextSpan span, ParameterFlags flags, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef> symbol, TextSpan name, TextSpan semantic)
 			: ASTNode(span, NodeType_Parameter),
 			SymbolDef(span, NodeType_Parameter, name),
-			flags(flags),
+			paramaterFlags(flags),
 			interpolationModifiers(interpolationModifiers),
 			symbol(std::move(symbol)),
 			semantic(semantic.str())
@@ -60,6 +60,12 @@ namespace HXSL
 		void Read(Stream& stream, StringPool& container) override;
 
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
+
+		DEFINE_GETTER_SETTER(ParameterFlags, ParameterFlags, paramaterFlags)
+
+			DEFINE_GETTER_SETTER(InterpolationModifier, InterpolationModifiers, interpolationModifiers)
+
+			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
 	};
 
 	class FunctionOverload : public SymbolDef, public AttributeContainer, public IHasCanonicalParent
@@ -208,7 +214,9 @@ namespace HXSL
 			oss << "[" << HXSL::ToString(type) << "] ID: " << GetID() << " Name: " << name;
 			return oss.str();
 		}
-		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
+
+		DEFINE_GETTER_SETTER(FunctionFlags, FunctionFlags, functionFlags)
+			DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 			DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, ReturnSymbol, returnSymbol)
 			DEFINE_GET_SET_MOVE_CHILDREN(std::vector<ast_ptr<Parameter>>, Parameters, parameters)
 			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
@@ -500,6 +508,10 @@ namespace HXSL
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
+
+			DEFINE_GETTER_SETTER(InterpolationModifier, InterpolationModifiers, interpolationModifiers)
+
+			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
 	};
 
 	class ThisDef : public SymbolDef, public IHasSymbolRef
@@ -544,21 +556,18 @@ namespace HXSL
 	{
 	private:
 		ast_ptr<ThisDef> thisDef = make_ast_ptr<ThisDef>();
-		AccessModifier accessModifiers;
 	public:
 		Struct()
-			: Type(TextSpan(), NodeType_Struct, TextSpan(), true),
+			: Type(TextSpan(), NodeType_Struct, TextSpan(), AccessModifier_Private, true),
 			Container(TextSpan(), NodeType_Struct),
-			ASTNode(TextSpan(), NodeType_Struct),
-			accessModifiers(AccessModifier_Private)
+			ASTNode(TextSpan(), NodeType_Struct)
 		{
 		}
 
 		Struct(TextSpan span, AccessModifier access, TextSpan name)
-			: Type(span, NodeType_Struct, name),
+			: Type(span, NodeType_Struct, name, access),
 			Container(span, NodeType_Struct),
-			ASTNode(span, NodeType_Struct),
-			accessModifiers(access)
+			ASTNode(span, NodeType_Struct)
 		{
 		}
 
@@ -586,27 +595,21 @@ namespace HXSL
 		void Read(Stream& stream, StringPool& container) override;
 
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
-
-		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
 
 	class Class : public Type, public Container, public IHasCanonicalParent
 	{
-	private:
-		AccessModifier accessModifiers;
 	public:
 		Class()
-			: Type(TextSpan(), NodeType_Class, TextSpan(), true),
+			: Type(TextSpan(), NodeType_Class, TextSpan(), AccessModifier_Private, true),
 			Container(TextSpan(), NodeType_Class, true),
-			ASTNode(TextSpan(), NodeType_Class, true),
-			accessModifiers(AccessModifier_Private)
+			ASTNode(TextSpan(), NodeType_Class, true)
 		{
 		}
 		Class(TextSpan span, AccessModifier access, TextSpan name)
-			: Type(span, NodeType_Class, name),
+			: Type(span, NodeType_Class, name, access),
 			Container(span, NodeType_Class, true),
-			ASTNode(span, NodeType_Class, true),
-			accessModifiers(access)
+			ASTNode(span, NodeType_Class, true)
 		{
 		}
 
@@ -629,8 +632,6 @@ namespace HXSL
 		void Read(Stream& stream, StringPool& container) override;
 
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
-
-		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};
 }
 

@@ -5,30 +5,33 @@
 
 namespace HXSL
 {
-	enum OptimizerPassResult
+	namespace Backend
 	{
-		OptimizerPassResult_None,
-		OptimizerPassResult_Changed,
-		OptimizerPassResult_Rerun,
-	};
-
-	class ILOptimizerPass : protected ILMutatorBase
-	{
-	protected:
-		ILContext* context;
-		bool changed = false;
-		void DiscardInstr(Instruction& instr) override
+		enum OptimizerPassResult
 		{
-			ILMutatorBase::DiscardInstr(instr);
-			changed = true;
-		}
+			OptimizerPassResult_None,
+			OptimizerPassResult_Changed,
+			OptimizerPassResult_Rerun,
+		};
 
-	public:
-		ILOptimizerPass(ILContext* context) : ILMutatorBase(context->GetMetadata()), context(context) {}
-		virtual std::string GetName() = 0;
-		virtual OptimizerPassResult Run() = 0;
-		virtual ~ILOptimizerPass() = default;
-	};
+		class ILOptimizerPass : protected ILMutatorBase
+		{
+		protected:
+			ILContext* context;
+			bool changed = false;
+			void DiscardInstr(Instruction& instr) override
+			{
+				ILMutatorBase::DiscardInstr(instr);
+				changed = true;
+			}
+
+		public:
+			ILOptimizerPass(ILContext* context) : ILMutatorBase(context->GetMetadata()), context(context) {}
+			virtual std::string GetName() = 0;
+			virtual OptimizerPassResult Run() = 0;
+			virtual ~ILOptimizerPass() = default;
+		};
+	}
 }
 
 #endif

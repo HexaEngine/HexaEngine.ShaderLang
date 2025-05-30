@@ -1,54 +1,57 @@
 #ifndef OPERAND_FACTORY_HPP
 #define OPERAND_FACTORY_HPP
 
-#include "il_instruction.hpp"
+#include "instruction.hpp"
 
 namespace HXSL
 {
-	struct OperandFactory
+	namespace Backend
 	{
-		BumpAllocator& alloc;
-
-		Variable* operator()(ILVarId id) const
+		struct OperandFactory
 		{
-			return alloc.Alloc<Variable>(id);
-		}
+			BumpAllocator& alloc;
 
-		Constant* operator()(Number num) const
-		{
-			return alloc.Alloc<Constant>(num);
-		}
+			Variable* operator()(ILVarId id) const
+			{
+				return alloc.Alloc<Variable>(id);
+			}
 
-		TypeValue* operator()(ILType typeId) const
-		{
-			return alloc.Alloc<TypeValue>(typeId);
-		}
+			Constant* operator()(Number num) const
+			{
+				return alloc.Alloc<Constant>(num);
+			}
 
-		Function* operator()(ILFuncId funcId) const
-		{
-			return alloc.Alloc<Function>(funcId);
-		}
+			TypeValue* operator()(ILType typeId) const
+			{
+				return alloc.Alloc<TypeValue>(typeId);
+			}
 
-		Label* operator()(ILLabel label) const
-		{
-			return alloc.Alloc<Label>(label);
-		}
+			Function* operator()(ILFuncCall funcId) const
+			{
+				return alloc.Alloc<Function>(funcId);
+			}
 
-		FieldAccess* operator()(ILFieldAccess field) const
-		{
-			return alloc.Alloc<FieldAccess>(field);
-		}
+			Label* operator()(ILLabel label) const
+			{
+				return alloc.Alloc<Label>(label);
+			}
 
-		Variable* operator()(Variable* op) const noexcept
-		{
-			return alloc.Alloc<Variable>(op->varId);
-		}
+			FieldAccess* operator()(ILFieldAccess field) const
+			{
+				return alloc.Alloc<FieldAccess>(field);
+			}
 
-		Operand* operator()(Operand* op) const noexcept
-		{
-			return op;
-		}
-	};
+			Variable* operator()(Variable* op) const noexcept
+			{
+				return alloc.Alloc<Variable>(op->varId);
+			}
+
+			Operand* operator()(Operand* op) const noexcept
+			{
+				return op;
+			}
+		};
+	}
 }
 
 #endif

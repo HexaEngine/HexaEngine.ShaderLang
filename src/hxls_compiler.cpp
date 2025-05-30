@@ -4,10 +4,9 @@
 #include "preprocessing/preprocessor.hpp"
 #include "parsers/parser.hpp"
 #include "semantics/semantic_analyzer.hpp"
-#include "il/il_generator.hpp"
+#include "middleware/module_builder.hpp"
 #include "il/control_flow_analyzer.hpp"
 #include "optimizers/il_optimizer.hpp"
-#include "utils/ast_flattener.hpp"
 
 namespace HXSL
 {
@@ -57,20 +56,13 @@ namespace HXSL
 
 		auto& stats = GetThreadAllocator()->GetStats();
 
-		ASTFlattener flattener;
-		auto lowerCompilation = flattener.Flatten(compilation.get());
-		lowerCompilation->SetPointerManager(std::move(analyzer.GetPointerManagerMut()));
-		lowerCompilation->SetArrayManager(std::move(analyzer.GetArrayManagerMut()));
-		lowerCompilation->SetSwizzleManager(std::move(analyzer.GetSwizzleManagerMut()));
-		compilation.reset();
+		ModuleBuilder conv;
+		auto module = conv.Convert(compilation.get());
 
-		ILGenerator ilGen = ILGenerator(logger.get(), lowerCompilation.get());
-		ilGen.Emit();
-
-		ControlFlowAnalyzer cfAnalyzer = ControlFlowAnalyzer(logger.get(), lowerCompilation.get());
+		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), module.get());
 		cfAnalyzer.Analyze();
 
-		ILOptimizer optimizer = ILOptimizer(logger.get(), lowerCompilation.get());
+		Backend::ILOptimizer optimizer = Backend::ILOptimizer(logger.get(), module.get());
 		optimizer.Optimize();
 
 		if (!logger->HasErrors())

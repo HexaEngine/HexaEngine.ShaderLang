@@ -1,9 +1,10 @@
 #ifndef IL_BUILDER_HPP
 #define IL_BUILDER_HPP
 
-#include "ast_ilgen.hpp"
+#include "pch/ast.hpp"
 #include "pch/il.hpp"
 #include "il_expression_builder.hpp"
+#include "middleware/module_builder.hpp"
 
 namespace HXSL
 {
@@ -144,14 +145,13 @@ namespace HXSL
 
 	class ILBuilder : public ILContainerAdapter, public ILMetadataAdapter
 	{
+		ModuleBuilder& builder;
 		ILContext* context;
 		BumpAllocator* allocator;
-		LowerCompilationUnit* compilation;
 		std::stack<ILFrame> stack;
 		ILFrame currentFrame;
 		std::stack<ILLoopFrame> loopStack;
 		ILLoopFrame currentLoop;
-		ILTempVariableAllocator tempAllocator;
 		ILExpressionBuilder exprBuilder;
 		JumpTable& jumpTable;
 
@@ -245,17 +245,15 @@ namespace HXSL
 		ILLabel MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
 
 		ILVarId TraverseExpression(Expression* expr, ILVarId outRegister = INVALID_VARIABLE) { return exprBuilder.TraverseExpression(expr, outRegister); }
-		SymbolDef* GetAddrType(SymbolDef* elementType);
 		bool TraverseStatement(Statement* statement);
 		void TraverseBlock(ILBlockFrame& frame);
 	public:
-		ILBuilder(ILContext* context, BumpAllocator& allocator, LowerCompilationUnit* compilation, ILContainer& container, ILMetadata& metadata, JumpTable& jumpTable)
-			: ILContainerAdapter(container), ILMetadataAdapter(metadata),
+		ILBuilder(ModuleBuilder& builder, ILContext* context, ILMetadataBuilder& metaBuilder, ILContainer& container, JumpTable& jumpTable)
+			: ILContainerAdapter(container), ILMetadataAdapter(metaBuilder),
+			builder(builder),
 			context(context),
-			allocator(&allocator),
-			compilation(compilation),
-			tempAllocator(metadata),
-			exprBuilder(context, compilation, container, metadata, tempAllocator, jumpTable),
+			allocator(&context->GetAllocator()),
+			exprBuilder(context, metaBuilder, container, jumpTable),
 			jumpTable(jumpTable)
 		{
 		}
@@ -279,14 +277,9 @@ namespace HXSL
 					std::cout << "loc_" << index << ":" << std::endl;
 					offset = index + 1;
 				}
-				std::cout << "    " << ToString(instr, metadata) << std::endl;
+				std::cout << "    " << ToString(instr, context->GetMetadata()) << std::endl;
 			}
 			std::cout << "}" << std::endl;
-		}
-
-		ILTempVariableAllocator& GetTempAllocator()
-		{
-			return tempAllocator;
 		}
 	};
 }
