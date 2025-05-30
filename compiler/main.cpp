@@ -1,6 +1,10 @@
 #include "hxls_compiler.hpp"
 #include "preprocessing/evaluator.hpp"
 
+#define _CRTDBG_MAP_ALLOC
+#include <cstdlib>
+#include <crtdbg.h>
+
 using namespace HXSL;
 
 int main()
@@ -15,5 +19,6 @@ int main()
 
 	//HXSLCompiler::Compile({ "shader.txt" , "shader2.txt" }, "shader.module", collection);
 
+	_CrtDumpMemoryLeaks();
 	return 0;
 }

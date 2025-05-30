@@ -350,7 +350,7 @@ struct ASTAllocatorDeleter
 	{
 		if (base)
 		{
-			GetThreadAllocator()->Free(base);
+			//GetThreadAllocator()->Free(base);
 			base = nullptr;
 		}
 	}

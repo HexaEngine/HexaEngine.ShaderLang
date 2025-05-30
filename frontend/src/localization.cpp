@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
-#include <../external/zstd/lib/zstd.h>
+#include "../../external/zstd/lib/zstd.h"
 
 namespace HXSL
 {

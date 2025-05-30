@@ -27,9 +27,6 @@ if(MSVC)
     )
 endif()
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-file(GLOB_RECURSE PCH_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/pch/*.hpp")
-
 find_package(Python3 REQUIRED)
 
 set(LOCALES_GEN_TOOL "${CMAKE_SOURCE_DIR}/tools/locales_gen.py")
@@ -71,112 +68,16 @@ add_custom_command(
 add_custom_target(generate_locales ALL DEPENDS "${LOCALES_MARKER}" "${LOCALIZATION_HPP}")
 add_definitions(-DHXSL_LOCALE_PATH="${LOCALES_OUT_DIR}")
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/build/cmake)
-target_include_directories(zstd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/lib/)
-
-
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/utils)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/backend)
-
-message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
-
-add_library(CompilerCommon INTERFACE)
-
-target_include_directories(CompilerCommon INTERFACE
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/include
-)
-
-target_compile_definitions(CompilerCommon INTERFACE
-    HXSL_AVX2=1
-    $<$<CONFIG:Debug>:HXSL_DEBUG=1>
-)
-
-target_compile_features(CompilerCommon INTERFACE cxx_std_20)
-target_include_directories(CompilerCommon INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(CompilerCommon INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_precompile_headers(CompilerCommon INTERFACE "src/pch/std.hpp" "src/pch/ast.hpp" "src/pch/ast_analyzers.hpp" "src/pch/ast_misc.hpp" "src/pch/localization.hpp")
-
-if (BUILD_SHARED)
-    add_library(Compiler SHARED ${SOURCES})
-
-    target_link_libraries(Compiler PRIVATE libzstd_static)
-    target_link_libraries(Compiler PUBLIC CompilerCommon HXSLUtils HXSLBackend)
-
-    add_dependencies(Compiler generate_locales)
-
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
-        target_compile_definitions(Compiler PRIVATE HXSL_X86_64)
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|AARCH64")
-        target_compile_definitions(Compiler PRIVATE HXSL_AARCH64)
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM")
-        target_compile_definitions(Compiler PRIVATE HXSL_ARM)
-    else()
-        target_compile_definitions(Compiler PRIVATE HXSL_UNKNOWN)
-    endif()
-
-    target_compile_definitions(CompilerStatic PRIVATE HXSL_ENABLE_CAPI=1)
-endif()
-
-if (BUILD_STATIC)
-    add_library(CompilerStatic STATIC ${SOURCES})
-
-    target_link_libraries(CompilerStatic PRIVATE libzstd_static)
-    target_link_libraries(CompilerStatic PUBLIC CompilerCommon HXSLUtils HXSLBackend)
-
-    add_dependencies(CompilerStatic generate_locales)
-
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
-        target_compile_definitions(CompilerStatic PRIVATE HXSL_X86_64)
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|AARCH64")
-        target_compile_definitions(CompilerStatic PRIVATE HXSL_AARCH64)
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM")
-        target_compile_definitions(CompilerStatic PRIVATE HXSL_ARM)
-    else()
-        target_compile_definitions(CompilerStatic PRIVATE HXSL_UNKNOWN)
-    endif()
-endif()
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/frontend)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
 add_subdirectory(${PROJECT_SOURCE_DIR}/gui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/benchmark)
 
 if(BUILD_TESTS)
-    if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/googletest")
-        message(STATUS "GoogleTest submodule is not initialized, initializing now...")
-        execute_process(COMMAND git submodule update --init --recursive)
-    endif()
-
-    add_subdirectory(external/googletest)
-
-    enable_testing()
-
-    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
-
-    add_executable(unit_tests ${TEST_SOURCES} "src/preprocessing/evaluator.cpp")
-
-    target_link_libraries(unit_tests
-        PRIVATE
-            gtest
-            gtest_main
-            CompilerStatic
-    )
-
-    set_target_properties(unit_tests PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED YES
-    )
-
-    file(GLOB TXT_FILES ${CMAKE_SOURCE_DIR}/tests/pratt_parser_tests/*.txt)
-
-    if(TXT_FILES)
-        file(COPY ${TXT_FILES} DESTINATION ${CMAKE_BINARY_DIR}/pratt_parser_tests)
-    else()
-        message(WARNING "No .txt files found in ${CMAKE_SOURCE_DIR}/tests/pratt_parser_tests/")
-    endif()
-
-    include(GoogleTest)
-    gtest_discover_tests(unit_tests)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
 else()
     message(STATUS "GoogleTest is disabled. Skipping tests.")
 endif()

@@ -24,19 +24,12 @@ namespace HXSL
 		return source->GetString(span.start, span.length);
 	}
 
-	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
+	static std::unique_ptr<Backend::Module> CompileFrontend(ILogger* logger, const std::vector<std::string>& files, const AssemblyCollection& references)
 	{
-		TextSpan::textSpanGetSpan = textSpanGetSpan;
-		TextSpan::textSpanGetStr = textSpanGetStr;
-		DiagnosticCode::encodeDiagnosticCode = EncodeCodeId;
-		DiagnosticCode::getMessageForCode = GetMessageForCode;
-		DiagnosticCode::getStringForCode = GetStringForCode;
-
 		Parser::InitializeSubSystems();
 
 		GetThreadAllocator()->Reset();
 
-		std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
 		ast_ptr<CompilationUnit> compilation = make_ast_ptr<CompilationUnit>();
 
 		std::vector<std::unique_ptr<SourceFile>> sources;
@@ -59,25 +52,37 @@ namespace HXSL
 				continue;
 			}
 
-			Preprocessor preprocessor = Preprocessor(logger.get());
+			Preprocessor preprocessor = Preprocessor(logger);
 			preprocessor.Process(source.get());
 
-			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger.get(), HXSLLexerConfig::Instance());
+			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger, HXSLLexerConfig::Instance());
 			TokenStream tokenStream = TokenStream(&context);
 
-			Parser parser = Parser(logger.get(), tokenStream, compilation.get());
+			Parser parser = Parser(logger, tokenStream, compilation.get());
 
 			parser.Parse();
 		}
 
 		SemanticAnalyzer::InitializeSubSystems();
-		SemanticAnalyzer analyzer = SemanticAnalyzer(logger.get(), compilation.get(), references);
+		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, compilation.get(), references);
 		analyzer.Analyze();
 
-		auto& stats = GetThreadAllocator()->GetStats();
-
 		ModuleBuilder conv;
-		auto module = conv.Convert(compilation.get());
+		return conv.Convert(compilation.get());
+	}
+
+	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
+	{
+		TextSpan::textSpanGetSpan = textSpanGetSpan;
+		TextSpan::textSpanGetStr = textSpanGetStr;
+		DiagnosticCode::encodeDiagnosticCode = EncodeCodeId;
+		DiagnosticCode::getMessageForCode = GetMessageForCode;
+		DiagnosticCode::getStringForCode = GetStringForCode;
+
+		std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
+
+		auto module = CompileFrontend(logger.get(), files, references);
+		GetThreadAllocator()->ReleaseAll();
 
 		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), module.get());
 		cfAnalyzer.Analyze();
@@ -87,9 +92,9 @@ namespace HXSL
 
 		if (!logger->HasErrors())
 		{
-			auto assembly = analyzer.GetOutputAssembly().get();
+			//auto assembly = analyzer.GetOutputAssembly().get();
 
-			assembly->WriteToFile(output);
+			//assembly->WriteToFile(output);
 		}
 	}
 
