@@ -30,7 +30,7 @@ endif()
 find_package(Python3 REQUIRED)
 
 set(LOCALES_GEN_TOOL "${CMAKE_SOURCE_DIR}/tools/locales_gen.py")
-set(GENERATED_HEADER_DIR "${CMAKE_SOURCE_DIR}/src/generated")
+set(GENERATED_HEADER_DIR "${CMAKE_SOURCE_DIR}/frontend/src/generated")
 set(DIAG_MESSAGE_DIR "${CMAKE_SOURCE_DIR}/resources/diagnostic_messages")
 set(LOCALES_OUT_DIR "${CMAKE_BINARY_DIR}/locales")
 set(LOCALES_MARKER "${LOCALES_OUT_DIR}/.locales_generated")
