@@ -9,7 +9,7 @@
 
 namespace HXSL
 {
-	class Parameter : public SymbolDef, public IHasSymbolRef
+	class Parameter : public SymbolDef
 	{
 	private:
 		ParameterFlags paramaterFlags;
@@ -39,7 +39,7 @@ namespace HXSL
 			symbol = std::move(ref);
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -67,7 +67,7 @@ namespace HXSL
 			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
 	};
 
-	class FunctionOverload : public SymbolDef, public AttributeContainer, public IHasCanonicalParent
+	class FunctionOverload : public SymbolDef, public AttributeContainer
 	{
 	protected:
 		std::string cachedSignature;
@@ -438,7 +438,7 @@ namespace HXSL
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 	};
 
-	class Field : public SymbolDef, public IHasSymbolRef, public IHasCanonicalParent
+	class Field : public SymbolDef
 	{
 	private:
 		AccessModifier accessModifiers;
@@ -470,7 +470,7 @@ namespace HXSL
 			symbol = std::move(ref);
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -503,7 +503,7 @@ namespace HXSL
 			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
 	};
 
-	class ThisDef : public SymbolDef, public IHasSymbolRef
+	class ThisDef : public SymbolDef
 	{
 		ast_ptr<SymbolRef> symbol = make_ast_ptr<SymbolRef>("", SymbolRefType_Type, false);
 
@@ -519,7 +519,7 @@ namespace HXSL
 			symbol = std::move(ref);
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -541,7 +541,7 @@ namespace HXSL
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override {}
 	};
 
-	class Struct : public TypeContainer, public IHasCanonicalParent
+	class Struct : public TypeContainer
 	{
 	private:
 		ast_ptr<ThisDef> thisDef = make_ast_ptr<ThisDef>();
@@ -583,7 +583,7 @@ namespace HXSL
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 	};
 
-	class Class : public TypeContainer, public IHasCanonicalParent
+	class Class : public TypeContainer
 	{
 	public:
 		static constexpr NodeType ID = NodeType_Class;

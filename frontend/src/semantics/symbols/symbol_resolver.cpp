@@ -780,16 +780,16 @@ namespace HXSL
 	static SymbolRef* GetResolvedTypeFromDecl(SymbolRef* ref)
 	{
 		auto decl = ref->GetDeclaration();
-		if (auto typed = dynamic_cast<IHasSymbolRef*>(decl))
+		if (auto typed = SymbolRefHelper::TryGetSymbolRef(decl))
 		{
-			return typed->GetSymbolRef().get();
+			return typed->get();
 		}
 		return nullptr;
 	}
 
 	ResolveMemberResult SymbolResolver::ResolveMemberInner(ChainExpression* expr, SymbolRef* type) const
 	{
-		auto refInner = expr->GetSymbolRef().get();
+		auto refInner = SymbolRefHelper::GetSymbolRef(expr).get();
 		auto& handle = type->GetSymbolHandle();
 
 		auto exprType = expr->GetType();
@@ -840,7 +840,7 @@ namespace HXSL
 
 		if (!skipInitialResolve)
 		{
-			auto& refRoot = chainExprRoot->GetSymbolRef();
+			auto& refRoot = SymbolRefHelper::GetSymbolRef(chainExprRoot);
 			if (!ResolveSymbol(refRoot.get()))
 			{
 				return TraversalBehavior_Keep;
@@ -851,7 +851,7 @@ namespace HXSL
 
 		while (chain)
 		{
-			auto ref = chain->GetSymbolRef().get();
+			auto ref = SymbolRefHelper::GetSymbolRef(chain).get();
 
 			SymbolRef* type = GetResolvedTypeFromDecl(ref);
 			if (!type)
@@ -872,7 +872,7 @@ namespace HXSL
 			auto result = ResolveMemberInner(chain, type);
 			if (result == ResolveMemberResult::Failure)
 			{
-				auto refInner = chain->GetSymbolRef().get();
+				auto refInner = SymbolRefHelper::GetSymbolRef(chain).get();
 				analyzer.Log(MEMBER_NOT_FOUND_IN, refInner->GetSpan(), refInner->ToString(), ref->ToString());
 				return TraversalBehavior_Keep;
 			}

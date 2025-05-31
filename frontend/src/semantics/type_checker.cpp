@@ -11,7 +11,7 @@ namespace HXSL
 		if (type == NodeType_Namespace)
 		{
 			auto& current = resolver.CurrentScope();
-			current.CurrentNamespace = dynamic_cast<Namespace*>(node);
+			current.CurrentNamespace = dyn_cast<Namespace>(node);
 			resolver.PushScope(node, current.CurrentNamespace->GetName());
 		}
 		else if (type == NodeType_Struct)
@@ -24,7 +24,7 @@ namespace HXSL
 		}
 		else if (type == NodeType_OperatorOverload)
 		{
-			auto n = dynamic_cast<OperatorOverload*>(node);
+			auto n = dyn_cast<OperatorOverload>(node);
 			auto op = n->GetOperator();
 			if (Operators::IsLogicOperator(op))
 			{
@@ -143,10 +143,10 @@ namespace HXSL
 
 	bool TypeChecker::ImplicitBinaryOperatorCheck(SymbolRef* opRef, SymbolDef* a, SymbolDef* b, Operator op, OperatorOverload*& castMatchOut)
 	{
-		auto getter = dynamic_cast<IHasOperatorOverloads*>(a);
-		if (!getter)
+		auto operators = OperatorHelper::TryGetOperators(a);
+		if (!operators)
 		{
-			HXSL_ASSERT(false, "IHasOperators was null, this should never happen.");
+			HXSL_ASSERT(false, "Operators where null, this should never happen.");
 			return false;
 		}
 
@@ -155,7 +155,7 @@ namespace HXSL
 
 		std::string signature;
 		BinaryExpression::PrepareOverloadSignature(signature, op);
-		for (auto& _operator : getter->GetOperators())
+		for (auto& _operator : *operators)
 		{
 			if (_operator->GetName()[0] != lookup || (_operator->GetOperatorFlags() & OperatorFlags_Implicit) == 0)
 			{
@@ -249,7 +249,7 @@ namespace HXSL
 			}
 		}
 
-		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
+		auto operatorDecl = dyn_cast<OperatorOverload>(ref->GetDeclaration());
 		if (!found || !operatorDecl)
 		{
 			analyzer.Log(OP_OVERLOAD_NOT_FOUND_BINARY,
@@ -314,7 +314,7 @@ namespace HXSL
 			}
 		}
 
-		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
+		auto operatorDecl = dyn_cast<OperatorOverload>(ref->GetDeclaration());
 		if (!found || !operatorDecl)
 		{
 			analyzer.Log(OP_OVERLOAD_NOT_FOUND_BINARY,
@@ -351,7 +351,7 @@ namespace HXSL
 		auto& index = leftType->GetSymbolHandle();
 		found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
 
-		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
+		auto operatorDecl = dyn_cast<OperatorOverload>(ref->GetDeclaration());
 		if (!operatorDecl || !found)
 		{
 			analyzer.Log(OP_OVERLOAD_NOT_FOUND_UNARY,
@@ -380,7 +380,7 @@ namespace HXSL
 		auto& index = operandType->GetSymbolHandle();
 		found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
 
-		auto operatorDecl = dynamic_cast<OperatorOverload*>(ref->GetDeclaration());
+		auto operatorDecl = dyn_cast<OperatorOverload>(ref->GetDeclaration());
 		if (!operatorDecl || !found)
 		{
 			return false;
@@ -498,7 +498,7 @@ namespace HXSL
 			}
 		}
 
-		if (auto statement = dynamic_cast<ASTNode*>(node))
+		if (auto statement = node)
 		{
 			auto handler = StatementCheckerRegistry::GetHandler(type);
 			HXSL_ASSERT(handler, "StatementChecker handler was null, forgot to implement more?");

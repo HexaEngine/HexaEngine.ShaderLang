@@ -1,6 +1,7 @@
 #include "symbol_base.hpp"
 #include "interfaces.hpp"
 #include "semantics/symbols/symbol_table.hpp"
+#include "helpers.hpp"
 
 namespace HXSL
 {
@@ -121,13 +122,14 @@ namespace HXSL
 	{
 		std::unordered_set<const SymbolDef*> visited;
 		auto decl = GetDeclaration();
-		while (auto getter = dynamic_cast<IHasSymbolRef*>(decl))
+		while (auto refPtr = SymbolRefHelper::TryGetSymbolRef(decl))
 		{
+			auto& ref = *refPtr;
 			if (!visited.insert(decl).second)
 			{
 				return nullptr;
 			}
-			decl = getter->GetSymbolRef()->GetDeclaration();
+			decl = ref->GetDeclaration();
 		}
 		return decl;
 	}
@@ -136,13 +138,14 @@ namespace HXSL
 	{
 		std::unordered_set<const SymbolDef*> visited;
 		auto decl = GetDeclaration();
-		while (auto getter = dynamic_cast<IHasSymbolRef*>(decl))
+		while (auto refPtr = SymbolRefHelper::TryGetSymbolRef(decl))
 		{
+			auto& ref = *refPtr;
 			if (!visited.insert(decl).second)
 			{
 				return nullptr;
 			}
-			decl = getter->GetSymbolRef()->GetDeclaration();
+			decl = ref->GetDeclaration();
 			if (decl->GetSymbolType() == type)
 			{
 				return decl;

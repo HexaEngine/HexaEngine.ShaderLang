@@ -8,7 +8,7 @@
 
 namespace HXSL
 {
-	class SwizzleDefinition : public SymbolDef, public IHasSymbolRef
+	class SwizzleDefinition : public SymbolDef
 	{
 	private:
 		TextSpan expression;

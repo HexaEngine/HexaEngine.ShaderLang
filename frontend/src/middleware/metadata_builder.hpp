@@ -45,7 +45,7 @@ namespace HXSL
 
 		Backend::ILFuncCall RegFunc(SymbolDef* def)
 		{
-			return metadata.RegFunc(builder.ConvertFunction(dynamic_cast<FunctionOverload*>(def)));
+			return metadata.RegFunc(builder.ConvertFunction(dyn_cast<FunctionOverload>(def)));
 		}
 
 		Backend::ILVariable& FindVar(SymbolDef* var)
@@ -70,7 +70,7 @@ namespace HXSL
 
 		Backend::ILFieldAccess MakeFieldAccess(SymbolDef* fieldDef)
 		{
-			return metadata.MakeFieldAccess(builder.ConvertField(dynamic_cast<Field*>(fieldDef)));
+			return metadata.MakeFieldAccess(builder.ConvertField(dyn_cast<Field>(fieldDef)));
 		}
 
 		Backend::ILVariable& MakeTemp(SymbolDef* type)

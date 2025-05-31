@@ -40,6 +40,8 @@ namespace HXSL
 	class SymbolTable;
 	class SymbolDef;
 
+	class TypeContainer;
+
 	class Assembly;
 	class AssemblyCollection;
 
@@ -488,6 +490,14 @@ namespace HXSL
 
 	template<>
 	inline static bool isa<FunctionOverload>(const ASTNode* node) { return node && function_ovl_checker::check(node->GetType()); }
+
+	using type_container_checker = rtti_type_equals_checker<
+		NodeType_Struct,
+		NodeType_Class
+	>;
+
+	template<>
+	inline static bool isa<TypeContainer>(const ASTNode* node) { return node && type_container_checker::check(node->GetType()); }
 
 	template<typename T>
 	inline static T* dyn_cast(ASTNode* node) { return isa<T>(node) ? static_cast<T*>(node) : nullptr; }

@@ -56,7 +56,7 @@ namespace HXSL
 		}
 	};
 
-	class BodyStatement : public ASTNode, public IHasBody
+	class BodyStatement : public ASTNode
 	{
 	protected:
 		ast_ptr<BlockStatement> body;
@@ -74,7 +74,7 @@ namespace HXSL
 		}
 
 	public:
-		const ast_ptr<BlockStatement>& GetBody() const noexcept override
+		const ast_ptr<BlockStatement>& GetBody() const noexcept
 		{
 			return body;
 		}
@@ -111,7 +111,7 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Condition, condition);
 	};
 
-	class DeclarationStatement : public SymbolDef, public IHasSymbolRef, public IHasExpressions
+	class DeclarationStatement : public SymbolDef, public IHasExpressions
 	{
 	private:
 		StorageClass storageClass;
@@ -135,7 +135,7 @@ namespace HXSL
 			REGISTER_EXPR(initializer);
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}

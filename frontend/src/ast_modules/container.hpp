@@ -7,7 +7,7 @@
 
 namespace HXSL
 {
-	class TypeContainer : public Type, public IHasOperatorOverloads
+	class TypeContainer : public Type
 	{
 	protected:
 		std::vector<ast_ptr<FunctionOverload>> functions;
@@ -72,21 +72,13 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<ConstructorOverload>>, Constructors, constructors);
 
+		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<OperatorOverload>>, Operators, operators);
+
 		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Struct>>, Structs, structs);
 
 		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Class>>, Classes, classes);
 
 		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Field>>, Fields, fields);
-
-		const std::vector<ast_ptr<OperatorOverload>>& GetOperators() const noexcept override
-		{
-			return operators;
-		}
-
-		std::vector<ast_ptr<OperatorOverload>>& GetOperatorsMut() noexcept
-		{
-			return operators;
-		}
 	};
 }
 

@@ -378,10 +378,10 @@ namespace HXSL
 			{
 				auto decl = node.Metadata->declaration;
 
-				if (auto ns = dynamic_cast<Namespace*>(decl))
+				if (auto ns = dyn_cast<Namespace>(decl))
 				{
 					auto actual = std::move(externalAstNodes[idx]).release();
-					compilation->AddNamespace(ast_ptr<Namespace>(dynamic_cast<Namespace*>(actual)));
+					compilation->AddNamespace(ast_ptr<Namespace>(dyn_cast<Namespace>(actual)));
 				}
 
 				decl->Build(*this, idx, compilation.get(), externalAstNodes);

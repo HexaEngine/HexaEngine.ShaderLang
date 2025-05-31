@@ -84,7 +84,7 @@ namespace HXSL
 		while (next)
 		{
 			auto type = next->GetType();
-			auto ref = next->GetSymbolRef().get();
+			auto ref = SymbolRefHelper::GetSymbolRef(next).get();
 			auto decl = ref->GetDeclaration();
 
 			Variable* currentVar = context->MakeVariable(*curVarId);
@@ -105,7 +105,7 @@ namespace HXSL
 				goto end;
 			}
 
-			nextVar = &MakeTemp(MakeAddrType(next->GetSymbolRef()->GetBaseDeclaration()));
+			nextVar = &MakeTemp(MakeAddrType(ref->GetBaseDeclaration()));
 			switch (type)
 			{
 			case NodeType_MemberAccessExpression:

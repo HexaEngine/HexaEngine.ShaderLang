@@ -204,10 +204,9 @@ namespace HXSL
 				return false;
 			}
 
-			auto refGetter = dynamic_cast<IHasSymbolRef*>(current);
 			span = span.merge(current->GetSpan());
 
-			if (auto chainGetter = dynamic_cast<ChainExpression*>(current))
+			if (auto chainGetter = dyn_cast<ChainExpression>(current))
 			{
 				current = chainGetter->GetNextExpression().get();
 				continue;

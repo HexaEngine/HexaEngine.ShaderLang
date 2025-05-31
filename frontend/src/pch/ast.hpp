@@ -18,4 +18,6 @@
 #include "ast_modules/namespace.hpp"
 #include "ast_modules/compilation_unit.hpp"
 
+#include "ast_modules/helpers.hpp"
+
 #endif

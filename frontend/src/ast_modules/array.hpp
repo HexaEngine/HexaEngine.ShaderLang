@@ -7,7 +7,7 @@
 
 namespace HXSL
 {
-	class Array : public Type, public IHasSymbolRef
+	class Array : public Type
 	{
 	private:
 		ast_ptr<SymbolRef> elementType;

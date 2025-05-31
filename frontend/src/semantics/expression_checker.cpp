@@ -189,7 +189,7 @@ namespace HXSL
 			auto next = expression->GetNextExpression().get();
 			if (next)
 			{
-				next->GetSymbolRef()->SetDeclaration(type);
+				SymbolRefHelper::GetSymbolRef(next)->SetDeclaration(type);
 				resolver.ResolveMember(next);
 
 				expression->IncrementLazyEvalState();
@@ -361,13 +361,17 @@ namespace HXSL
 				return;
 			}
 
-			auto array = dynamic_cast<Array*>(type);
-			HXSL_ASSERT(array, "Array was null, this should never happen.");
+			auto array = dyn_cast<Array>(type);
+			if (array == nullptr)
+			{
+				HXSL_ASSERT(false, "Array was null, this should never happen.");
+				return;
+			}
 
 			auto next = expression->GetNextExpression().get();
 			if (next)
 			{
-				next->GetSymbolRef()->SetDeclaration(array);
+				SymbolRefHelper::GetSymbolRef(next)->SetDeclaration(array);
 				resolver.ResolveMember(next);
 
 				expression->IncrementLazyEvalState();

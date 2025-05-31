@@ -104,7 +104,7 @@ namespace HXSL
 		virtual ~OperatorExpression() = default;
 	};
 
-	class ChainExpression : public Expression, public IHasSymbolRef
+	class ChainExpression : public Expression
 	{
 	protected:
 		ast_ptr<ChainExpression> next;
@@ -412,7 +412,7 @@ namespace HXSL
 		{
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -524,7 +524,7 @@ namespace HXSL
 			parameters.push_back(std::move(param));
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -546,7 +546,7 @@ namespace HXSL
 		{
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -575,7 +575,7 @@ namespace HXSL
 		{
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef() override
+		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
 			return symbol;
 		}

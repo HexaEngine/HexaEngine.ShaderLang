@@ -52,17 +52,17 @@ namespace HXSL
 			return cast<TypeLayout>(it->second);
 		}
 
-		if (auto prim = dynamic_cast<Primitive*>(type))
+		if (auto prim = dyn_cast<Primitive>(type))
 		{
 			return ConvertPrimitive(prim);
 		}
 
-		if (auto strct = dynamic_cast<Struct*>(type))
+		if (auto strct = dyn_cast<Struct>(type))
 		{
 			return ConvertStruct(strct);
 		}
 
-		if (auto clss = dynamic_cast<Class*>(type))
+		if (auto clss = dyn_cast<Class>(type))
 		{
 			return ConvertClass(clss);
 		}
@@ -223,7 +223,7 @@ namespace HXSL
 			.Name(type->GetName())
 			.Access(type->GetAccessModifiers());
 
-		auto container = dynamic_cast<TypeContainer*>(type);
+		auto container = dyn_cast<TypeContainer>(type);
 
 		for (auto& field : container->GetFields())
 		{

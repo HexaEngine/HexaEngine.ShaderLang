@@ -34,7 +34,7 @@ namespace HXSL
 			{
 				auto decl = field->GetSymbolRef()->GetDeclaration();
 
-				if (auto fieldStruct = dynamic_cast<Struct*>(decl))
+				if (auto fieldStruct = dyn_cast<Struct>(decl))
 				{
 					if (visited.find(fieldStruct) == visited.end())
 					{
@@ -67,7 +67,7 @@ namespace HXSL
 		switch (type)
 		{
 		case NodeType_Struct:
-			return AnalyzeStruct(analyzer, dynamic_cast<Struct*>(node));
+			return AnalyzeStruct(analyzer, dyn_cast<Struct>(node));
 
 		default:
 			break;

@@ -7,7 +7,7 @@
 
 namespace HXSL
 {
-	class Pointer : public Type, public IHasSymbolRef
+	class Pointer : public Type
 	{
 	private:
 		ast_ptr<SymbolRef> elementType;

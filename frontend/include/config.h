@@ -84,4 +84,8 @@ extern bool EnableErrorOutput;
 #define HXSL_DEBUG 0
 #endif
 
+#ifdef __cplusplus
+//#define dynamic_cast static_assert(false, "dynamic_cast is forbidden!")
+#endif
+
 #endif // CONFIG_H

@@ -12,7 +12,7 @@
 
 namespace HXSL
 {
-	class Primitive : public Type, public IHasOperatorOverloads
+	class Primitive : public Type
 	{
 	private:
 		std::vector<ast_ptr<OperatorOverload>> operators;
