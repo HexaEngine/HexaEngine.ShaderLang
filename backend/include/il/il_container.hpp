@@ -78,25 +78,26 @@ namespace HXSL
 			template<typename U>
 			void AddStoreInstr(const ILVariable& dst, U&& src)
 			{
+				OperandFactory factory{ allocator };
 				if (!dst.IsReference())
 				{
-					//OpCode_Move
+					AddInstrO<MoveInstr>(dst.id, factory(std::forward<U>(src)));
 					return;
 				}
-				OperandFactory factory{ allocator };
+
 				AddInstrONO<StoreInstr>(dst.id, factory(std::forward<U>(src)));
 			}
 
-			template<typename U>
-			void AddLoadInstr(const ILVariable& src, U&& dst)
+			void AddLoadInstr(const ILVariable& src, const ILVarId& dst)
 			{
+				OperandFactory factory{ allocator };
 				if (!src.IsReference())
 				{
-					//OpCode_Move
+					AddInstrO<MoveInstr>(dst, factory(src));
 					return;
 				}
-				OperandFactory factory{ allocator };
-				AddInstrO<LoadInstr>(src.id, factory(std::forward<U>(dst)));
+
+				AddInstrO<LoadInstr>(dst, factory(src));
 			}
 
 			template<typename U>
