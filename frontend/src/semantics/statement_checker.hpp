@@ -12,13 +12,13 @@ namespace HXSL
 	class StatementCheckerBase
 	{
 	public:
-		virtual void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Statement* node) = 0;
+		virtual void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ASTNode* node) = 0;
 	};
 
 	template<class T>
 	class StatementChecker : public StatementCheckerBase
 	{
-		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Statement* node)
+		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ASTNode* node)
 		{
 			T* statement = static_cast<T*>(node);
 			HandleExpression(analyzer, checker, resolver, statement);
@@ -54,7 +54,7 @@ namespace HXSL
 
 	class DummyStatementChecker : public StatementCheckerBase
 	{
-		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, Statement* node) override
+		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ASTNode* node) override
 		{
 		}
 	};

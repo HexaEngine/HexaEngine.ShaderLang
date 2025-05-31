@@ -170,14 +170,14 @@ namespace HXSL
 			}
 
 			SymbolDef* type;
-			if (auto constructor = overload->As<ConstructorOverload>())
+			if (auto constructor = dyn_cast<ConstructorOverload>(overload))
 			{
 				type = constructor->GetTargetType();
 				expression->SetFunctionCallFlag(FunctionCallExpressionFlags::ConstructorCall, true);
 			}
 			else
 			{
-				auto function = overload->As<FunctionOverload>();
+				auto function = cast<FunctionOverload>(overload);
 				if (function == nullptr)
 				{
 					HXSL_ASSERT(false, "Declaration in function call expression was not a function, this should never happen.");

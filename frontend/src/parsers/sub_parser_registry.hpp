@@ -56,7 +56,7 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut, bool leaveOpen = false)
+		static bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut, bool leaveOpen = false)
 		{
 			for (auto& subParser : parsers)
 			{
@@ -96,7 +96,7 @@ namespace HXSL
 		{
 			return true;
 		}
-		ast_ptr<Statement> outStatement;
+		ast_ptr<ASTNode> outStatement;
 		bool success = StatementParserRegistry::TryParse(parser, stream, outStatement, leaveOpen);
 
 		if (!success)

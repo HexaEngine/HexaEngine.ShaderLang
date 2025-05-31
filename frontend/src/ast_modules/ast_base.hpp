@@ -10,7 +10,9 @@
 #include "lexical/token.hpp"
 #include "lexical/text_span.hpp"
 #include "lexical/input_stream.hpp"
+#include "utils/iterator_range.hpp"
 #include "utils/string_pool.hpp"
+#include "utils/rtti_helper.hpp"
 #include "io/source_file.hpp"
 #include "io/stream.hpp"
 #include "macros.hpp"
@@ -28,12 +30,15 @@ namespace HXSL
 	class Array;
 	class Primitive;
 	class Expression;
-	class Statement;
+	class ASTNode;
 
 	class BlockStatement;
 
+	class ChainExpression;
+
 	struct SymbolRef;
 	class SymbolTable;
+	class SymbolDef;
 
 	class Assembly;
 	class AssemblyCollection;
@@ -44,7 +49,7 @@ namespace HXSL
 	/// Symbol Resolve: All Done.
 	/// Type Check: WIP.
 	/// </summary>
-	enum NodeType : int
+	enum NodeType : uint8_t
 	{
 		/// <summary>
 		/// Special node and does not exist as class.
@@ -243,15 +248,11 @@ namespace HXSL
 	{
 		friend class ASTNodeAdapter;
 	private:
-		CompilationUnit* compilation = nullptr;
-		size_t id = 0;
-
 		void AddChild(ASTNode* node)
 		{
 			if (node == nullptr) return;
 			children.push_back(node);
 			node->parent = this;
-			node->AssignId();
 		}
 
 		void RemoveChild(ASTNode* node)
@@ -267,8 +268,6 @@ namespace HXSL
 		ASTNode* parent;
 		NodeType type;
 		bool isExtern;
-
-		void AssignId();
 
 		void RegisterChild(ASTNode* child)
 		{
@@ -313,25 +312,14 @@ namespace HXSL
 		}
 
 	public:
+		using child_iterator = ASTNode**;
+		using child_range = iterator_range<child_iterator>;
+
 		ASTNode(TextSpan span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), children({}), isExtern(isExtern)
 		{
 		}
 
-		virtual	CompilationUnit* GetCompilation()
-		{
-			if (compilation)
-			{
-				return compilation;
-			}
-			if (parent)
-			{
-				compilation = parent->GetCompilation();
-				return compilation;
-			}
-			return nullptr;
-		}
-
-		const size_t& GetID() const noexcept { return id; }
+		child_range GetChildrenIt();
 
 		bool IsExtern() const
 		{
@@ -400,7 +388,7 @@ namespace HXSL
 			{
 				return nullptr;
 			}
-			return dynamic_cast<T*>(node);
+			return dyn_cast<T>(node);
 		}
 
 		ASTNode* FindAncestor(const NodeType& type, size_t maxDepth = std::numeric_limits<size_t>::max()) const noexcept
@@ -428,48 +416,14 @@ namespace HXSL
 			{
 				return nullptr;
 			}
-			return dynamic_cast<T*>(node);
+			return dyn_cast<T>(node);
 		}
 
 		virtual	std::string DebugName() const
 		{
 			std::ostringstream oss;
-			oss << "[" << ToString(type) << "] ID: " << id << " Span: " + span.str();
+			oss << "[" << ToString(type) << "] " << " Span: " + span.str();
 			return oss.str();
-		}
-
-		template <typename T>
-		T* As() { return dynamic_cast<T*>(this); };
-
-		template <typename T>
-		T* Cast() { return static_cast<T*>(this); };
-
-		virtual ast_ptr<ASTNode> Clone() const noexcept
-		{
-			return {};
-		}
-
-		template <class T>
-		ast_ptr<T> CloneNode(const ast_ptr<T>& ptr) const noexcept
-		{
-			return ptr ? ast_ptr<T>(static_cast<T*>(ptr->Clone().release())) : nullptr;
-		}
-
-		template <typename T>
-		std::vector<ast_ptr<T>> CloneNodes(const std::vector<ast_ptr<T>>& ptr) const noexcept
-		{
-			std::vector<ast_ptr<T>> result;
-			for (auto& pt : ptr)
-			{
-				result.push_back(ast_ptr<T>(static_cast<T*>(ptr->Clone().release())));
-			}
-			return result;
-		}
-
-		template <typename T>
-		ast_ptr<T> CloneExtern(const ast_ptr<T>& ptr) const noexcept
-		{
-			return ptr ? ast_ptr<T>(static_cast<T*>(ptr->Clone())) : nullptr;
 		}
 
 		virtual ~ASTNode()
@@ -491,6 +445,61 @@ namespace HXSL
 
 		target = std::move(inject);
 	}
+
+	template<typename T>
+	inline static bool isa(const ASTNode* node) { return node && node->GetType() == T::ID; }
+
+	using symbol_def_checker = rtti_type_equals_checker<
+		NodeType_Namespace,
+		NodeType_Enum,
+		NodeType_Primitive,
+		NodeType_Struct,
+		NodeType_Class,
+		NodeType_Array,
+		NodeType_Pointer,
+		NodeType_Field,
+		NodeType_IntrinsicFunction,
+		NodeType_FunctionOverload,
+		NodeType_OperatorOverload,
+		NodeType_ConstructorOverload,
+		NodeType_ThisDef,
+		NodeType_SwizzleDefinition,
+		NodeType_DeclarationStatement,
+		NodeType_Parameter>;
+
+	template<>
+	inline static bool isa<SymbolDef>(const ASTNode* node) { return node && symbol_def_checker::check(node->GetType()); }
+
+	using chain_expr_checker = rtti_type_equals_checker<
+		NodeType_MemberAccessExpression,
+		NodeType_MemberReferenceExpression,
+		NodeType_FunctionCallExpression,
+		NodeType_IndexerAccessExpression
+	>;
+
+	template<>
+	inline static bool isa<ChainExpression>(const ASTNode* node) { return node && chain_expr_checker::check(node->GetType()); }
+
+	using function_ovl_checker = rtti_type_equals_checker<
+		NodeType_FunctionOverload,
+		NodeType_ConstructorOverload,
+		NodeType_OperatorOverload
+	>;
+
+	template<>
+	inline static bool isa<FunctionOverload>(const ASTNode* node) { return node && function_ovl_checker::check(node->GetType()); }
+
+	template<typename T>
+	inline static T* dyn_cast(ASTNode* node) { return isa<T>(node) ? static_cast<T*>(node) : nullptr; }
+
+	template<typename T>
+	inline static const T* dyn_cast(const ASTNode* node) { return isa<T>(node) ? static_cast<const T*>(node) : nullptr; }
+
+	template <typename T>
+	inline static T* cast(ASTNode* N) { assert(isa<T>(N) && "cast<T>() argument is not of type T!"); return static_cast<T*>(N); }
+
+	template <typename T>
+	inline static const T* cast(const ASTNode* N) { assert(isa<T>(N) && "cast<T>() argument is not of type T!"); return static_cast<const T*>(N); }
 }
 
 #endif

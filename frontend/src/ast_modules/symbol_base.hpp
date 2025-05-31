@@ -93,7 +93,7 @@ namespace HXSL
 		SymbolScopeType_Block
 	};
 
-	class SymbolDef : virtual public ASTNode
+	class SymbolDef : public ASTNode
 	{
 	private:
 		SymbolDef() = delete;
@@ -339,11 +339,15 @@ namespace HXSL
 	private:
 		Type() = delete;
 	public:
-		Type(TextSpan span, NodeType type, TextSpan name, AccessModifier accessModifiers, bool isExtern = false) : SymbolDef(span, type, name, isExtern), accessModifiers(accessModifiers)
+		Type(TextSpan span, NodeType type, TextSpan name, AccessModifier accessModifiers, bool isExtern = false)
+			: SymbolDef(span, type, name, isExtern),
+			accessModifiers(accessModifiers)
 		{
 		}
 
-		Type(TextSpan span, NodeType type, const std::string& name, AccessModifier accessModifiers, bool isExtern = false) : SymbolDef(span, type, name, isExtern), accessModifiers(accessModifiers)
+		Type(TextSpan span, NodeType type, const std::string& name, AccessModifier accessModifiers, bool isExtern = false)
+			: SymbolDef(span, type, name, isExtern),
+			accessModifiers(accessModifiers)
 		{
 		}
 

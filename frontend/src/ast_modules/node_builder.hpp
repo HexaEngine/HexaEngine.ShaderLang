@@ -74,7 +74,7 @@ namespace HXSL
 			AttachToContainer(_struct, _struct->GetSymbolHandle());
 		}
 
-		void AttachToContainer(Container* container, SymbolHandle handle)
+		void AttachToContainer(TypeContainer* container, SymbolHandle handle)
 		{
 			auto funcPtr = func.get();
 			container->AddFunction(std::move(func));
@@ -136,7 +136,7 @@ namespace HXSL
 			AttachToContainer(_struct, _struct->GetSymbolHandle());
 		}
 
-		void AttachToContainer(Container* container, SymbolHandle handle)
+		void AttachToContainer(TypeContainer* container, SymbolHandle handle)
 		{
 			auto operatorPtr = _operator.get();
 			auto& op = _operator->GetOperator();

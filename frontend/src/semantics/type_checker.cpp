@@ -16,7 +16,7 @@ namespace HXSL
 		}
 		else if (type == NodeType_Struct)
 		{
-			resolver.PushScope(node, node->As<Struct>()->GetName());
+			resolver.PushScope(node, cast<Struct>(node)->GetName());
 		}
 		else if (IsStatementType(type))
 		{
@@ -82,12 +82,12 @@ namespace HXSL
 	{
 		if (expr->IsTypeOf(NodeType_LiteralExpression) && target->IsTypeOf(NodeType_Primitive))
 		{
-			auto literalExpr = expr->Cast<LiteralExpression>();
+			auto literalExpr = cast<LiteralExpression>(expr);
 			auto& literal = literalExpr->GetLiteral();
 			if (literal.isNumeric())
 			{
 				auto& num = literal.Numeric;
-				auto prim = target->As<Primitive>();
+				auto prim = cast<Primitive>(target);
 				if (prim->GetClass() == PrimitiveClass_Scalar)
 				{
 					auto kind = prim->GetKind();
@@ -498,7 +498,7 @@ namespace HXSL
 			}
 		}
 
-		if (auto statement = dynamic_cast<Statement*>(node))
+		if (auto statement = dynamic_cast<ASTNode*>(node))
 		{
 			auto handler = StatementCheckerRegistry::GetHandler(type);
 			HXSL_ASSERT(handler, "StatementChecker handler was null, forgot to implement more?");

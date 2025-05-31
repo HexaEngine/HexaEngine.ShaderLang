@@ -14,9 +14,9 @@ namespace HXSL
 		std::string backingName;
 		size_t arraySize;
 	public:
+		static constexpr NodeType ID = NodeType_Array;
 		Array(std::string& name, ast_ptr<SymbolRef>& elementType, size_t arraySize)
-			: Type(TextSpan(), NodeType_Array, TextSpan(), AccessModifier_Public),
-			ASTNode(TextSpan(), NodeType_Array),
+			: Type(TextSpan(), ID, TextSpan(), AccessModifier_Public),
 			elementType(std::move(elementType)),
 			backingName(std::move(name)),
 			arraySize(arraySize)

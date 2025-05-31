@@ -14,9 +14,9 @@ namespace HXSL
 		std::string backingName;
 
 	public:
+		static constexpr NodeType ID = NodeType_Pointer;
 		Pointer(std::string& name, ast_ptr<SymbolRef>& elementType)
-			: Type(TextSpan(), NodeType_Pointer, TextSpan(), AccessModifier_Public),
-			ASTNode(TextSpan(), NodeType_Pointer),
+			: Type(TextSpan(), ID, TextSpan(), AccessModifier_Public),
 			elementType(std::move(elementType)),
 			backingName(std::move(name))
 		{

@@ -40,9 +40,6 @@ namespace HXSL
 			case SymbolType_Class:
 				AddClass(UNIQUE_PTR_CAST_AST(nodes[childIdx], Class));
 				break;
-			case SymbolType_Operator:
-				AddOperator(UNIQUE_PTR_CAST_AST(nodes[childIdx], OperatorOverload));
-				break;
 			}
 		}
 	}

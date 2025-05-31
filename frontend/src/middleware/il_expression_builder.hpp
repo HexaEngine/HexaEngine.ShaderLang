@@ -93,7 +93,7 @@ namespace HXSL
 		{
 			auto op = binary->GetOperatorDeclaration();
 			if (op == nullptr) return;
-			return OperatorCall(op->As<OperatorOverload>(), left, right, result);
+			return OperatorCall(cast<OperatorOverload>(op), left, right, result);
 		}
 		ILVarId TraverseExpression(Expression* expression, ILVarId outOperand = INVALID_VARIABLE);
 	};

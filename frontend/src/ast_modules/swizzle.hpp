@@ -16,9 +16,9 @@ namespace HXSL
 		uint8_t mask;
 		ast_ptr<SymbolRef> symbol;
 	public:
+		static constexpr NodeType ID = NodeType_SwizzleDefinition;
 		SwizzleDefinition(TextSpan expression, uint8_t mask, Primitive* basePrim, ast_ptr<SymbolRef> symbol)
-			: ASTNode(expression, NodeType_SwizzleDefinition),
-			SymbolDef(expression, NodeType_SwizzleDefinition, expression),
+			: SymbolDef(expression, ID, expression),
 			expression(expression),
 			basePrim(basePrim),
 			mask(mask),
@@ -35,7 +35,7 @@ namespace HXSL
 
 		Primitive* GetTargetPrim() const noexcept
 		{
-			return symbol->GetDeclaration()->As<Primitive>();
+			return dyn_cast<Primitive>(symbol->GetDeclaration());
 		}
 
 		const ast_ptr<SymbolRef>& GetSymbolRef()

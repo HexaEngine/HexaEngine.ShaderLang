@@ -7,9 +7,8 @@ namespace HXSL
 {
 	static bool IsImmediate(Expression* expr, Number& num)
 	{
-		if (expr->IsTypeOf(NodeType_LiteralExpression))
+		if (auto literal = dyn_cast<LiteralExpression>(expr))
 		{
-			auto literal = expr->As<LiteralExpression>();
 			auto& token = literal->GetLiteral();
 			if (token.isNumeric())
 			{

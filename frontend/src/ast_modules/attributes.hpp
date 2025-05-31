@@ -12,8 +12,9 @@ namespace HXSL
 		ast_ptr<SymbolRef> symbol;
 		std::vector<ast_ptr<Expression>> parameters;
 	public:
+		static constexpr NodeType ID = NodeType_AttributeDeclaration;
 		AttributeDeclaration(TextSpan span, ast_ptr<SymbolRef> symbol, std::vector<ast_ptr<Expression>> parameters)
-			: ASTNode(span, NodeType_AttributeDeclaration),
+			: ASTNode(span, ID),
 			symbol(std::move(symbol)),
 			parameters(std::move(parameters))
 		{
@@ -21,7 +22,7 @@ namespace HXSL
 		}
 
 		AttributeDeclaration(TextSpan span)
-			: ASTNode(span, NodeType_AttributeDeclaration)
+			: ASTNode(span, ID)
 		{
 		}
 

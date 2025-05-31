@@ -187,8 +187,9 @@ namespace HXSL
 	class PrefixExpression : public UnaryExpression
 	{
 	public:
+		static constexpr NodeType ID = NodeType_PrefixExpression;
 		PrefixExpression(TextSpan span, Operator op, ast_ptr<Expression> operand)
-			: UnaryExpression(span, NodeType_PrefixExpression, op, std::move(operand))
+			: UnaryExpression(span, ID, op, std::move(operand))
 		{
 		}
 	};
@@ -196,8 +197,9 @@ namespace HXSL
 	class PostfixExpression : public UnaryExpression
 	{
 	public:
+		static constexpr NodeType ID = NodeType_PostfixExpression;
 		PostfixExpression(TextSpan span, Operator op, ast_ptr<Expression> operand)
-			: UnaryExpression(span, NodeType_PostfixExpression, op, std::move(operand))
+			: UnaryExpression(span, ID, op, std::move(operand))
 		{
 		}
 	};
@@ -210,6 +212,7 @@ namespace HXSL
 		ast_ptr<Expression> left;
 		ast_ptr<Expression> right;
 	public:
+		static constexpr NodeType ID = NodeType_BinaryExpression;
 		BinaryExpression(TextSpan span, Operator op, ast_ptr<Expression> left, ast_ptr<Expression> right)
 			: OperatorExpression(span, NodeType_BinaryExpression),
 			_operator(op),
@@ -283,8 +286,9 @@ namespace HXSL
 		ast_ptr<SymbolRef> typeSymbol;
 		ast_ptr<Expression> operand;
 	public:
+		static constexpr NodeType ID = NodeType_CastExpression;
 		CastExpression(TextSpan span, ast_ptr<SymbolRef> typeSymbol, ast_ptr<Expression> operand)
-			: Expression(span, NodeType_CastExpression),
+			: Expression(span, ID),
 			typeSymbol(std::move(typeSymbol)),
 			operand(std::move(operand))
 		{
@@ -293,7 +297,7 @@ namespace HXSL
 		}
 
 		CastExpression(TextSpan span, ast_ptr<SymbolRef> operatorSymbol, ast_ptr<SymbolRef> typeSymbol, ast_ptr<Expression> operand)
-			: Expression(span, NodeType_CastExpression),
+			: Expression(span, ID),
 			operatorSymbol(std::move(operatorSymbol)),
 			typeSymbol(std::move(typeSymbol)),
 			operand(std::move(operand))
@@ -342,8 +346,9 @@ namespace HXSL
 		ast_ptr<Expression> trueBranch;
 		ast_ptr<Expression> falseBranch;
 	public:
+		static constexpr NodeType ID = NodeType_TernaryExpression;
 		TernaryExpression(TextSpan span, ast_ptr<Expression> condition, ast_ptr<Expression> trueBranch, ast_ptr<Expression> falseBranch)
-			: OperatorExpression(span, NodeType_TernaryExpression),
+			: OperatorExpression(span, ID),
 			condition(std::move(condition)),
 			trueBranch(std::move(trueBranch)),
 			falseBranch(std::move(falseBranch))
@@ -369,8 +374,9 @@ namespace HXSL
 	class EmptyExpression : public Expression
 	{
 	public:
+		static constexpr NodeType ID = NodeType_EmptyExpression;
 		EmptyExpression(TextSpan span)
-			: Expression(span, NodeType_EmptyExpression)
+			: Expression(span, ID)
 		{
 		}
 	};
@@ -380,8 +386,9 @@ namespace HXSL
 	private:
 		Token literal;
 	public:
+		static constexpr NodeType ID = NodeType_LiteralExpression;
 		LiteralExpression(TextSpan span, Token token)
-			: Expression(span, NodeType_LiteralExpression),
+			: Expression(span, ID),
 			literal(token)
 		{
 		}
@@ -398,8 +405,9 @@ namespace HXSL
 	private:
 		ast_ptr<SymbolRef> symbol;
 	public:
+		static constexpr NodeType ID = NodeType_MemberReferenceExpression;
 		MemberReferenceExpression(TextSpan span, ast_ptr<SymbolRef> symbol)
-			: ChainExpression(span, NodeType_MemberReferenceExpression),
+			: ChainExpression(span, ID),
 			symbol(std::move(symbol))
 		{
 		}
@@ -410,12 +418,6 @@ namespace HXSL
 		}
 
 		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, Symbol, symbol);
-
-		ast_ptr<ASTNode> Clone() const noexcept override
-		{
-			auto result = make_ast_ptr<MemberReferenceExpression>(span, symbol->Clone());
-			return result;
-		}
 	};
 
 	class FunctionCallParameter : public ASTNode
@@ -423,8 +425,9 @@ namespace HXSL
 	private:
 		ast_ptr<Expression> expression;
 	public:
+		static constexpr NodeType ID = NodeType_FunctionCallParameter;
 		FunctionCallParameter(TextSpan span, ast_ptr<Expression> expression)
-			: ASTNode(span, NodeType_FunctionCallParameter),
+			: ASTNode(span, ID),
 			expression(std::move(expression))
 		{
 			REGISTER_CHILD(expression);
@@ -448,8 +451,9 @@ namespace HXSL
 		std::vector<ast_ptr<FunctionCallParameter>> parameters;
 		FunctionCallExpressionFlags flags = FunctionCallExpressionFlags::None;
 	public:
+		static constexpr NodeType ID = NodeType_FunctionCallExpression;
 		FunctionCallExpression(TextSpan span, ast_ptr<SymbolRef> symbol, std::vector<ast_ptr<FunctionCallParameter>> parameters)
-			: ChainExpression(span, NodeType_FunctionCallExpression),
+			: ChainExpression(span, ID),
 			symbol(std::move(symbol)),
 			parameters(std::move(parameters))
 		{
@@ -457,7 +461,7 @@ namespace HXSL
 		}
 
 		FunctionCallExpression(TextSpan span, ast_ptr<SymbolRef> symbol)
-			: ChainExpression(span, NodeType_FunctionCallExpression),
+			: ChainExpression(span, ID),
 			symbol(std::move(symbol))
 		{
 		}
@@ -535,8 +539,9 @@ namespace HXSL
 	private:
 		ast_ptr<SymbolRef> symbol;
 	public:
+		static constexpr NodeType ID = NodeType_MemberAccessExpression;
 		MemberAccessExpression(TextSpan span, ast_ptr<SymbolRef> symbol, ast_ptr<ChainExpression> expression)
-			: ChainExpression(span, NodeType_MemberAccessExpression, std::move(expression)),
+			: ChainExpression(span, ID, std::move(expression)),
 			symbol(std::move(symbol))
 		{
 		}
@@ -547,13 +552,6 @@ namespace HXSL
 		}
 
 		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, Symbol, symbol);
-
-		ast_ptr<ASTNode> Clone() const noexcept override
-		{
-			auto result = make_ast_ptr<MemberAccessExpression>(span, symbol->Clone(), nullptr);
-			result->SetNextExpression(CloneNode(next));
-			return result;
-		}
 	};
 
 	class IndexerAccessExpression : public ChainExpression
@@ -562,8 +560,9 @@ namespace HXSL
 		ast_ptr<SymbolRef> symbol;
 		ast_ptr<Expression> indexExpression;
 	public:
+		static constexpr NodeType ID = NodeType_IndexerAccessExpression;
 		IndexerAccessExpression(TextSpan span, ast_ptr<SymbolRef> symbol, ast_ptr<Expression> indexExpression)
-			: ChainExpression(span, NodeType_IndexerAccessExpression),
+			: ChainExpression(span, ID),
 			symbol(std::move(symbol)),
 			indexExpression(std::move(indexExpression))
 		{
@@ -571,7 +570,7 @@ namespace HXSL
 		}
 
 		IndexerAccessExpression(TextSpan span, ast_ptr<SymbolRef> symbol)
-			: ChainExpression(span, NodeType_IndexerAccessExpression),
+			: ChainExpression(span, ID),
 			symbol(std::move(symbol))
 		{
 		}
@@ -604,8 +603,9 @@ namespace HXSL
 		}
 
 	public:
+		static constexpr NodeType ID = NodeType_AssignmentExpression;
 		AssignmentExpression(TextSpan span, ast_ptr<Expression> target, ast_ptr<Expression> expression)
-			: OperatorExpression(span, NodeType_AssignmentExpression),
+			: OperatorExpression(span, ID),
 			target(std::move(target)),
 			expression(std::move(expression))
 		{
@@ -634,8 +634,9 @@ namespace HXSL
 		Operator _operator;
 		ast_ptr<SymbolRef> operatorSymbol;
 	public:
+		static constexpr NodeType ID = NodeType_CompoundAssignmentExpression;
 		CompoundAssignmentExpression(TextSpan span, Operator _operator, ast_ptr<Expression> target, ast_ptr<Expression> expression)
-			: AssignmentExpression(span, NodeType_CompoundAssignmentExpression, std::move(target), std::move(expression)),
+			: AssignmentExpression(span, ID, std::move(target), std::move(expression)),
 			_operator(Operators::compoundToBinary(_operator)),
 			operatorSymbol(make_ast_ptr<SymbolRef>(TextSpan(), SymbolRefType_OperatorOverload, false))
 		{
@@ -671,14 +672,15 @@ namespace HXSL
 		std::vector<ast_ptr<Expression>> parameters;
 
 	public:
+		static constexpr NodeType ID = NodeType_InitializationExpression;
 		InitializationExpression(TextSpan span, std::vector<ast_ptr<Expression>> parameters)
-			: Expression(span, NodeType_InitializationExpression),
+			: Expression(span, ID),
 			parameters(std::move(parameters))
 		{
 			REGISTER_CHILDREN(parameters);
 		}
 		InitializationExpression(TextSpan span)
-			: Expression(span, NodeType_InitializationExpression)
+			: Expression(span, ID)
 		{
 		}
 

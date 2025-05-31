@@ -18,11 +18,11 @@ namespace HXSL
 
 	struct ILStatementFrame
 	{
-		Statement* statement;
+		ASTNode* statement;
 		uint64_t data;
 		size_t state;
 
-		ILStatementFrame(Statement* statement, uint64_t data) : statement(statement), data(data), state(0) {}
+		ILStatementFrame(ASTNode* statement, uint64_t data) : statement(statement), data(data), state(0) {}
 	};
 
 	struct ILIfFrame
@@ -103,7 +103,7 @@ namespace HXSL
 		{
 		}
 
-		ILFrame(ILFrameType type, Statement* statement, uint64_t state = 0) : statement(ILStatementFrame(statement, state)), type(type)
+		ILFrame(ILFrameType type, ASTNode* statement, uint64_t state = 0) : statement(ILStatementFrame(statement, state)), type(type)
 		{
 		}
 
@@ -245,7 +245,7 @@ namespace HXSL
 		ILLabel MakeJumpLocationFromCurrent() { return jumpTable.Allocate(&container.back()); }
 
 		ILVarId TraverseExpression(Expression* expr, ILVarId outRegister = INVALID_VARIABLE) { return exprBuilder.TraverseExpression(expr, outRegister); }
-		bool TraverseStatement(Statement* statement);
+		bool TraverseStatement(ASTNode* statement);
 		void TraverseBlock(ILBlockFrame& frame);
 	public:
 		ILBuilder(ModuleBuilder& builder, ILContext* context, ILMetadataBuilder& metaBuilder, ILContainer& container, JumpTable& jumpTable)

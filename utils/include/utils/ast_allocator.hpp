@@ -333,26 +333,20 @@ extern ASTAllocator* GetThreadAllocator();
 template <typename T>
 struct ASTAllocatorDeleter
 {
-	void* base = nullptr;
 
 	ASTAllocatorDeleter() = default;
 
 	template <typename U, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-	ASTAllocatorDeleter(const ASTAllocatorDeleter<U>& other) noexcept : base(other.base)
+	ASTAllocatorDeleter(const ASTAllocatorDeleter<U>& other) noexcept 
 	{
 	}
 
-	ASTAllocatorDeleter(void* basePtr) noexcept : base(basePtr)
+	ASTAllocatorDeleter(void* basePtr) noexcept 
 	{
 	}
 
 	void operator()(T* ptr) noexcept
 	{
-		if (base)
-		{
-			//GetThreadAllocator()->Free(base);
-			base = nullptr;
-		}
 	}
 };
 

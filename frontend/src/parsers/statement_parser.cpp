@@ -6,7 +6,7 @@
 
 namespace HXSL
 {
-	bool MiscKeywordStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool MiscKeywordStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 		if (stream.TryGetKeyword(Keyword_Break))
@@ -36,7 +36,7 @@ namespace HXSL
 		return false;
 	}
 
-	bool BlockStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool BlockStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 		if (!start.isDelimiterOf('{'))
@@ -50,7 +50,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool ForStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool ForStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 
@@ -71,7 +71,7 @@ namespace HXSL
 			forStatement->AddAttribute(std::move(attribute->Take()));
 		}
 
-		ast_ptr<Statement> init;
+		ast_ptr<ASTNode> init;
 		IF_ERR_RET_FALSE(StatementParserRegistry::TryParse(parser, stream, init));
 		stream.LastToken().isDelimiterOf(';');
 		forStatement->SetInit(std::move(init));
@@ -125,7 +125,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool SwitchStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool SwitchStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 
@@ -235,7 +235,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool IfStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool IfStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 
@@ -270,7 +270,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool WhileStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool WhileStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 		if (!stream.TryGetKeyword(Keyword_While))
@@ -302,7 +302,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool DoWhileStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool DoWhileStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 		if (!stream.TryGetKeyword(Keyword_Do))
@@ -337,7 +337,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool ReturnStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool ReturnStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 		if (!stream.TryGetKeyword(Keyword_Return))
@@ -360,7 +360,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseAssignment(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	static bool ParseAssignment(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		parser.RejectModifierList(NO_MODIFIER_INVALID_IN_CONTEXT, true);
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
@@ -408,7 +408,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseDeclaration(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	static bool ParseDeclaration(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		ast_ptr<SymbolRef> symbol;
 		if (!ParserHelper::MakeConcreteSymbolRef(target.get(), SymbolRefType_Type, symbol))
@@ -465,7 +465,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseExpressionStatement(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	static bool ParseExpressionStatement(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		parser.RejectModifierList(NO_MODIFIER_INVALID_IN_CONTEXT);
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
@@ -491,7 +491,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool MemberAccessStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Statement>& statementOut)
+	bool MemberAccessStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
 	{
 		auto start = stream.Current();
 		if (start.isDelimiterOf('(') || start.isUnaryOperator() || start.isLiteral() || start.isNumeric() || start.isKeywordOf(KeywordLiterals))

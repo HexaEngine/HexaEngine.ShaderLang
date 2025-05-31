@@ -11,7 +11,6 @@ namespace HXSL
 	class CompilationUnit : public ASTNode
 	{
 	private:
-		std::atomic<size_t> currentID = 0;
 		std::vector<ast_ptr<Namespace>> namespaces;
 		std::vector<UsingDeclaration> usings;
 
@@ -32,19 +31,9 @@ namespace HXSL
 		}
 
 	public:
-		CompilationUnit(bool isExtern = false) : ASTNode({ }, NodeType_CompilationUnit, isExtern)
+		static constexpr NodeType ID = NodeType_CompilationUnit;
+		CompilationUnit(bool isExtern = false) : ASTNode({ }, ID, isExtern)
 		{
-			AssignId();
-		}
-
-		size_t GetNextID()
-		{
-			return currentID.fetch_add(1, std::memory_order_relaxed);
-		}
-
-		CompilationUnit* GetCompilation() override
-		{
-			return this;
 		}
 
 		Namespace* AddNamespace(const NamespaceDeclaration& declaration);

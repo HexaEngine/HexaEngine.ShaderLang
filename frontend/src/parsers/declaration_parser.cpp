@@ -25,13 +25,13 @@ namespace HXSL
 		switch (parentType)
 		{
 		case NodeType_Namespace:
-			parent->As<Namespace>()->AddField(std::move(field));
+			cast<Namespace>(parent)->AddField(std::move(field));
 			break;
 		case NodeType_Struct:
-			parent->As<Struct>()->AddField(std::move(field));
+			cast<Struct>(parent)->AddField(std::move(field));
 			break;
 		case NodeType_Class:
-			parent->As<Class>()->AddField(std::move(field));
+			cast<Class>(parent)->AddField(std::move(field));
 			break;
 		default:
 			return false;
@@ -135,13 +135,13 @@ namespace HXSL
 		switch (parentType)
 		{
 		case NodeType_Namespace:
-			parent->As<Namespace>()->AddFunction(std::move(function));
+			cast<Namespace>(parent)->AddFunction(std::move(function));
 			break;
 		case NodeType_Struct:
-			parent->As<Struct>()->AddFunction(std::move(function));
+			cast<Struct>(parent)->AddFunction(std::move(function));
 			break;
 		case NodeType_Class:
-			parent->As<Class>()->AddFunction(std::move(function));
+			cast<Class>(parent)->AddFunction(std::move(function));
 			break;
 		default:
 			return false;
@@ -184,10 +184,10 @@ namespace HXSL
 		switch (parentType)
 		{
 		case NodeType_Struct:
-			parent->As<Struct>()->AddFunction(std::move(ctor));
+			cast<Struct>(parent)->AddFunction(std::move(ctor));
 			break;
 		case NodeType_Class:
-			parent->As<Class>()->AddFunction(std::move(ctor));
+			cast<Class>(parent)->AddFunction(std::move(ctor));
 			break;
 		default:
 			return false;
@@ -254,10 +254,10 @@ namespace HXSL
 		switch (parentType)
 		{
 		case NodeType_Struct:
-			parent->As<Struct>()->AddOperator(std::move(_operator));
+			cast<Struct>(parent)->AddOperator(std::move(_operator));
 			break;
 		case NodeType_Class:
-			parent->As<Class>()->AddOperator(std::move(_operator));
+			cast<Class>(parent)->AddOperator(std::move(_operator));
 			break;
 		default:
 			return false;
@@ -388,13 +388,13 @@ namespace HXSL
 		switch (parentType)
 		{
 		case NodeType_Namespace:
-			parent->As<Namespace>()->AddStruct(std::move(_struct));
+			cast<Namespace>(parent)->AddStruct(std::move(_struct));
 			break;
 		case NodeType_Struct:
-			parent->As<Struct>()->AddStruct(std::move(_struct));
+			cast<Struct>(parent)->AddStruct(std::move(_struct));
 			break;
 		case NodeType_Class:
-			parent->As<Class>()->AddStruct(std::move(_struct));
+			cast<Class>(parent)->AddStruct(std::move(_struct));
 			break;
 		default:
 			return false;

@@ -206,7 +206,7 @@ namespace HXSL
 			auto type = scope.Parent->GetType();
 			if (type == NodeType_Class || type == NodeType_Struct)
 			{
-				outDefinition = scope.Parent->As<SymbolDef>();
+				outDefinition = cast<SymbolDef>(scope.Parent);
 				outHandle = outDefinition->GetSymbolHandle();
 				return true;
 			}
@@ -581,25 +581,25 @@ namespace HXSL
 		{
 		case NodeType_Namespace:
 		{
-			auto currentNamespace = current.CurrentNamespace = node->As<Namespace>();
+			auto currentNamespace = current.CurrentNamespace = cast<Namespace>(node);
 			PushScope(node, currentNamespace->GetName(), true);
 		}
 		break;
 		case NodeType_Struct:
 		{
-			PushScope(node, node->As<Struct>()->GetName(), true);
+			PushScope(node, cast<Struct>(node)->GetName(), true);
 		}
 		break;
 		case NodeType_Field:
 		{
-			auto field = node->As<Field>();
+			auto field = cast<Field>(node);
 			auto& ref = field->GetSymbolRef();
 			ResolveSymbol(ref.get());
 		}
 		break;
 		case NodeType_FunctionOverload:
 		{
-			auto function = node->As<FunctionOverload>();
+			auto function = cast<FunctionOverload>(node);
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildOverloadSignature();
@@ -608,7 +608,7 @@ namespace HXSL
 		break;
 		case NodeType_ConstructorOverload:
 		{
-			auto function = node->As<ConstructorOverload>();
+			auto function = cast<ConstructorOverload>(node);
 			auto& ref = function->GetTargetTypeSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildOverloadSignature();
@@ -617,7 +617,7 @@ namespace HXSL
 		break;
 		case NodeType_OperatorOverload:
 		{
-			auto function = node->As<OperatorOverload>();
+			auto function = cast<OperatorOverload>(node);
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildOverloadSignature();
@@ -626,7 +626,7 @@ namespace HXSL
 		break;
 		case NodeType_Parameter:
 		{
-			auto parameter = node->As<Parameter>();
+			auto parameter = cast<Parameter>(node);
 			auto& ref = parameter->GetSymbolRef();
 			ResolveSymbol(ref.get());
 		}
@@ -641,12 +641,9 @@ namespace HXSL
 		auto decl = ref->GetDeclaration();
 		if (decl)
 		{
-			auto declStmt = dynamic_cast<DeclarationStatement*>(decl);
-			if (declStmt)
+			if (auto declStmt = dyn_cast<DeclarationStatement>(decl))
 			{
-				auto usageID = parent->GetID();
-				auto declID = declStmt->GetID();
-				if (usageID < declID) // this works because IDs are incremental.
+				if (parent->GetSpan().start < declStmt->GetSpan().start)
 				{
 					analyzer.Log(USE_BEFORE_DECL, parent->GetSpan(), ref->ToString());
 					return false;
@@ -664,23 +661,23 @@ namespace HXSL
 		{
 		case NodeType_Namespace:
 		{
-			auto currentNamespace = current.CurrentNamespace = node->As<Namespace>();
+			auto currentNamespace = current.CurrentNamespace = cast<Namespace>(node);
 			PushScope(node, currentNamespace->GetName(), false);
 		}
 		break;
 		case NodeType_Struct:
-			PushScope(node, node->As<Struct>()->GetName());
+			PushScope(node, cast<Struct>(node)->GetName());
 			break;
 		case NodeType_Field:
 		{
-			auto field = node->As<Field>();
+			auto field = cast<Field>(node);
 			auto& ref = field->GetSymbolRef();
 			ResolveSymbol(ref.get());
 		}
 		break;
 		case NodeType_FunctionOverload:
 		{
-			auto function = node->As<FunctionOverload>();
+			auto function = cast<FunctionOverload>(node);
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildTemporaryOverloadSignature();
@@ -689,7 +686,7 @@ namespace HXSL
 		break;
 		case NodeType_ConstructorOverload:
 		{
-			auto function = node->As<ConstructorOverload>();
+			auto function = cast<ConstructorOverload>(node);
 			auto& ref = function->GetTargetTypeSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildTemporaryOverloadSignature();
@@ -698,7 +695,7 @@ namespace HXSL
 		break;
 		case NodeType_OperatorOverload:
 		{
-			auto function = node->As<OperatorOverload>();
+			auto function = cast<OperatorOverload>(node);
 			auto& ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref.get());
 			auto signature = function->BuildTemporaryOverloadSignature();
@@ -707,7 +704,7 @@ namespace HXSL
 		break;
 		case NodeType_Parameter:
 		{
-			auto parameter = node->As<Parameter>();
+			auto parameter = cast<Parameter>(node);
 			auto& ref = parameter->GetSymbolRef();
 			ResolveSymbol(ref.get());
 		}
@@ -720,7 +717,7 @@ namespace HXSL
 		break;
 		case NodeType_MemberReferenceExpression:
 		{
-			auto symbolRefExpression = node->As<MemberReferenceExpression>();
+			auto symbolRefExpression = cast<MemberReferenceExpression>(node);
 			auto& ref = symbolRefExpression->GetSymbolRef();
 			ResolveSymbol(ref.get());
 			UseBeforeDeclarationCheck(ref.get(), node);
@@ -728,21 +725,21 @@ namespace HXSL
 		break;
 		case NodeType_AttributeDeclaration:
 		{
-			auto attr = node->As<AttributeDeclaration>();
+			auto attr = cast<AttributeDeclaration>(node);
 			auto& ref = attr->GetSymbolRef();
 			ResolveSymbol(ref.get());
 		}
 		break;
 		case NodeType_DeclarationStatement:
 		{
-			auto declStatement = node->As<DeclarationStatement>();
+			auto declStatement = cast<DeclarationStatement>(node);
 			auto& ref = declStatement->GetSymbolRef();
 			ResolveSymbol(ref.get());
 		}
 		break;
 		case NodeType_IndexerAccessExpression:
 		{
-			auto idxAccessExpression = node->As<IndexerAccessExpression>();
+			auto idxAccessExpression = cast<IndexerAccessExpression>(node);
 			if (idxAccessExpression->GetParent()->GetType() != NodeType_IndexerAccessExpression)
 			{
 				auto& ref = idxAccessExpression->GetSymbolRef();
@@ -757,7 +754,7 @@ namespace HXSL
 				current = context.current;
 				stack = context.stack;
 			}
-			auto chainExpr = node->As<ChainExpression>();
+			auto chainExpr = cast<ChainExpression>(node);
 			auto next = node;
 			auto result = ResolveMember(chainExpr, next);
 			if (!deferred && result == TraversalBehavior_Defer)
@@ -770,8 +767,8 @@ namespace HXSL
 		break;
 		case NodeType_CastExpression:
 		{
-			auto cast = node->As<CastExpression>();
-			auto& ref = cast->GetTypeSymbol();
+			auto castExpr = cast<CastExpression>(node);
+			auto& ref = castExpr->GetTypeSymbol();
 			ResolveSymbol(ref.get());
 		}
 		break;
@@ -820,7 +817,7 @@ namespace HXSL
 			auto metadata = type->GetMetadata();
 			if (metadata && metadata->declaration->GetType() == NodeType_Primitive)
 			{
-				if (swizzleManager->VerifySwizzle(metadata->declaration->As<Primitive>(), refInner))
+				if (swizzleManager->VerifySwizzle(cast<Primitive>(metadata->declaration), refInner))
 				{
 					return ResolveMemberResult::Success;
 				}

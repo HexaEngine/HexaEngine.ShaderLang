@@ -8,7 +8,7 @@ namespace HXSL
 	bool Expression::IsVoidType() const noexcept
 	{
 		if (!inferredType) return false;
-		auto prim = inferredType->As<Primitive>();
+		auto prim = dyn_cast<Primitive>(inferredType);
 		if (prim)
 		{
 			return prim->GetKind() == PrimitiveKind_Void;

@@ -223,7 +223,7 @@ namespace HXSL
 			.Name(type->GetName())
 			.Access(type->GetAccessModifiers());
 
-		auto container = dynamic_cast<Container*>(type);
+		auto container = dynamic_cast<TypeContainer*>(type);
 
 		for (auto& field : container->GetFields())
 		{

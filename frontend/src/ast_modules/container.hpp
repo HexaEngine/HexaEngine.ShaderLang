@@ -3,26 +3,11 @@
 
 #include "ast_base.hpp"
 #include "interfaces.hpp"
+#include "symbol_base.hpp"
 
 namespace HXSL
 {
-	enum ContainerTransferFlags : int
-	{
-		ContainerTransferFlags_None = 0,
-		ContainerTransferFlags_Functions = 1 << 0,
-		ContainerTransferFlags_Constructors = 1 << 1,
-		ContainerTransferFlags_Operators = 1 << 2,
-		ContainerTransferFlags_Structs = 1 << 3,
-		ContainerTransferFlags_Classes = 1 << 4,
-		ContainerTransferFlags_Enums = 1 << 5,
-		ContainerTransferFlags_Fields = 1 << 6,
-		ContainerTransferFlags_Default = ContainerTransferFlags_Functions | ContainerTransferFlags_Constructors | ContainerTransferFlags_Operators | ContainerTransferFlags_Structs | ContainerTransferFlags_Classes | ContainerTransferFlags_Enums,
-		ContainerTransferFlags_All = ContainerTransferFlags_Default | ContainerTransferFlags_Fields,
-	};
-
-	DEFINE_FLAGS_OPERATORS(ContainerTransferFlags, int);
-
-	class Container : virtual public ASTNode, public IHasOperatorOverloads
+	class TypeContainer : public Type, public IHasOperatorOverloads
 	{
 	protected:
 		std::vector<ast_ptr<FunctionOverload>> functions;
@@ -33,87 +18,75 @@ namespace HXSL
 		std::vector<ast_ptr<Field>> fields;
 
 	public:
-		Container(TextSpan span, NodeType type, bool isExtern = false) : ASTNode(span, type, isExtern)
+		TypeContainer(TextSpan span, NodeType type, TextSpan name, AccessModifier accessModifiers, bool isExtern = false)
+			: Type(span, type, name, accessModifiers, isExtern)
+		{
+		}
+
+		TypeContainer(TextSpan span, NodeType type, const std::string& name, AccessModifier accessModifiers, bool isExtern = false)
+			: Type(span, type, name, accessModifiers, isExtern)
 		{
 		}
 
 	public:
 
-		virtual ~Container() {}
+		virtual ~TypeContainer() {}
 
-		void AddFunction(ast_ptr<FunctionOverload> function);
-
-		void AddConstructor(ast_ptr<ConstructorOverload> constructor);
-
-		void AddOperator(ast_ptr<OperatorOverload> _operator);
-
-		void AddStruct(ast_ptr<Struct> _struct);
-
-		void AddClass(ast_ptr<Class> _class);
-
-		void AddField(ast_ptr<Field> field);
-
-		const std::vector<ast_ptr<FunctionOverload>>& GetFunctions() const noexcept
+		void AddFunction(ast_ptr<FunctionOverload> function)
 		{
-			return functions;
+			RegisterChild(function);
+			functions.push_back(std::move(function));
 		}
 
-		const std::vector<ast_ptr<ConstructorOverload>>& GetConstructors() const noexcept
+		void AddConstructor(ast_ptr<ConstructorOverload> constructor)
 		{
-			return constructors;
+			RegisterChild(constructor);
+			constructors.push_back(std::move(constructor));
 		}
+
+		void AddOperator(ast_ptr<OperatorOverload> _operator)
+		{
+			RegisterChild(_operator);
+			operators.push_back(std::move(_operator));
+		}
+
+		void AddStruct(ast_ptr<Struct> _struct)
+		{
+			RegisterChild(_struct);
+			structs.push_back(std::move(_struct));
+		}
+
+		void AddClass(ast_ptr<Class> _class)
+		{
+			RegisterChild(_class);
+			classes.push_back(std::move(_class));
+		}
+
+		void AddField(ast_ptr<Field> field)
+		{
+			RegisterChild(field);
+			fields.push_back(std::move(field));
+		}
+
+		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<FunctionOverload>>, Functions, functions);
+
+		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<ConstructorOverload>>, Constructors, constructors);
+
+		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Struct>>, Structs, structs);
+
+		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Class>>, Classes, classes);
+
+		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Field>>, Fields, fields);
 
 		const std::vector<ast_ptr<OperatorOverload>>& GetOperators() const noexcept override
 		{
 			return operators;
 		}
 
-		const std::vector<ast_ptr<Struct>>& GetStructs() const noexcept
-		{
-			return structs;
-		}
-
-		const std::vector<ast_ptr<Class>>& GetClasses() const noexcept
-		{
-			return classes;
-		}
-
-		const std::vector<ast_ptr<Field>>& GetFields() const noexcept
-		{
-			return fields;
-		}
-
-		std::vector<ast_ptr<FunctionOverload>>& GetFunctionsMut() noexcept
-		{
-			return functions;
-		}
-
-		std::vector<ast_ptr<ConstructorOverload>>& GetConstructorsMut() noexcept
-		{
-			return constructors;
-		}
-
 		std::vector<ast_ptr<OperatorOverload>>& GetOperatorsMut() noexcept
 		{
 			return operators;
 		}
-
-		std::vector<ast_ptr<Struct>>& GetStructsMut() noexcept
-		{
-			return structs;
-		}
-
-		std::vector<ast_ptr<Class>>& GetClassesMut() noexcept
-		{
-			return classes;
-		}
-
-		std::vector<ast_ptr<Field>>& GetFieldsMut() noexcept
-		{
-			return fields;
-		}
-
-		void TransferContentsTo(Container& target, ContainerTransferFlags flags);
 	};
 }
 

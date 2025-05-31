@@ -6,26 +6,26 @@ namespace HXSL
 {
 	using namespace Backend;
 
-	bool ILBuilder::TraverseStatement(Statement* statement)
+	bool ILBuilder::TraverseStatement(ASTNode* statement)
 	{
 		auto type = statement->GetType();
 
 		switch (type)
 		{
 		case NodeType_BlockStatement:
-			PushFrame(ILFrame(statement->As<BlockStatement>()));
+			PushFrame(ILFrame(cast<BlockStatement>(statement)));
 			break;
 		case NodeType_ExpressionStatement:
 		{
 			MappingStart();
-			TraverseExpression(statement->As<ExpressionStatement>()->GetExpression().get());
+			TraverseExpression(cast<ExpressionStatement>(statement)->GetExpression().get());
 			MappingEnd(statement->GetSpan());
 		}
 		break;
 		case NodeType_DeclarationStatement:
 		{
 			MappingStart();
-			auto decl = statement->As<DeclarationStatement>();
+			auto decl = cast<DeclarationStatement>(statement);
 			if (decl->GetDeclaredType() == nullptr) break;
 			auto init = decl->GetInitializer().get();
 
@@ -55,7 +55,7 @@ namespace HXSL
 				else
 				{
 					auto src = TraverseExpression(init);
-					if (auto funcCall = init->As<FunctionCallExpression>())
+					if (auto funcCall = dyn_cast<FunctionCallExpression>(init))
 					{
 						if (funcCall->IsConstructorCall())
 						{
@@ -88,7 +88,7 @@ namespace HXSL
 		case NodeType_CompoundAssignmentStatement:
 		{
 			MappingStart();
-			auto assign = statement->As<AssignmentStatement>();
+			auto assign = cast<AssignmentStatement>(statement);
 			auto expr = assign->GetAssignmentExpression().get();
 			TraverseExpression(expr);
 			MappingEnd(statement->GetSpan());
@@ -96,7 +96,7 @@ namespace HXSL
 		break;
 		case NodeType_IfStatement:
 		{
-			auto ifStatement = statement->As<IfStatement>();
+			auto ifStatement = cast<IfStatement>(statement);
 			auto condition = ifStatement->GetCondition().get();
 
 			auto endIfId = MakeJumpLocation();
@@ -114,7 +114,7 @@ namespace HXSL
 		break;
 		case NodeType_WhileStatement:
 		{
-			auto whileStatement = statement->As<WhileStatement>();
+			auto whileStatement = cast<WhileStatement>(statement);
 			auto condition = whileStatement->GetCondition().get();
 
 			auto whileBeginId = MakeJumpLocationFromCurrent();
@@ -134,7 +134,7 @@ namespace HXSL
 		break;
 		case NodeType_DoWhileStatement:
 		{
-			auto doWhileStatement = statement->As<DoWhileStatement>();
+			auto doWhileStatement = cast<DoWhileStatement>(statement);
 
 			auto doWhileBeginId = MakeJumpLocationFromCurrent();
 			auto doWhileCondId = MakeJumpLocation();
@@ -148,7 +148,7 @@ namespace HXSL
 		break;
 		case NodeType_ForStatement:
 		{
-			auto forStatement = statement->As<ForStatement>();
+			auto forStatement = cast<ForStatement>(statement);
 			auto condition = forStatement->GetCondition().get();
 
 			TraverseStatement(forStatement->GetInit().get());
@@ -189,7 +189,7 @@ namespace HXSL
 			MappingStart();
 			didReturn = true;
 
-			auto returnStatement = statement->As<ReturnStatement>();
+			auto returnStatement = cast<ReturnStatement>(statement);
 
 			auto expr = returnStatement->GetReturnValueExpression().get();
 			if (!expr)
@@ -206,9 +206,8 @@ namespace HXSL
 			}
 			else
 			{
-				if (expr->GetType() == NodeType_MemberReferenceExpression)
+				if (auto member = dyn_cast<MemberReferenceExpression>(expr))
 				{
-					auto member = expr->As<MemberReferenceExpression>();
 					AddInstrONO<ReturnInstr>(FindVar(member));
 				}
 				else
@@ -284,7 +283,7 @@ namespace HXSL
 			case ILFrameType_IfStatement:
 			{
 				auto& frame = currentFrame.ifFrame;
-				auto ifStatement = frame.statement->As<IfStatement>();
+				auto ifStatement = frame.statement;
 
 				auto& elseIfStatements = ifStatement->GetElseIfStatements();
 

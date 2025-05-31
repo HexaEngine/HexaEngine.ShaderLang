@@ -69,12 +69,12 @@ namespace HXSL
 	ILVariable& ILExpressionBuilder::MemberAccess(Expression* expr, bool& isAddress)
 	{
 		isAddress = false;
-		if (auto m = expr->As<MemberReferenceExpression>())
+		if (auto m = dyn_cast<MemberReferenceExpression>(expr))
 		{
 			return FindVar(m);
 		}
 
-		auto member = expr->Cast<MemberAccessExpression>();
+		auto member = cast<MemberAccessExpression>(expr);
 		auto& varId = FindVar(member);
 
 		ILVariable* curVarId = &varId;
@@ -90,7 +90,7 @@ namespace HXSL
 			Variable* currentVar = context->MakeVariable(*curVarId);
 
 			ILVariable* nextVar;
-			if (auto swizzle = decl->As<SwizzleDefinition>())
+			if (auto swizzle = dyn_cast<SwizzleDefinition>(decl))
 			{
 				nextVar = &MakeTemp(next->GetInferredType());
 				if (first)
@@ -139,7 +139,7 @@ namespace HXSL
 	{
 		if ((op->GetOperatorFlags() & OperatorFlags_Intrinsic) != 0)
 		{
-			auto prim = op->GetParent()->As<Primitive>();
+			auto prim = cast<Primitive>(op->GetParent());
 			bool vec = prim->GetClass() == PrimitiveClass_Vector;
 			AddInstr<BinaryInstr>(vec ? OperatorToVecOpCode(op->GetOperator(), prim->GetRows()) : OperatorToOpCode(op->GetOperator()), result, left, right);
 		}
@@ -231,7 +231,7 @@ namespace HXSL
 
 			case NodeType_PrefixExpression:
 			{
-				auto pref = expr->As<PrefixExpression>();
+				auto pref = cast<PrefixExpression>(expr);
 				auto operand = pref->GetOperand().get();
 				auto operator_ = pref->GetOperator();
 
@@ -273,7 +273,7 @@ namespace HXSL
 			break;
 			case NodeType_PostfixExpression:
 			{
-				auto pref = expr->As<PostfixExpression>();
+				auto pref = cast<PostfixExpression>(expr);
 				auto operand = pref->GetOperand().get();
 				auto operator_ = pref->GetOperator();
 
@@ -303,7 +303,7 @@ namespace HXSL
 			case NodeType_FunctionCallExpression:
 			{
 				auto funcCall = static_cast<FunctionCallExpression*>(expr);
-				auto overload = funcCall->GetSymbolRef()->GetDeclaration()->As<FunctionOverload>();
+				auto overload = cast<FunctionOverload>(funcCall->GetSymbolRef()->GetDeclaration());
 				auto returnType = overload->GetReturnType();
 				auto& parameters = funcCall->GetParameters();
 				bool isConstructor = funcCall->IsConstructorCall();
@@ -388,8 +388,8 @@ namespace HXSL
 				break;
 			case NodeType_CastExpression:
 			{
-				auto cast = static_cast<CastExpression*>(expr);
-				auto operand = cast->GetOperand().get();
+				auto castExpr = static_cast<CastExpression*>(expr);
+				auto operand = castExpr->GetOperand().get();
 
 				Operand* imm;
 				bool isImm = IsInlineable(operand, imm);
@@ -398,7 +398,7 @@ namespace HXSL
 				{
 					auto ilOperand = isImm ? imm : currentFrame.rightRegister;
 
-					auto op = cast->GetOperatorSymbolRef()->GetDeclaration()->As<OperatorOverload>();
+					auto op = cast<OperatorOverload>(castExpr->GetOperatorSymbolRef()->GetDeclaration());
 
 					if ((op->GetOperatorFlags() & OperatorFlags_Intrinsic) != 0)
 					{
@@ -467,7 +467,7 @@ namespace HXSL
 					auto leftOp = currentFrame.leftRegister;
 					auto rightOp = isImm ? imm : currentFrame.rightRegister;
 
-					auto op = assign->GetOperatorSymbolRef()->GetDeclaration()->As<OperatorOverload>();
+					auto op = cast<OperatorOverload>(assign->GetOperatorSymbolRef()->GetDeclaration());
 					OperatorCall(op, leftOp, rightOp, targetOp);
 
 					WriteVar(target, context->MakeVariable(targetOp));

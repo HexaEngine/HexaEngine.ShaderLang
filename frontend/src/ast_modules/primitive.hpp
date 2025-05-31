@@ -22,9 +22,9 @@ namespace HXSL
 		uint32_t rows;
 		uint32_t columns;
 	public:
+		static constexpr NodeType ID = NodeType_Primitive;
 		Primitive()
-			: Type(TextSpan(), NodeType_Primitive, TextSpan(), AccessModifier_Public),
-			ASTNode(TextSpan(), NodeType_Primitive),
+			: Type(TextSpan(), ID, TextSpan(), AccessModifier_Public),
 			kind(PrimitiveKind_Void),
 			_class(PrimitiveClass_Scalar),
 			rows(0),
@@ -33,8 +33,7 @@ namespace HXSL
 			this->name = backingName;
 		}
 		Primitive(TextSpan span, PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
-			: Type(span, NodeType_Primitive, name, AccessModifier_Public),
-			ASTNode(span, NodeType_Primitive),
+			: Type(span, ID, name, AccessModifier_Public),
 			kind(kind),
 			_class(_class),
 			backingName(std::move(name)),
@@ -45,8 +44,7 @@ namespace HXSL
 		}
 
 		Primitive(PrimitiveKind kind, PrimitiveClass _class, std::string& name, uint32_t rows, uint32_t columns)
-			: Type(TextSpan(), NodeType_Primitive, name, AccessModifier_Public),
-			ASTNode(TextSpan(), NodeType_Primitive),
+			: Type(TextSpan(), ID, name, AccessModifier_Public),
 			kind(kind),
 			_class(_class),
 			backingName(std::move(name)),
