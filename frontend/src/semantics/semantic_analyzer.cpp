@@ -8,7 +8,7 @@
 
 namespace HXSL
 {
-	class DebugVisitor : public Visitor<EmptyDeferralContext>
+	class DebugVisitor : public ASTVisitor<EmptyDeferralContext>
 	{
 		size_t size = 0;
 		TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context) override

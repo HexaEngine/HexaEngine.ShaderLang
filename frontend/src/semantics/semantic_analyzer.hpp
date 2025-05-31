@@ -23,7 +23,7 @@ if (!expr) { \
 		std::unique_ptr<ArrayManager> arrayManager;
 		std::unique_ptr<SwizzleManager> swizzleManager;
 
-		class AnalyzerVisitor : public Visitor<EmptyDeferralContext>
+		class AnalyzerVisitor : public ASTVisitor<EmptyDeferralContext>
 		{
 		private:
 			SemanticAnalyzer& analyzer;

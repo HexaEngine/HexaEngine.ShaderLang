@@ -38,7 +38,7 @@ namespace HXSL
 		Skip = 2   /// Skip resolution (e.g., function call or indexer)
 	};
 
-	class SymbolResolver : public Visitor<ResolverDeferralContext>
+	class SymbolResolver : public ASTVisitor<ResolverDeferralContext>
 	{
 	private:
 
@@ -142,11 +142,11 @@ namespace HXSL
 			{
 				targetAssembly = reference.get();
 				auto table = reference->GetSymbolTable();
-				Visitor::Traverse(table->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
+				ASTVisitor::Traverse(table->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 			}
 
 			targetAssembly = assemblyBackup;
-			Visitor::Traverse(node);
+			ASTVisitor::Traverse(node);
 		}
 	};
 }

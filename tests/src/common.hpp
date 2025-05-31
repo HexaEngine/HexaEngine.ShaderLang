@@ -9,7 +9,7 @@
 
 using namespace HXSL;
 
-class ASTValidatorVisitor : Visitor<EmptyDeferralContext>
+class ASTValidatorVisitor : ASTVisitor<EmptyDeferralContext>
 {
 	std::ostringstream debugOutput;
 

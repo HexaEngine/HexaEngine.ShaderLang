@@ -1,5 +1,5 @@
-#ifndef NODE_VISITOR_HPP
-#define NODE_VISITOR_HPP
+#ifndef AST_VISITOR_HPP
+#define AST_VISITOR_HPP
 
 #include "pch/ast.hpp"
 #include <functional>
@@ -21,7 +21,7 @@ namespace HXSL
 	};
 
 	template<typename DeferralContext>
-	class Visitor
+	class ASTVisitor
 	{
 	protected:
 
@@ -111,7 +111,7 @@ namespace HXSL
 
 		virtual void Traverse(ASTNode* node)
 		{
-			Traverse(node, std::bind(&Visitor::Visit, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&Visitor::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
+			Traverse(node, std::bind(&ASTVisitor::Visit, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&ASTVisitor::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 		}
 	};
 }

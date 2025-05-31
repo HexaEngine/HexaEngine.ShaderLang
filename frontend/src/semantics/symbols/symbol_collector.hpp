@@ -24,7 +24,7 @@ namespace HXSL
 		std::stack<CollectorScopeContext> stack;
 	};
 
-	class SymbolCollector : public Visitor<EmptyDeferralContext>
+	class SymbolCollector : public ASTVisitor<EmptyDeferralContext>
 	{
 	private:
 

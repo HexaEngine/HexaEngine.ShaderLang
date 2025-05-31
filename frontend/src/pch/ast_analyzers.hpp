@@ -5,6 +5,6 @@
 #include "pch/ast_misc.hpp"
 #include "il/assembly.hpp"
 #include "il/assembly_collection.hpp"
-#include "ast_modules/node_visitor.hpp"
+#include "ast_modules/ast_visitor.hpp"
 
 #endif

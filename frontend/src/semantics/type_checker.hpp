@@ -7,7 +7,7 @@
 
 namespace HXSL
 {
-	class TypeChecker : public Visitor<EmptyDeferralContext>
+	class TypeChecker : public ASTVisitor<EmptyDeferralContext>
 	{
 	private:
 		SemanticAnalyzer& analyzer;
