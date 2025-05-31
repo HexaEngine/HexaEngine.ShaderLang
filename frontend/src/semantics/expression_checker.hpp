@@ -64,11 +64,6 @@ namespace HXSL
 		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, BinaryExpression* expression, std::stack<Expression*>& stack);
 	};
 
-	class UnaryExpressionChecker : public ExpressionChecker<UnaryExpression>
-	{
-		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, UnaryExpression* expression, std::stack<Expression*>& stack);
-	};
-
 	class CastExpressionChecker : public ExpressionChecker<CastExpression>
 	{
 		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CastExpression* expression, std::stack<Expression*>& stack);

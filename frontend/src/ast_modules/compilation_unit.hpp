@@ -8,7 +8,7 @@
 
 namespace HXSL
 {
-	class CompilationUnit : public ASTNode
+	class CompilationUnit : public ASTNode, TrailingObjects<CompilationUnit, ast_ptr<Namespace>>
 	{
 	private:
 		std::vector<ast_ptr<Namespace>> namespaces;
@@ -34,6 +34,12 @@ namespace HXSL
 		static constexpr NodeType ID = NodeType_CompilationUnit;
 		CompilationUnit(bool isExtern = false) : ASTNode({ }, ID, isExtern)
 		{
+		}
+
+		template<typename Allocator>
+		static [[nodiscard]] CompilationUnit* Create(Allocator& allocator, size_t numNamespaces, bool isExtern_ = false)
+		{
+			return allocator.template AllocAddit<CompilationUnit>(AdditionalSizeToAlloc(numNamespaces), isExtern_);
 		}
 
 		Namespace* AddNamespace(const NamespaceDeclaration& declaration);

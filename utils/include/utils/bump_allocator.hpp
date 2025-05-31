@@ -152,6 +152,30 @@ namespace HXSL
 			return new(rawMem) _Ty(val);
 		}
 
+		template <class _Ty, class... _Types, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
+		_CONSTEXPR23 _Ty* AllocAddit(size_t additional, _Types&&... args)
+		{
+			void* rawMem = Alloc(sizeof(_Ty) + additional, alignof(_Ty));
+			if (!rawMem) throw std::bad_alloc{};
+			return new(rawMem) _Ty(std::forward<_Types>(args)...);
+		}
+
+		template <class _Ty, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
+		_CONSTEXPR23 _Ty* AllocAddit(size_t additional, _Ty&& val)
+		{
+			void* rawMem = Alloc(sizeof(_Ty) + additional, alignof(_Ty));
+			if (!rawMem) throw std::bad_alloc{};
+			return new(rawMem) _Ty(std::forward<_Ty>(val));
+		}
+
+		template <class _Ty, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
+		_CONSTEXPR23 _Ty* AllocAddit(size_t additional, const _Ty& val)
+		{
+			void* rawMem = Alloc(sizeof(_Ty) + additional, alignof(_Ty));
+			if (!rawMem) throw std::bad_alloc{};
+			return new(rawMem) _Ty(val);
+		}
+
 		StringSpan CopyString(const StringSpan& span)
 		{
 			if (span.length == 0) return {};

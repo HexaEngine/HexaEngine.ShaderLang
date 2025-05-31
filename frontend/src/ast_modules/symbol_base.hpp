@@ -351,8 +351,6 @@ namespace HXSL
 		{
 		}
 
-		virtual size_t GetFieldOffset(Field* field) const = 0;
-
 		virtual ~Type() {}
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)

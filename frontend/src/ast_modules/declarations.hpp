@@ -202,10 +202,10 @@ namespace HXSL
 
 		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
-		std::string DebugName() const override
+		std::string DebugName() const 
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] " << " Name: " << name;
+			oss << "[" << HXSL::ToString(type) << "] Name: " << name;
 			return oss.str();
 		}
 
@@ -557,10 +557,10 @@ namespace HXSL
 		{
 		}
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] " << " Name: " << name;
+			oss << "[" << HXSL::ToString(type) << "] Name: " << name;
 			return oss.str();
 		}
 
@@ -573,8 +573,6 @@ namespace HXSL
 		{
 			return thisDef;
 		}
-
-		size_t GetFieldOffset(Field* field) const override;
 
 		void Write(Stream& stream) const override;
 
@@ -596,10 +594,10 @@ namespace HXSL
 		{
 		}
 
-		std::string DebugName() const override
+		std::string DebugName() const 
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] " << " Name: " << name;
+			oss << "[" << HXSL::ToString(type) << "] Name: " << name;
 			return oss.str();
 		}
 
@@ -607,8 +605,6 @@ namespace HXSL
 		{
 			return SymbolType_Struct;
 		}
-
-		size_t GetFieldOffset(Field* field) const override;
 
 		void Write(Stream& stream) const override;
 

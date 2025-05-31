@@ -12,7 +12,6 @@ namespace HXSL
 			{
 				Register<DummyExpressionChecker, NodeType_EmptyExpression>();
 				Register<BinaryExpressionChecker, NodeType_BinaryExpression>();
-				Register<UnaryExpressionChecker, NodeType_UnaryExpression>();
 				Register<CastExpressionChecker, NodeType_CastExpression>();
 				Register<MemberAccessExpressionChecker, NodeType_MemberAccessExpression>();
 				Register<MemberReferenceExpressionChecker, NodeType_MemberReferenceExpression>();
@@ -62,35 +61,6 @@ namespace HXSL
 			stack.push(expression);
 			stack.push(right.get());
 			stack.push(left.get());
-		}
-	}
-
-	void UnaryExpressionChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, UnaryExpression* expression, std::stack<Expression*>& stack)
-	{
-		auto operand = expression->GetOperand().get();
-
-		if (expression->GetLazyEvalState())
-		{
-			auto operandType = operand->GetInferredType();
-
-			if (operandType == nullptr)
-			{
-				return;
-			}
-
-			SymbolDef* result;
-			if (!checker.UnaryOperatorCheck(expression, operand, result))
-			{
-				return;
-			}
-
-			expression->SetInferredType(result);
-		}
-		else
-		{
-			expression->IncrementLazyEvalState();
-			stack.push(expression);
-			stack.push(operand);
 		}
 	}
 

@@ -110,11 +110,6 @@ namespace HXSL
 			return SymbolType_Primitive;
 		}
 
-		size_t GetFieldOffset(Field* field) const override
-		{
-			return -1;
-		}
-
 		void Write(Stream& stream) const override
 		{
 			HXSL_ASSERT(false, "Cannot write primitive types")

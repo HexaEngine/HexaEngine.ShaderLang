@@ -39,11 +39,6 @@ namespace HXSL
 			return SymbolType_Array;
 		}
 
-		size_t GetFieldOffset(Field* field) const override
-		{
-			return -1;
-		}
-
 		DEFINE_GETTER_SETTER(size_t, ArraySize, arraySize)
 
 			void Write(Stream& stream) const override

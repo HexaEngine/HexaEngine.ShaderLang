@@ -48,7 +48,7 @@ namespace HXSL
 		{
 		}
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "]";
@@ -283,7 +283,7 @@ namespace HXSL
 		{
 		}
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "]";
@@ -300,7 +300,7 @@ namespace HXSL
 		{
 		}
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
@@ -334,7 +334,7 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<ElseStatement>, ElseStatement, elseStatement);
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
@@ -358,7 +358,7 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Expression, expression);
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Header: " + expression->GetSpan().str();
@@ -411,7 +411,7 @@ namespace HXSL
 
 		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<DefaultCaseStatement>, DefaultCase, defaultCase);
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Header: " + expression->GetSpan().str();
@@ -445,7 +445,7 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<ASTNode>, Init, init);
 		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Iteration, iteration);
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Header: " + init->GetSpan().merge(condition->GetSpan()).merge(iteration->GetSpan()).str();
@@ -499,7 +499,7 @@ namespace HXSL
 		{
 		}
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
@@ -523,7 +523,7 @@ namespace HXSL
 		{
 		}
 
-		std::string DebugName() const override
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();

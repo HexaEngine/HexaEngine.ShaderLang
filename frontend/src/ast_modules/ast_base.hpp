@@ -13,6 +13,7 @@
 #include "utils/iterator_range.hpp"
 #include "utils/string_pool.hpp"
 #include "utils/rtti_helper.hpp"
+#include "utils/trailing_objects.hpp"
 #include "io/source_file.hpp"
 #include "io/stream.hpp"
 #include "macros.hpp"
@@ -58,7 +59,6 @@ namespace HXSL
 		/// </summary>
 		NodeType_Unknown,
 		NodeType_CompilationUnit,
-		NodeType_LowerCompilationUnit, // Special kind of Compilation, pruned and lowered Compilation
 		NodeType_Namespace,
 		NodeType_Enum, // Placeholder (Will be added in the future.)
 		NodeType_Primitive,
@@ -105,7 +105,6 @@ namespace HXSL
 		NodeType_IndexerAccessExpression, // type-check: yes
 		NodeType_CastExpression, // type-check: yes
 		NodeType_TernaryExpression, // type-check: yes
-		NodeType_UnaryExpression, // type-check: yes
 		NodeType_PrefixExpression, // type-check: yes
 		NodeType_PostfixExpression, // type-check: yes
 		NodeType_AssignmentExpression, // type-check: yes
@@ -149,7 +148,6 @@ namespace HXSL
 		case NodeType_IndexerAccessExpression:
 		case NodeType_CastExpression:
 		case NodeType_TernaryExpression:
-		case NodeType_UnaryExpression:
 		case NodeType_PrefixExpression:
 		case NodeType_PostfixExpression:
 		case NodeType_AssignmentExpression:
@@ -236,7 +234,6 @@ namespace HXSL
 		case NodeType_DefaultCaseStatement: return "DefaultCaseStatement";
 		case NodeType_CastExpression: return "CastExpression";
 		case NodeType_TernaryExpression: return "TernaryExpression";
-		case NodeType_UnaryExpression: return "UnaryExpression";
 		case NodeType_PrefixExpression: return "PrefixExpression";
 		case NodeType_PostfixExpression: return "PostfixExpression";
 		case NodeType_AssignmentExpression: return "AssignmentExpression";
@@ -421,12 +418,7 @@ namespace HXSL
 			return dyn_cast<T>(node);
 		}
 
-		virtual	std::string DebugName() const
-		{
-			std::ostringstream oss;
-			oss << "[" << ToString(type) << "] " << " Span: " + span.str();
-			return oss.str();
-		}
+		std::string DebugName() const;
 
 		virtual ~ASTNode()
 		{

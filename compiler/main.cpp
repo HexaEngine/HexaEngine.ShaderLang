@@ -19,6 +19,6 @@ int main()
 
 	//HXSLCompiler::Compile({ "shader.txt" , "shader2.txt" }, "shader.module", collection);
 
-	_CrtDumpMemoryLeaks();
+	//_CrtDumpMemoryLeaks();
 	return 0;
 }
