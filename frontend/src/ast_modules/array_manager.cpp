@@ -1,4 +1,5 @@
 #include "array_manager.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
@@ -28,22 +29,20 @@ namespace HXSL
 		SymbolDef* currentType = elementType;
 		for (size_t i = 0; i < dimsCount; i++)
 		{
-			std::string arrayKey = ref->MakeArrayTypeName(i, currentType);
+			auto arrayKey = context->GetIdentiferTable().Get(ref->MakeArrayTypeName(i, currentType));
 
-			auto symbolRef = ref->Clone();
+			auto symbolRef = ref->Clone(context);
 			symbolRef->OverwriteType(SymbolRefType_Type);
 			symbolRef->SetDeclaration(currentType);
 			symbolRef->GetArrayDims().pop_back();
 
-			auto array = std::make_unique<Array>(arrayKey, symbolRef, dims[i]);
+			auto array = Array::Create(context, TextSpan(), arrayKey, std::move(symbolRef), dims[i]);
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Array, SymbolScopeType_Global, AccessModifier_Public, 0, array.get());
+			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Array, SymbolScopeType_Global, AccessModifier_Public, 0, array);
 			handle = arrayTable->Insert(array->GetName(), meta);
 			array->SetAssembly(arrayAssembly.get(), handle);
 
-			currentType = array.get();
-
-			definitions.push_back(std::move(array));
+			currentType = array;
 		}
 
 		handleOut = handle;

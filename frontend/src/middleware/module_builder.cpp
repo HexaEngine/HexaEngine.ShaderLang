@@ -103,7 +103,7 @@ namespace HXSL
 		FieldLayoutBuilder builder = FieldLayoutBuilder(*module.get());
 		builder
 			.Name(field->GetName())
-			.Semantic(field->GetSemantic())
+			.Semantic(field->GetSemantic()->name)
 			.Access(field->GetAccessModifiers())
 			.InterpolationModifier(field->GetInterpolationModifiers())
 			.StorageClass(field->GetStorageClass())
@@ -125,7 +125,7 @@ namespace HXSL
 		ParameterLayoutBuilder builder = ParameterLayoutBuilder(*module.get());
 		builder
 			.Name(param->GetName())
-			.Semantic(param->GetSemantic())
+			.Semantic(param->GetSemantic()->name)
 			.InterpolationModifier(param->GetInterpolationModifiers())
 			.StorageClass(StorageClass_None)
 			.ParameterFlags(param->GetParameterFlags())
@@ -215,35 +215,6 @@ namespace HXSL
 		map.insert({ ctor, builder.Peek() });
 		ConvertFunction(ctor, builder);
 		return builder.Build();
-	}
-
-	void ModuleBuilder::ConvertType(Type* type, StructLayoutBuilder& builder)
-	{
-		builder
-			.Name(type->GetName())
-			.Access(type->GetAccessModifiers());
-
-		auto container = dyn_cast<TypeContainer>(type);
-
-		for (auto& field : container->GetFields())
-		{
-			builder.AddField(ConvertField(field.get()));
-		}
-
-		for (auto& func : container->GetFunctions())
-		{
-			builder.AddFunction(ConvertFunction(func.get()));
-		}
-
-		for (auto& op : container->GetOperators())
-		{
-			builder.AddOperator(ConvertOperator(op.get()));
-		}
-
-		for (auto& ctor : container->GetConstructors())
-		{
-			builder.AddConstructor(ConvertConstructor(ctor.get()));
-		}
 	}
 
 	StructLayout* ModuleBuilder::ConvertStruct(Struct* strct)

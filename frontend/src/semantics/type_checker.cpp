@@ -144,7 +144,7 @@ namespace HXSL
 	bool TypeChecker::ImplicitBinaryOperatorCheck(SymbolRef* opRef, SymbolDef* a, SymbolDef* b, Operator op, OperatorOverload*& castMatchOut)
 	{
 		auto operators = OperatorHelper::TryGetOperators(a);
-		if (!operators)
+		if (operators.empty())
 		{
 			HXSL_ASSERT(false, "Operators where null, this should never happen.");
 			return false;
@@ -155,7 +155,7 @@ namespace HXSL
 
 		std::string signature;
 		BinaryExpression::PrepareOverloadSignature(signature, op);
-		for (auto& _operator : *operators)
+		for (auto& _operator : operators)
 		{
 			if (_operator->GetName()[0] != lookup || (_operator->GetOperatorFlags() & OperatorFlags_Implicit) == 0)
 			{

@@ -98,22 +98,6 @@ namespace HXSL
 		ParserScopeContext(ScopeType type, ASTNode* parent, ScopeFlags flags) : Type(type), Parent(parent), Flags(flags) {}
 	};
 
-	static TextSpan ParseQualifiedName(TokenStream& stream, bool& hasDot)
-	{
-		TextSpan identifier;
-		stream.ExpectIdentifier(identifier, EXPECTED_IDENTIFIER);
-		hasDot = false;
-		while (stream.TryGetDelimiter('.'))
-		{
-			hasDot = true;
-			TextSpan secondary;
-			stream.ExpectIdentifier(secondary, EXPECTED_IDENTIFIER);
-			identifier = identifier.merge(secondary);
-		}
-
-		return identifier;
-	}
-
 	template <typename T>
 	struct TakeHandle
 	{
@@ -211,6 +195,7 @@ namespace HXSL
 	class Parser : public LoggerAdapter
 	{
 	public:
+		ASTContext* context;
 		TokenStream* stream;
 		int ScopeLevel;
 		int NamespaceScope;
@@ -224,13 +209,17 @@ namespace HXSL
 		size_t lastRecovery;
 
 		Parser() = default;
-		Parser(ILogger* logger, TokenStream& stream, CompilationUnit* compilation) : LoggerAdapter(logger), stream(&stream), ScopeLevel(0), NamespaceScope(0), compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext(ScopeType_Global, compilation, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
+		Parser(ILogger* logger, ASTContext& context, TokenStream& stream, CompilationUnit* compilation) : LoggerAdapter(logger), context(&context), stream(&stream), ScopeLevel(0), NamespaceScope(0), compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext(ScopeType_Global, compilation, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
 		{
 		}
 
 		void static InitializeSubSystems();
 
 		CompilationUnit* Compilation() const noexcept { return compilation; }
+
+		ASTContext* GetASTContext() const noexcept { return context; }
+
+		IdentifierTable& GetIdentifierTable() noexcept { return context->GetIdentiferTable(); }
 
 		TokenStream& GetStream() noexcept { return *stream; }
 
@@ -288,6 +277,7 @@ namespace HXSL
 		bool TryRecoverParameterList();
 		bool TryRecoverParameterListMacro(bool inDefinition);
 		void TryRecoverStatement();
+		IdentifierInfo* ParseQualifiedName(bool& hasDot);
 		UsingDeclaration ParseUsingDeclaration();
 		NamespaceDeclaration ParseNamespaceDeclaration(bool& scoped);
 		bool TryAdvance();

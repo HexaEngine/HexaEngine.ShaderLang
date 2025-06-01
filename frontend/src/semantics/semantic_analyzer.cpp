@@ -66,7 +66,7 @@ namespace HXSL
 
 		WarmupCache();
 
-		SymbolResolver resolver(*this, references, outputAssembly.get(), arrayManager.get(), swizzleManager.get());
+		SymbolResolver resolver(*this, references, *outputAssembly.get(), *primitiveManager.get(), *arrayManager.get(), *pointerManager.get(), *swizzleManager.get());
 		resolver.Traverse(compilation);
 
 #if HXSL_DEBUG

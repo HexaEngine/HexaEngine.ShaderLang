@@ -1,5 +1,6 @@
 #include "hxls_compiler.hpp"
 
+#include "ast_context.hpp"
 #include "pch/localization.hpp"
 #include "preprocessing/preprocessor.hpp"
 #include "parsers/parser.hpp"
@@ -12,14 +13,14 @@ namespace HXSL
 {
 	static StringSpan textSpanGetSpan(const TextSpan& span)
 	{
-		if (span.source == nullptr) return {};
+		if (span.source == INVALID_SOURCE_ID) return {};
 		auto source = reinterpret_cast<SourceFile*>(span.source);
 		return source->GetSpan(span.start, span.length);
 	}
 
 	static std::string textSpanGetStr(const TextSpan& span)
 	{
-		if (span.source == nullptr) return {};
+		if (span.source == INVALID_SOURCE_ID) return {};
 		auto source = reinterpret_cast<SourceFile*>(span.source);
 		return source->GetString(span.start, span.length);
 	}
@@ -30,9 +31,11 @@ namespace HXSL
 
 		GetThreadAllocator()->Reset();
 
+		std::unique_ptr<IdentifierTable> identifierTable = std::make_unique<IdentifierTable>();
 		ast_ptr<CompilationUnit> compilation = make_ast_ptr<CompilationUnit>();
 
-		std::vector<std::unique_ptr<SourceFile>> sources;
+		ASTContext context;
+
 		for (auto& file : files)
 		{
 			auto fs = FileStream::OpenRead(file.c_str());
@@ -43,8 +46,7 @@ namespace HXSL
 				continue;
 			}
 
-			sources.push_back(std::make_unique<SourceFile>(fs.release(), true));
-			auto& source = sources.back();
+			auto source = context.GetSourceManager().AddSource(fs.release(), true);
 
 			if (!source->PrepareInputStream())
 			{
@@ -52,19 +54,19 @@ namespace HXSL
 				continue;
 			}
 
-			Preprocessor preprocessor = Preprocessor(logger);
-			preprocessor.Process(source.get());
+			Preprocessor preprocessor = Preprocessor(logger, context);
+			preprocessor.Process(source);
 
-			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger, HXSLLexerConfig::Instance());
-			TokenStream tokenStream = TokenStream(&context);
+			LexerContext lexerContext = LexerContext(context.GetIdentiferTable(), source, source->GetInputStream().get(), logger, HXSLLexerConfig::Instance());
+			TokenStream tokenStream = TokenStream(&lexerContext);
 
-			Parser parser = Parser(logger, tokenStream, compilation.get());
+			Parser parser = Parser(logger, context, tokenStream, compilation.get());
 
 			parser.Parse();
 		}
 
 		SemanticAnalyzer::InitializeSubSystems();
-		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, compilation.get(), references);
+		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, context, compilation.get(), references);
 		analyzer.Analyze();
 
 		ModuleBuilder conv;

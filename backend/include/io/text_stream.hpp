@@ -1,14 +1,12 @@
-#ifndef LEXER_INPUT_STREAM_HPP
-#define LEXER_INPUT_STREAM_HPP
+#ifndef TEXT_STREAM_HPP
+#define TEXT_STREAM_HPP
 
-#include "io/stream.hpp"
+#include "stream.hpp"
 #include "utils/span.hpp"
 
 namespace HXSL
 {
-	struct TokenOutput;
-
-	class LexerStream : public TokenOutput
+	class TextStream
 	{
 		std::vector<char> data;
 		static constexpr size_t growValue = 1024;
@@ -16,7 +14,7 @@ namespace HXSL
 		size_t dataSize;
 
 	public:
-		LexerStream() : writePosition(0), dataSize(0)
+		TextStream() : writePosition(0), dataSize(0)
 		{
 		}
 
@@ -75,7 +73,7 @@ namespace HXSL
 			return true;
 		}
 
-		void CopyTo(LexerStream* stream)
+		void CopyTo(TextStream* stream)
 		{
 			stream->Write(data.data(), dataSize);
 		}
@@ -99,16 +97,6 @@ namespace HXSL
 		void Write(const StringSpan& span)
 		{
 			Write(span.begin(), span.length);
-		}
-
-		void AddToken(const Token& token) override
-		{
-			if (token.isWhitespace())
-			{
-				Write(" ", 1);
-				return;
-			}
-			Write(token.Span.span());
 		}
 
 		void Print()

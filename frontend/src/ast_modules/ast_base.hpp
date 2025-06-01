@@ -9,12 +9,11 @@
 #include "lang/language.hpp"
 #include "lexical/token.hpp"
 #include "lexical/text_span.hpp"
-#include "lexical/input_stream.hpp"
+#include "lexical/identifier_table.hpp"
 #include "utils/iterator_range.hpp"
 #include "utils/string_pool.hpp"
 #include "utils/rtti_helper.hpp"
 #include "utils/trailing_objects.hpp"
-#include "io/source_file.hpp"
 #include "io/stream.hpp"
 #include "macros.hpp"
 
@@ -45,6 +44,7 @@ namespace HXSL
 
 	class Assembly;
 	class AssemblyCollection;
+	class ASTContext;
 
 	/// <summary>
 	/// Parsing: All Done.
@@ -314,7 +314,7 @@ namespace HXSL
 		using child_iterator = ASTNode**;
 		using child_range = iterator_range<child_iterator>;
 
-		ASTNode(TextSpan span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), children({}), isExtern(isExtern)
+		ASTNode(const TextSpan& span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), children({}), isExtern(isExtern)
 		{
 		}
 

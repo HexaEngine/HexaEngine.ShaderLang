@@ -5,7 +5,8 @@
 
 namespace HXSL
 {
-	static constexpr size_t alignTo(size_t size, size_t alignment)
+	template<typename T>
+	static constexpr T alignTo(T size, size_t alignment)
 	{
 		return (size + alignment - 1) & ~(alignment - 1);
 	}

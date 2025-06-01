@@ -323,12 +323,28 @@ namespace HXSL
 		}
 	}
 
+	IdentifierInfo* Parser::ParseQualifiedName(bool& hasDot)
+	{
+		TextSpan identifier;
+		stream->ExpectIdentifier(identifier, EXPECTED_IDENTIFIER);
+		hasDot = false;
+		while (stream->TryGetDelimiter('.'))
+		{
+			hasDot = true;
+			TextSpan secondary;
+			stream->ExpectIdentifier(secondary, EXPECTED_IDENTIFIER);
+			identifier = identifier.merge(secondary);
+		}
+
+		return context.GetIdentiferTable().Get(identifier.span());
+	}
+
 	UsingDeclaration Parser::ParseUsingDeclaration()
 	{
 		auto nsKeywordSpan = stream->LastToken().Span;
 		UsingDeclaration us = UsingDeclaration();
 		bool hasDot;
-		auto identifier = ParseQualifiedName(*stream, hasDot).str();
+		auto identifier = ParseQualifiedName(hasDot);
 		if (hasDot)
 		{
 			us.Target = identifier;
@@ -336,8 +352,7 @@ namespace HXSL
 		else if (stream->TryGetOperator(Operator_Equal))
 		{
 			us.Alias = identifier;
-			us.Target = ParseQualifiedName(*stream, hasDot).str();
-			us.IsAlias = true;
+			us.Target = ParseQualifiedName(hasDot);
 		}
 		else
 		{
@@ -352,7 +367,7 @@ namespace HXSL
 	{
 		auto nsKeywordSpan = stream->LastToken().Span;
 		bool hasDot;
-		auto name = ParseQualifiedName(*stream, hasDot).str();
+		auto name = ParseQualifiedName(hasDot);
 		if (TryEnterScope(ScopeType_Namespace, nullptr))
 		{
 			scoped = true;

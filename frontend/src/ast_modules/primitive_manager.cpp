@@ -1,17 +1,16 @@
 #include "primitive_manager.hpp"
 #include "node_builder.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
-	std::once_flag PrimitiveManager::initFlag;
-
 	SymbolHandle PrimitiveManager::Resolve(const StringSpan& span) const
 	{
 		auto table = assembly->GetSymbolTable();
 		return table->FindNodeIndexFullPath(span);
 	}
 
-	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint32_t rows, uint32_t columns)
+	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, ASTContext* context, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint32_t rows, uint32_t columns)
 	{
 		std::string scalarName = ToString(kind);
 
@@ -34,7 +33,7 @@ namespace HXSL
 
 		std::string nameStr = name.str();
 
-		auto builder = std::make_unique<PrimitiveBuilder>(assembly);
+		auto builder = std::make_unique<PrimitiveBuilder>(context, assembly);
 		builder->WithName(nameStr);
 		builder->WithKind(kind, primitiveClass);
 		builder->WithRowsAndColumns(rows, columns);
@@ -87,24 +86,24 @@ namespace HXSL
 	{
 		std::vector<std::unique_ptr<PrimitiveBuilder>> primBuilders;
 
-		AddPrim(primBuilders, assembly.get(), PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
+		AddPrim(primBuilders, context, assembly.get(), PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
 
 		for (int i = PrimitiveKind_Bool; i <= PrimitiveKind_Min16UInt; i++)
 		{
 			auto kind = static_cast<PrimitiveKind>(i);
 
-			AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Scalar, 1, 1);
+			AddPrim(primBuilders, context, assembly.get(), kind, PrimitiveClass_Scalar, 1, 1);
 
 			for (uint32_t n = 2; n <= 4; ++n)
 			{
-				AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Vector, n, 1);
+				AddPrim(primBuilders, context, assembly.get(), kind, PrimitiveClass_Vector, n, 1);
 			}
 
 			for (uint32_t r = 1; r <= 4; ++r)
 			{
 				for (uint32_t c = 1; c <= 4; ++c)
 				{
-					AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Matrix, r, c);
+					AddPrim(primBuilders, context, assembly.get(), kind, PrimitiveClass_Matrix, r, c);
 				}
 			}
 		}
@@ -120,46 +119,16 @@ namespace HXSL
 
 		auto table = GetMutableSymbolTable();
 
-		Class* _class;
-
-		AddPrimClass("string");
-
-		AddPrimClass("SamplerState");
-
-		AddPrimClass("Texture2D", &_class);
-
-		FunctionBuilder(assembly.get())
+		ClassBuilder classBuilder = ClassBuilder(context, assembly.get());
+		classBuilder.WithName("string").Finish();
+		classBuilder.WithName("SamplerState").Finish();
+		classBuilder.WithName("Texture2D")
+			.WithFunction()
 			.WithName("Sample")
 			.WithParam("state", "SamplerState")
 			.WithParam("uv", "float2")
-			.Returns("float4")
-			.AttachToClass(_class);
-	}
-
-	void PrimitiveManager::AddPrimClass(const std::string& name, Class** outClass, SymbolHandle* handleOut)
-	{
-		auto table = GetMutableSymbolTable();
-		auto compilation = table->GetCompilation();
-		auto _class = make_ast_ptr<Class>();
-
-		auto classPtr = _class.get();
-		compilation->primitiveClasses.push_back(std::move(_class));
-
-		classPtr->SetAccessModifiers(AccessModifier_Public);
-		classPtr->SetName(name);
-
-		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, classPtr);
-		auto handle = table->Insert(classPtr->GetName(), meta);
-		if (outClass)
-		{
-			*outClass = classPtr;
-		}
-		if (handleOut)
-		{
-			*handleOut = handle;
-		}
-
-		classPtr->SetAssembly(assembly.get(), handle);
+			.Returns("float4");
+		classBuilder.Finish();
 	}
 
 	void PrimitiveManager::ResolveInternal(SymbolRef* ref)

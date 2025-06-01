@@ -9,10 +9,10 @@ namespace HXSL
 	class PointerManager
 	{
 	private:
-		std::vector<std::unique_ptr<Pointer>> definitions;
+		ASTContext* context;
 		std::unique_ptr<Assembly> pointerAssembly = Assembly::Create("");
 	public:
-		
+		PointerManager(ASTContext& context) : context(&context) {}
 		bool TryGetOrCreatePointerType(SymbolRef* ref, SymbolDef* elementType, SymbolHandle& handleOut, SymbolDef*& pointerOut);
 
 		bool TryGetOrCreatePointerType(SymbolDef* elementType, SymbolHandle& handleOut, SymbolDef*& pointerOut);

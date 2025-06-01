@@ -100,25 +100,18 @@ namespace HXSL
 
 		void UpdateName();
 	protected:
+		IdentifierInfo* identifer;
 		ast_ptr<std::string> fullyQualifiedName;
 		std::string_view name;
 		std::vector<SymbolRef*> references;
 		const Assembly* assembly;
 		SymbolHandle symbolHandle;
 
-		SymbolDef(TextSpan span, NodeType type, TextSpan name, bool isExtern = false)
+		SymbolDef(const TextSpan& span, NodeType type, IdentifierInfo* identifer, bool isExtern = false)
 			: ASTNode(span, type, isExtern),
+			identifer(identifer),
 			assembly(nullptr)
 		{
-			fullyQualifiedName = make_ast_ptr<std::string>(name.str());
-			UpdateName();
-		}
-
-		SymbolDef(TextSpan span, NodeType type, const std::string& name, bool isExtern = false)
-			: ASTNode(span, type, isExtern),
-			assembly(nullptr)
-		{
-			fullyQualifiedName = make_ast_ptr<std::string>(name);
 			UpdateName();
 		}
 	public:
@@ -164,17 +157,17 @@ namespace HXSL
 
 		virtual bool IsConstant() const { return false; }
 
-		virtual SymbolType GetSymbolType() const = 0;
+		SymbolType GetSymbolType() const;
 
-		virtual void Write(Stream& stream) const = 0;
+		void Write(Stream& stream) const { HXSL_ASSERT_DEPRECATION; }
 
-		virtual void Read(Stream& stream, StringPool& container) = 0;
+		void Read(Stream& stream, StringPool& container) { HXSL_ASSERT_DEPRECATION; }
 
-		virtual void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) = 0;
+		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) { HXSL_ASSERT_DEPRECATION; }
 
 		virtual ~SymbolDef() = default;
 
-		ast_ptr<SymbolRef> MakeSymbolRef() const;
+		ast_ptr<SymbolRef> MakeSymbolRef(ASTContext* context) const;
 
 		std::string_view ToString() const noexcept
 		{
@@ -214,7 +207,9 @@ namespace HXSL
 
 	struct SymbolRef
 	{
+		friend class ASTContext;
 	private:
+		IdentifierInfo* identifer;
 		ast_ptr<std::string> fullyQualifiedName;
 		std::string_view name;
 		bool isFullyQualified;
@@ -227,22 +222,24 @@ namespace HXSL
 
 		void UpdateName();
 
-	public:
-		SymbolRef(const TextSpan& span, SymbolRefType type, bool isFullyQualified) : span(span), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
+		SymbolRef(const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified) : span(span), identifer(identifer), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
 			fullyQualifiedName = make_ast_ptr<std::string>(span.str());
 			UpdateName();
 		}
 
-		SymbolRef(const std::string& name, SymbolRefType type, bool isFullyQualified) : span(TextSpan()), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
+		SymbolRef(IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified) : span(TextSpan()), identifer(identifer), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
 			fullyQualifiedName = make_ast_ptr<std::string>(name);
 			UpdateName();
 		}
 
-		SymbolRef() : span({}), type(SymbolRefType_Unknown), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(false)
+		SymbolRef() : span({}), identifer(nullptr), type(SymbolRefType_Unknown), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(false)
 		{
 		}
+
+	public:
+		static SymbolRef* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified);
 
 		void TrimCastType();
 
@@ -312,19 +309,7 @@ namespace HXSL
 
 		const bool& IsDeferred() const noexcept { return isDeferred; }
 
-		ast_ptr<SymbolRef> Clone() const
-		{
-			auto cloned = make_ast_ptr<SymbolRef>();
-			if (fullyQualifiedName)
-				cloned->fullyQualifiedName = make_ast_ptr<std::string>(*fullyQualifiedName);
-			cloned->span = span;
-			cloned->type = type;
-			cloned->symbolHandle = symbolHandle;
-			cloned->arrayDims = arrayDims;
-			cloned->isDeferred = isDeferred;
-			cloned->notFound = notFound;
-			return cloned;
-		}
+		ast_ptr<SymbolRef> Clone(ASTContext* context) const;
 
 		const std::string& ToString() const noexcept
 		{
@@ -339,19 +324,11 @@ namespace HXSL
 	private:
 		Type() = delete;
 	public:
-		Type(TextSpan span, NodeType type, TextSpan name, AccessModifier accessModifiers, bool isExtern = false)
+		Type(TextSpan span, NodeType type, IdentifierInfo* name, AccessModifier accessModifiers, bool isExtern = false)
 			: SymbolDef(span, type, name, isExtern),
 			accessModifiers(accessModifiers)
 		{
 		}
-
-		Type(TextSpan span, NodeType type, const std::string& name, AccessModifier accessModifiers, bool isExtern = false)
-			: SymbolDef(span, type, name, isExtern),
-			accessModifiers(accessModifiers)
-		{
-		}
-
-		virtual ~Type() {}
 
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 	};

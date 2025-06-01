@@ -7,18 +7,11 @@ namespace HXSL
 {
 	class PrimitiveManager
 	{
+		ASTContext* context;
 	public:
-		static PrimitiveManager& GetInstance()
+		PrimitiveManager(ASTContext& context) : context(&context)
 		{
-			static PrimitiveManager instance;
-
-			std::call_once(initFlag, []() {
-				instance.assembly = Assembly::Create("HXSL.Core");
-				instance.Populate();
-				instance.assembly->Seal();
-				});
-
-			return instance;
+			Populate();
 		}
 
 		const SymbolTable* GetSymbolTable() const
@@ -29,8 +22,6 @@ namespace HXSL
 		SymbolHandle Resolve(const StringSpan& span) const;
 
 	private:
-		static std::once_flag initFlag;
-
 		SymbolTable* GetMutableSymbolTable() const
 		{
 			return assembly->GetMutableSymbolTable();
@@ -43,9 +34,8 @@ namespace HXSL
 		PrimitiveManager(const PrimitiveManager&) = delete;
 		PrimitiveManager& operator=(const PrimitiveManager&) = delete;
 
-		std::unique_ptr<Assembly> assembly;
+		std::unique_ptr<Assembly> assembly = Assembly::Create("HXSL.Core");
 
-		void AddPrimClass(const std::string& name, Class** outClass = nullptr, SymbolHandle* symbolOut = nullptr);
 		void ResolveInternal(SymbolRef* ref);
 	};
 }

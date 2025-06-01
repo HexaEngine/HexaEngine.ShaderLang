@@ -46,18 +46,18 @@ namespace HXSL
 		PrimitiveManager& primitives;
 		const AssemblyCollection& references;
 		const Assembly* targetAssembly;
-		ArrayManager* arrayManager;
-		SwizzleManager* swizzleManager;
+		ArrayManager& arrayManager;
+		SwizzleManager& swizzleManager;
 		ResolverScopeContext current;
 		IterStack<ResolverScopeContext> stack;
 		CompilationUnit* compilation;
 
 	public:
-		SymbolResolver(SemanticAnalyzer& analyzer, const AssemblyCollection& references, const Assembly* targetAssembly, ArrayManager* arrayManager, SwizzleManager* swizzleManager)
+		SymbolResolver(SemanticAnalyzer& analyzer, const AssemblyCollection& references, const Assembly& targetAssembly, PrimitiveManager& primitiveManager, ArrayManager& arrayManager, PointerManager& pointerManager, SwizzleManager& swizzleManager)
 			: analyzer(analyzer),
-			primitives(PrimitiveManager::GetInstance()),
+			primitives(primitiveManager),
 			references(references),
-			targetAssembly(targetAssembly),
+			targetAssembly(&targetAssembly),
 			arrayManager(arrayManager),
 			swizzleManager(swizzleManager),
 			compilation(analyzer.Compilation())

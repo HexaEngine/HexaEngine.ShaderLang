@@ -305,7 +305,7 @@ namespace HXSL
 				auto funcCall = static_cast<FunctionCallExpression*>(expr);
 				auto overload = cast<FunctionOverload>(funcCall->GetSymbolRef()->GetDeclaration());
 				auto returnType = overload->GetReturnType();
-				auto& parameters = funcCall->GetParameters();
+				auto parameters = funcCall->GetParameters();
 				bool isConstructor = funcCall->IsConstructorCall();
 				size_t paramOffset = 0;
 				if (isConstructor)

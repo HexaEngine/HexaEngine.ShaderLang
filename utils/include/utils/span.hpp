@@ -9,7 +9,6 @@ namespace HXSL
 	struct Span
 	{
 		static constexpr size_t npos = static_cast<size_t>(-1);
-		static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 
 		const T* data;
 		size_t length;
@@ -193,6 +192,11 @@ namespace HXSL
 		{
 		}
 
+		constexpr std::string_view view() const
+		{
+			return std::string_view(data, length);
+		}
+
 		std::string str() const
 		{
 			return std::string(data, length);
@@ -232,6 +236,84 @@ namespace HXSL
 	{
 		return os.write(span.data, span.length);
 	}
+
+	template <typename T>
+	class ArrayRef
+	{
+	public:
+		using iterator = T*;
+		using const_iterator = const T*;
+		using pointer = T*;
+		using const_pointer = T*;
+		using reference = T&;
+		using const_reference = const T&;
+		using size_type = size_t;
+	private:
+		T* data_m;
+		size_type size_m;
+
+	public:
+		ArrayRef() : data_m(nullptr), size_m(0) {}
+		ArrayRef(T* data, size_type size) : data_m(data), size_m(size)
+		{
+		}
+		ArrayRef(std::vector<T>& vec) : data_m(vec.data()), size_m(vec.size())
+		{
+		}
+
+		pointer data() noexcept { return data_m; }
+		size_type size() const noexcept { return size_m; }
+		bool empty() const noexcept { return size_m == 0; }
+
+		const_reference operator[](size_type index) const
+		{
+			if (index >= size_m)
+			{
+				throw std::out_of_range("Index out of range");
+			}
+			return data_m[index];
+		}
+
+		reference operator[](size_type index)
+		{
+			if (index >= size_m)
+			{
+				throw std::out_of_range("Index out of range");
+			}
+			return data_m[index];
+		}
+
+		iterator begin() noexcept { return data_m; }
+		iterator end() noexcept { return data_m + size_m; }
+		const_iterator begin() const noexcept { return data_m; }
+		const_iterator end() const noexcept { return data_m + size_m; }
+		const_iterator cbegin() const noexcept { return data_m; }
+		const_iterator cend() const noexcept { return data_m + size_m; }
+
+		void init()
+		{
+			if (std::is_trivially_copyable<T>::value)
+			{
+				std::memset(data_m, 0, size_m);
+			}
+			else
+			{
+				std::uninitialized_value_construct(begin(), end());
+			}
+		}
+
+		void clear()
+		{
+			if (std::is_trivially_copyable<T>::value) 
+			{
+				std::memset(data_m, 0, size_m);
+			}
+			else
+			{
+				std::destroy(begin(), end());
+			}
+		}
+	};
 }
 
 namespace std

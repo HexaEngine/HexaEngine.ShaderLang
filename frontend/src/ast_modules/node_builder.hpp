@@ -10,6 +10,7 @@ namespace HXSL
 	class ASTNodeBuilder
 	{
 	protected:
+		ASTContext* context;
 		Assembly* assembly;
 		SymbolTable* table;
 
@@ -23,238 +24,293 @@ namespace HXSL
 			ref->SetTable(handle);
 		}
 
-		ASTNodeBuilder(Assembly* assembly) : assembly(assembly), table(assembly->GetMutableSymbolTable())
+		ASTNodeBuilder(ASTContext* context, Assembly* assembly) : context(context), assembly(assembly), table(assembly->GetMutableSymbolTable())
 		{
 		}
 	};
 
 	class FunctionBuilder : ASTNodeBuilder
 	{
-		ast_ptr<FunctionOverload> func;
+		IdentifierInfo* name_m;
+		SymbolRef* returnType_m;
 		std::vector<ast_ptr<Parameter>> parameters;
 	public:
-		FunctionBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), func(make_ast_ptr<FunctionOverload>())
+		FunctionBuilder(ASTContext* context, Assembly* assembly) : ASTNodeBuilder(context, assembly)
 		{
 		}
 
 		FunctionBuilder& WithName(const std::string& name)
 		{
-			func->SetName(name);
+			name_m = context->GetIdentiferTable().Get(name);
 			return *this;
 		}
 
-		FunctionBuilder& WithParam(const std::string& paramName, const std::string& paramType)
+		FunctionBuilder& WithParam(const std::string& paramName, const std::string& paramType, ParameterFlags flags = ParameterFlags_None, InterpolationModifier interpolMod = InterpolationModifier_Linear)
 		{
-			auto param = make_ast_ptr<Parameter>();
-			param->SetName(paramName);
-
-			auto paramRef = make_ast_ptr<SymbolRef>(paramType, SymbolRefType_Type, false);
+			auto& idTable = context->GetIdentiferTable();
+			auto paramRef = ast_ptr<SymbolRef>(SymbolRef::Create(context, {}, idTable.Get(paramType), SymbolRefType_Type, false));
 			ResolveInternal(paramRef.get());
-			param->SetSymbolRef(std::move(paramRef));
 
-			parameters.push_back(std::move(param));
+			auto param = Parameter::Create(context, {}, idTable.Get(paramName), flags, interpolMod, std::move(paramRef), nullptr);
+			parameters.push_back(ast_ptr<Parameter>(param));
 			return *this;
 		}
 
 		FunctionBuilder& Returns(const std::string& returnType)
 		{
-			auto returnRef = make_ast_ptr<SymbolRef>(returnType, SymbolRefType_Type, false);
-			ResolveInternal(returnRef.get());
-			func->SetReturnSymbol(std::move(returnRef));
+			returnType_m = SymbolRef::Create(context, {}, context->GetIdentiferTable().Get(returnType), SymbolRefType_Type, false);
+			ResolveInternal(returnType_m);
 			return *this;
 		}
 
-		void AttachToClass(Class* _class)
+		ast_ptr<FunctionOverload> Finish(SymbolHandle root)
 		{
-			AttachToContainer(_class, _class->GetSymbolHandle());
-		}
+			auto params = ArrayRef<ast_ptr<Parameter>>(parameters);
+			auto ptr = FunctionOverload::Create(context, {}, name_m, AccessModifier_Public, FunctionFlags_None, ast_ptr<SymbolRef>(returnType_m), params);
 
-		void AttachToStruct(Struct* _struct)
-		{
-			AttachToContainer(_struct, _struct->GetSymbolHandle());
-		}
-
-		void AttachToContainer(TypeContainer* container, SymbolHandle handle)
-		{
-			auto funcPtr = func.get();
-			container->AddFunction(std::move(func));
-
-			for (size_t i = 0; i < parameters.size(); i++)
+			for (auto& param : ptr->GetParameters())
 			{
-				funcPtr->AddParameter(std::move(parameters[i]));
+				ResolveInternal(param->GetSymbolRef().get());
 			}
+			ResolveInternal(returnType_m);
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Function, SymbolScopeType_Class, AccessModifier_Public, 0, funcPtr);
-			auto signature = funcPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(signature, meta, handle.GetIndex());
-			funcPtr->SetAssembly(assembly, funcIndex);
+			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Function, SymbolScopeType_Class, AccessModifier_Public, 0, ptr);
+			auto signature = ptr->BuildOverloadSignature();
+			auto funcIndex = table->Insert(signature, meta, root.GetIndex());
+			ptr->SetAssembly(assembly, funcIndex);
+
+			return ast_ptr<FunctionOverload>(ptr);
 		}
 	};
 
 	class OperatorBuilder : ASTNodeBuilder
 	{
-		ast_ptr<OperatorOverload> _operator;
+		OperatorFlags flags_m;
+		Operator op_m;
+		SymbolRef* returnType_m;
 		std::vector<ast_ptr<Parameter>> parameters;
 	public:
-		OperatorBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), _operator(make_ast_ptr<OperatorOverload>())
+		OperatorBuilder(ASTContext* context, Assembly* assembly) : ASTNodeBuilder(context, assembly)
 		{
 		}
 
 		OperatorBuilder& WithOp(const OperatorFlags& flags, const Operator& op)
 		{
-			_operator->SetOperatorFlags(flags);
-			_operator->SetOperator(op);
+			flags_m = flags;
+			op_m = op;
 			return *this;
 		}
 
-		OperatorBuilder& WithParam(const std::string& paramName, const std::string& paramType)
+		OperatorBuilder& WithParam(const std::string& paramName, const std::string& paramType, ParameterFlags flags = ParameterFlags_None, InterpolationModifier interpolMod = InterpolationModifier_Linear)
 		{
-			auto param = make_ast_ptr<Parameter>();
-			param->SetName(paramName);
+			auto& idTable = context->GetIdentiferTable();
+			auto paramRef = ast_ptr<SymbolRef>(SymbolRef::Create(context, {}, idTable.Get(paramType), SymbolRefType_Type, false));
+			ResolveInternal(paramRef.get());
 
-			auto paramRef = make_ast_ptr<SymbolRef>(paramType, SymbolRefType_Type, false);
-			param->SetSymbolRef(std::move(paramRef));
-
-			parameters.push_back(std::move(param));
+			auto param = Parameter::Create(context, {}, idTable.Get(paramName), flags, interpolMod, std::move(paramRef), nullptr);
+			parameters.push_back(ast_ptr<Parameter>(param));
 			return *this;
 		}
 
 		OperatorBuilder& Returns(const std::string& returnType)
 		{
-			auto returnRef = make_ast_ptr<SymbolRef>(returnType, SymbolRefType_Type, false);
-			_operator->SetReturnSymbol(std::move(returnRef));
+			returnType_m = SymbolRef::Create(context, {}, context->GetIdentiferTable().Get(returnType), SymbolRefType_Type, false);
 			return *this;
 		}
 
-		void AttachToClass(Class* _class)
+		ast_ptr<OperatorOverload> Finish(const SymbolHandle& root)
 		{
-			AttachToContainer(_class, _class->GetSymbolHandle());
-		}
+			auto name = context->GetIdentiferTable().Get(op_m == Operator_Cast ? "operator" : "operator" + ToString(op_m));
+			auto params = ArrayRef<ast_ptr<Parameter>>(parameters);
+			auto ptr = OperatorOverload::Create(context, {}, name, AccessModifier_Public, FunctionFlags_None, flags_m, op_m, ast_ptr<SymbolRef>(returnType_m), params);
 
-		void AttachToStruct(Struct* _struct)
-		{
-			AttachToContainer(_struct, _struct->GetSymbolHandle());
-		}
-
-		void AttachToContainer(TypeContainer* container, SymbolHandle handle)
-		{
-			auto operatorPtr = _operator.get();
-			auto& op = _operator->GetOperator();
-			std::string name = _operator->GetOperator() == Operator_Cast ? "operator" : "operator" + ToString(op);
-			operatorPtr->SetName(name);
-			container->AddOperator(std::move(_operator));
-
-			for (size_t i = 0; i < parameters.size(); i++)
+			for (auto& param : ptr->GetParameters())
 			{
-				operatorPtr->AddParameter(std::move(parameters[i]));
+				ResolveInternal(param->GetSymbolRef().get());
 			}
+			ResolveInternal(returnType_m);
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Class, AccessModifier_Public, 0, operatorPtr);
-			auto signature = operatorPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(signature, meta, handle.GetIndex());
-			operatorPtr->SetAssembly(assembly, funcIndex);
+			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Struct, AccessModifier_Public, 0, ptr);
+			auto signature = ptr->BuildOverloadSignature(false);
+			auto funcIndex = table->Insert(signature, meta, root.GetIndex());
+			ptr->SetAssembly(assembly, funcIndex);
+			return ast_ptr<OperatorOverload>(ptr);
+		}
+	};
+
+	class FieldBuilder : ASTNodeBuilder
+	{
+		IdentifierInfo* name_m = nullptr;
+		AccessModifier access_m = AccessModifier_Private;
+		StorageClass storageClass_m = StorageClass_None;
+		InterpolationModifier interpolMod_m = InterpolationModifier_Linear;
+		SymbolRef* type_m = nullptr;
+		IdentifierInfo* semantic_m = nullptr;
+
+	public:
+		FieldBuilder(ASTContext* context, Assembly* assembly) : ASTNodeBuilder(context, assembly)
+		{
 		}
 
-		void AttachToPrimitive(Primitive* container)
+		FieldBuilder& WithName(const std::string& name)
 		{
-			auto operatorPtr = _operator.get();
-			auto& op = _operator->GetOperator();
-			std::string name = _operator->GetOperator() == Operator_Cast ? "operator" : "operator" + ToString(op);
-			operatorPtr->SetName(name);
-			container->AddOperator(std::move(_operator));
+			name_m = context->GetIdentiferTable().Get(name);
+			return *this;
+		}
 
-			for (size_t i = 0; i < parameters.size(); i++)
-			{
-				ResolveInternal(parameters[i]->GetSymbolRef().get());
-				operatorPtr->AddParameter(std::move(parameters[i]));
-			}
-			ResolveInternal(operatorPtr->GetReturnSymbolRef().get());
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Struct, AccessModifier_Public, 0, operatorPtr);
-			auto signature = operatorPtr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(signature, meta, container->GetSymbolHandle().GetIndex());
-			operatorPtr->SetAssembly(assembly, funcIndex);
+		FieldBuilder& WithAccessModifier(AccessModifier access)
+		{
+			access_m = access;
+			return *this;
+		}
+
+		FieldBuilder& WithStorageClass(StorageClass storageClass)
+		{
+			storageClass_m = storageClass;
+			return *this;
+		}
+
+		FieldBuilder& WithInterpolationModifier(InterpolationModifier interpolMod)
+		{
+			interpolMod_m = interpolMod;
+			return *this;
+		}
+
+		FieldBuilder& WithType(const std::string& type)
+		{
+			type_m = SymbolRef::Create(context, {}, context->GetIdentiferTable().Get(type), SymbolRefType_Type, false);
+			return *this;
+		}
+
+		FieldBuilder& WithSemantic(const std::string& semantic)
+		{
+			semantic_m = context->GetIdentiferTable().Get(semantic);
+			return *this;
+		}
+
+		ast_ptr<Field> Finish(const SymbolHandle& root)
+		{
+			auto field = Field::Create(context, {}, name_m, access_m, storageClass_m, interpolMod_m, ast_ptr<SymbolRef>(type_m), semantic_m);
+			ResolveInternal(type_m);
+
+			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, access_m, 0, field);
+			auto fieldIndex = table->Insert(field->GetName(), meta, root.GetIndex());
+			field->SetAssembly(assembly, fieldIndex);
+			return ast_ptr<Field>(field);
 		}
 	};
 
 	class ClassBuilder : ASTNodeBuilder
 	{
-		ast_ptr<Class> _class;
+		IdentifierInfo* name_m = nullptr;
+		std::vector<FieldBuilder> fields;
 		std::vector<FunctionBuilder> functions;
-		std::vector<ast_ptr<Field>> fields;
 		std::vector<OperatorBuilder> operators;
 	public:
-		ClassBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), _class(make_ast_ptr<Class>())
+		ClassBuilder(ASTContext* context, Assembly* assembly) : ASTNodeBuilder(context, assembly)
 		{
 		}
 
 		ClassBuilder& WithName(const std::string& name)
 		{
-			_class->SetName(name);
+			name_m = context->GetIdentiferTable().Get(name);
 			return *this;
 		}
 
 		FunctionBuilder& WithFunction()
 		{
 			auto idx = functions.size();
-			functions.push_back(FunctionBuilder(assembly));
+			functions.push_back(FunctionBuilder(context, assembly));
 			return functions[idx];
 		}
 
-		ClassBuilder& WithField(const std::string& name, const std::string& type)
+		FieldBuilder& WithField()
 		{
-			auto param = make_ast_ptr<Field>();
-			param->SetName(name);
-
-			auto paramRef = make_ast_ptr<SymbolRef>(type, SymbolRefType_Type, false);
-			ResolveInternal(paramRef.get());
-			param->SetSymbolRef(std::move(paramRef));
-
-			fields.push_back(std::move(param));
-			return *this;
+			auto idx = fields.size();
+			fields.push_back(FieldBuilder(context, assembly));
+			return fields[idx];
 		}
 
-		OperatorBuilder& WithOperator(const std::string& name, const std::string& type)
+		OperatorBuilder& WithOperator()
 		{
-			auto idx = functions.size();
-			operators.push_back(OperatorBuilder(assembly));
+			auto idx = operators.size();
+			operators.push_back(OperatorBuilder(context, assembly));
 			return operators[idx];
+		}
+
+		ast_ptr<Class> Finish()
+		{
+			auto pClass = Class::Create(context, {}, name_m, AccessModifier_Public, static_cast<uint32_t>(fields.size()), 0, 0, 0, static_cast<uint32_t>(functions.size()), static_cast<uint32_t>(operators.size()));
+			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, pClass);
+			auto index = table->Insert(pClass->GetName(), meta, 0);
+			pClass->SetAssembly(assembly, index);
+
+			auto fieldsDst = pClass->GetFields();
+			for (size_t i = 0; i < fields.size(); ++i)
+			{
+				fieldsDst[i] = fields[i].Finish(index);
+			}
+
+			auto functionsDst = pClass->GetFunctions();
+			for (size_t i = 0; i < fields.size(); ++i)
+			{
+				functionsDst[i] = functions[i].Finish(index);
+			}
+
+			auto operatorsDst = pClass->GetFunctions();
+			for (size_t i = 0; i < fields.size(); ++i)
+			{
+				operatorsDst[i] = operators[i].Finish(index);
+			}
+
+			name_m = nullptr;
+			fields.clear();
+			functions.clear();
+			operators.clear();
+
+			return ast_ptr<Class>(pClass);
 		}
 	};
 
 	class PrimitiveBuilder : ASTNodeBuilder
 	{
-		ast_ptr<Primitive> primitive;
-		std::vector<OperatorBuilder> operators;
+		IdentifierInfo* name_m;
+		PrimitiveKind kind_m;
+		PrimitiveClass _class_m;
+		uint32_t rows_m;
+		uint32_t columns_m;
+
 		Primitive* prim;
+		std::vector<OperatorBuilder> operators;
 	public:
-		PrimitiveBuilder(Assembly* assembly) : ASTNodeBuilder(assembly), primitive(make_ast_ptr<Primitive>()), prim(nullptr)
+		PrimitiveBuilder(ASTContext* context, Assembly* assembly) : ASTNodeBuilder(context, assembly)
 		{
 		}
 
-		PrimitiveBuilder& WithName(const std::string& name)
+		PrimitiveBuilder& WithName(const StringSpan& name)
 		{
-			primitive->SetName(name);
+			name_m = context->GetIdentiferTable().Get(name);
 			return *this;
 		}
 
 		PrimitiveBuilder& WithKind(PrimitiveKind kind, PrimitiveClass _class)
 		{
-			primitive->SetKind(kind);
-			primitive->SetClass(_class);
+			kind_m = kind;
+			_class_m = _class;
 			return *this;
 		}
 
 		PrimitiveBuilder& WithRowsAndColumns(uint32_t rows, uint32_t columns)
 		{
-			primitive->SetRows(rows);
-			primitive->SetColumns(columns);
+			rows_m = rows;
+			columns_m = columns;
 			return *this;
 		}
 
 		OperatorBuilder& WithOperator()
 		{
 			auto idx = operators.size();
-			operators.push_back(OperatorBuilder(assembly));
+			operators.push_back(OperatorBuilder(context, assembly));
 			return operators[idx];
 		}
 
@@ -262,7 +318,7 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = OperatorBuilder(assembly);
+				auto builder = OperatorBuilder(context, assembly);
 
 				builder.WithOp(flags, op)
 					.WithParam("left", str)
@@ -277,7 +333,7 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = OperatorBuilder(assembly);
+				auto builder = OperatorBuilder(context, assembly);
 
 				builder.WithOp(flags, op)
 					.WithParam("left", strA)
@@ -292,7 +348,7 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = OperatorBuilder(assembly);
+				auto builder = OperatorBuilder(context, assembly);
 
 				builder.WithOp(flags, op)
 					.WithParam("value", str)
@@ -306,7 +362,7 @@ namespace HXSL
 		{
 			for (auto op : ops)
 			{
-				auto builder = OperatorBuilder(assembly);
+				auto builder = OperatorBuilder(context, assembly);
 
 				builder.WithOp(OperatorFlags_None, op)
 					.WithParam("value", str)
@@ -318,7 +374,7 @@ namespace HXSL
 
 		void WithImplicitCast(const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
-			auto builder = OperatorBuilder(assembly);
+			auto builder = OperatorBuilder(context, assembly);
 
 			builder.WithOp(OperatorFlags_Implicit | flags, Operator_Cast)
 				.WithParam("value", str)
@@ -329,7 +385,7 @@ namespace HXSL
 
 		void WithExplicitCast(const std::string& str, const std::string& strRet, OperatorFlags flags)
 		{
-			auto builder = OperatorBuilder(assembly);
+			auto builder = OperatorBuilder(context, assembly);
 
 			builder.WithOp(OperatorFlags_Explicit | flags, Operator_Cast)
 				.WithParam("value", str)
@@ -338,19 +394,27 @@ namespace HXSL
 			operators.push_back(std::move(builder));
 		}
 
-		void Finish()
+	private:
+		void MakePrimitive()
 		{
 			auto compilation = assembly->GetMutableSymbolTable()->GetCompilation();
-			auto primitivePtr = primitive.get();
-			compilation->primitives.push_back(std::move(primitive));
+			prim = Primitive::Create(context, {}, name_m, kind_m, _class_m, rows_m, columns_m, static_cast<uint32_t>(operators.size()));
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, primitivePtr);
-			auto index = table->Insert(primitivePtr->GetName(), meta, 0);
-			primitivePtr->SetAssembly(assembly, index);
+			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, prim);
+			auto index = table->Insert(prim->GetName(), meta, 0);
+			prim->SetAssembly(assembly, index);
+		}
 
+	public:
+		void Finish()
+		{
+			MakePrimitive();
+
+			auto& index = prim->GetSymbolHandle();
+			auto operatorsDst = prim->GetOperators();
 			for (size_t i = 0; i < operators.size(); i++)
 			{
-				operators[i].AttachToPrimitive(primitivePtr);
+				operatorsDst[i] = operators[i].Finish(index);
 			}
 		}
 
@@ -358,20 +422,16 @@ namespace HXSL
 		{
 			if (prim == nullptr)
 			{
-				auto compilation = assembly->GetMutableSymbolTable()->GetCompilation();
-				prim = primitive.get();
-				compilation->primitives.push_back(std::move(primitive));
-
-				auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, prim);
-				auto index = table->Insert(prim->GetName(), meta, 0);
-				prim->SetAssembly(assembly, index);
+				MakePrimitive();
 				return false;
 			}
 			else
 			{
+				auto& index = prim->GetSymbolHandle();
+				auto operatorsDst = prim->GetOperators();
 				for (size_t i = 0; i < operators.size(); i++)
 				{
-					operators[i].AttachToPrimitive(prim);
+					operatorsDst[i] = operators[i].Finish(index);
 				}
 				operators.clear();
 				return true;

@@ -102,7 +102,8 @@ namespace HXSL
 		if (state.TryParseIdentifier(identifierLength))
 		{
 			state.IndexNext += identifierLength;
-			return Token(state.AsTextSpan(i, identifierLength), TokenType_Identifier);
+			auto ii = state.context->idTable.Get(state.AsSpan(i, identifierLength));
+			return Token(state.AsTextSpan(i, identifierLength), TokenType_Identifier, ii);
 		}
 
 		state.LogFormatted(INVALID_TOKEN);

@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	static bool ParseField(Parser& parser, TokenStream& stream, const Token& start, TextSpan name, ast_ptr<SymbolRef> symbol, TextSpan semantic)
+	static bool ParseField(Parser& parser, TokenStream& stream, const Token& start, IdentifierInfo* name, ast_ptr<SymbolRef> symbol, TextSpan semantic)
 	{
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
@@ -18,7 +18,7 @@ namespace HXSL
 		}
 
 		auto span = start.Span.merge(stream.LastToken().Span);
-		auto field = make_ast_ptr<Field>(span, list.accessModifiers, list.storageClasses, list.interpolationModifiers, name, std::move(symbol), semantic);
+		auto field = make_ast_ptr<Field>(span, name, list.accessModifiers, list.storageClasses, list.interpolationModifiers, std::move(symbol), semantic);
 
 		ASTNode* parent = parser.scopeParent();
 		auto parentType = parent->GetType();
@@ -48,7 +48,7 @@ namespace HXSL
 
 		LazySymbol symbol;
 		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_Type, symbol));
-		TextSpan name;
+		IdentifierInfo* name;
 		IF_ERR_RET_FALSE(stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER));
 
 		TextSpan semantic = {};
@@ -59,7 +59,7 @@ namespace HXSL
 
 		auto span = startingToken.Span.merge(stream.LastToken().Span);
 
-		parameter = make_ast_ptr<Parameter>(span, std::get<0>(flags), std::get<1>(flags), std::move(symbol.make()), name, semantic);
+		parameter = make_ast_ptr<Parameter>(span, name, std::get<0>(flags), std::get<1>(flags), std::move(symbol.make()), semantic);
 		return true;
 	}
 
@@ -94,7 +94,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseFunction(Parser& parser, TokenStream& stream, const Token& start, TextSpan name, ast_ptr<SymbolRef> returnSymbol)
+	static bool ParseFunction(Parser& parser, TokenStream& stream, const Token& start, IdentifierInfo* name, ast_ptr<SymbolRef> returnSymbol)
 	{
 		TakeHandle<AttributeDeclaration>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
@@ -110,7 +110,7 @@ namespace HXSL
 		}
 
 		auto parent = parser.scopeParent();
-		auto function = make_ast_ptr<FunctionOverload>(TextSpan(), list.accessModifiers, list.functionFlags, name, std::move(returnSymbol));
+		auto function = make_ast_ptr<FunctionOverload>(TextSpan(), name, list.accessModifiers, list.functionFlags, std::move(returnSymbol));
 		if (attribute && attribute->HasResource())
 		{
 			function->AddAttribute(std::move(attribute->Take()));
@@ -166,7 +166,7 @@ namespace HXSL
 		}
 
 		auto parent = parser.scopeParent();
-		auto ctor = make_ast_ptr<ConstructorOverload>(TextSpan(), list.accessModifiers, list.functionFlags, std::move(returnSymbol));
+		auto ctor = make_ast_ptr<ConstructorOverload>(TextSpan(), parser.GetIdentifierTable().Get("#ctor"), list.accessModifiers, list.functionFlags, std::move(returnSymbol));
 		if (attribute && attribute->HasResource())
 		{
 			ctor->AddAttribute(std::move(attribute->Take()));
@@ -231,7 +231,7 @@ namespace HXSL
 
 		auto name = opKeywordToken.Span.merge(opToken.Span);
 
-		auto _operator = make_ast_ptr<OperatorOverload>(TextSpan(), list.accessModifiers, list.functionFlags, flags, name, op, std::move(symbol));
+		auto _operator = make_ast_ptr<OperatorOverload>(TextSpan(), parser.GetIdentifierTable().Get(name.span()), list.accessModifiers, list.functionFlags, flags, op, std::move(symbol));
 		if (attribute && attribute->HasResource())
 		{
 			_operator->AddAttribute(std::move(attribute->Take()));
@@ -273,7 +273,7 @@ namespace HXSL
 		LazySymbol symbol;
 		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_Type, symbol));
 
-		TextSpan name;
+		IdentifierInfo* name;
 		if (!stream.TryGetIdentifier(name))
 		{
 			if (stream.TryGetDelimiter('('))
@@ -348,7 +348,7 @@ namespace HXSL
 
 		IF_ERR_RET_FALSE(stream.TryGetKeyword(Keyword_Struct));
 
-		TextSpan name;
+		IdentifierInfo* name;
 		stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER);
 
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
@@ -363,7 +363,7 @@ namespace HXSL
 		ModifierList allowed = ModifierList(AccessModifier_All, true);
 		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_STRUCT);
 
-		auto _struct = make_ast_ptr<Struct>(TextSpan(), list.accessModifiers, name);
+		auto _struct = make_ast_ptr<Struct>(TextSpan(), name, list.accessModifiers, parser.GetIdentifierTable());
 
 		Token t;
 		parser.EnterScope(ScopeType_Struct, _struct.get(), t, true, EXPECTED_LEFT_BRACE);

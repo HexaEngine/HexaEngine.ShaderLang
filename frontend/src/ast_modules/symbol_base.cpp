@@ -2,6 +2,7 @@
 #include "interfaces.hpp"
 #include "semantics/symbols/symbol_table.hpp"
 #include "helpers.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
@@ -59,11 +60,43 @@ namespace HXSL
 		return node.Metadata.get();
 	}
 
-	ast_ptr<SymbolRef> SymbolDef::MakeSymbolRef() const
+	SymbolType SymbolDef::GetSymbolType() const
 	{
-		auto ref = make_ast_ptr<SymbolRef>(std::string(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
+		switch (type)
+		{
+		case NodeType_Namespace: return SymbolType_Namespace;
+		case NodeType_Enum: return SymbolType_Enum;
+		case NodeType_Primitive: return SymbolType_Struct;
+		case NodeType_Struct: return SymbolType_Struct;
+		case NodeType_Class: return SymbolType_Class;
+		case NodeType_Array: return SymbolType_Array;
+		case NodeType_Pointer: return SymbolType_Pointer;
+		case NodeType_Field: return SymbolType_Field;
+		case NodeType_IntrinsicFunction: return SymbolType_IntrinsicFunction;
+		case NodeType_FunctionOverload: return SymbolType_Function;
+		case NodeType_OperatorOverload: return SymbolType_Operator;
+		case NodeType_ConstructorOverload: return SymbolType_Constructor;
+		case NodeType_ThisDef: return SymbolType_Variable;
+		case NodeType_SwizzleDefinition: return SymbolType_Field;
+		case NodeType_DeclarationStatement: return SymbolType_Variable;
+		case NodeType_Parameter: return SymbolType_Variable;
+		default:
+			break;
+		}
+		HXSL_ASSERT(false, "Unhandled SymbolDef type.");
+		return SymbolType_Unknown;
+	}
+
+	ast_ptr<SymbolRef> SymbolDef::MakeSymbolRef(ASTContext* context) const
+	{
+		auto ref = ast_ptr<SymbolRef>(SymbolRef::Create(context, {}, context->GetIdentiferTable().Get(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false));
 		ref->SetTable(GetSymbolHandle());
 		return ref;
+	}
+
+	SymbolRef* SymbolRef::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified)
+	{
+		return context->Alloc<SymbolRef>(sizeof(SymbolRef), span, identifer, type, isFullyQualified);
 	}
 
 	void SymbolRef::TrimCastType()
@@ -156,14 +189,24 @@ namespace HXSL
 
 	void SymbolRef::Write(Stream& stream) const
 	{
-		stream.WriteUInt(type);
-		stream.WriteString(GetFullyQualifiedName());
+		HXSL_ASSERT_DEPRECATION;
 	}
 
 	void SymbolRef::Read(Stream& stream)
 	{
-		type = static_cast<SymbolRefType>(stream.ReadUInt());
-		fullyQualifiedName = make_ast_ptr<std::string>(stream.ReadString().c_str());
-		UpdateName();
+		HXSL_ASSERT_DEPRECATION;
+	}
+
+	ast_ptr<SymbolRef> SymbolRef::Clone(ASTContext* context) const
+	{
+		auto cloned = Create(context, span, identifer, type, isFullyQualified);
+		cloned->identifer = identifer;
+		cloned->span = span;
+		cloned->type = type;
+		cloned->symbolHandle = symbolHandle;
+		cloned->arrayDims = arrayDims;
+		cloned->isDeferred = isDeferred;
+		cloned->notFound = notFound;
+		return ast_ptr<SymbolRef>(cloned);
 	}
 }

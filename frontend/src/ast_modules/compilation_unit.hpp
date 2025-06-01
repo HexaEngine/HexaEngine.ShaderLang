@@ -14,21 +14,7 @@ namespace HXSL
 		std::vector<ast_ptr<Namespace>> namespaces;
 		std::vector<UsingDeclaration> usings;
 
-		std::vector<ast_ptr<Primitive>> primitives;
-		std::vector<ast_ptr<Class>> primitiveClasses;
-
-		std::vector<ast_ptr<Array>> arrays;
-
 		std::shared_mutex _mutex;
-
-		friend class PrimitiveManager;
-		friend class PrimitiveBuilder;
-		friend class SymbolResolver;
-
-		void AddArray(ast_ptr<Array> array)
-		{
-			arrays.push_back(std::move(array));
-		}
 
 	public:
 		static constexpr NodeType ID = NodeType_CompilationUnit;

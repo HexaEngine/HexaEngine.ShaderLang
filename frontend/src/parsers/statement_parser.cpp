@@ -14,7 +14,7 @@ namespace HXSL
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop | ScopeFlags_InsideSwitch, UNEXPECTED_BREAK_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
-			statementOut = make_ast_ptr<BreakStatement>(TextSpan());
+			statementOut = make_ast_ptr<BreakStatement>(start.Span);
 			return true;
 		}
 		else if (stream.TryGetKeyword(Keyword_Continue))
@@ -22,7 +22,7 @@ namespace HXSL
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop, UNEXPECTED_CONTINUE_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
-			statementOut = make_ast_ptr<ContinueStatement>(TextSpan());
+			statementOut = make_ast_ptr<ContinueStatement>(start.Span);
 			return true;
 		}
 		else if (stream.TryGetKeyword(Keyword_Discard))
@@ -30,7 +30,7 @@ namespace HXSL
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideFunction, UNEXPECTED_DISCARD_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
-			statementOut = make_ast_ptr<DiscardStatement>(TextSpan());
+			statementOut = make_ast_ptr<DiscardStatement>(start.Span);
 			return true;
 		}
 		return false;
@@ -420,7 +420,7 @@ namespace HXSL
 		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_VAR);
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
-		TextSpan identifer;
+		IdentifierInfo* identifer;
 		stream.ExpectIdentifier(identifer, EXPECTED_IDENTIFIER);
 
 		std::vector<size_t> arraySizes;
@@ -441,7 +441,7 @@ namespace HXSL
 			stream.Advance();
 		}
 
-		auto declarationStatement = make_ast_ptr<DeclarationStatement>(TextSpan(), std::move(symbol), list.storageClasses, identifer, nullptr);
+		auto declarationStatement = make_ast_ptr<DeclarationStatement>(TextSpan(), identifer, std::move(symbol), list.storageClasses, nullptr);
 		if (stream.Current().isDelimiterOf('{'))
 		{
 			ast_ptr<InitializationExpression> initExpression;

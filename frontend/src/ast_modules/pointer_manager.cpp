@@ -1,4 +1,5 @@
 #include "pointer_manager.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
@@ -16,11 +17,12 @@ namespace HXSL
 		}
 
 		std::string elementTypeName = elementType->GetFullyQualifiedName();
-		std::string pointerKey = elementTypeName + "*";
+		auto elementTypeN = context->GetIdentiferTable().Get(elementTypeName);
+		auto pointerKey = context->GetIdentiferTable().Get(elementTypeName + "*");
 
 		auto table = pointerAssembly->GetMutableSymbolTable();
 
-		auto handle = table->FindNodeIndexFullPath(pointerKey);
+		auto handle = table->FindNodeIndexFullPath(pointerKey->name);
 		if (handle.valid())
 		{
 			handleOut = handle;
@@ -28,18 +30,16 @@ namespace HXSL
 			return true;
 		}
 
-		auto symbolRef = make_ast_ptr<SymbolRef>(elementTypeName, SymbolRefType_Type, true);
+		auto symbolRef = ast_ptr<SymbolRef>(SymbolRef::Create(context, TextSpan(), elementTypeN, SymbolRefType_Type, true));
 
-		auto pointer = std::make_unique<Pointer>(pointerKey, symbolRef);
+		auto pointer = Pointer::Create(context, TextSpan(), pointerKey, std::move(symbolRef));
 
-		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Pointer, SymbolScopeType_Global, AccessModifier_Public, 0, pointer.get());
+		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Pointer, SymbolScopeType_Global, AccessModifier_Public, 0, pointer);
 		handle = table->Insert(pointer->GetName(), meta);
 		pointer->SetAssembly(pointerAssembly.get(), handle);
 
 		handleOut = handle;
-		pointerOut = pointer.get();
-
-		definitions.push_back(std::move(pointer));
+		pointerOut = pointer;
 
 		return true;
 	}

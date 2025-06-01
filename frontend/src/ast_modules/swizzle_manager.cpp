@@ -43,14 +43,17 @@ namespace HXSL
 			typeName += std::to_string(pattern.size());
 		}
 
+		auto& idTable = context->GetIdentiferTable();
+
+		auto typeN = primitives.GetSymbolTable();
 		auto primitivesTable = primitives.GetSymbolTable();
 		auto primitiveHandle = primitivesTable->FindNodeIndexPart(typeName);
 		auto& resultingType = primitiveHandle.GetMetadata()->declaration;
 
-		auto symbolRef = make_ast_ptr<SymbolRef>(TextSpan(), SymbolRefType_Member, false);
+		auto symbolRef = ast_ptr<SymbolRef>(SymbolRef::Create(context, TextSpan(), idTable.Get(typeName), SymbolRefType_Member, false));
 		symbolRef->SetTable(primitiveHandle);
-		auto swizzleDef = make_ast_ptr<SwizzleDefinition>(resultingType->GetSpan(), mask, prim, std::move(symbolRef));
-		auto metaField = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, AccessModifier_Public, 0, swizzleDef.get());
+		auto swizzleDef = SwizzleDefinition::Create(context, TextSpan(), idTable.Get(pattern), mask, prim, std::move(symbolRef));
+		auto metaField = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, AccessModifier_Public, 0, swizzleDef);
 
 		if (primHandle.invalid())
 		{
@@ -60,8 +63,6 @@ namespace HXSL
 
 		handle = swizzleTable->Insert(pattern, metaField, primHandle.GetIndex());
 		ref->SetTable(handle);
-
-		definitions.push_back(std::move(swizzleDef));
 
 		return true;
 	}

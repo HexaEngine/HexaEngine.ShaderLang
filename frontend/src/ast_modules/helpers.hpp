@@ -13,12 +13,12 @@ namespace HXSL
 {
 	struct OperatorHelper
 	{
-		static const std::vector<ast_ptr<OperatorOverload>>* TryGetOperators(ASTNode* node)
+		static ArrayRef<ast_ptr<OperatorOverload>> TryGetOperators(ASTNode* node)
 		{
-			if (auto x = dyn_cast<Class>(node)) { return &x->GetOperators(); }
-			if (auto x = dyn_cast<Struct>(node)) { return &x->GetOperators(); }
-			if (auto x = dyn_cast<Primitive>(node)) { return &x->GetOperators(); }
-			return nullptr;
+			if (auto x = dyn_cast<Class>(node)) { return x->GetOperators(); }
+			if (auto x = dyn_cast<Struct>(node)) { return x->GetOperators(); }
+			if (auto x = dyn_cast<Primitive>(node)) { return x->GetOperators(); }
+			return {};
 		}
 	};
 

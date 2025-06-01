@@ -8,7 +8,8 @@ namespace HXSL
 
 		for (auto& ns : namespaces)
 		{
-			if (ns->GetName() == declaration.Name)
+			const StringSpan& sp = ns->GetName();
+			if (sp == declaration.Name->name)
 			{
 				return ns.get();
 			}

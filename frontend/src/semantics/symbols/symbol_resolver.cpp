@@ -337,7 +337,7 @@ namespace HXSL
 
 		for (auto& us : currentNamespace->GetUsings())
 		{
-			if (us.IsAlias) continue;
+			if (us.IsAlias()) continue;
 			if (TryResolveInAssemblies(us.AssemblyReferences, name, outHandle, def))
 			{
 				return def;
@@ -346,7 +346,7 @@ namespace HXSL
 
 		for (auto& us : compilation->GetUsings())
 		{
-			if (us.IsAlias) continue;
+			if (us.IsAlias()) continue;
 			if (TryResolveInAssemblies(us.AssemblyReferences, name, outHandle, def))
 			{
 				return def;
@@ -400,7 +400,7 @@ namespace HXSL
 
 		if (ref->IsArray())
 		{
-			if (!arrayManager->TryGetOrCreateArrayType(ref, def, handle, def))
+			if (!arrayManager.TryGetOrCreateArrayType(ref, def, handle, def))
 			{
 				ref->SetNotFound(true);
 				analyzer.Log(INVALID_ARRAY_TYPE, ref->GetSpan(), def->ToString());
@@ -817,7 +817,7 @@ namespace HXSL
 			auto metadata = type->GetMetadata();
 			if (metadata && metadata->declaration->GetType() == NodeType_Primitive)
 			{
-				if (swizzleManager->VerifySwizzle(cast<Primitive>(metadata->declaration), refInner))
+				if (swizzleManager.VerifySwizzle(cast<Primitive>(metadata->declaration), refInner))
 				{
 					return ResolveMemberResult::Success;
 				}

@@ -8,140 +8,119 @@ namespace HXSL
 {
 	namespace TrailingObjectsInternal
 	{
-		template <int Align, typename BaseT, typename TopTrailingObj, typename... TrailingTs>
+		template <size_t Index, typename... Ts>
+		struct TypeAt;
+
+		template <typename T, typename... Ts>
+		struct TypeAt<0, T, Ts...> {
+			using type = T;
+		};
+
+		template <size_t Index, typename T, typename... Ts>
+		struct TypeAt<Index, T, Ts...> 
+		{
+			static_assert(Index < sizeof...(Ts) + 1, "Index out of bounds");
+			using type = typename TypeAt<Index - 1, Ts...>::type;
+		};
+
+		template <typename BaseT, typename TopTrailingObj, typename... TrailingTs>
 		struct TrailingObjectsImpl;
 
-		template <int Align, typename BaseT, typename TopTrailingObj>
-		struct TrailingObjectsImpl<Align, BaseT, TopTrailingObj>
+		template <typename BaseT, typename TopTrailingObj>
+		struct TrailingObjectsImpl<BaseT, TopTrailingObj>
 		{
 			static constexpr size_t AdditionalSizeToAllocImpl(size_t sizeSoFar)
 			{
 				return sizeSoFar;
 			}
 
-			template <typename T>
-			const T* GetTrailingObjectsImpl(const BaseT*, T*) const
+			static constexpr size_t GetTrailingObjectsImpl(size_t offset, size_t index)
 			{
-				static_assert(sizeof(T) == 0, "Type not in trailing list");
-				return nullptr;
-			}
-
-			template <typename T>
-			T* GetTrailingObjectsImpl(BaseT*, T*)
-			{
-				static_assert(sizeof(T) == 0, "Type not in trailing list");
-				return nullptr;
+				return offset;
 			}
 		};
 
-		template <int Align, typename BaseT, typename TopTrailingObj, typename PrevT>
-		struct TrailingObjectsImpl<Align, BaseT, TopTrailingObj, PrevT>
+		template <typename BaseT, typename TopTrailingObj, typename PrevT>
+		struct TrailingObjectsImpl<BaseT, TopTrailingObj, PrevT>
 		{
 			static constexpr size_t AdditionalSizeToAllocImpl(size_t sizeSoFar, size_t count)
 			{
-				return sizeSoFar + (count * sizeof(PrevT));
+				return alignTo(sizeSoFar, alignof(PrevT)) + (count * sizeof(PrevT));
 			}
-
-			template <typename T>
-			const T* GetTrailingObjectsImpl(const BaseT*, T*) const
+		
+			static constexpr size_t GetTrailingObjectsImpl(size_t offset, size_t index, size_t count)
 			{
-				static_assert(sizeof(T) == 0, "Type not in trailing list");
-				return nullptr;
-			}
-
-			template <typename T>
-			T* GetTrailingObjectsImpl(BaseT*, T*)
-			{
-				static_assert(sizeof(T) == 0, "Type not in trailing list");
-				return nullptr;
-			}
-
-			const PrevT* GetTrailingObjectsImpl(const BaseT* Obj, PrevT*) const
-			{
-				auto* Ptr = reinterpret_cast<const char*>(Obj) + sizeof(BaseT);
-				Ptr = reinterpret_cast<const char*>(alignTo(reinterpret_cast<uintptr_t>(Ptr), alignof(PrevT)));
-				return reinterpret_cast<const PrevT*>(Ptr);
-			}
-
-			PrevT* GetTrailingObjectsImpl(BaseT* Obj, PrevT*)
-			{
-				auto* Ptr = reinterpret_cast<char*>(Obj) + sizeof(BaseT);
-				Ptr = reinterpret_cast<char*>(alignTo(reinterpret_cast<uintptr_t>(Ptr), alignof(PrevT)));
-				return reinterpret_cast<PrevT*>(Ptr);
+				offset = alignTo(offset, alignof(PrevT));
+				if (index == 0) return offset;
+				return offset + (count * sizeof(PrevT));
 			}
 		};
-
-		// Recursive case: two or more trailing types (PrevT, NextT, RestT...)
-		template <int Align, typename BaseT, typename TopTrailingObj, typename PrevT, typename NextT, typename... RestT>
-		struct TrailingObjectsImpl<Align, BaseT, TopTrailingObj, PrevT, NextT, RestT...>
-			: public TrailingObjectsImpl<Align, BaseT, TopTrailingObj, NextT, RestT...>
+	
+		template <typename BaseT, typename TopTrailingObj, typename PrevT, typename NextT, typename... RestT>
+		struct TrailingObjectsImpl<BaseT, TopTrailingObj, PrevT, NextT, RestT...>
+			: public TrailingObjectsImpl<BaseT, TopTrailingObj, NextT, RestT...>
 		{
-			using ParentType = TrailingObjectsImpl<Align, BaseT, TopTrailingObj, NextT, RestT...>;
+			using ParentType = TrailingObjectsImpl<BaseT, TopTrailingObj, NextT, RestT...>;
 
-			static constexpr bool RequiresRealignment()
+			static constexpr size_t Offset(size_t offset, size_t count)
 			{
-				return alignof(PrevT) < alignof(NextT);
+				return offset + (count * sizeof(PrevT));
 			}
 
 			template<typename... Counts>
 			static constexpr size_t AdditionalSizeToAllocImpl(size_t sizeSoFar, size_t count, Counts... moreCounts)
 			{
-				size_t currentSize = sizeSoFar + (count * sizeof(PrevT));
-				if (RequiresRealignment())
-				{
-					currentSize = alignTo(currentSize, alignof(NextT));
-				}
-				return ParentType::AdditionalSizeToAllocImpl(currentSize, moreCounts...);
+				sizeSoFar = alignTo(sizeSoFar, alignof(PrevT));
+				return ParentType::AdditionalSizeToAllocImpl(Offset(sizeSoFar, count), moreCounts...);
 			}
 
-			const PrevT* GetTrailingObjectsImpl(const BaseT* Obj, PrevT*) const
+			template<typename... Counts>
+			static constexpr size_t GetTrailingObjectsImpl(size_t offset, size_t index, size_t count, Counts... moreCounts)
 			{
-				auto* Ptr = reinterpret_cast<const char*>(Obj) + sizeof(BaseT);
-				Ptr = reinterpret_cast<const char*>(alignTo(reinterpret_cast<uintptr_t>(Ptr), alignof(PrevT)));
-				return reinterpret_cast<const PrevT*>(Ptr);
-			}
-
-			PrevT* GetTrailingObjectsImpl(BaseT* Obj, PrevT*)
-			{
-				auto* Ptr = reinterpret_cast<char*>(Obj) + sizeof(BaseT);
-				Ptr = reinterpret_cast<char*>(alignTo(reinterpret_cast<uintptr_t>(Ptr), alignof(PrevT)));
-				return reinterpret_cast<PrevT*>(Ptr);
+				offset = alignTo(offset, alignof(PrevT));
+				if (index == 0) return offset;
+				return ParentType::GetTrailingObjectsImpl(Offset(offset, count), index - 1, moreCounts...);
 			}
 		};
 	}
 
 	template <typename BaseT, typename... TrailingTs>
 	class TrailingObjects
-		: private TrailingObjectsInternal::TrailingObjectsImpl<1, BaseT, TrailingObjects<BaseT, TrailingTs...>, TrailingTs...>
-	{
-		using TrailingObjectsImpl = TrailingObjectsInternal::TrailingObjectsImpl<1, BaseT, TrailingObjects<BaseT, TrailingTs...>, TrailingTs...>;
-		using TrailingObjectsImpl::GetTrailingObjectsImpl;
-		template <typename T> using OverloadToken = T*;
+		: private TrailingObjectsInternal::TrailingObjectsImpl<BaseT, TrailingObjects<BaseT, TrailingTs...>, TrailingTs...>
+	{	
+		using TrailingObjectsImpl = TrailingObjectsInternal::TrailingObjectsImpl<BaseT, TrailingObjects<BaseT, TrailingTs...>, TrailingTs...>;
 
 	public:
-		template <typename T>
-		const T* GetTrailingObjects() const
+		template <size_t Index, typename... Counts>
+		const auto GetTrailingObjects(Counts... counts) const
 		{
-			return GetTrailingObjectsImpl(static_cast<const BaseT*>(this), OverloadToken<T>());
+			static_assert(sizeof...(Counts) == sizeof...(TrailingTs), "Counts arguments must match TrailingTs");
+			using ElementType = typename TrailingObjectsInternal::TypeAt<Index, TrailingTs...>::type;
+			auto offset = TrailingObjectsImpl::GetTrailingObjectsImpl(sizeof(BaseT), Index, counts...);
+			return reinterpret_cast<const ElementType*>(reinterpret_cast<const char*>(this) + offset);
 		}
 
-		template <typename T>
-		T* GetTrailingObjects()
+		template <size_t Index, typename... Counts>
+		auto GetTrailingObjects(Counts... counts)
 		{
-			return GetTrailingObjectsImpl(static_cast<BaseT*>(this), OverloadToken<T>());
+			static_assert(sizeof...(Counts) == sizeof...(TrailingTs), "Counts arguments must match TrailingTs");
+			using ElementType = typename TrailingObjectsInternal::TypeAt<Index, TrailingTs...>::type;
+			auto offset = TrailingObjectsImpl::GetTrailingObjectsImpl(sizeof(BaseT), Index, counts...);
+			return reinterpret_cast<ElementType*>(reinterpret_cast<char*>(this) + offset);
+		}
+
+		template<typename... Counts>
+		static constexpr size_t TotalSizeToAlloc(Counts... counts)
+		{
+			static_assert(sizeof...(Counts) == sizeof...(TrailingTs), "Counts arguments must match TrailingTs");
+			return TrailingObjectsImpl::AdditionalSizeToAllocImpl(sizeof(BaseT), counts...);
 		}
 
 		template<typename... Counts>
 		static constexpr size_t AdditionalSizeToAlloc(Counts... counts)
 		{
 			static_assert(sizeof...(Counts) == sizeof...(TrailingTs), "Counts arguments must match TrailingTs");
-			return TrailingObjectsImpl::AdditionalSizeToAllocImpl(0, counts...);
-		}
-
-		template<typename... Counts>
-		static constexpr size_t TotalSizeToAlloc(Counts... counts)
-		{
-			return sizeof(BaseT) + AdditionalSizeToAlloc(counts...);
+			return TotalSizeToAlloc(counts...) - sizeof(BaseT);
 		}
 	};
 }

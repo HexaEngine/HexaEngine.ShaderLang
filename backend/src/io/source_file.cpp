@@ -1,6 +1,4 @@
-#include "source_file.hpp"
-#include "lexical/token.hpp"
-#include "lexical/input_stream.hpp"
+#include "io/source_file.hpp"
 
 namespace HXSL
 {
@@ -9,17 +7,17 @@ namespace HXSL
 		return inputStream->CopyFrom(*stream);
 	}
 
-	const std::unique_ptr<LexerStream>& SourceFile::GetInputStream() const noexcept
+	const std::unique_ptr<TextStream>& SourceFile::GetInputStream() const noexcept
 	{
 		return inputStream;
 	}
 
-	void SourceFile::SetInputStream(std::unique_ptr<LexerStream>&& value) noexcept
+	void SourceFile::SetInputStream(std::unique_ptr<TextStream>&& value) noexcept
 	{
 		inputStream = std::move(value);
 	}
 
-	std::string SourceFile::GetString(size_t start, size_t length)
+	std::string SourceFile::GetString(size_t start, size_t length) const
 	{
 		auto buffer = inputStream->GetBuffer();
 		auto bufferSize = inputStream->GetLength();
@@ -43,7 +41,7 @@ namespace HXSL
 		return result;
 	}
 
-	StringSpan HXSL::SourceFile::GetSpan(size_t start, size_t length)
+	StringSpan HXSL::SourceFile::GetSpan(size_t start, size_t length) const
 	{
 		auto buffer = inputStream->GetBuffer();
 		auto bufferSize = inputStream->GetLength();

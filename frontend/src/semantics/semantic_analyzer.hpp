@@ -14,11 +14,12 @@ if (!expr) { \
 	struct SemanticAnalyzer : public LoggerAdapter
 	{
 	private:
+		ASTContext& context;
 		CompilationUnit* compilation;
-		PrimitiveManager& primitives;
 
 		const AssemblyCollection& references;
 		std::unique_ptr<Assembly> outputAssembly;
+		std::unique_ptr<PrimitiveManager> primitiveManager;
 		std::unique_ptr<PointerManager> pointerManager;
 		std::unique_ptr<ArrayManager> arrayManager;
 		std::unique_ptr<SwizzleManager> swizzleManager;
@@ -39,15 +40,16 @@ if (!expr) { \
 		friend class SymbolResolver;
 
 	public:
-		SemanticAnalyzer(ILogger* logger, CompilationUnit* compilation, const AssemblyCollection& references) :
+		SemanticAnalyzer(ILogger* logger, ASTContext& context, CompilationUnit* compilation, const AssemblyCollection& references) :
 			LoggerAdapter(logger),
+			context(context),
 			compilation(compilation),
 			references(references),
 			outputAssembly(Assembly::Create("")),
-			pointerManager(std::make_unique<PointerManager>()),
-			arrayManager(std::make_unique<ArrayManager>()),
-			swizzleManager(std::make_unique<SwizzleManager>()),
-			primitives(PrimitiveManager::GetInstance())
+			primitiveManager(std::make_unique<PrimitiveManager>(context)),
+			pointerManager(std::make_unique<PointerManager>(context)),
+			arrayManager(std::make_unique<ArrayManager>(context)),
+			swizzleManager(std::make_unique<SwizzleManager>(context, *primitiveManager.get()))
 		{
 		}
 

@@ -8,11 +8,11 @@
 
 namespace HXSL
 {
-	struct TokenCollection : public TokenOutput
+	struct TokenCollection
 	{
 		std::vector<Token> tokens;
 
-		void AddToken(const Token& token) override
+		void AddToken(const Token& token)
 		{
 			tokens.push_back(token);
 		}
@@ -93,6 +93,17 @@ namespace HXSL
 		}
 	};
 
+	struct TokenWriter
+	{
+		TextStream& stream;
+		TokenWriter(TextStream& stream) : stream(stream) {}
+
+		const void AddToken(const Token& token)
+		{
+			stream.Write(token.Span.span());
+		}
+	};
+
 	class Decoder
 	{
 		uint64_t last = 0;
@@ -154,20 +165,131 @@ namespace HXSL
 	class Preprocessor
 	{
 		ILogger* logger;
+		ASTContext& context;
 		std::unordered_map<StringSpan, MacroSymbol, StringSpanHash, StringSpanEqual> symbolTable;
 		std::vector<TextMapping> mappings;
 		OffsetMappingStorage lineOffsets;
 		std::stack<PreprocessorState> stack;
 		PreprocessorState state;
 		size_t lastIndex = 0;
-		std::unique_ptr<LexerStream> outputStream;
+		std::unique_ptr<TextStream> outputStream;
 		IfState ifState = IfState_None;
 		std::stack<IfState> ifStateStack;
 		std::vector<DiagnosticSuppressionRange> suppressionRanges;
 
 		void ParseMacroExpression(TokenStream& stream, Parser& parser, TokenCollection& tokens);
 
-		void ExpandMacroInner(TokenStream& stream, Parser& parser, MacroSymbol& symbol, TokenOutput* output);
+		template<typename TokenOutput>
+		void ExpandMacroInner(TokenStream& stream, Parser& parser, MacroSymbol& symbol, TokenOutput* output)
+		{
+			std::vector<TokenExpression> args;
+			if (symbol.parameters.size() > 0)
+			{
+				if (stream.TryGetDelimiter('('))
+				{
+					bool first = true;
+
+					while (!stream.TryGetDelimiter(')'))
+					{
+						if (!first)
+						{
+							if (!stream.ExpectDelimiter(',', EXPECTED_COMMA))
+							{
+								if (!parser.TryRecoverParameterListMacro(false))
+								{
+									break;
+								}
+								continue;
+							}
+							stream.SkipWhitespacesOnce();
+						}
+						first = false;
+
+						size_t parenthesesDepth = 0;
+						TokenExpression expr;
+
+						while (stream.CanAdvance())
+						{
+							Token token = stream.Current();
+
+							if (token.isDelimiterOf('('))
+							{
+								parenthesesDepth++;
+							}
+							else if (token.isDelimiterOf(')'))
+							{
+								if (parenthesesDepth == 0)
+								{
+									break;
+								}
+								parenthesesDepth--;
+							}
+							else if (token.isDelimiterOf(','))
+							{
+								if (parenthesesDepth == 0)
+								{
+									break;
+								}
+								stream.LogFormatted(UNEXPECTED_TOKEN);
+								stream.Advance();
+								continue;
+							}
+
+							if (token.isIdentifier())
+							{
+								auto span = token.Span.span();
+								auto it = symbolTable.find(span);
+								if (it != symbolTable.end())
+								{
+									stream.Advance();
+									ExpandMacroInner(stream, parser, it->second, &expr);
+									continue;
+								}
+
+								if (span == "defined")
+								{
+									stream.Advance();
+									stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
+									TextSpan name;
+									stream.ExpectIdentifier(name);
+									stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN);
+									bool isDefined = symbolTable.find(name.span()) != symbolTable.end();
+									expr.AddToken(Token(name, TokenType_Numeric, Number(isDefined)));
+									continue;
+								}
+							}
+							expr.AddToken(stream.Current());
+
+							stream.Advance();
+						}
+						args.push_back(expr);
+					}
+				}
+			}
+
+			if (args.size() != symbol.parameters.size())
+			{
+				stream.LogFormatted(MACRO_PARAM_COUNT_MISMATCH);
+			}
+
+			size_t paramIndex = 0;
+			for (auto& t : symbol.tokens)
+			{
+				auto itt = symbol.parametersLookup.find(t.Span.span());
+				if (itt != symbol.parametersLookup.end() && itt->second < args.size())
+				{
+					auto& inner = args[itt->second];
+					for (auto& tInner : inner.tokens)
+					{
+						output->AddToken(tInner);
+					}
+				}
+				else
+				{
+					output->AddToken(t);
+				}
+			}
+		}
 
 		PrepTransformResult TryExpandMacro(TokenStream& stream, Parser& parser, const Token& current);
 
@@ -180,7 +302,7 @@ namespace HXSL
 		void MakeMapping(size_t start, size_t end, int32_t lineOffset, int32_t columnOffset, bool resetColumn = false);
 
 	public:
-		Preprocessor(ILogger* logger) : logger(logger), outputStream(std::make_unique<LexerStream>())
+		Preprocessor(ILogger* logger, ASTContext& context) : logger(logger), context(context), outputStream(std::make_unique<TextStream>())
 		{
 		}
 

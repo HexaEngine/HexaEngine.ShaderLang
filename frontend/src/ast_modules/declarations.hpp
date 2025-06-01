@@ -11,28 +11,25 @@ namespace HXSL
 {
 	class Parameter : public SymbolDef
 	{
+		friend class ASTContext;
 	private:
 		ParameterFlags paramaterFlags;
 		InterpolationModifier interpolationModifiers;
 		ast_ptr<SymbolRef> symbol;
-		std::string semantic;
+		IdentifierInfo* semantic;
 
-	public:
-		static constexpr NodeType ID = NodeType_Parameter;
-		Parameter()
-			: SymbolDef(TextSpan(), ID, TextSpan(), true),
-			paramaterFlags(ParameterFlags_In),
-			interpolationModifiers(InterpolationModifier_Linear)
-		{
-		}
-		Parameter(TextSpan span, ParameterFlags flags, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef> symbol, TextSpan name, TextSpan semantic)
+		Parameter(const TextSpan& span, IdentifierInfo* name, ParameterFlags flags, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic)
 			: SymbolDef(span, ID, name),
 			paramaterFlags(flags),
 			interpolationModifiers(interpolationModifiers),
 			symbol(std::move(symbol)),
-			semantic(semantic.str())
+			semantic(semantic)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_Parameter;
+		static Parameter* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ParameterFlags flags, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic);
 
 		void SetSymbolRef(ast_ptr<SymbolRef> ref)
 		{
@@ -44,48 +41,32 @@ namespace HXSL
 			return symbol;
 		}
 
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Parameter;
-		}
-
 		SymbolDef* GetDeclaredType() const noexcept
 		{
 			return symbol->GetDeclaration();
 		}
 
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
-
 		DEFINE_GETTER_SETTER(ParameterFlags, ParameterFlags, paramaterFlags)
 
 			DEFINE_GETTER_SETTER(InterpolationModifier, InterpolationModifiers, interpolationModifiers)
 
-			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
+			DEFINE_GETTER_SETTER_PTR(IdentifierInfo*, Semantic, semantic)
 	};
 
-	class FunctionOverload : public SymbolDef, public AttributeContainer
+	class FunctionOverload : public SymbolDef, public AttributeContainer, protected TrailingObjects<FunctionOverload, ast_ptr<Parameter>>
 	{
+		friend class ASTContext;
+		friend class TrailingObjects;
 	protected:
 		std::string cachedSignature;
 		AccessModifier accessModifiers;
 		FunctionFlags functionFlags;
 		ast_ptr<SymbolRef> returnSymbol;
-		std::vector<ast_ptr<Parameter>> parameters;
-		std::string semantic;
+		IdentifierInfo* semantic;
 		ast_ptr<BlockStatement> body;
+		uint32_t numParameters;
 
-		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name)
-			: SymbolDef(span, type, name),
-			AttributeContainer(this),
-			accessModifiers(accessModifiers),
-			functionFlags(functionFlags)
-		{
-		}
-		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol)
+		FunctionOverload(const TextSpan& span, NodeType type, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef> returnSymbol)
 			: SymbolDef(span, type, name),
 			AttributeContainer(this),
 			accessModifiers(accessModifiers),
@@ -93,43 +74,15 @@ namespace HXSL
 			returnSymbol(std::move(returnSymbol))
 		{
 		}
-		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, const std::string& name)
-			: SymbolDef(span, type, name),
-			AttributeContainer(this),
-			accessModifiers(accessModifiers),
-			functionFlags(functionFlags)
-		{
-		}
-		FunctionOverload(TextSpan span, NodeType type, AccessModifier accessModifiers, FunctionFlags functionFlags, const std::string& name, ast_ptr<SymbolRef> returnSymbol)
-			: SymbolDef(span, type, name),
-			AttributeContainer(this),
-			accessModifiers(accessModifiers),
-			functionFlags(functionFlags),
-			returnSymbol(std::move(returnSymbol))
-		{
-		}
+
 	public:
 		static constexpr NodeType ID = NodeType_FunctionOverload;
-		FunctionOverload()
-			: SymbolDef(TextSpan(), ID, TextSpan(), true),
-			AttributeContainer(this),
-			accessModifiers(AccessModifier_Private),
-			functionFlags(FunctionFlags_None)
-		{
-		}
-		FunctionOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, TextSpan name, ast_ptr<SymbolRef> returnSymbol)
-			: SymbolDef(span, ID, name),
-			AttributeContainer(this),
-			accessModifiers(accessModifiers),
-			functionFlags(functionFlags),
-			returnSymbol(std::move(returnSymbol))
-		{
-		}
+		static FunctionOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, ArrayRef<ast_ptr<Parameter>>& parameters);
+		static FunctionOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters);
 
-		void AddParameter(ast_ptr<Parameter> parameter)
+		ArrayRef<ast_ptr<Parameter>> GetParameters()
 		{
-			parameter->SetParent(this);
-			parameters.push_back(std::move(parameter));
+			return { GetTrailingObjects<0>(numParameters), numParameters };
 		}
 
 		ast_ptr<SymbolRef>& GetReturnSymbolRef()
@@ -142,49 +95,7 @@ namespace HXSL
 			return returnSymbol->GetDeclaration();
 		}
 
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Function;
-		}
-
-		virtual std::string BuildOverloadSignature(bool placeholder) noexcept
-		{
-			if (!placeholder && !cachedSignature.empty())
-			{
-				return cachedSignature;
-			}
-
-			std::ostringstream oss;
-			oss << name << "(";
-			bool first = true;
-			for (auto& param : parameters)
-			{
-				if (!first)
-				{
-					oss << ",";
-				}
-				first = false;
-				if (placeholder)
-				{
-					oss << reinterpret_cast<size_t>(param.get());
-				}
-				else
-				{
-					oss << param->GetSymbolRef()->GetFullyQualifiedName();
-				}
-			}
-			oss << ")";
-
-			if (placeholder)
-			{
-				return oss.str();
-			}
-			else
-			{
-				cachedSignature = oss.str();
-				return cachedSignature;
-			}
-		}
+		std::string BuildOverloadSignature(bool placeholder) noexcept;
 
 		std::string BuildOverloadSignature() noexcept
 		{
@@ -196,13 +107,7 @@ namespace HXSL
 			return BuildOverloadSignature(true);
 		}
 
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
-
-		std::string DebugName() const 
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << HXSL::ToString(type) << "] Name: " << name;
@@ -212,8 +117,7 @@ namespace HXSL
 		DEFINE_GETTER_SETTER(FunctionFlags, FunctionFlags, functionFlags)
 			DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 			DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, ReturnSymbol, returnSymbol)
-			DEFINE_GET_SET_MOVE_CHILDREN(std::vector<ast_ptr<Parameter>>, Parameters, parameters)
-			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
+			DEFINE_GETTER_SETTER_PTR(IdentifierInfo*, Semantic, semantic)
 
 			const ast_ptr<BlockStatement>& GetBody() const noexcept;
 
@@ -224,24 +128,20 @@ namespace HXSL
 
 	class ConstructorOverload : public FunctionOverload
 	{
+		friend class ASTContext;
 	private:
 		ast_ptr<SymbolRef> targetTypeSymbol;
-	public:
-		static constexpr NodeType ID = NodeType_ConstructorOverload;
-		ConstructorOverload()
-			: FunctionOverload(TextSpan(), ID, AccessModifier_Private, FunctionFlags_None, "#ctor", make_ast_ptr<SymbolRef>("void", SymbolRefType_Type, true))
-		{
-		}
-		ConstructorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags)
-			: FunctionOverload(span, ID, accessModifiers, functionFlags, "#ctor", make_ast_ptr<SymbolRef>("void", SymbolRefType_Type, true))
-		{
-		}
 
-		ConstructorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef> targetTypeSymbol)
-			: FunctionOverload(span, ID, accessModifiers, functionFlags, "#ctor", make_ast_ptr<SymbolRef>("void", SymbolRefType_Type, true)),
+		ConstructorOverload(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef> targetTypeSymbol, ast_ptr<SymbolRef>&& returnType)
+			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, std::move(returnType)),
 			targetTypeSymbol(std::move(targetTypeSymbol))
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_ConstructorOverload;
+		static ConstructorOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& targetTypeSymbol, ArrayRef<ast_ptr<Parameter>>& parameters);
+		static ConstructorOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& targetTypeSymbol, uint32_t numParameters);
 
 		ast_ptr<SymbolRef>& GetTargetTypeSymbolRef()
 		{
@@ -253,175 +153,30 @@ namespace HXSL
 			return targetTypeSymbol->GetDeclaration();
 		}
 
-		std::string BuildOverloadSignature(bool placeholder) noexcept override
-		{
-			if (!placeholder && !cachedSignature.empty())
-			{
-				return cachedSignature;
-			}
-
-			std::string str = "#ctor(";
-
-			bool first = true;
-			for (auto& param : parameters)
-			{
-				if (!first)
-				{
-					str.push_back(',');
-				}
-				first = false;
-
-				if (placeholder)
-				{
-					str.append(std::to_string(reinterpret_cast<size_t>(param.get())));
-				}
-				else
-				{
-					str.append(param->GetSymbolRef()->GetFullyQualifiedName());
-				}
-			}
-			str.push_back(')');
-
-			if (placeholder)
-			{
-				return str;
-			}
-			else
-			{
-				cachedSignature = str;
-				return cachedSignature;
-			}
-		}
-
-		std::string BuildOverloadSignature() noexcept
-		{
-			return BuildOverloadSignature(false);
-		}
-
-		std::string BuildTemporaryOverloadSignature() noexcept
-		{
-			return BuildOverloadSignature(true);
-		}
-
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Constructor;
-		}
-
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
+		std::string BuildOverloadSignature(bool placeholder) noexcept;
 
 		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, TargetTypeSymbol, targetTypeSymbol)
 	};
 
 	class OperatorOverload : public FunctionOverload
 	{
+		friend class ASTContext;
 	private:
 		OperatorFlags operatorFlags;
 		Operator _operator;
 	public:
 		static constexpr NodeType ID = NodeType_OperatorOverload;
-		OperatorOverload()
-			: FunctionOverload(TextSpan(), ID, AccessModifier_Private, FunctionFlags_None, TextSpan()),
-			_operator(Operator_Unknown),
-			operatorFlags(OperatorFlags_None)
-		{
-		}
-
-		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator)
-			: FunctionOverload(span, ID, accessModifiers, functionFlags, name),
+		OperatorOverload(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, ast_ptr<SymbolRef>&& returnSymbol)
+			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, std::move(returnSymbol)),
 			_operator(_operator),
 			operatorFlags(operatorFlags)
 		{
 		}
 
-		OperatorOverload(TextSpan span, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, TextSpan name, Operator _operator, ast_ptr<SymbolRef> returnSymbol)
-			: FunctionOverload(span, ID, accessModifiers, functionFlags, name, std::move(returnSymbol)),
-			_operator(_operator),
-			operatorFlags(operatorFlags)
-		{
-		}
+		static OperatorOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, ast_ptr<SymbolRef>&& returnSymbol, ArrayRef<ast_ptr<Parameter>>& parameters);
+		static OperatorOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters);
 
-		std::string BuildOverloadSignature(bool placeholder) noexcept override
-		{
-			if (!placeholder && !cachedSignature.empty())
-			{
-				return cachedSignature;
-			}
-
-			std::string str;
-
-			size_t size = 0;
-
-			str.resize(2);
-			str[0] = ToLookupChar(_operator);
-
-			if (_operator == Operator_Cast)
-			{
-				str[1] = '#';
-				if (placeholder)
-				{
-					str.append(std::to_string(reinterpret_cast<size_t>(this)));
-				}
-				else
-				{
-					str.append(returnSymbol->GetFullyQualifiedName());
-				}
-				str.push_back('(');
-			}
-			else
-			{
-				str[1] = '(';
-			}
-
-			bool first = true;
-			for (auto& param : parameters)
-			{
-				if (!first)
-				{
-					str.push_back(',');
-				}
-				first = false;
-
-				if (placeholder)
-				{
-					str.append(std::to_string(reinterpret_cast<size_t>(param.get())));
-				}
-				else
-				{
-					str.append(param->GetSymbolRef()->GetFullyQualifiedName());
-				}
-			}
-			str.push_back(')');
-
-			if (placeholder)
-			{
-				return str;
-			}
-			else
-			{
-				cachedSignature = str;
-				return cachedSignature;
-			}
-		}
-
-		std::string BuildOverloadSignature() noexcept
-		{
-			return BuildOverloadSignature(false);
-		}
-
-		std::string BuildTemporaryOverloadSignature() noexcept
-		{
-			return BuildOverloadSignature(true);
-		}
-
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Operator;
-		}
+		std::string BuildOverloadSignature(bool placeholder) noexcept;
 
 		const OperatorFlags& GetOperatorFlags() const noexcept { return operatorFlags; }
 
@@ -430,40 +185,31 @@ namespace HXSL
 		const Operator& GetOperator() const noexcept { return _operator; }
 
 		void SetOperator(const Operator& value) noexcept { _operator = value; }
-
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 	};
 
 	class Field : public SymbolDef
 	{
+		friend class ASTContext;
 	private:
 		AccessModifier accessModifiers;
 		StorageClass storageClass;
 		InterpolationModifier interpolationModifiers;
 		ast_ptr<SymbolRef> symbol;
-		std::string semantic;
-	public:
-		static constexpr NodeType ID = NodeType_Field;
-		Field()
-			: SymbolDef(TextSpan(), ID, TextSpan(), true),
-			accessModifiers(AccessModifier_Private),
-			storageClass(StorageClass_None),
-			interpolationModifiers(InterpolationModifier_Linear)
-		{
-		}
-		Field(TextSpan span, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, TextSpan name, ast_ptr<SymbolRef> symbol, TextSpan semantic)
+		IdentifierInfo* semantic;
+
+		Field(const TextSpan& span, IdentifierInfo* name, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic)
 			: SymbolDef(span, ID, name),
 			accessModifiers(access),
 			storageClass(storageClass),
 			interpolationModifiers(interpolationModifiers),
 			symbol(std::move(symbol)),
-			semantic(semantic.str())
+			semantic(semantic)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_Field;
+		static Field* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic);
 
 		void SetSymbolRef(ast_ptr<SymbolRef> ref)
 		{
@@ -485,76 +231,95 @@ namespace HXSL
 			return (storageClass & StorageClass_Const) != 0;
 		}
 
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Field;
-		}
-
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
-
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 
 			DEFINE_GETTER_SETTER(InterpolationModifier, InterpolationModifiers, interpolationModifiers)
 
-			DEFINE_GETTER_SETTER(std::string, Semantic, semantic)
+			DEFINE_GETTER_SETTER_PTR(IdentifierInfo*, Semantic, semantic)
 	};
 
 	class ThisDef : public SymbolDef
 	{
-		ast_ptr<SymbolRef> symbol = make_ast_ptr<SymbolRef>("", SymbolRefType_Type, false);
+		friend class ASTContext;
+	private:
+		ast_ptr<SymbolRef> parentSymbol;
 
-	public:
-		static constexpr NodeType ID = NodeType_ThisDef;
-		ThisDef()
-			: SymbolDef(TextSpan(), ID, "this")
+		ThisDef(IdentifierInfo* name, ast_ptr<SymbolRef>&& parentSymbol)
+			: SymbolDef(TextSpan(), ID, name),
+			parentSymbol(std::move(parentSymbol))
 		{
 		}
+	public:
+		static constexpr NodeType ID = NodeType_ThisDef;
+		static ThisDef* Create(ASTContext* context, IdentifierInfo* parentIdentifier);
 
 		void SetSymbolRef(ast_ptr<SymbolRef> ref)
 		{
-			symbol = std::move(ref);
+			parentSymbol = std::move(ref);
 		}
 
 		ast_ptr<SymbolRef>& GetSymbolRef()
 		{
-			return symbol;
-		}
-
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Variable;
+			return parentSymbol;
 		}
 
 		SymbolDef* GetDeclaredType() const noexcept
 		{
-			return symbol->GetDeclaration();
+			return parentSymbol->GetDeclaration();
 		}
-
-		void Write(Stream& stream) const override {}
-
-		void Read(Stream& stream, StringPool& container) override {}
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override {}
 	};
 
-	class Struct : public TypeContainer
+	class Struct : public Type, TrailingObjects<Struct, ast_ptr<Field>, ast_ptr<Struct>, ast_ptr<Class>, ast_ptr<ConstructorOverload>, ast_ptr<FunctionOverload>, ast_ptr<OperatorOverload>>
 	{
+		friend class ASTContext;
 	private:
-		ast_ptr<ThisDef> thisDef = make_ast_ptr<ThisDef>();
-	public:
-		static constexpr NodeType ID = NodeType_Struct;
-		Struct()
-			: TypeContainer(TextSpan(), ID, TextSpan(), AccessModifier_Private, true)
+		ast_ptr<ThisDef> thisDef;
+		uint32_t numFields;
+		uint32_t numClasses;
+		uint32_t numStructs;
+		uint32_t numConstructors;
+		uint32_t numFunctions;
+		uint32_t numOperators;
+
+		Struct(const TextSpan& span, IdentifierInfo* name, AccessModifier access, ast_ptr<ThisDef>&& thisDef)
+			: Type(span, ID, name, access),
+			thisDef(std::move(thisDef))
 		{
 		}
 
-		Struct(TextSpan span, AccessModifier access, TextSpan name)
-			: TypeContainer(span, ID, name, access)
+	public:
+		static constexpr NodeType ID = NodeType_Struct;
+		static Struct* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, ArrayRef<ast_ptr<Field>>& fields, ArrayRef<ast_ptr<Struct>>& structs, ArrayRef<ast_ptr<Class>>& classes, ArrayRef<ast_ptr<ConstructorOverload>>& constructors, ArrayRef<ast_ptr<FunctionOverload>>& functions, ArrayRef<ast_ptr<OperatorOverload>>& operators);
+		static Struct* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators);
+
+		ArrayRef<ast_ptr<Field>> GetFields()
 		{
+			return { GetTrailingObjects<0>(numFields, numStructs, numClasses,  numConstructors, numFunctions, numOperators), numFields };
+		}
+
+		ArrayRef<ast_ptr<Struct>> GetStructs()
+		{
+			return { GetTrailingObjects<1>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numStructs };
+		}
+
+		ArrayRef<ast_ptr<Class>> GetClasses()
+		{
+			return { GetTrailingObjects<2>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numClasses };
+		}
+
+		ArrayRef<ast_ptr<ConstructorOverload>> GetConstructors()
+		{
+			return { GetTrailingObjects<3>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numConstructors };
+		}
+
+		ArrayRef<ast_ptr<FunctionOverload>> GetFunctions()
+		{
+			return { GetTrailingObjects<4>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numFunctions };
+		}
+
+		ArrayRef<ast_ptr<OperatorOverload>> GetOperators()
+		{
+			return { GetTrailingObjects<5>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numOperators };
 		}
 
 		std::string DebugName() const
@@ -564,53 +329,71 @@ namespace HXSL
 			return oss.str();
 		}
 
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Struct;
-		}
-
 		const ast_ptr<ThisDef>& GetThisDef() const
 		{
 			return thisDef;
 		}
-
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 	};
 
-	class Class : public TypeContainer
+	class Class : public Type, TrailingObjects<Class, ast_ptr<Field>, ast_ptr<Struct>, ast_ptr<Class>, ast_ptr<ConstructorOverload>, ast_ptr<FunctionOverload>, ast_ptr<OperatorOverload>>
 	{
-	public:
-		static constexpr NodeType ID = NodeType_Class;
-		Class()
-			: TypeContainer(TextSpan(), ID, TextSpan(), AccessModifier_Private, true)
-		{
-		}
-		Class(TextSpan span, AccessModifier access, TextSpan name)
-			: TypeContainer(span, ID, name, access)
+		friend class ASTContext;
+	private:
+		uint32_t numFields;
+		uint32_t numClasses;
+		uint32_t numStructs;
+		uint32_t numConstructors;
+		uint32_t numFunctions;
+		uint32_t numOperators;
+		ast_ptr<ThisDef> thisDef;
+
+		Class(const TextSpan& span, IdentifierInfo* name, AccessModifier access, ast_ptr<ThisDef>&& thisDef)
+			: Type(span, ID, name, access),
+			thisDef(std::move(thisDef))
 		{
 		}
 
-		std::string DebugName() const 
+	public:
+		static constexpr NodeType ID = NodeType_Class;
+		static Class* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, ArrayRef<ast_ptr<Field>>& fields, ArrayRef<ast_ptr<Struct>>& structs, ArrayRef<ast_ptr<Class>>& classes, ArrayRef<ast_ptr<ConstructorOverload>>& constructors, ArrayRef<ast_ptr<FunctionOverload>>& functions, ArrayRef<ast_ptr<OperatorOverload>>& operators);
+		static Class* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators);
+
+		ArrayRef<ast_ptr<Field>> GetFields()
+		{
+			return { GetTrailingObjects<0>(numFields, numStructs, numClasses,  numConstructors, numFunctions, numOperators), numFields };
+		}
+
+		ArrayRef<ast_ptr<Struct>> GetStructs()
+		{
+			return { GetTrailingObjects<1>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numStructs };
+		}
+
+		ArrayRef<ast_ptr<Class>> GetClasses()
+		{
+			return { GetTrailingObjects<2>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numClasses };
+		}
+
+		ArrayRef<ast_ptr<ConstructorOverload>> GetConstructors()
+		{
+			return { GetTrailingObjects<3>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numConstructors };
+		}
+
+		ArrayRef<ast_ptr<FunctionOverload>> GetFunctions()
+		{
+			return { GetTrailingObjects<4>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numFunctions };
+		}
+
+		ArrayRef<ast_ptr<OperatorOverload>> GetOperators()
+		{
+			return { GetTrailingObjects<5>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numOperators };
+		}
+
+		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << HXSL::ToString(type) << "] Name: " << name;
 			return oss.str();
 		}
-
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Struct;
-		}
-
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 	};
 }
 

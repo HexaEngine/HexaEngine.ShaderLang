@@ -7,10 +7,15 @@ namespace HXSL
 {
 	bool UsingDeclaration::Warmup(const AssemblyCollection& references)
 	{
-		references.FindAssembliesByNamespace(Target, AssemblyReferences);
+		references.FindAssembliesByNamespace(Target->name, AssemblyReferences);
 		return AssemblyReferences.size() > 0;
 	}
 
+	void Namespace::Warmup(const AssemblyCollection& references)
+	{
+		references.FindAssembliesByNamespace(name, this->references);
+	}
+	/*
 	void Namespace::Write(Stream& stream) const
 	{
 	}
@@ -43,9 +48,5 @@ namespace HXSL
 			}
 		}
 	}
-
-	void Namespace::Warmup(const AssemblyCollection& references)
-	{
-		references.FindAssembliesByNamespace(name, this->references);
-	}
+	*/
 }

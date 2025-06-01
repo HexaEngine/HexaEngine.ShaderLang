@@ -6,9 +6,10 @@
 #include "logging/logger.hpp"
 #include "logging/diagnostic_code.hpp"
 #include "lang/language.hpp"
+#include "identifier_table.hpp"
 #include "token.hpp"
 #include "lexer_config.hpp"
-#include "input_stream.hpp"
+#include "io/text_stream.hpp"
 
 #include "pch/std.hpp"
 
@@ -19,12 +20,13 @@ namespace HXSL
 	class LexerContext
 	{
 	public:
+		IdentifierTable& idTable;
 		SourceFile* source;
-		LexerStream* stream;
+		TextStream* stream;
 		ILogger* logger;
 		const LexerConfig* config;
 
-		LexerContext(SourceFile* source, LexerStream* stream, ILogger* logger, const LexerConfig* config) : source(source), stream(stream), logger(logger), config(config)
+		LexerContext(IdentifierTable& idTable, SourceFile* source, TextStream* stream, ILogger* logger, const LexerConfig* config) : idTable(idTable), source(source), stream(stream), logger(logger), config(config)
 		{
 		}
 
@@ -140,17 +142,22 @@ namespace HXSL
 
 		TextSpan AsTextSpan(size_t start, size_t length) const
 		{
-			return TextSpan(context->source, start, length, Line, Column);
+			return TextSpan(context->source->GetID(), start, length, Line, Column);
 		}
 
 		TextSpan AsTextSpan() const
 		{
-			return TextSpan(context->source, Index, GetLength() - Index, Line, Column);
+			return TextSpan(context->source->GetID(), Index, GetLength() - Index, Line, Column);
 		}
 
 		StringSpan AsSpan() const
 		{
 			return StringSpan(GetBuffer(), Index, GetLength() - Index);
+		}
+
+		StringSpan AsSpan(size_t start, size_t length) const
+		{
+			return StringSpan(GetBuffer(), start, length);
 		}
 	};
 

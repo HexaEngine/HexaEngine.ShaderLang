@@ -10,10 +10,10 @@ namespace HXSL
 	struct NamespaceDeclaration
 	{
 		TextSpan Span;
-		std::string Name;
+		IdentifierInfo* Name;
 
 		NamespaceDeclaration() = default;
-		NamespaceDeclaration(TextSpan span, std::string name) : Span(span), Name(name) {}
+		NamespaceDeclaration(TextSpan span, IdentifierInfo* name) : Span(span), Name(name) {}
 	};
 
 	struct AssemblySymbolRef
@@ -32,14 +32,15 @@ namespace HXSL
 	struct UsingDeclaration
 	{
 		TextSpan Span;
-		std::string Target;
-		std::string Alias;
-		bool IsAlias;
+		IdentifierInfo* Target;
+		IdentifierInfo* Alias;
 		std::vector<AssemblySymbolRef> AssemblyReferences;
 
-		UsingDeclaration() : IsAlias(false) {}
-		UsingDeclaration(TextSpan span, const std::string& name) : Span(span), Target(name), Alias({}), IsAlias(false) {}
-		UsingDeclaration(TextSpan span, const std::string& name, const std::string& alias) : Span(span), Target(name), Alias(alias), IsAlias(true) {}
+		UsingDeclaration() : Span({}), Target(nullptr), Alias(nullptr) {}
+		UsingDeclaration(TextSpan span, IdentifierInfo* name) : Span(span), Target(name), Alias(nullptr) {}
+		UsingDeclaration(TextSpan span, IdentifierInfo* name, IdentifierInfo* alias) : Span(span), Target(name), Alias(alias) {}
+
+		bool IsAlias() const noexcept { return Alias != nullptr; }
 
 		bool Warmup(const AssemblyCollection& references);
 	};
@@ -56,10 +57,6 @@ namespace HXSL
 		std::vector<AssemblySymbolRef> references;
 	public:
 		static constexpr NodeType ID = NodeType_Namespace;
-		Namespace()
-			: SymbolDef(TextSpan(), ID, TextSpan(), true)
-		{
-		}
 		Namespace(const NamespaceDeclaration& declaration)
 			: SymbolDef(declaration.Span, ID, declaration.Name)
 		{
@@ -113,14 +110,6 @@ namespace HXSL
 		std::vector<UsingDeclaration>& GetUsings() { return usings; }
 
 		const std::vector<AssemblySymbolRef>& GetAssemblyReferences() const { return references; }
-
-		virtual SymbolType GetSymbolType() const { return SymbolType_Namespace; }
-
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
 
 		void Warmup(const AssemblyCollection& references);
 	};

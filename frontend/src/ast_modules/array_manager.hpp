@@ -9,10 +9,10 @@ namespace HXSL
 	class ArrayManager
 	{
 	private:
-		std::vector<std::unique_ptr<Array>> definitions;
+		ASTContext* context;
 		std::unique_ptr<Assembly> arrayAssembly = Assembly::Create("");
 	public:
-		ArrayManager()
+		ArrayManager(ASTContext& context) : context(&context)
 		{
 		}
 
