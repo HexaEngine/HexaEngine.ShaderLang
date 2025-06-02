@@ -309,7 +309,7 @@ namespace HXSL
 				if (auto struct_ = dyn_cast<StructLayout>(def))
 				{
 					auto& fields = struct_->GetFields();
-					if (fieldId >= fields.length)
+					if (fieldId >= fields.size())
 					{
 						return unknownString;
 					}

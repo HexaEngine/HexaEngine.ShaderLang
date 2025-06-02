@@ -53,7 +53,7 @@ namespace HXSL
 			DEFINE_GETTER_SETTER_PTR(IdentifierInfo*, Semantic, semantic)
 	};
 
-	class FunctionOverload : public SymbolDef, public AttributeContainer, protected TrailingObjects<FunctionOverload, ast_ptr<Parameter>>
+	class FunctionOverload : public SymbolDef, protected TrailingObjects<FunctionOverload, ast_ptr<Parameter>, ast_ptr<AttributeDeclaration>>
 	{
 		friend class ASTContext;
 		friend class TrailingObjects;
@@ -65,10 +65,10 @@ namespace HXSL
 		IdentifierInfo* semantic;
 		ast_ptr<BlockStatement> body;
 		uint32_t numParameters;
+		uint32_t numAttributes;
 
 		FunctionOverload(const TextSpan& span, NodeType type, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef> returnSymbol)
 			: SymbolDef(span, type, name),
-			AttributeContainer(this),
 			accessModifiers(accessModifiers),
 			functionFlags(functionFlags),
 			returnSymbol(std::move(returnSymbol))
@@ -77,8 +77,18 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_FunctionOverload;
-		static FunctionOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, ArrayRef<ast_ptr<Parameter>>& parameters);
-		static FunctionOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters);
+		static FunctionOverload* Create(ASTContext* context,
+			const TextSpan& span,
+			IdentifierInfo* name,
+			AccessModifier accessModifiers,
+			FunctionFlags functionFlags,
+			ast_ptr<SymbolRef>&& returnSymbol,
+			ast_ptr<BlockStatement>&& body,
+			IdentifierInfo* semantic,
+			ArrayRef<ast_ptr<Parameter>> parameters,
+			ArrayRef<ast_ptr<AttributeDeclaration>> attributes);
+
+		static FunctionOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters, uint32_t numAttributes);
 
 		ArrayRef<ast_ptr<Parameter>> GetParameters()
 		{
@@ -110,7 +120,7 @@ namespace HXSL
 		std::string DebugName() const
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] Name: " << name;
+			oss << "[" << HXSL::ToString(type) << "] Name: " << GetName();
 			return oss.str();
 		}
 
@@ -226,11 +236,6 @@ namespace HXSL
 			return storageClass;
 		}
 
-		bool IsConstant() const override
-		{
-			return (storageClass & StorageClass_Const) != 0;
-		}
-
 		DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
 
 			DEFINE_GETTER_SETTER(InterpolationModifier, InterpolationModifiers, interpolationModifiers)
@@ -325,7 +330,7 @@ namespace HXSL
 		std::string DebugName() const
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] Name: " << name;
+			oss << "[" << HXSL::ToString(type) << "] Name: " << GetName();
 			return oss.str();
 		}
 
@@ -391,7 +396,7 @@ namespace HXSL
 		std::string DebugName() const
 		{
 			std::ostringstream oss;
-			oss << "[" << HXSL::ToString(type) << "] Name: " << name;
+			oss << "[" << HXSL::ToString(type) << "] Name: " << GetName();
 			return oss.str();
 		}
 	};

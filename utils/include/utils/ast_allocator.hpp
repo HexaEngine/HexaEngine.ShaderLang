@@ -356,7 +356,7 @@ template <typename U>
 inline void destroy(void* p) { static_cast<U*>(p)->~U(); }
 
 template <class _Ty, class... _Types, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
-_NODISCARD_SMART_PTR_ALLOC _CONSTEXPR23 ast_ptr<_Ty> make_ast_ptr(_Types&& ... args)
+_NODISCARD_SMART_PTR_ALLOC _CONSTEXPR23 ast_ptr<_Ty> make_ast_ptr_2(_Types&& ... args)
 {
 	void* rawMem = GetThreadAllocator()->Alloc(sizeof(_Ty), alignof(_Ty), &destroy<_Ty>);
 	_Ty* ptr = new(rawMem) _Ty(std::forward<_Types>(args)...);

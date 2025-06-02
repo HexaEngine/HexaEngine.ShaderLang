@@ -143,10 +143,10 @@ namespace HXSL
 
 		void WriteString(const StringSpan& str) const
 		{
-			uint32_t len = static_cast<uint32_t>(str.length);
+			uint32_t len = static_cast<uint32_t>(str.size());
 			WriteUInt(len);
 			if (len == 0) return;
-			Write(str.data, len);
+			Write(str.data(), len);
 		}
 
 		std::string ReadString() const

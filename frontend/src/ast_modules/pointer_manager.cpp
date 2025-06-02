@@ -16,7 +16,7 @@ namespace HXSL
 			return false;
 		}
 
-		std::string elementTypeName = elementType->GetFullyQualifiedName();
+		auto elementTypeName = elementType->GetFullyQualifiedName().str();
 		auto elementTypeN = context->GetIdentiferTable().Get(elementTypeName);
 		auto pointerKey = context->GetIdentiferTable().Get(elementTypeName + "*");
 
@@ -36,7 +36,7 @@ namespace HXSL
 
 		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Pointer, SymbolScopeType_Global, AccessModifier_Public, 0, pointer);
 		handle = table->Insert(pointer->GetName(), meta);
-		pointer->SetAssembly(pointerAssembly.get(), handle);
+		pointer->SetAssembly(context, pointerAssembly.get(), handle);
 
 		handleOut = handle;
 		pointerOut = pointer;

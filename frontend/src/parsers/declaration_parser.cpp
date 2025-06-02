@@ -63,9 +63,8 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseParameters(Parser& parser, TokenStream& stream, FunctionOverload* overload)
+	static bool ParseParameters(Parser& parser, TokenStream& stream, std::vector<ast_ptr<Parameter>>& parameters)
 	{
-		std::vector<ast_ptr<Parameter>> parameters;
 		bool firstParameter = true;
 		while (!stream.TryGetDelimiter(')'))
 		{
@@ -89,7 +88,6 @@ namespace HXSL
 				}
 			}
 		}
-		overload->SetParameters(std::move(parameters));
 
 		return true;
 	}
@@ -110,13 +108,9 @@ namespace HXSL
 		}
 
 		auto parent = parser.scopeParent();
-		auto function = make_ast_ptr<FunctionOverload>(TextSpan(), name, list.accessModifiers, list.functionFlags, std::move(returnSymbol));
-		if (attribute && attribute->HasResource())
-		{
-			function->AddAttribute(std::move(attribute->Take()));
-		}
 
-		ParseParameters(parser, stream, function.get());
+		std::vector<ast_ptr<Parameter>> parameters;
+		ParseParameters(parser, stream, parameters);
 
 		if (stream.TryGetOperator(Operator_Colon))
 		{
@@ -129,7 +123,13 @@ namespace HXSL
 		ParseStatementBody(ScopeType_Function, parser, stream, statement);
 		function->SetBody(std::move(statement));
 
-		function->SetSpan(stream.MakeFromLast(start));
+		auto span = stream.MakeFromLast(start);
+		std::vector<ast_ptr<AttributeDeclaration>> attributes;
+		if (attribute && attribute->HasResource())
+		{
+			attributes.push_back(std::move(attribute->Take()));
+		}
+		auto function = FunctionOverload::Create(parser.GetASTContext(), span, name, list.accessModifiers, list.functionFlags, std::move(returnSymbol), parameters, attributes);
 
 		auto parentType = parent->GetType();
 		switch (parentType)

@@ -1,27 +1,21 @@
 #include "compilation_unit.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
-	Namespace* CompilationUnit::AddNamespace(const NamespaceDeclaration& declaration)
+	CompilationUnit* CompilationUnit::Create(ASTContext* context, bool isExtern, ArrayRef<ast_ptr<Namespace>> namespaces)
 	{
-		std::shared_lock<std::shared_mutex> lock(_mutex);
+		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(namespaces.size()), isExtern);
+		ptr->numNamespaces = static_cast<uint32_t>(namespaces.size());
+		std::uninitialized_move(namespaces.begin(), namespaces.end(), ptr->GetNamespaces().data());
+		return ptr;
+	}
 
-		for (auto& ns : namespaces)
-		{
-			const StringSpan& sp = ns->GetName();
-			if (sp == declaration.Name->name)
-			{
-				return ns.get();
-			}
-		}
-
-		lock.unlock();
-		std::unique_lock<std::shared_mutex> uniqueLock(_mutex);
-
-		auto ns = make_ast_ptr<Namespace>(declaration);
-		ns->SetParent(this);
-		auto pNs = ns.get();
-		namespaces.push_back(std::move(ns));
-		return pNs;
+	CompilationUnit* CompilationUnit::Create(ASTContext* context, bool isExtern, uint32_t numNamespaces)
+	{
+		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(numNamespaces), isExtern);
+		ptr->numNamespaces = numNamespaces;
+		ptr->GetNamespaces().init();
+		return ptr;
 	}
 }

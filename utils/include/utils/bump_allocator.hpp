@@ -178,20 +178,20 @@ namespace HXSL
 
 		StringSpan CopyString(const StringSpan& span)
 		{
-			if (span.length == 0) return {};
-			auto copyPtr = reinterpret_cast<char*>(Alloc((span.length + 1) * sizeof(char), alignof(char)));
-			std::memcpy(copyPtr, span.data, span.length * sizeof(char));
-			copyPtr[span.length] = '\0';
-			return StringSpan(copyPtr, span.length);
+			if (span.size() == 0) return {};
+			auto copyPtr = reinterpret_cast<char*>(Alloc((span.size() + 1) * sizeof(char), alignof(char)));
+			std::memcpy(copyPtr, span.data(), span.size() * sizeof(char));
+			copyPtr[span.size()] = '\0';
+			return StringSpan(copyPtr, span.size());
 		}
 
 		template<typename T>
 		Span<T> CopySpan(const Span<T>& span)
 		{
-			if (span.length == 0) return {};
-			auto copied = reinterpret_cast<T*>(Alloc(span.length * sizeof(T), alignof(T)));
-			std::memcpy(copied, span.data, span.length * sizeof(T));
-			return Span<T>(copied, span.length);
+			if (span.size() == 0) return {};
+			auto copied = reinterpret_cast<T*>(Alloc(span.size() * sizeof(T), alignof(T)));
+			std::memcpy(copied, span.data(), span.size() * sizeof(T));
+			return Span<T>(copied, span.size());
 		}
 
 		template<typename T>

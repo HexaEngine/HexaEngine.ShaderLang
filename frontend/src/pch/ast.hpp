@@ -20,5 +20,6 @@
 
 #include "ast_modules/helpers.hpp"
 #include "ast_context.hpp"
+#include "ast_modules/ast_builder.hpp"
 
 #endif

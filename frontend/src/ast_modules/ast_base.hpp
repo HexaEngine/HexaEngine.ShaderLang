@@ -36,9 +36,9 @@ namespace HXSL
 
 	class ChainExpression;
 
-	struct SymbolRef;
 	class SymbolTable;
 	class SymbolDef;
+	class SymbolRef;
 
 	class TypeContainer;
 
@@ -265,8 +265,8 @@ namespace HXSL
 		std::vector<ASTNode*> children;
 		TextSpan span;
 		ASTNode* parent;
-		NodeType type;
-		bool isExtern;
+		NodeType type : 6;
+		bool isExtern : 1;
 
 		void RegisterChild(ASTNode* child)
 		{

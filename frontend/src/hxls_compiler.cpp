@@ -29,12 +29,8 @@ namespace HXSL
 	{
 		Parser::InitializeSubSystems();
 
-		GetThreadAllocator()->Reset();
-
-		std::unique_ptr<IdentifierTable> identifierTable = std::make_unique<IdentifierTable>();
-		ast_ptr<CompilationUnit> compilation = make_ast_ptr<CompilationUnit>();
-
 		ASTContext context;
+		ASTBuilder<CompilationUnit> builder;
 
 		for (auto& file : files)
 		{
@@ -60,17 +56,19 @@ namespace HXSL
 			LexerContext lexerContext = LexerContext(context.GetIdentiferTable(), source, source->GetInputStream().get(), logger, HXSLLexerConfig::Instance());
 			TokenStream tokenStream = TokenStream(&lexerContext);
 
-			Parser parser = Parser(logger, context, tokenStream, compilation.get());
+			Parser parser = Parser(logger, context, tokenStream, builder);
 
 			parser.Parse();
 		}
 
+		CompilationUnit* compilation = builder.Finish(&context);
+
 		SemanticAnalyzer::InitializeSubSystems();
-		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, context, compilation.get(), references);
+		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, context, compilation, references);
 		analyzer.Analyze();
 
 		ModuleBuilder conv;
-		return conv.Convert(compilation.get());
+		return conv.Convert(compilation);
 	}
 
 	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
@@ -84,7 +82,6 @@ namespace HXSL
 		std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
 
 		auto module = CompileFrontend(logger.get(), files, references);
-		GetThreadAllocator()->ReleaseAll();
 
 		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), module.get());
 		cfAnalyzer.Analyze();

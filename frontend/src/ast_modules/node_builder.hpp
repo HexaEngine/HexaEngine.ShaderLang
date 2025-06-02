@@ -77,7 +77,7 @@ namespace HXSL
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Function, SymbolScopeType_Class, AccessModifier_Public, 0, ptr);
 			auto signature = ptr->BuildOverloadSignature();
 			auto funcIndex = table->Insert(signature, meta, root.GetIndex());
-			ptr->SetAssembly(assembly, funcIndex);
+			ptr->SetAssembly(context, assembly, funcIndex);
 
 			return ast_ptr<FunctionOverload>(ptr);
 		}
@@ -133,7 +133,7 @@ namespace HXSL
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Struct, AccessModifier_Public, 0, ptr);
 			auto signature = ptr->BuildOverloadSignature(false);
 			auto funcIndex = table->Insert(signature, meta, root.GetIndex());
-			ptr->SetAssembly(assembly, funcIndex);
+			ptr->SetAssembly(context, assembly, funcIndex);
 			return ast_ptr<OperatorOverload>(ptr);
 		}
 	};
@@ -195,7 +195,7 @@ namespace HXSL
 
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, access_m, 0, field);
 			auto fieldIndex = table->Insert(field->GetName(), meta, root.GetIndex());
-			field->SetAssembly(assembly, fieldIndex);
+			field->SetAssembly(context, assembly, fieldIndex);
 			return ast_ptr<Field>(field);
 		}
 	};
@@ -243,7 +243,7 @@ namespace HXSL
 			auto pClass = Class::Create(context, {}, name_m, AccessModifier_Public, static_cast<uint32_t>(fields.size()), 0, 0, 0, static_cast<uint32_t>(functions.size()), static_cast<uint32_t>(operators.size()));
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, pClass);
 			auto index = table->Insert(pClass->GetName(), meta, 0);
-			pClass->SetAssembly(assembly, index);
+			pClass->SetAssembly(context, assembly, index);
 
 			auto fieldsDst = pClass->GetFields();
 			for (size_t i = 0; i < fields.size(); ++i)
@@ -397,12 +397,11 @@ namespace HXSL
 	private:
 		void MakePrimitive()
 		{
-			auto compilation = assembly->GetMutableSymbolTable()->GetCompilation();
 			prim = Primitive::Create(context, {}, name_m, kind_m, _class_m, rows_m, columns_m, static_cast<uint32_t>(operators.size()));
 
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, prim);
 			auto index = table->Insert(prim->GetName(), meta, 0);
-			prim->SetAssembly(assembly, index);
+			prim->SetAssembly(context, assembly, index);
 		}
 
 	public:

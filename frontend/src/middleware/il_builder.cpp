@@ -233,7 +233,7 @@ namespace HXSL
 
 	void ILBuilder::TraverseBlock(ILBlockFrame& frame)
 	{
-		auto& statements = frame.block->GetStatements();
+		auto statements = frame.block->GetStatements();
 		for (; frame.index < statements.size(); frame.index++)
 		{
 			auto statement = statements[frame.index].get();
@@ -262,7 +262,7 @@ namespace HXSL
 			parameterBase++;
 		}*/
 
-		auto& parameters = func->GetParameters();
+		auto parameters = func->GetParameters();
 		for (size_t i = 0; i < parameters.size(); i++)
 		{
 			auto& param = parameters[i];
@@ -285,7 +285,7 @@ namespace HXSL
 				auto& frame = currentFrame.ifFrame;
 				auto ifStatement = frame.statement;
 
-				auto& elseIfStatements = ifStatement->GetElseIfStatements();
+				auto elseIfStatements = ifStatement->GetElseIfStatements();
 
 				if (frame.state < elseIfStatements.size())
 				{

@@ -199,7 +199,7 @@ namespace HXSL
 		TokenStream* stream;
 		int ScopeLevel;
 		int NamespaceScope;
-		CompilationUnit* compilation;
+		ASTBuilder<CompilationUnit>& compilation;
 		Namespace* CurrentNamespace;
 		ASTNode* ParentNode;
 		ParserScopeContext CurrentScope;
@@ -209,13 +209,13 @@ namespace HXSL
 		size_t lastRecovery;
 
 		Parser() = default;
-		Parser(ILogger* logger, ASTContext& context, TokenStream& stream, CompilationUnit* compilation) : LoggerAdapter(logger), context(&context), stream(&stream), ScopeLevel(0), NamespaceScope(0), compilation(compilation), CurrentNamespace(nullptr), ParentNode(compilation), CurrentScope(ParserScopeContext(ScopeType_Global, compilation, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
+		Parser(ILogger* logger, ASTContext& context, TokenStream& stream, ASTBuilder<CompilationUnit>& compilation) : LoggerAdapter(logger), context(&context), stream(&stream), ScopeLevel(0), NamespaceScope(0), compilation(compilation), CurrentNamespace(nullptr), CurrentScope(ParserScopeContext(ScopeType_Global, nullptr, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
 		{
 		}
 
 		void static InitializeSubSystems();
 
-		CompilationUnit* Compilation() const noexcept { return compilation; }
+		ASTBuilder<CompilationUnit>& Compilation() const noexcept { return compilation; }
 
 		ASTContext* GetASTContext() const noexcept { return context; }
 
@@ -452,15 +452,13 @@ namespace HXSL
 			return parser;
 		}
 
-		// Direct accessors
 		TokenStream& GetStream() noexcept { return parser.GetStream(); }
-		CompilationUnit* GetCompilation() const noexcept { return parser.Compilation(); }
+		ASTBuilder<CompilationUnit>& GetCompilation() const noexcept { return parser.Compilation(); }
 		int GetScopeLevel() const noexcept { return parser.scopeLevel(); }
 		ScopeType GetScopeType() const noexcept { return parser.scopeType(); }
 		ASTNode* GetScopeParent() const noexcept { return parser.scopeParent(); }
 		ScopeFlags GetScopeFlags() const noexcept { return parser.scopeFlags(); }
 
-		// Logging
 		template<typename... Args>
 		void Log(DiagnosticCode code, const TextSpan& span, Args&&... args) const
 		{

@@ -9,18 +9,20 @@ namespace HXSL
 		return context->Alloc<Parameter>(sizeof(Parameter), span, name, flags, interpolationModifiers, std::move(symbol), semantic);
 	}
 
-	FunctionOverload* FunctionOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, ArrayRef<ast_ptr<Parameter>>& parameters)
+	FunctionOverload* FunctionOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, ArrayRef<ast_ptr<Parameter>> parameters, ArrayRef<ast_ptr<AttributeDeclaration>> attributes)
 	{
-		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(parameters.size()), span, ID, name, accessModifiers, functionFlags, std::move(returnSymbol));
+		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, ID, name, accessModifiers, functionFlags, std::move(returnSymbol));
 		ptr->numParameters = static_cast<uint32_t>(parameters.size());
+		ptr->numAttributes = static_cast<uint32_t>(attributes.size());
 		std::uninitialized_move(parameters.begin(), parameters.end(), ptr->GetParameters().data());
 		return ptr;
 	}
 
-	FunctionOverload* FunctionOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters)
+	FunctionOverload* FunctionOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters, uint32_t numAttributes)
 	{
-		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(numParameters), span, ID, name, accessModifiers, functionFlags, std::move(returnSymbol));
+		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(numParameters, numAttributes), span, ID, name, accessModifiers, functionFlags, std::move(returnSymbol));
 		ptr->numParameters = numParameters;
+		ptr->numAttributes = numAttributes;
 		ptr->GetParameters().init();
 		return ptr;
 	}
@@ -33,7 +35,7 @@ namespace HXSL
 		}
 
 		std::ostringstream oss;
-		oss << name << "(";
+		oss << GetName() << "(";
 		bool first = true;
 		for (auto& param : GetParameters())
 		{
@@ -121,7 +123,7 @@ namespace HXSL
 			}
 			else
 			{
-				str.append(param->GetSymbolRef()->GetFullyQualifiedName());
+				str.append(param->GetSymbolRef()->GetFullyQualifiedName().view());
 			}
 		}
 		str.push_back(')');
@@ -176,7 +178,7 @@ namespace HXSL
 			}
 			else
 			{
-				str.append(returnSymbol->GetFullyQualifiedName());
+				str.append(returnSymbol->GetFullyQualifiedName().view());
 			}
 			str.push_back('(');
 		}
@@ -200,7 +202,7 @@ namespace HXSL
 			}
 			else
 			{
-				str.append(param->GetSymbolRef()->GetFullyQualifiedName());
+				str.append(param->GetSymbolRef()->GetFullyQualifiedName().view());
 			}
 		}
 		str.push_back(')');

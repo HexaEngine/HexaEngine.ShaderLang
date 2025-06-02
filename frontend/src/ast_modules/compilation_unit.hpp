@@ -3,57 +3,31 @@
 
 #include "namespace.hpp"
 
-#include <mutex>
-#include <shared_mutex>
-
 namespace HXSL
 {
+	template<typename T>
+	class ASTBuilder;
+
 	class CompilationUnit : public ASTNode, TrailingObjects<CompilationUnit, ast_ptr<Namespace>>
 	{
+		friend class ASTContext;
+		friend class ASTBuilder<CompilationUnit>;
 	private:
-		std::vector<ast_ptr<Namespace>> namespaces;
-		std::vector<UsingDeclaration> usings;
+		uint32_t numNamespaces;
 
-		std::shared_mutex _mutex;
-
-	public:
-		static constexpr NodeType ID = NodeType_CompilationUnit;
 		CompilationUnit(bool isExtern = false) : ASTNode({ }, ID, isExtern)
 		{
 		}
 
-		template<typename Allocator>
-		static [[nodiscard]] CompilationUnit* Create(Allocator& allocator, size_t numNamespaces, bool isExtern_ = false)
+	public:
+		static constexpr NodeType ID = NodeType_CompilationUnit;
+		static CompilationUnit* Create(ASTContext* context, bool isExtern, ArrayRef<ast_ptr<Namespace>> namespaces);
+		static CompilationUnit* Create(ASTContext* context, bool isExtern, uint32_t numNamespaces);
+
+		ArrayRef<ast_ptr<Namespace>> GetNamespaces() noexcept
 		{
-			return allocator.template AllocAddit<CompilationUnit>(AdditionalSizeToAlloc(numNamespaces), isExtern_);
+			return { GetTrailingObjects<0>(numNamespaces), numNamespaces };
 		}
-
-		Namespace* AddNamespace(const NamespaceDeclaration& declaration);
-
-		void AddNamespace(ast_ptr<Namespace> ns)
-		{
-			HXSL_ASSERT(isExtern, "Cannot add namespace HXSL manually on non extern compilations.");
-			ns->SetParent(this);
-			namespaces.push_back(std::move(ns));
-		}
-
-		const std::vector<ast_ptr<Namespace>>& GetNamespaces() const noexcept
-		{
-			return namespaces;
-		}
-
-		void AddUsing(UsingDeclaration _using)
-		{
-			usings.push_back(_using);
-		}
-
-		void Clear()
-		{
-			usings.clear();
-			namespaces.clear();
-		}
-
-		std::vector<UsingDeclaration>& GetUsings() noexcept { return usings; }
 	};
 }
 

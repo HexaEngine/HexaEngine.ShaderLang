@@ -136,11 +136,6 @@ namespace HXSL
 			return storageClass;
 		}
 
-		bool IsConstant() const override
-		{
-			return (storageClass & StorageClass_Const) != 0;
-		}
-
 		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, Symbol, symbol)
 
 			DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Initializer, initializer)

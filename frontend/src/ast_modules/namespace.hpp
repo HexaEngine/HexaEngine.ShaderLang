@@ -45,71 +45,59 @@ namespace HXSL
 		bool Warmup(const AssemblyCollection& references);
 	};
 
-	class Namespace : public SymbolDef
+	class Namespace : public SymbolDef, TrailingObjects<Namespace, ast_ptr<Struct>, ast_ptr<Class>, ast_ptr<FunctionOverload>, ast_ptr<Field>, ast_ptr<Namespace>, UsingDeclaration>
 	{
 	private:
-		std::vector<ast_ptr<Struct>> structs;
-		std::vector<ast_ptr<Class>> classes;
-		std::vector<ast_ptr<FunctionOverload>> functions;
-		std::vector<ast_ptr<Field>> fields;
-		std::vector<ast_ptr<Namespace>> nestedNamespaces;
-		std::vector<UsingDeclaration> usings;
-		std::vector<AssemblySymbolRef> references;
+		uint32_t numStructs;
+		uint32_t numClasses;
+		uint32_t numFunctions;
+		uint32_t numFields;
+		uint32_t numNestedNamespaces;
+		uint32_t numUsings;
 	public:
 		static constexpr NodeType ID = NodeType_Namespace;
-		Namespace(const NamespaceDeclaration& declaration)
-			: SymbolDef(declaration.Span, ID, declaration.Name)
+		Namespace(const TextSpan& span, IdentifierInfo* name)
+			: SymbolDef(span, ID, name)
 		{
 		}
 
-		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<FunctionOverload>>, Functions, functions);
+		static Namespace* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name,
+			ArrayRef<ast_ptr<Struct>> structs,
+			ArrayRef<ast_ptr<Class>> classes,
+			ArrayRef<ast_ptr<FunctionOverload>> functions,
+			ArrayRef<ast_ptr<Field>> fields,
+			ArrayRef<ast_ptr<Namespace>> nestedNamespaces,
+			ArrayRef<UsingDeclaration> usings);
 
-		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Struct>>, Structs, structs);
-
-		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Class>>, Classes, classes);
-
-		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Field>>, Fields, fields);
-
-		DEFINE_GET_SET_MOVE(std::vector<ast_ptr<Namespace>>, NestedNamespaces, nestedNamespaces);
-
-		void AddNestedNamespace(ast_ptr<Namespace>& nestedNs)
+		ArrayRef<ast_ptr<Struct>> GetStructs()
 		{
-			RegisterChild(nestedNs);
-			nestedNamespaces.push_back(std::move(nestedNs));
+			return { GetTrailingObjects<0>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numStructs };
 		}
 
-		void AddUsing(UsingDeclaration _using)
+		ArrayRef<ast_ptr<Class>> GetClasses()
 		{
-			usings.push_back(_using);
+			return { GetTrailingObjects<1>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numClasses };
 		}
 
-		void AddFunction(ast_ptr<FunctionOverload> function)
+		ArrayRef<ast_ptr<FunctionOverload>> GetFunctions()
 		{
-			RegisterChild(function);
-			functions.push_back(std::move(function));
+			return { GetTrailingObjects<2>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numFunctions };
 		}
 
-		void AddStruct(ast_ptr<Struct> _struct)
+		ArrayRef<ast_ptr<Field>> GetFields()
 		{
-			RegisterChild(_struct);
-			structs.push_back(std::move(_struct));
+			return { GetTrailingObjects<3>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numFields };
 		}
 
-		void AddClass(ast_ptr<Class> _class)
+		ArrayRef<ast_ptr<Namespace>> GetNestedNamespacess()
 		{
-			RegisterChild(_class);
-			classes.push_back(std::move(_class));
+			return { GetTrailingObjects<4>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numNestedNamespaces };
 		}
 
-		void AddField(ast_ptr<Field> field)
+		ArrayRef<UsingDeclaration> GetUsings()
 		{
-			RegisterChild(field);
-			fields.push_back(std::move(field));
+			return { GetTrailingObjects<5>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numUsings };
 		}
-
-		std::vector<UsingDeclaration>& GetUsings() { return usings; }
-
-		const std::vector<AssemblySymbolRef>& GetAssemblyReferences() const { return references; }
 
 		void Warmup(const AssemblyCollection& references);
 	};

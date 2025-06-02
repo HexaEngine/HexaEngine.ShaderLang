@@ -252,9 +252,9 @@ namespace HXSL
 			size_t requiredSize = 2 + fqnLeft.size() + 1 + fqnRight.size() + 1;
 			str.resize(2);
 			str.reserve(requiredSize);
-			str.append(fqnLeft);
+			str.append(fqnLeft.view());
 			str.push_back(',');
-			str.append(fqnRight);
+			str.append(fqnRight.view());
 			str.push_back(')');
 		}
 
@@ -323,9 +323,9 @@ namespace HXSL
 			auto data = str.data();
 			data[0] = ToLookupChar(Operator_Cast);
 			data[1] = '#';
-			str.append(retFqn);
+			str.append(retFqn.view());
 			str.push_back('(');
-			str.append(fqn);
+			str.append(fqn.view());
 			str.push_back(')');
 
 			return str;

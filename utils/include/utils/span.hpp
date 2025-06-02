@@ -6,44 +6,51 @@
 namespace HXSL
 {
 	template <typename T>
-	struct Span
+	class Span
 	{
+	public:
 		static constexpr size_t npos = static_cast<size_t>(-1);
+		using iterator = const T*;
 
-		const T* data;
-		size_t length;
+	protected:
+		const T* data_m;
+		size_t size_m;
 
-		Span() : data(nullptr), length(0) {}
+	public:
+		Span() : data_m(nullptr), size_m(0) {}
 
-		Span(const T* d, size_t l) : data(d), length(l) {}
+		Span(const T* d, size_t size) : data_m(d), size_m(size) {}
 
-		Span(const std::vector<T>& vec) : data(vec.data()), length(vec.size()) {}
+		Span(const std::vector<T>& vec) : data_m(vec.data()), size_m(vec.size()) {}
+
+		const T* data() const { return data_m; }
+		size_t size() const { return size_m; }
 
 		const T& operator[](size_t index) const
 		{
-			if (index >= length) {
+			if (index >= size_m) {
 				throw std::out_of_range("Index out of range in TextSpan");
 			}
-			return data[index];
+			return data_m[index];
 		}
 
 		Span<T> slice(size_t start) const
 		{
-			if (start >= length) throw std::out_of_range("Index out of range in Span");
-			return Span<T>(data + start, length - start);
+			if (start >= size_m) throw std::out_of_range("Index out of range in Span");
+			return Span<T>(data_m + start, size_m - start);
 		}
 
 		Span<T> slice(size_t start, size_t length) const
 		{
-			if (start + length > this->length) throw std::out_of_range("Slice exceeds span bounds");
-			return Span<T>(data + start, length);
+			if (start + length > this->size_m) throw std::out_of_range("Slice exceeds span bounds");
+			return Span<T>(data_m + start, length);
 		}
 
 		size_t find(const T& c) const noexcept
 		{
-			for (size_t i = 0; i < length; i++)
+			for (size_t i = 0; i < size_m; i++)
 			{
-				if (data[i] == c)
+				if (data_m[i] == c)
 				{
 					return i;
 				}
@@ -53,14 +60,14 @@ namespace HXSL
 
 		size_t find(const Span<T>& c) const noexcept
 		{
-			size_t len = c.length;
+			size_t len = c.size_m;
 			if (len == 0) return 0;
-			if (len > length) return npos;
+			if (len > size_m) return npos;
 
 			size_t x = 0;
-			for (size_t i = 0; i < length; i++)
+			for (size_t i = 0; i < size_m; i++)
 			{
-				if (data[i] == c[x])
+				if (data_m[i] == c[x])
 				{
 					x++;
 					if (x == len)
@@ -76,23 +83,23 @@ namespace HXSL
 			return npos;
 		}
 
-		const T* begin() const
+		iterator begin() const
 		{
-			return data;
+			return data_m;
 		}
 
-		const T* end() const
+		iterator end() const
 		{
-			return data + length;
+			return data_m + size_m;
 		}
 
 		uint64_t fnv1a_64bit_hash() const noexcept
 		{
 			uint64_t hash = 14695981039346656037U;
 
-			const uint8_t* ptr = reinterpret_cast<const uint8_t*>(data);
+			const uint8_t* ptr = reinterpret_cast<const uint8_t*>(data_m);
 			const size_t stride = sizeof(T);
-			const size_t end = length * stride;
+			const size_t end = size_m * stride;
 
 			for (size_t i = 0; i < end; ++i)
 			{
@@ -110,9 +117,9 @@ namespace HXSL
 
 		size_t indexOf(T c) const
 		{
-			for (size_t i = 0; i < length; i++)
+			for (size_t i = 0; i < size_m; i++)
 			{
-				if (data[i] == c)
+				if (data_m[i] == c)
 				{
 					return i;
 				}
@@ -122,10 +129,10 @@ namespace HXSL
 
 		size_t lastIndexOf(T c) const
 		{
-			if (length == 0) return npos;
-			for (size_t i = length; i-- > 0; )
+			if (size_m == 0) return npos;
+			for (size_t i = size_m; i-- > 0; )
 			{
-				if (data[i] == c)
+				if (data_m[i] == c)
 				{
 					return i;
 				}
@@ -135,8 +142,8 @@ namespace HXSL
 
 		bool operator==(const Span<T>& other) const
 		{
-			if (this->length != other.length) return false;
-			return std::memcmp(this->begin(), other.begin(), this->length * sizeof(T)) == 0;
+			if (this->size_m != other.size_m) return false;
+			return std::memcmp(this->begin(), other.begin(), this->size_m * sizeof(T)) == 0;
 		}
 	};
 
@@ -154,8 +161,8 @@ namespace HXSL
 	{
 		bool operator()(const Span<T>& a, const Span<T>& b) const noexcept
 		{
-			if (a.length != b.length) return false;
-			return std::memcmp(a.begin(), b.begin(), a.length * sizeof(T)) == 0;
+			if (a.size() != b.size()) return false;
+			return std::memcmp(a.begin(), b.begin(), a.size() * sizeof(T)) == 0;
 		}
 	};
 
@@ -184,7 +191,7 @@ namespace HXSL
 		{
 		}
 
-		StringSpan(const Span<char>& span) : Span(span.data, span.length)
+		StringSpan(const Span<char>& span) : Span(span.data(), span.size())
 		{
 		}
 
@@ -194,19 +201,19 @@ namespace HXSL
 
 		constexpr std::string_view view() const
 		{
-			return std::string_view(data, length);
+			return std::string_view(data_m, size_m);
 		}
 
 		std::string str() const
 		{
-			return std::string(data, length);
+			return std::string(data_m, size_m);
 		}
 
 		std::string str(size_t start) const
 		{
-			if (start > length) throw std::out_of_range("start index was out of range.");
+			if (start > size_m) throw std::out_of_range("start index was out of range.");
 
-			return std::string(data + start, length - start);
+			return std::string(data_m + start, size_m - start);
 		}
 
 		std::string str(size_t start, size_t length) const
@@ -214,16 +221,16 @@ namespace HXSL
 			if (start > length)
 				throw std::out_of_range("start index was out of range.");
 
-			if (start + length > this->length)
+			if (start + length > this->size_m)
 				throw std::out_of_range("substring length out of range.");
 
-			return std::string(data + start, length);
+			return std::string(data_m + start, length);
 		}
 
 		bool operator==(const StringSpan& other) const
 		{
-			if (this->length != other.length) return false;
-			return std::memcmp(this->begin(), other.begin(), this->length * sizeof(char)) == 0;
+			if (this->size_m != other.size_m) return false;
+			return std::memcmp(this->begin(), other.begin(), this->size_m * sizeof(char)) == 0;
 		}
 
 		bool operator!=(const StringSpan& other) const
@@ -234,7 +241,7 @@ namespace HXSL
 
 	inline std::ostream& operator<<(std::ostream& os, const StringSpan& span)
 	{
-		return os.write(span.data, span.length);
+		return os.write(span.data(), span.size());
 	}
 
 	template <typename T>
@@ -304,7 +311,7 @@ namespace HXSL
 
 		void clear()
 		{
-			if (std::is_trivially_copyable<T>::value) 
+			if (std::is_trivially_copyable<T>::value)
 			{
 				std::memset(data_m, 0, size_m);
 			}

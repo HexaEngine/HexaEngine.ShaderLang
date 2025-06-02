@@ -96,7 +96,7 @@ namespace HXSL
 
 		void Write(const StringSpan& span)
 		{
-			Write(span.begin(), span.length);
+			Write(span.begin(), span.size());
 		}
 
 		void Print()

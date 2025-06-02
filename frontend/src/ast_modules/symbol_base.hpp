@@ -96,38 +96,23 @@ namespace HXSL
 	class SymbolDef : public ASTNode
 	{
 	private:
-		SymbolDef() = delete;
-
-		void UpdateName();
-	protected:
 		IdentifierInfo* identifer;
-		ast_ptr<std::string> fullyQualifiedName;
-		std::string_view name;
-		std::vector<SymbolRef*> references;
-		const Assembly* assembly;
+		IdentifierInfo* fullyQualifiedName = nullptr;
+		const Assembly* assembly = nullptr;
 		SymbolHandle symbolHandle;
+
+	protected:
 
 		SymbolDef(const TextSpan& span, NodeType type, IdentifierInfo* identifer, bool isExtern = false)
 			: ASTNode(span, type, isExtern),
-			identifer(identifer),
-			assembly(nullptr)
+			identifer(identifer)
 		{
-			UpdateName();
 		}
+
 	public:
-		void AddRef(SymbolRef* ref)
-		{
-			references.push_back(ref);
-		}
+		void SetAssembly(ASTContext* context, const Assembly* assembly, const SymbolHandle& handle);
 
-		void RemoveRef(SymbolRef* ref)
-		{
-			references.erase(std::remove(references.begin(), references.end(), ref), references.end());
-		}
-
-		void SetAssembly(const Assembly* assembly, const SymbolHandle& handle);
-
-		void UpdateFQN();
+		void UpdateFQN(ASTContext* context);
 
 		const Assembly* GetAssembly() const noexcept { return assembly; }
 
@@ -135,7 +120,9 @@ namespace HXSL
 
 		const SymbolHandle& GetSymbolHandle() const noexcept { return symbolHandle; }
 
-		const std::string& GetFullyQualifiedName() const noexcept { return *fullyQualifiedName.get(); }
+		const StringSpan& GetName() const;
+
+		const StringSpan& GetFullyQualifiedName() const noexcept;
 
 		bool IsEquivalentTo(const SymbolDef* other) const noexcept
 		{
@@ -144,38 +131,16 @@ namespace HXSL
 
 		const SymbolMetadata* GetMetadata() const;
 
-		const std::string_view& GetName() const
-		{
-			return name;
-		}
-
-		void SetName(const std::string& name)
-		{
-			*fullyQualifiedName = name;
-			UpdateName();
-		}
-
-		virtual bool IsConstant() const { return false; }
+		bool IsConstant() const;
 
 		SymbolType GetSymbolType() const;
 
-		void Write(Stream& stream) const { HXSL_ASSERT_DEPRECATION; }
-
-		void Read(Stream& stream, StringPool& container) { HXSL_ASSERT_DEPRECATION; }
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) { HXSL_ASSERT_DEPRECATION; }
-
-		virtual ~SymbolDef() = default;
-
 		ast_ptr<SymbolRef> MakeSymbolRef(ASTContext* context) const;
 
-		std::string_view ToString() const noexcept
-		{
-			return name;
-		}
+		const StringSpan& ToString() const noexcept;
 	};
 
-	enum SymbolRefType
+	enum SymbolRefType : uint8_t
 	{
 		SymbolRefType_Unknown,
 		SymbolRefType_Namespace,
@@ -205,43 +170,25 @@ namespace HXSL
 		return !(lhs == rhs);
 	}
 
-	struct SymbolRef
+	class SymbolRef
 	{
 		friend class ASTContext;
 	private:
-		IdentifierInfo* identifer;
-		ast_ptr<std::string> fullyQualifiedName;
-		std::string_view name;
-		bool isFullyQualified;
+		SymbolRefType type : 4;
+		bool isFullyQualified : 1;
+		bool isDeferred : 1;
+		bool notFound : 1;
 		TextSpan span;
-		SymbolRefType type;
-		SymbolHandle symbolHandle;
-		std::vector<size_t> arrayDims;
-		bool isDeferred;
-		bool notFound;
+		IdentifierInfo* identifer;
+		SymbolDef* def;
 
-		void UpdateName();
-
-		SymbolRef(const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified) : span(span), identifer(identifer), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
-		{
-			fullyQualifiedName = make_ast_ptr<std::string>(span.str());
-			UpdateName();
-		}
-
-		SymbolRef(IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified) : span(TextSpan()), identifer(identifer), type(type), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
-		{
-			fullyQualifiedName = make_ast_ptr<std::string>(name);
-			UpdateName();
-		}
-
-		SymbolRef() : span({}), identifer(nullptr), type(SymbolRefType_Unknown), symbolHandle({}), isDeferred(false), notFound(false), isFullyQualified(false)
+	protected:
+		SymbolRef(const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified) : span(span), identifer(identifer), type(type), def(nullptr), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
 		}
 
 	public:
 		static SymbolRef* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified);
-
-		void TrimCastType();
 
 		bool HasFullyQualifiedName() const noexcept { return isFullyQualified; }
 
@@ -249,11 +196,59 @@ namespace HXSL
 
 		void OverwriteType(const SymbolRefType& value) noexcept { type = value; }
 
+		const StringSpan& GetName() const noexcept;
+
+		const TextSpan& GetSpan() const noexcept { return span; }
+
+		bool IsResolved() const noexcept { return def != nullptr; }
+
+		void SetTable(const SymbolHandle& handle);
+
+		void SetDeclaration(const SymbolDef* node);
+
+		void SetNotFound(bool value) noexcept { notFound = value; }
+
+		const bool& IsNotFound() const noexcept { return notFound; }
+
+		const SymbolHandle& GetSymbolHandle() const;
+
+		const StringSpan& GetFullyQualifiedName() const;
+
+		SymbolDef* GetDeclaration() const;
+
+		SymbolDef* GetBaseDeclaration() const;
+
+		SymbolDef* GetAncestorDeclaration(SymbolType type) const;
+
+		void SetDeferred(bool value) noexcept { isDeferred = value; }
+
+		const bool& IsDeferred() const noexcept { return isDeferred; }
+
+		ast_ptr<SymbolRef> Clone(ASTContext* context) const;
+
+		const StringSpan& ToString() const noexcept;
+	};
+
+	class SymbolRefArray : public SymbolRef, TrailingObjects<SymbolRefArray, size_t>
+	{
+		friend class ASTContext;
+	private:
+		uint32_t numArrayDims;
+		SymbolRefArray(const TextSpan& span, IdentifierInfo* name) : SymbolRef(span, name, ID, false)
+		{
+		}
+
+	public:
+		static constexpr SymbolRefType ID = SymbolRefType_ArrayType;
+		static SymbolRefArray* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ArrayRef<size_t> arrayDims);
+		static SymbolRefArray* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, uint32_t numArrayDims);
+
 		std::string MakeArrayTypeName(size_t dimIndex, SymbolDef* elementType = nullptr)
 		{
 			elementType = elementType ? elementType : GetBaseDeclaration();
 			std::ostringstream oss;
 			oss << elementType->GetFullyQualifiedName();
+			auto arrayDims = GetArrayDims();
 			for (size_t i = 0; i < dimIndex + 1; i++)
 			{
 				oss << "[";
@@ -264,57 +259,12 @@ namespace HXSL
 			return oss.str();
 		}
 
-		const std::string_view& GetName() const noexcept
+		ArrayRef<size_t> GetArrayDims()
 		{
-			return name;
+			return { GetTrailingObjects<0>(numArrayDims), numArrayDims };
 		}
 
-		const TextSpan& GetSpan() const noexcept { return span; }
-
-		bool IsArray() const noexcept { return !arrayDims.empty(); }
-
-		void SetArrayDims(std::vector<size_t> dims) noexcept { arrayDims = std::move(dims); if (type == SymbolRefType_Type) type = SymbolRefType_ArrayType; }
-
-		std::vector<size_t>& GetArrayDims() noexcept { return arrayDims; }
-
-		size_t GetArrayDimCount() const noexcept { return arrayDims.size(); }
-
-		bool IsResolved() const noexcept { return !symbolHandle.invalid(); }
-
-		void SetTable(const SymbolHandle& handle);
-
-		void SetDeclaration(const SymbolDef* node);
-
-		void SetNotFound(bool value) noexcept { notFound = value; }
-
-		const bool& IsNotFound() const noexcept { return notFound; }
-
-		const SymbolHandle& GetSymbolHandle() const { return symbolHandle; }
-
-		const std::string& GetFullyQualifiedName() const;
-
-		const SymbolMetadata* GetMetadata() const;
-
-		SymbolDef* GetDeclaration() const;
-
-		SymbolDef* GetBaseDeclaration() const;
-
-		SymbolDef* GetAncestorDeclaration(SymbolType type) const;
-
-		void Write(Stream& stream) const;
-
-		void Read(Stream& stream);
-
-		void SetDeferred(bool value) noexcept { isDeferred = value; }
-
-		const bool& IsDeferred() const noexcept { return isDeferred; }
-
-		ast_ptr<SymbolRef> Clone(ASTContext* context) const;
-
-		const std::string& ToString() const noexcept
-		{
-			return *fullyQualifiedName;
-		}
+		size_t GetArrayDimCount() const noexcept { return numArrayDims; }
 	};
 
 	class Type : public SymbolDef
@@ -375,6 +325,21 @@ namespace HXSL
 			return SymbolRefType_Unknown;
 		}
 	}
+
+	template<typename T>
+	inline static bool isa(const SymbolRef* node) { return node && node->GetType() == T::ID; }
+
+	template<typename T>
+	inline static T* dyn_cast(SymbolRef* node) { return isa<T>(node) ? static_cast<T*>(node) : nullptr; }
+
+	template<typename T>
+	inline static const T* dyn_cast(const SymbolRef* node) { return isa<T>(node) ? static_cast<const T*>(node) : nullptr; }
+
+	template <typename T>
+	inline static T* cast(SymbolRef* N) { assert(isa<T>(N) && "cast<T>() argument is not of type T!"); return static_cast<T*>(N); }
+
+	template <typename T>
+	inline static const T* cast(const SymbolRef* N) { assert(isa<T>(N) && "cast<T>() argument is not of type T!"); return static_cast<const T*>(N); }
 }
 
 #endif

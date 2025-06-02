@@ -7,7 +7,7 @@ namespace HXSL
 	{
 	}
 
-	SymbolHandle Assembly::AddSymbol(const StringSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex)
+	SymbolHandle Assembly::AddSymbol(ASTContext* context, const StringSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex)
 	{
 		if (sealed)
 		{
@@ -16,7 +16,7 @@ namespace HXSL
 		auto handle = table->Insert(name, metadata, lookupIndex);
 		if (handle.valid())
 		{
-			def->SetAssembly(this, handle);
+			def->SetAssembly(context, this, handle);
 		}
 		return handle;
 	}
