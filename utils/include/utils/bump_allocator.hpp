@@ -3,78 +3,49 @@
 
 #include "pch/std.hpp"
 #include "span.hpp"
+#include "memory.hpp"
 
 namespace HXSL
 {
 	class BumpAllocator
 	{
-		static constexpr size_t DEFAULT_BLOCK_SIZE = 4096;
-
-		inline static size_t AlignUp(size_t size, size_t alignment)
-		{
-			return (size + alignment - 1) & ~(alignment - 1);
-		}
+		static constexpr size_t MaxDoublingSize = 1024 * 1024; // 1 MiB
 
 		struct Block
 		{
-			char* memory;
-			size_t size;
-			size_t used;
+			Block* prev;
+			uint32_t blockSize;
+			uint32_t used;
 
-			Block(size_t size) : size(size), used(0)
-			{
-				memory = new char[size];
+			Block(Block* prev, size_t blockSize) : prev(prev), blockSize(blockSize), used(0)
+			{	
 			}
 
-			~Block()
+			inline uint8_t* GetBaseAddress()
 			{
-				delete[] memory;
+				return reinterpret_cast<uint8_t*>(this) - blockSize;
 			}
 
-			Block(const Block&) = delete;
-
-			Block& operator=(Block&& other) noexcept
-			{
-				if (this != &other)
-				{
-					if (memory)
-					{
-						delete[] memory;
-					}
-
-					memory = other.memory;
-					size = other.size;
-					used = other.used;
-
-					other.memory = nullptr;
-					other.size = 0;
-					other.used = 0;
-				}
-				return *this;
-			}
-
-			Block(Block&& other) noexcept : memory(other.memory), size(other.size), used(other.used)
-			{
-				other.memory = nullptr;
-				other.size = 0;
-				other.used = 0;
-			}
-
-			void* Alloc(size_t bytes, size_t alignment) noexcept
+			inline void* Alloc(size_t bytes, size_t alignment) noexcept
 			{
 				size_t base = AlignUp(used, alignment);
 				size_t newUsed = base + bytes;
-				if (newUsed > size)
+				if (newUsed > blockSize)
 				{
 					return nullptr;
 				}
 
 				used = newUsed;
-				return memory + base;
+				return GetBaseAddress() + base;
 			}
 		};
 
-		std::vector<Block> blocks;
+		Block* head = nullptr;
+		Block* tail = nullptr;
+
+		static Block* AllocBlock(Block* prev, size_t minSize);
+		static void DestroyBlock(Block* block);
+		Block* CreateBlock(size_t minSize);
 
 	public:
 		BumpAllocator() = default;
@@ -82,12 +53,21 @@ namespace HXSL
 		BumpAllocator(const BumpAllocator& other) = delete;
 		BumpAllocator operator=(BumpAllocator other) = delete;
 
-		BumpAllocator(BumpAllocator&& other) noexcept : blocks(std::move(other.blocks)) {}
+		BumpAllocator(BumpAllocator&& other) noexcept : head(head), tail(tail) 
+		{
+			other.head = nullptr;
+			other.tail = nullptr;
+		}
+
 		BumpAllocator& operator=(BumpAllocator&& other) noexcept
 		{
 			if (this != &other)
 			{
-				blocks = std::move(other.blocks);
+				ReleaseAll();
+				head = other.head;
+				tail = other.tail;
+				other.head = nullptr;
+				other.tail = nullptr;
 			}
 			return *this;
 		}
@@ -97,35 +77,38 @@ namespace HXSL
 			ReleaseAll();
 		}
 
-		void* Alloc(size_t bytes, size_t alignment = alignof(std::max_align_t)) noexcept
+		void* Alloc(size_t size, size_t alignment = alignof(std::max_align_t)) noexcept
 		{
-			if (blocks.size() != 0)
+			void* ptr;
+			if (tail && (ptr = tail->Alloc(size, alignment)))
 			{
-				auto& top = blocks.back();
-				auto ptr = top.Alloc(bytes, alignment);
-				if (ptr != nullptr)
-				{
-					return ptr;
-				}
+				return ptr;
 			}
-
-			size_t blockSize = AlignUp(bytes * 2, DEFAULT_BLOCK_SIZE);
-			blocks.emplace_back(blockSize);
-			return blocks.back().Alloc(bytes, alignment);
+			
+			return CreateBlock(size > MaxDoublingSize ? size : size * 2)->Alloc(size, alignment);
 		}
 
 		void Reset() noexcept
 		{
-			for (auto& b : blocks)
+			auto cur = tail;
+			while (cur != nullptr)
 			{
-				b.used = 0;
+				cur->used = 0;
+				cur = cur->prev;
 			}
 		}
 
 		void ReleaseAll() noexcept
 		{
-			blocks.clear();
-			blocks.shrink_to_fit();
+			auto cur = tail;
+			while (cur != nullptr)
+			{
+				auto prev = cur->prev;
+				DestroyBlock(cur);
+				cur = prev;
+			}
+
+			head = tail = nullptr;
 		}
 
 		template <class _Ty, class... _Types, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>

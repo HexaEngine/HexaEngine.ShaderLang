@@ -10,6 +10,29 @@ namespace HXSL
 		return (size + alignment - 1) & ~(alignment - 1);
 	}
 
+	static constexpr size_t AlignUp(size_t size, size_t alignment)
+	{
+		return (size + alignment - 1) & ~(alignment - 1);
+	}
+
+	inline void* aligned_alloc(size_t size, size_t alignment)
+	{
+#if defined(_MSC_VER)
+		return _aligned_malloc(size, alignment);
+#else
+		return std::aligned_alloc(alignment, size);
+#endif
+	}
+
+	inline void aligned_free(void* ptr)
+	{
+#if defined(_MSC_VER)
+		_aligned_free(ptr);
+#else
+		std::free(ptr);
+#endif
+	}
+
 	template<typename T>
 	struct aligned_allocator
 	{
@@ -57,30 +80,15 @@ namespace HXSL
 			void* ptr = nullptr;
 			std::size_t size = n * sizeof(T);
 
-#if defined(_MSC_VER)
-			ptr = _aligned_malloc(size, alignment);
+			ptr = aligned_alloc(size, alignment);
 			if (!ptr) throw std::bad_alloc();
-#elif defined(__unix__) || defined(__APPLE__)
-			if (posix_memalign(&ptr, alignment, size) != 0) {
-				throw std::bad_alloc();
-			}
-#else
-			std::size_t aligned_size = ((size + alignment - 1) / alignment) * alignment;
-			ptr = std::aligned_alloc(alignment, aligned_size);
-			if (!ptr) throw std::bad_alloc();
-#endif
 			return static_cast<T*>(ptr);
 		}
 
 		void deallocate(T* ptr, std::size_t) noexcept
 		{
 			if (ptr == nullptr) return;
-
-#if defined(_MSC_VER)
-			_aligned_free(ptr);
-#else
-			std::free(ptr);
-#endif
+			aligned_free(ptr);
 		}
 
 		template<typename U, typename... Args>
