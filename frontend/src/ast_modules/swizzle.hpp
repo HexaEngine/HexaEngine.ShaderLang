@@ -14,19 +14,19 @@ namespace HXSL
 	private:
 		Primitive* basePrim;
 		uint8_t mask;
-		ast_ptr<SymbolRef> symbol;
+		SymbolRef* symbol;
 
-		SwizzleDefinition(const TextSpan& span, IdentifierInfo* name, uint8_t mask, Primitive* basePrim, ast_ptr<SymbolRef>&& symbol)
+		SwizzleDefinition(const TextSpan& span, IdentifierInfo* name, uint8_t mask, Primitive* basePrim, SymbolRef* symbol)
 			: SymbolDef(span, ID, name),
 			basePrim(basePrim),
 			mask(mask),
-			symbol(std::move(symbol))
+			symbol(symbol)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_SwizzleDefinition;
-		static SwizzleDefinition* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, uint8_t mask, Primitive* basePrim, ast_ptr<SymbolRef>&& symbol);
+		static SwizzleDefinition* Create(const TextSpan& span, IdentifierInfo* name, uint8_t mask, Primitive* basePrim, SymbolRef* symbol);
 
 		uint8_t GetMask() const noexcept { return mask; }
 
@@ -40,7 +40,7 @@ namespace HXSL
 			return dyn_cast<Primitive>(symbol->GetDeclaration());
 		}
 
-		const ast_ptr<SymbolRef>& GetSymbolRef()
+		SymbolRef* GetSymbolRef()
 		{
 			return symbol;
 		}

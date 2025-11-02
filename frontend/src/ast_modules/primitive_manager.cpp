@@ -10,7 +10,7 @@ namespace HXSL
 		return table->FindNodeIndexFullPath(span);
 	}
 
-	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, ASTContext* context, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint32_t rows, uint32_t columns)
+	static void AddPrim(std::vector<std::unique_ptr<PrimitiveBuilder>>& primBuilders, Assembly* assembly, PrimitiveKind kind, PrimitiveClass primitiveClass, uint32_t rows, uint32_t columns)
 	{
 		std::string scalarName = ToString(kind);
 
@@ -33,7 +33,7 @@ namespace HXSL
 
 		std::string nameStr = name.str();
 
-		auto builder = std::make_unique<PrimitiveBuilder>(context, assembly);
+		auto builder = std::make_unique<PrimitiveBuilder>(assembly);
 		builder->WithName(nameStr);
 		builder->WithKind(kind, primitiveClass);
 		builder->WithRowsAndColumns(rows, columns);
@@ -86,24 +86,24 @@ namespace HXSL
 	{
 		std::vector<std::unique_ptr<PrimitiveBuilder>> primBuilders;
 
-		AddPrim(primBuilders, context, assembly.get(), PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
+		AddPrim(primBuilders, assembly.get(), PrimitiveKind_Void, PrimitiveClass_Scalar, 1, 1);
 
 		for (int i = PrimitiveKind_Bool; i <= PrimitiveKind_Min16UInt; i++)
 		{
 			auto kind = static_cast<PrimitiveKind>(i);
 
-			AddPrim(primBuilders, context, assembly.get(), kind, PrimitiveClass_Scalar, 1, 1);
+			AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Scalar, 1, 1);
 
 			for (uint32_t n = 2; n <= 4; ++n)
 			{
-				AddPrim(primBuilders, context, assembly.get(), kind, PrimitiveClass_Vector, n, 1);
+				AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Vector, n, 1);
 			}
 
 			for (uint32_t r = 1; r <= 4; ++r)
 			{
 				for (uint32_t c = 1; c <= 4; ++c)
 				{
-					AddPrim(primBuilders, context, assembly.get(), kind, PrimitiveClass_Matrix, r, c);
+					AddPrim(primBuilders, assembly.get(), kind, PrimitiveClass_Matrix, r, c);
 				}
 			}
 		}
@@ -119,7 +119,7 @@ namespace HXSL
 
 		auto table = GetMutableSymbolTable();
 
-		ClassBuilder classBuilder = ClassBuilder(context, assembly.get());
+		ClassBuilder classBuilder = ClassBuilder(assembly.get());
 		classBuilder.WithName("string").Finish();
 		classBuilder.WithName("SamplerState").Finish();
 		classBuilder.WithName("Texture2D")

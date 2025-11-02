@@ -34,33 +34,31 @@ namespace HXSL
 
 			if (stream.TryGetOperator(Operator_MemberAccess))
 			{
-				auto memberAccessExpression = make_ast_ptr<MemberAccessExpression>(start.Span, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)), nullptr);
-				memberAccessExpression->SetSpan(stream.MakeFromLast(start));
-				Chain(std::move(memberAccessExpression));
+				auto span = stream.MakeFromLast(start);
+				auto memberAccessExpression = MemberAccessExpression::Create(span, baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier), nullptr);
+				Chain(memberAccessExpression);
 			}
 			else if (stream.TryGetDelimiter('['))
 			{
-				auto indexerAccessExpression = make_ast_ptr<IndexerAccessExpression>(TextSpan(), std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier, !wantsIdentifier)));
-				ast_ptr<Expression> indexExpression;
+				Expression* indexExpression;
 				HybridExpressionParser::ParseExpression(parser, stream, indexExpression);
 				stream.ExpectDelimiter(']', EXPECTED_RIGHT_BRACKET);
-				indexerAccessExpression->SetIndexExpression(std::move(indexExpression));
-				indexerAccessExpression->SetSpan(stream.MakeFromLast(start));
-				ChainOrEnd(std::move(indexerAccessExpression));
+				auto span = stream.MakeFromLast(start);
+				auto indexerAccessExpression = IndexerAccessExpression::Create(span, baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier, !wantsIdentifier), indexExpression);
+				ChainOrEnd(indexerAccessExpression);
 			}
 			else if (stream.TryGetDelimiter('('))
 			{
-				auto functionExpression = make_ast_ptr<FunctionCallExpression>(TextSpan(), std::move(baseSymbol.make(root ? SymbolRefType_FunctionOverload : SymbolRefType_FunctionOrConstructor)));
-				std::vector<ast_ptr<FunctionCallParameter>> parameters;
+				std::vector<FunctionCallParameter*> parameters;
 				IF_ERR_RET_FALSE(ParserHelper::ParseFunctionCallInner(parser, stream, parameters));
-				functionExpression->SetParameters(std::move(parameters));
-				functionExpression->SetSpan(stream.MakeFromLast(start));
-				ChainOrEnd(std::move(functionExpression));
+				auto span = stream.MakeFromLast(start);
+				auto functionExpression = FunctionCallExpression::Create(span, baseSymbol.make(root ? SymbolRefType_FunctionOverload : SymbolRefType_FunctionOrConstructor), parameters);
+				ChainOrEnd(functionExpression);
 			}
 			else
 			{
-				auto symbolExpression = make_ast_ptr<MemberReferenceExpression>(start.Span, std::move(baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier)));
-				ChainEnd(std::move(symbolExpression));
+				auto symbolExpression = MemberReferenceExpression::Create(start.Span, baseSymbol.make(root ? SymbolRefType_Member : SymbolRefType_Identifier));
+				ChainEnd(symbolExpression);
 				break;
 			}
 		}

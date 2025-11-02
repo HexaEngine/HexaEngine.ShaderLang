@@ -80,11 +80,11 @@ namespace HXSL
 		ILVariable* curVarId = &varId;
 
 		bool first = true;
-		auto next = member->GetNextExpression().get();
+		auto next = member->GetNextExpression();
 		while (next)
 		{
 			auto type = next->GetType();
-			auto ref = SymbolRefHelper::GetSymbolRef(next).get();
+			auto ref = SymbolRefHelper::GetSymbolRef(next);
 			auto decl = ref->GetDeclaration();
 
 			Variable* currentVar = context->MakeVariable(*curVarId);
@@ -124,7 +124,7 @@ namespace HXSL
 			}
 		end:
 			curVarId = nextVar;
-			next = next->GetNextExpression().get();
+			next = next->GetNextExpression();
 			first = false;
 		}
 
@@ -176,8 +176,8 @@ namespace HXSL
 			case NodeType_BinaryExpression:
 			{
 				auto binary = static_cast<BinaryExpression*>(expr);
-				auto left = binary->GetLeft().get();
-				auto right = binary->GetRight().get();
+				auto left = binary->GetLeft();
+				auto right = binary->GetRight();
 
 				Operand* imm0; Operand* imm1;
 				bool isImm0 = IsInlineable(left, imm0);
@@ -232,7 +232,7 @@ namespace HXSL
 			case NodeType_PrefixExpression:
 			{
 				auto pref = cast<PrefixExpression>(expr);
-				auto operand = pref->GetOperand().get();
+				auto operand = pref->GetOperand();
 				auto operator_ = pref->GetOperator();
 
 				Operand* imm;
@@ -274,7 +274,7 @@ namespace HXSL
 			case NodeType_PostfixExpression:
 			{
 				auto pref = cast<PostfixExpression>(expr);
-				auto operand = pref->GetOperand().get();
+				auto operand = pref->GetOperand();
 				auto operator_ = pref->GetOperator();
 
 				ReadVar(operand, currentFrame.outRegister);
@@ -334,8 +334,8 @@ namespace HXSL
 							AddInstrONO<StoreParamInstr>(currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
 						}
 
-						auto param = parameters[currentFrame.state].get();
-						auto operand = param->GetExpression().get();
+						auto param = parameters[currentFrame.state];
+						auto operand = param->GetExpression();
 						currentFrame.state++;
 						Number imm;
 						bool isImm = IsImmediate(operand, imm);
@@ -389,7 +389,7 @@ namespace HXSL
 			case NodeType_CastExpression:
 			{
 				auto castExpr = static_cast<CastExpression*>(expr);
-				auto operand = castExpr->GetOperand().get();
+				auto operand = castExpr->GetOperand();
 
 				Operand* imm;
 				bool isImm = IsInlineable(operand, imm);
@@ -421,8 +421,8 @@ namespace HXSL
 			case NodeType_AssignmentExpression:
 			{
 				auto assign = static_cast<AssignmentExpression*>(expr);
-				auto target = assign->GetTarget().get();
-				auto operand = assign->GetExpression().get();
+				auto target = assign->GetTarget();
+				auto operand = assign->GetExpression();
 
 				Operand* imm;
 				bool isImm = IsInlineable(operand, imm);
@@ -450,8 +450,8 @@ namespace HXSL
 			case NodeType_CompoundAssignmentExpression:
 			{
 				auto assign = static_cast<CompoundAssignmentExpression*>(expr);
-				auto target = assign->GetTarget().get();
-				auto operand = assign->GetExpression().get();
+				auto target = assign->GetTarget();
+				auto operand = assign->GetExpression();
 
 				Operand* imm;
 				bool isImm = IsInlineable(operand, imm);
@@ -492,7 +492,7 @@ namespace HXSL
 
 					currentFrame.state++;
 					PushCurrent();
-					PushFrame({ ternary->GetTrueBranch().get(), currentFrame.outRegister });
+					PushFrame({ ternary->GetTrueBranch(), currentFrame.outRegister });
 				}
 				else if (currentFrame.state == 2)
 				{
@@ -504,7 +504,7 @@ namespace HXSL
 
 					currentFrame.state++;
 					PushCurrent();
-					PushFrame({ ternary->GetFalseBranch().get(), currentFrame.outRegister });
+					PushFrame({ ternary->GetFalseBranch(), currentFrame.outRegister });
 				}
 				else if (currentFrame.state == 3)
 				{
@@ -514,7 +514,7 @@ namespace HXSL
 				{
 					currentFrame.state++;
 					PushCurrent();
-					PushFrame({ ternary->GetCondition().get(), currentFrame.outRegister });
+					PushFrame({ ternary->GetCondition(), currentFrame.outRegister });
 				}
 			}
 			break;

@@ -7,9 +7,8 @@ namespace HXSL
 {
 	class PrimitiveManager
 	{
-		ASTContext* context;
 	public:
-		PrimitiveManager(ASTContext& context) : context(&context)
+		PrimitiveManager()
 		{
 			Populate();
 		}
@@ -26,8 +25,6 @@ namespace HXSL
 		{
 			return assembly->GetMutableSymbolTable();
 		}
-
-		PrimitiveManager() = default;
 
 		void Populate();
 

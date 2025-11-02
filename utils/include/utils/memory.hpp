@@ -12,6 +12,12 @@ namespace HXSL
 	}
 
 	template<typename T>
+	static constexpr T AlignUp(T size, size_t alignment)
+	{
+		return (size + alignment - 1) & ~(alignment - 1);
+	}
+
+	template<typename T>
 	struct aligned_allocator
 	{
 		using value_type = T;

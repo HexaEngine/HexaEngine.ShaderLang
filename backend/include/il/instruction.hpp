@@ -46,7 +46,7 @@ namespace HXSL
 
 			OpCode_Discard,			// discard
 
-			OpCode_Phi,				// <dst> phi <phi_id>
+			OpCode_Phi,				// <dst> phi <phi_id> not a real instruction
 
 			OpCode_Add,					// <dst> add  <src/imm> <src/imm>
 			OpCode_Subtract,			// <dst> sub  <src/imm> <src/imm>

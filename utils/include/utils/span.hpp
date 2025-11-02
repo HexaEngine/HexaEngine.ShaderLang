@@ -9,28 +9,42 @@ namespace HXSL
 	class Span
 	{
 	public:
+		static constexpr bool IsConst = std::is_const_v<T>;
+		using TClean = std::remove_const_t<T>;
+		using TPtr = std::conditional_t<IsConst, const TClean*, TClean*>;
+		using TRef = std::conditional_t<IsConst, const TClean&, TClean&>;
+		using TConstRef = const TClean&;
+		using TConstPtr = const TClean*;
+
 		static constexpr size_t npos = static_cast<size_t>(-1);
-		using iterator = const T*;
+		using iterator = TPtr;
+		using const_iterator = TConstPtr;
+		using reverse_iterator = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	protected:
-		const T* data_m;
+		TPtr data_m;
 		size_t size_m;
 
 	public:
 		Span() : data_m(nullptr), size_m(0) {}
 
-		Span(const T* d, size_t size) : data_m(d), size_m(size) {}
+		Span(TPtr d, size_t size) : data_m(d), size_m(size) {}
 
-		Span(const std::vector<T>& vec) : data_m(vec.data()), size_m(vec.size()) {}
+		Span(std::vector<TClean>& vec) : data_m(vec.data()), size_m(vec.size()) {}
 
-		const T* data() const { return data_m; }
+		TPtr data() { return data_m; }
+		TConstPtr data() const { return data_m; }
 		size_t size() const { return size_m; }
+		bool empty() const { return size_m == 0; }
 
-		const T& operator[](size_t index) const
+		TRef operator[](size_t index)
 		{
-			if (index >= size_m) {
-				throw std::out_of_range("Index out of range in TextSpan");
-			}
+			return data_m[index];
+		}
+
+		TConstRef operator[](size_t index) const
+		{
 			return data_m[index];
 		}
 
@@ -83,15 +97,18 @@ namespace HXSL
 			return npos;
 		}
 
-		iterator begin() const
-		{
-			return data_m;
-		}
-
-		iterator end() const
-		{
-			return data_m + size_m;
-		}
+		iterator begin() { return data_m; }
+		iterator end() { return data_m + size_m; }
+		const_iterator begin() const { return data_m; }
+		const_iterator end() const { return data_m + size_m; }
+		const_iterator cbegin() const { return data_m; }
+		const_iterator cend() const { return data_m + size_m; }
+		reverse_iterator rbegin() { return reverse_iterator(end()); }
+		reverse_iterator rend() { return reverse_iterator(begin()); }
+		const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
+		const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+		const_reverse_iterator crbegin() const { return const_reverse_iterator(cend()); }
+		const_reverse_iterator crend() const { return const_reverse_iterator(cbegin()); }
 
 		uint64_t fnv1a_64bit_hash() const noexcept
 		{
@@ -115,7 +132,7 @@ namespace HXSL
 			return fnv1a_64bit_hash();
 		}
 
-		size_t indexOf(T c) const
+		size_t indexOf(const TClean& c) const
 		{
 			for (size_t i = 0; i < size_m; i++)
 			{
@@ -127,7 +144,7 @@ namespace HXSL
 			return npos;
 		}
 
-		size_t lastIndexOf(T c) const
+		size_t lastIndexOf(const TClean& c) const
 		{
 			if (size_m == 0) return npos;
 			for (size_t i = size_m; i-- > 0; )
@@ -144,6 +161,11 @@ namespace HXSL
 		{
 			if (this->size_m != other.size_m) return false;
 			return std::memcmp(this->begin(), other.begin(), this->size_m * sizeof(T)) == 0;
+		}
+
+		bool operator!=(const Span<T>& other) const
+		{
+			return !(*this == other);
 		}
 	};
 
@@ -166,10 +188,10 @@ namespace HXSL
 		}
 	};
 
-	using StringSpanHash = SpanHash<char>;
-	using StringSpanEqual = SpanEqual<char>;
+	using StringSpanHash = SpanHash<const char>;
+	using StringSpanEqual = SpanEqual<const char>;
 
-	struct StringSpan : public Span<char>
+	struct StringSpan : public Span<const char>
 	{
 		StringSpan() : Span(nullptr, 0)
 		{

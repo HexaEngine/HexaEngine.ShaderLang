@@ -10,7 +10,6 @@ namespace HXSL
 	class SwizzleManager
 	{
 	private:
-		ASTContext* context;
 		std::unique_ptr<SymbolTable> swizzleTable = std::make_unique<SymbolTable>();
 		PrimitiveManager& primitives;
 
@@ -40,7 +39,7 @@ namespace HXSL
 		}
 
 	public:
-		SwizzleManager(ASTContext& context, PrimitiveManager& primitives) : context(&context), primitives(primitives)
+		SwizzleManager(PrimitiveManager& primitives) : primitives(primitives)
 		{
 		}
 

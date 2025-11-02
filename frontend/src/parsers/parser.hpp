@@ -102,11 +102,11 @@ namespace HXSL
 	struct TakeHandle
 	{
 	private:
-		ast_ptr<T> ptr;
+		T* ptr;
 
 	public:
-		explicit TakeHandle(ast_ptr<T> resource)
-			: ptr(std::move(resource))
+		explicit TakeHandle(T* resource)
+			: ptr(resource)
 		{
 		}
 
@@ -119,24 +119,24 @@ namespace HXSL
 
 		T* Get()
 		{
-			return ptr.get();
+			return ptr;
 		}
 
 		const T* Get() const {
-			return ptr.get();
+			return ptr;
 		}
 
-		ast_ptr<T> Take() {
+		T* Take() {
 			return std::move(ptr);
 		}
 
 		void Reset() {
-			ptr.reset();
+			ptr = nullptr;
 		}
 
-		void Reset(ast_ptr<T> new_ptr)
+		void Reset(T* new_ptr)
 		{
-			ptr = std::move(new_ptr);
+			ptr = new_ptr;
 		}
 	};
 
@@ -195,31 +195,23 @@ namespace HXSL
 	class Parser : public LoggerAdapter
 	{
 	public:
-		ASTContext* context;
 		TokenStream* stream;
 		int ScopeLevel;
 		int NamespaceScope;
-		ASTBuilder<CompilationUnit>& compilation;
-		Namespace* CurrentNamespace;
-		ASTNode* ParentNode;
 		ParserScopeContext CurrentScope;
 		std::stack<ParserScopeContext> ScopeStack;
-		TakeHandle<AttributeDeclaration> attribute;
+		TakeHandle<AttributeDecl> attribute;
 		ModifierList modifierList;
 		size_t lastRecovery;
 
 		Parser() = default;
-		Parser(ILogger* logger, ASTContext& context, TokenStream& stream, ASTBuilder<CompilationUnit>& compilation) : LoggerAdapter(logger), context(&context), stream(&stream), ScopeLevel(0), NamespaceScope(0), compilation(compilation), CurrentNamespace(nullptr), CurrentScope(ParserScopeContext(ScopeType_Global, nullptr, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
+		Parser(ILogger* logger, TokenStream& stream) : LoggerAdapter(logger), stream(&stream), ScopeLevel(0), NamespaceScope(0), CurrentScope(ParserScopeContext(ScopeType_Global, nullptr, ScopeFlags_None)), modifierList({}), lastRecovery(-1)
 		{
 		}
 
 		void static InitializeSubSystems();
 
-		ASTBuilder<CompilationUnit>& Compilation() const noexcept { return compilation; }
-
-		ASTContext* GetASTContext() const noexcept { return context; }
-
-		IdentifierTable& GetIdentifierTable() noexcept { return context->GetIdentiferTable(); }
+		IdentifierTable& GetIdentifierTable() noexcept { return ASTContext::GetCurrentContext()->GetIdentifierTable(); }
 
 		TokenStream& GetStream() noexcept { return *stream; }
 
@@ -278,13 +270,11 @@ namespace HXSL
 		bool TryRecoverParameterListMacro(bool inDefinition);
 		void TryRecoverStatement();
 		IdentifierInfo* ParseQualifiedName(bool& hasDot);
-		UsingDeclaration ParseUsingDeclaration();
 		NamespaceDeclaration ParseNamespaceDeclaration(bool& scoped);
 		bool TryAdvance();
-		bool Parse();
-		bool ParseSubStep();
+		bool Parse(CompilationUnitBuilder& builder);
 		void ParseInnerBegin();
-		bool ParseSubStepInner();
+		bool ParseSubStepInner(ASTNode*& declOut);
 		bool AttemptErrorRecovery(bool restorePoint = false);
 
 		/// <summary>
@@ -312,7 +302,7 @@ namespace HXSL
 		/// `true` to continue normally, regardless of the input.
 		/// </remarks>
 		template<typename... Args>
-		bool AcceptAttribute(TakeHandle<AttributeDeclaration>** attributeOut, DiagnosticCode code, Args&&... args)
+		bool AcceptAttribute(TakeHandle<AttributeDecl>** attributeOut, DiagnosticCode code, Args&&... args)
 		{
 			if (!attribute.Get())
 			{
@@ -423,7 +413,7 @@ namespace HXSL
 
 		std::tuple<ParameterFlags, InterpolationModifier> ParseParameterFlags();
 		bool TryParseSymbol(const SymbolRefType& type, LazySymbol& symbol);
-		bool ParseSymbol(SymbolRefType expectedType, ast_ptr<SymbolRef>& type);
+		bool ParseSymbol(SymbolRefType expectedType, SymbolRef*& type);
 
 		bool TryParseArraySizes(std::vector<size_t>& arraySizes);
 		void ParseArraySizes(std::vector<size_t>& arraySizes);
@@ -453,7 +443,6 @@ namespace HXSL
 		}
 
 		TokenStream& GetStream() noexcept { return parser.GetStream(); }
-		ASTBuilder<CompilationUnit>& GetCompilation() const noexcept { return parser.Compilation(); }
 		int GetScopeLevel() const noexcept { return parser.scopeLevel(); }
 		ScopeType GetScopeType() const noexcept { return parser.scopeType(); }
 		ASTNode* GetScopeParent() const noexcept { return parser.scopeParent(); }
@@ -509,19 +498,14 @@ namespace HXSL
 		bool TryRecoverParameterList() { return parser.TryRecoverParameterList(); }
 		void TryRecoverStatement() { parser.TryRecoverStatement(); }
 
-		UsingDeclaration ParseUsingDeclaration() { return parser.ParseUsingDeclaration(); }
-		NamespaceDeclaration ParseNamespaceDeclaration(bool& scoped) { return parser.ParseNamespaceDeclaration(scoped); }
-
 		bool TryAdvance() { return parser.TryAdvance(); }
-		bool Parse() { return parser.Parse(); }
 
-		bool ParseSubStep() { return parser.ParseSubStep(); }
 		void ParseInnerBegin() { parser.ParseInnerBegin(); }
-		bool ParseSubStepInner() { return parser.ParseSubStepInner(); }
+		bool ParseSubStepInner(ASTNode*& declOut) { return parser.ParseSubStepInner(declOut); }
 		bool AttemptErrorRecovery(bool restorePoint = false) { return parser.AttemptErrorRecovery(restorePoint); }
 
 		template<typename... Args>
-		bool AcceptAttribute(TakeHandle<AttributeDeclaration>** attributeOut, DiagnosticCode code, Args&&... args)
+		bool AcceptAttribute(TakeHandle<AttributeDecl>** attributeOut, DiagnosticCode code, Args&&... args)
 		{
 			return parser.AcceptAttribute(attributeOut, code, std::forward<Args>(args)...);
 		}
@@ -548,7 +532,7 @@ namespace HXSL
 
 		bool TryParseSymbol(const SymbolRefType& type, LazySymbol& symbol) { return parser.TryParseSymbol(type, symbol); }
 
-		bool ParseSymbol(SymbolRefType expectedType, ast_ptr<SymbolRef>& type) { return parser.ParseSymbol(expectedType, type); }
+		bool ParseSymbol(SymbolRefType expectedType, SymbolRef*& type) { return parser.ParseSymbol(expectedType, type); }
 
 		bool TryParseArraySizes(std::vector<size_t>& arraySizes) { return parser.TryParseArraySizes(arraySizes); }
 

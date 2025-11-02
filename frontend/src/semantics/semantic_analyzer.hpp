@@ -14,7 +14,6 @@ if (!expr) { \
 	struct SemanticAnalyzer : public LoggerAdapter
 	{
 	private:
-		ASTContext& context;
 		CompilationUnit* compilation;
 
 		const AssemblyCollection& references;
@@ -40,16 +39,15 @@ if (!expr) { \
 		friend class SymbolResolver;
 
 	public:
-		SemanticAnalyzer(ILogger* logger, ASTContext& context, CompilationUnit* compilation, const AssemblyCollection& references) :
+		SemanticAnalyzer(ILogger* logger, CompilationUnit* compilation, const AssemblyCollection& references) :
 			LoggerAdapter(logger),
-			context(context),
 			compilation(compilation),
 			references(references),
 			outputAssembly(Assembly::Create("")),
-			primitiveManager(std::make_unique<PrimitiveManager>(context)),
-			pointerManager(std::make_unique<PointerManager>(context)),
-			arrayManager(std::make_unique<ArrayManager>(context)),
-			swizzleManager(std::make_unique<SwizzleManager>(context, *primitiveManager.get()))
+			primitiveManager(std::make_unique<PrimitiveManager>()),
+			pointerManager(std::make_unique<PointerManager>()),
+			arrayManager(std::make_unique<ArrayManager>()),
+			swizzleManager(std::make_unique<SwizzleManager>(*primitiveManager.get()))
 		{
 		}
 

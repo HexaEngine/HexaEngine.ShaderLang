@@ -16,9 +16,10 @@ namespace HXSL
 			return false;
 		}
 
+		auto context = ASTContext::GetCurrentContext();
 		auto elementTypeName = elementType->GetFullyQualifiedName().str();
-		auto elementTypeN = context->GetIdentiferTable().Get(elementTypeName);
-		auto pointerKey = context->GetIdentiferTable().Get(elementTypeName + "*");
+		auto elementTypeN = context->GetIdentifierTable().Get(elementTypeName);
+		auto pointerKey = context->GetIdentifierTable().Get(elementTypeName + "*");
 
 		auto table = pointerAssembly->GetMutableSymbolTable();
 
@@ -30,13 +31,13 @@ namespace HXSL
 			return true;
 		}
 
-		auto symbolRef = ast_ptr<SymbolRef>(SymbolRef::Create(context, TextSpan(), elementTypeN, SymbolRefType_Type, true));
+		auto symbolRef = SymbolRef::Create(TextSpan(), elementTypeN, SymbolRefType_Type, true);
 
-		auto pointer = Pointer::Create(context, TextSpan(), pointerKey, std::move(symbolRef));
+		auto pointer = Pointer::Create(TextSpan(), pointerKey, symbolRef);
 
 		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Pointer, SymbolScopeType_Global, AccessModifier_Public, 0, pointer);
 		handle = table->Insert(pointer->GetName(), meta);
-		pointer->SetAssembly(context, pointerAssembly.get(), handle);
+		pointer->SetAssembly(pointerAssembly.get(), handle);
 
 		handleOut = handle;
 		pointerOut = pointer;

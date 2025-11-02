@@ -1,4 +1,2 @@
 namespace Test;
 
-SamplerState samplerState;
-Texture2D fontTex;

@@ -4,26 +4,25 @@
 
 namespace HXSL
 {
-	Parameter* Parameter::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ParameterFlags flags, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic)
+	Parameter* Parameter::Create(const TextSpan& span, IdentifierInfo* name, ParameterFlags flags, InterpolationModifier interpolationModifiers, SymbolRef* symbol, IdentifierInfo* semantic)
 	{
-		return context->Alloc<Parameter>(sizeof(Parameter), span, name, flags, interpolationModifiers, std::move(symbol), semantic);
+		auto* context = ASTContext::GetCurrentContext();
+		return context->Alloc<Parameter>(sizeof(Parameter), span, name, flags, interpolationModifiers, symbol, semantic);
 	}
 
-	FunctionOverload* FunctionOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, ArrayRef<ast_ptr<Parameter>> parameters, ArrayRef<ast_ptr<AttributeDeclaration>> attributes)
+	FunctionOverload* FunctionOverload::Create(const TextSpan& span,
+		IdentifierInfo* name,
+		AccessModifier accessModifiers,
+		FunctionFlags functionFlags,
+		SymbolRef* returnSymbol,
+		BlockStatement* body,
+		IdentifierInfo* semantic,
+		const ArrayRef<Parameter*>& parameters,
+		const ArrayRef<AttributeDecl*>& attributes)
 	{
-		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, ID, name, accessModifiers, functionFlags, std::move(returnSymbol));
-		ptr->numParameters = static_cast<uint32_t>(parameters.size());
-		ptr->numAttributes = static_cast<uint32_t>(attributes.size());
-		std::uninitialized_move(parameters.begin(), parameters.end(), ptr->GetParameters().data());
-		return ptr;
-	}
-
-	FunctionOverload* FunctionOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters, uint32_t numAttributes)
-	{
-		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(numParameters, numAttributes), span, ID, name, accessModifiers, functionFlags, std::move(returnSymbol));
-		ptr->numParameters = numParameters;
-		ptr->numAttributes = numAttributes;
-		ptr->GetParameters().init();
+		auto* context = ASTContext::GetCurrentContext();
+		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, ID, name, accessModifiers, functionFlags, returnSymbol, body);
+		ptr->storage.InitializeMove(ptr, parameters, attributes);
 		return ptr;
 	}
 
@@ -46,7 +45,7 @@ namespace HXSL
 			first = false;
 			if (placeholder)
 			{
-				oss << reinterpret_cast<size_t>(param.get());
+				oss << reinterpret_cast<size_t>(param);
 			}
 			else
 			{
@@ -66,36 +65,27 @@ namespace HXSL
 		}
 	}
 
-	const ast_ptr<BlockStatement>& FunctionOverload::GetBody() const noexcept
+	BlockStatement* FunctionOverload::GetBody() const noexcept
 	{
 		return body;
 	}
 
-	void FunctionOverload::SetBody(ast_ptr<BlockStatement>&& value) noexcept
+	void FunctionOverload::SetBody(BlockStatement* value) noexcept
 	{
-		UnregisterChild(body.get()); body = std::move(value); RegisterChild(body.get());
+		UnregisterChild(value); body = value; RegisterChild(value);
 	}
 
-	ast_ptr<BlockStatement>& FunctionOverload::GetBodyMut() noexcept
+	BlockStatement*& FunctionOverload::GetBodyMut() noexcept
 	{
 		return body;
 	}
 
-	ConstructorOverload* ConstructorOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& targetTypeSymbol, ArrayRef<ast_ptr<Parameter>>& parameters)
+	ConstructorOverload* ConstructorOverload::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes)
 	{
-		auto returnType = SymbolRef::Create(context, TextSpan(), context->GetIdentiferTable().Get("void"), SymbolRefType_Type, true);
-		auto ptr = context->Alloc<ConstructorOverload>(TotalSizeToAlloc(parameters.size()), span, name, accessModifiers, functionFlags, std::move(targetTypeSymbol), ast_ptr<SymbolRef>(returnType));
-		ptr->numParameters = static_cast<uint32_t>(parameters.size());
-		std::uninitialized_move(parameters.begin(), parameters.end(), ptr->GetParameters().data());
-		return ptr;
-	}
-
-	ConstructorOverload* ConstructorOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& targetTypeSymbol, uint32_t numParameters)
-	{
-		auto returnType = SymbolRef::Create(context, TextSpan(), context->GetIdentiferTable().Get("void"), SymbolRefType_Type, true);
-		auto ptr = context->Alloc<ConstructorOverload>(TotalSizeToAlloc(numParameters), span, name, accessModifiers, functionFlags, std::move(targetTypeSymbol), ast_ptr<SymbolRef>(returnType));
-		ptr->numParameters = numParameters;
-		ptr->GetParameters().init();
+		auto* context = ASTContext::GetCurrentContext();
+		auto returnType = SymbolRef::Create(TextSpan(), context->GetIdentifierTable().Get("void"), SymbolRefType_Type, true);
+		auto ptr = context->Alloc<ConstructorOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, name, accessModifiers, functionFlags, targetTypeSymbol, returnType, body);
+		ptr->storage.InitializeMove(ptr, parameters, attributes);
 		return ptr;
 	}
 
@@ -119,7 +109,7 @@ namespace HXSL
 
 			if (placeholder)
 			{
-				str.append(std::to_string(reinterpret_cast<size_t>(param.get())));
+				str.append(std::to_string(reinterpret_cast<size_t>(param)));
 			}
 			else
 			{
@@ -139,19 +129,11 @@ namespace HXSL
 		}
 	}
 
-	OperatorOverload* OperatorOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, ast_ptr<SymbolRef>&& returnSymbol, ArrayRef<ast_ptr<Parameter>>& parameters)
+	OperatorOverload* OperatorOverload::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes)
 	{
-		auto ptr = context->Alloc<OperatorOverload>(TotalSizeToAlloc(parameters.size()), span, name, accessModifiers, functionFlags, operatorFlags, _operator, std::move(returnSymbol));
-		ptr->numParameters = static_cast<uint32_t>(parameters.size());
-		std::uninitialized_move(parameters.begin(), parameters.end(), ptr->GetParameters().data());
-		return ptr;
-	}
-
-	OperatorOverload* OperatorOverload::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters)
-	{
-		auto ptr = context->Alloc<OperatorOverload>(TotalSizeToAlloc(numParameters), span, name, accessModifiers, functionFlags, operatorFlags, _operator, std::move(returnSymbol));
-		ptr->numParameters = numParameters;
-		ptr->GetParameters().init();
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<OperatorOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, name, accessModifiers, functionFlags, operatorFlags, _operator, returnSymbol, body);
+		ptr->storage.InitializeMove(ptr, parameters, attributes);
 		return ptr;
 	}
 
@@ -198,7 +180,7 @@ namespace HXSL
 
 			if (placeholder)
 			{
-				str.append(std::to_string(reinterpret_cast<size_t>(param.get())));
+				str.append(std::to_string(reinterpret_cast<size_t>(param)));
 			}
 			else
 			{
@@ -218,90 +200,52 @@ namespace HXSL
 		}
 	}
 
-	Field* Field::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic)
+	Field* Field::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, SymbolRef* symbol, IdentifierInfo* semantic)
 	{
-		return context->Alloc<Field>(sizeof(Field), span, name, access, storageClass, interpolationModifiers, std::move(symbol), semantic);
+		auto* context = ASTContext::GetCurrentContext();
+		return context->Alloc<Field>(sizeof(Field), span, name, access, storageClass, interpolationModifiers, symbol, semantic);
 	}
 
-	ThisDef* ThisDef::Create(ASTContext* context, IdentifierInfo* parentIdentifier)
+	ThisDef* ThisDef::Create(IdentifierInfo* parentIdentifier)
 	{
-		auto parentType = ast_ptr<SymbolRef>(SymbolRef::Create(context, TextSpan(), parentIdentifier, SymbolRefType_Type, false));
-		return context->Alloc<ThisDef>(sizeof(ThisDef), context->GetIdentiferTable().Get("this"), std::move(parentType));
+		auto* context = ASTContext::GetCurrentContext();
+		auto parentType = SymbolRef::Create(TextSpan(), parentIdentifier, SymbolRefType_Type, false);
+		return context->Alloc<ThisDef>(sizeof(ThisDef), context->GetIdentifierTable().Get("this"), parentType);
 	}
 
-	Struct* Struct::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, ArrayRef<ast_ptr<Field>>& fields, ArrayRef<ast_ptr<Struct>>& structs, ArrayRef<ast_ptr<Class>>& classes, ArrayRef<ast_ptr<ConstructorOverload>>& constructors, ArrayRef<ast_ptr<FunctionOverload>>& functions, ArrayRef<ast_ptr<OperatorOverload>>& operators)
+	Struct* Struct::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const ArrayRef<Field*>& fields, const ArrayRef<Struct*>& structs, const ArrayRef<Class*>& classes, const ArrayRef<ConstructorOverload*>& constructors, const ArrayRef<FunctionOverload*>& functions, const ArrayRef<OperatorOverload*>& operators)
 	{
-		auto thisDef = ast_ptr<ThisDef>(ThisDef::Create(context, name));
-		auto ptr = context->Alloc<Struct>(TotalSizeToAlloc(fields.size(), structs.size(), classes.size(), constructors.size(), functions.size(), operators.size()), span, name, access, std::move(thisDef));
-		ptr->numFields = static_cast<uint32_t>(fields.size());
-		ptr->numStructs = static_cast<uint32_t>(structs.size());
-		ptr->numClasses = static_cast<uint32_t>(classes.size());
-		ptr->numConstructors = static_cast<uint32_t>(constructors.size());
-		ptr->numFunctions = static_cast<uint32_t>(functions.size());
-		ptr->numOperators = static_cast<uint32_t>(operators.size());
-		std::uninitialized_move(fields.begin(), fields.end(), ptr->GetFields().data());
-		std::uninitialized_move(structs.begin(), structs.end(), ptr->GetStructs().data());
-		std::uninitialized_move(classes.begin(), classes.end(), ptr->GetClasses().data());
-		std::uninitialized_move(constructors.begin(), constructors.end(), ptr->GetConstructors().data());
-		std::uninitialized_move(functions.begin(), functions.end(), ptr->GetFunctions().data());
-		std::uninitialized_move(operators.begin(), operators.end(), ptr->GetOperators().data());
+		auto* context = ASTContext::GetCurrentContext();
+		auto thisDef = ThisDef::Create(name);
+		auto ptr = context->Alloc<Struct>(TotalSizeToAlloc(fields.size(), structs.size(), classes.size(), constructors.size(), functions.size(), operators.size()), span, name, access, thisDef);
+		ptr->storage.InitializeMove(ptr, fields, structs, classes, constructors, functions, operators);
 		return ptr;
 	}
 
-	Struct* Struct::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators)
+	Struct* Struct::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators)
 	{
-		auto thisDef = ast_ptr<ThisDef>(ThisDef::Create(context, name));
-		auto ptr = context->Alloc<Struct>(TotalSizeToAlloc(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), span, name, access, std::move(thisDef));
-		ptr->numFields = numFields;
-		ptr->numStructs = numStructs;
-		ptr->numClasses = numClasses;
-		ptr->numConstructors = numConstructors;
-		ptr->numFunctions = numFunctions;
-		ptr->numOperators = numOperators;
-		ptr->GetFields().init();
-		ptr->GetStructs().init();
-		ptr->GetClasses().init();
-		ptr->GetConstructors().init();
-		ptr->GetFunctions().init();
-		ptr->GetOperators().init();
+		auto* context = ASTContext::GetCurrentContext();
+		auto thisDef = ThisDef::Create(name);
+		auto ptr = context->Alloc<Struct>(TotalSizeToAlloc(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), span, name, access, thisDef);
+		ptr->storage.SetCounts(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators);
 		return ptr;
 	}
 
-	Class* Class::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, ArrayRef<ast_ptr<Field>>& fields, ArrayRef<ast_ptr<Struct>>& structs, ArrayRef<ast_ptr<Class>>& classes, ArrayRef<ast_ptr<ConstructorOverload>>& constructors, ArrayRef<ast_ptr<FunctionOverload>>& functions, ArrayRef<ast_ptr<OperatorOverload>>& operators)
+	Class* Class::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const ArrayRef<Field*>& fields, const ArrayRef<Struct*>& structs, const ArrayRef<Class*>& classes, const ArrayRef<ConstructorOverload*>& constructors, const ArrayRef<FunctionOverload*>& functions, const ArrayRef<OperatorOverload*>& operators)
 	{
-		auto thisDef = ast_ptr<ThisDef>(ThisDef::Create(context, name));
-		auto ptr = context->Alloc<Class>(TotalSizeToAlloc(fields.size(), structs.size(), classes.size(), constructors.size(), functions.size(), operators.size()), span, name, access, std::move(thisDef));
-		ptr->numFields = static_cast<uint32_t>(fields.size());
-		ptr->numStructs = static_cast<uint32_t>(structs.size());
-		ptr->numClasses = static_cast<uint32_t>(classes.size());
-		ptr->numConstructors = static_cast<uint32_t>(constructors.size());
-		ptr->numFunctions = static_cast<uint32_t>(functions.size());
-		ptr->numOperators = static_cast<uint32_t>(operators.size());
-		std::uninitialized_move(fields.begin(), fields.end(), ptr->GetFields().data());
-		std::uninitialized_move(structs.begin(), structs.end(), ptr->GetStructs().data());
-		std::uninitialized_move(classes.begin(), classes.end(), ptr->GetClasses().data());
-		std::uninitialized_move(constructors.begin(), constructors.end(), ptr->GetConstructors().data());
-		std::uninitialized_move(functions.begin(), functions.end(), ptr->GetFunctions().data());
-		std::uninitialized_move(operators.begin(), operators.end(), ptr->GetOperators().data());
+		auto* context = ASTContext::GetCurrentContext();
+		auto thisDef = ThisDef::Create(name);
+		auto ptr = context->Alloc<Class>(TotalSizeToAlloc(fields.size(), structs.size(), classes.size(), constructors.size(), functions.size(), operators.size()), span, name, access, thisDef);
+		ptr->storage.InitializeMove(ptr, fields, structs, classes, constructors, functions, operators);
 		return ptr;
 	}
 
-	Class* Class::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators)
+	Class* Class::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators)
 	{
-		auto thisDef = ast_ptr<ThisDef>(ThisDef::Create(context, name));
-		auto ptr = context->Alloc<Class>(TotalSizeToAlloc(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), span, name, access, std::move(thisDef));
-		ptr->numFields = numFields;
-		ptr->numStructs = numStructs;
-		ptr->numClasses = numClasses;
-		ptr->numConstructors = numConstructors;
-		ptr->numFunctions = numFunctions;
-		ptr->numOperators = numOperators;
-		ptr->GetFields().init();
-		ptr->GetStructs().init();
-		ptr->GetClasses().init();
-		ptr->GetConstructors().init();
-		ptr->GetFunctions().init();
-		ptr->GetOperators().init();
+		auto* context = ASTContext::GetCurrentContext();
+		auto thisDef = ThisDef::Create(name);
+		auto ptr = context->Alloc<Class>(TotalSizeToAlloc(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), span, name, access, thisDef);
+		ptr->storage.SetCounts(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators);
 		return ptr;
 	}
 

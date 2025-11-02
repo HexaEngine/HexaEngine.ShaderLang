@@ -43,16 +43,17 @@ namespace HXSL
 			typeName += std::to_string(pattern.size());
 		}
 
-		auto& idTable = context->GetIdentiferTable();
+		auto context = ASTContext::GetCurrentContext();
+		auto& idTable = context->GetIdentifierTable();
 
 		auto typeN = primitives.GetSymbolTable();
 		auto primitivesTable = primitives.GetSymbolTable();
 		auto primitiveHandle = primitivesTable->FindNodeIndexPart(typeName);
 		auto& resultingType = primitiveHandle.GetMetadata()->declaration;
 
-		auto symbolRef = ast_ptr<SymbolRef>(SymbolRef::Create(context, TextSpan(), idTable.Get(typeName), SymbolRefType_Member, false));
+		auto symbolRef = SymbolRef::Create(TextSpan(), idTable.Get(typeName), SymbolRefType_Member, false);
 		symbolRef->SetTable(primitiveHandle);
-		auto swizzleDef = SwizzleDefinition::Create(context, TextSpan(), idTable.Get(pattern), mask, prim, std::move(symbolRef));
+		auto swizzleDef = SwizzleDefinition::Create(TextSpan(), idTable.Get(pattern), mask, prim, symbolRef);
 		auto metaField = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, AccessModifier_Public, 0, swizzleDef);
 
 		if (primHandle.invalid())

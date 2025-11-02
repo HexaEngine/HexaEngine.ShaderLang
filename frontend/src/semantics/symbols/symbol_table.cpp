@@ -22,7 +22,7 @@ namespace HXSL
 		}
 	}
 
-	void SymbolMetadata::Read(Stream& stream, ast_ptr<SymbolDef>& node, StringPool& container)
+	void SymbolMetadata::Read(Stream& stream, SymbolDef*& node, StringPool& container)
 	{
 		symbolType = static_cast<SymbolType>(stream.ReadUInt());
 		scope = static_cast<SymbolScopeType>(stream.ReadUInt());
@@ -33,13 +33,9 @@ namespace HXSL
 		{
 			auto type = static_cast<NodeType>(stream.ReadUInt());
 			auto pt = CreateInstance(type);
-			declaration = pt.get();
+			declaration = pt;
 			declaration->Read(stream, container);
-			node = std::move(pt);
-		}
-		else
-		{
-			node.reset();
+			node = pt;
 		}
 	}
 
@@ -50,7 +46,7 @@ namespace HXSL
 		while (true)
 		{
 			size_t idx = span.indexOf('.');
-			if (idx == -1) idx = span.length;
+			if (idx == -1) idx = span.size();
 			StringSpan part = span.slice(0, idx);
 
 			auto& node = nodes[current];
@@ -65,7 +61,7 @@ namespace HXSL
 				current = it->second;
 			}
 
-			if (idx == span.length)
+			if (idx == span.size())
 			{
 				break;
 			}
@@ -84,7 +80,7 @@ namespace HXSL
 
 	static size_t FindSep(const StringSpan& span)
 	{
-		for (size_t i = 0; i < span.length; i++)
+		for (size_t i = 0; i < span.size(); i++)
 		{
 			const char& c = span[i];
 			if (c == QUALIFIER_SEP)
@@ -110,7 +106,7 @@ namespace HXSL
 		while (true)
 		{
 			size_t idx = FindSep(span);
-			if (idx == -1) idx = span.length;
+			if (idx == -1) idx = span.size();
 			StringSpan part = span.slice(0, idx);
 
 			size_t index = FindNodeIndexPartInternal(part, current);
@@ -124,7 +120,7 @@ namespace HXSL
 				return {};
 			}
 
-			if (idx == span.length)
+			if (idx == span.size())
 			{
 				break;
 			}
@@ -309,7 +305,7 @@ namespace HXSL
 		std::vector<size_t> Children;
 	};
 
-	static void ReadNode(Stream& stream, DiskSymbolTableNode& diskNode, std::vector<ast_ptr<SymbolDef>>& nodes, StringPool& container, size_t& index)
+	static void ReadNode(Stream& stream, DiskSymbolTableNode& diskNode, std::vector<SymbolDef*>& nodes, StringPool& container, size_t& index)
 	{
 		auto& node = diskNode.Node;
 		index = stream.ReadUInt();
@@ -324,7 +320,7 @@ namespace HXSL
 		auto metadata = stream.ReadValue<bool>();
 		if (metadata)
 		{
-			ast_ptr<SymbolDef> astNode;
+			SymbolDef* astNode;
 			node.Metadata = std::make_shared<SymbolMetadata>();
 			node.Metadata->Read(stream, astNode, container);
 			nodes[index] = std::move(astNode);
@@ -340,7 +336,7 @@ namespace HXSL
 		nodes.resize(nodeCount);
 		compilation->Clear();
 
-		std::vector<ast_ptr<SymbolDef>> externalAstNodes;
+		std::vector<SymbolDef*> externalAstNodes;
 		externalAstNodes.resize(nodeCount);
 
 		for (size_t i = 0; i < nodeCount; i++)
@@ -380,11 +376,11 @@ namespace HXSL
 
 				if (auto ns = dyn_cast<Namespace>(decl))
 				{
-					auto actual = std::move(externalAstNodes[idx]).release();
-					compilation->AddNamespace(ast_ptr<Namespace>(dyn_cast<Namespace>(actual)));
+					auto actual = externalAstNodes[idx];
+					compilation->AddNamespace(dyn_cast<Namespace>(actual));
 				}
 
-				decl->Build(*this, idx, compilation.get(), externalAstNodes);
+				decl->Build(*this, idx, compilation, externalAstNodes);
 				decl->SetAssembly(parentAssembly, MakeHandle(idx));
 			}
 

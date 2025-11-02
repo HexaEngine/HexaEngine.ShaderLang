@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	static bool ParseField(Parser& parser, TokenStream& stream, const Token& start, IdentifierInfo* name, ast_ptr<SymbolRef> symbol, TextSpan semantic)
+	static bool ParseField(Parser& parser, TokenStream& stream, const Token& start, IdentifierInfo* name, SymbolRef* symbol, IdentifierInfo* semantic, Field*& fieldOut)
 	{
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
@@ -18,29 +18,14 @@ namespace HXSL
 		}
 
 		auto span = start.Span.merge(stream.LastToken().Span);
-		auto field = make_ast_ptr<Field>(span, name, list.accessModifiers, list.storageClasses, list.interpolationModifiers, std::move(symbol), semantic);
+		auto field = Field::Create(span, name, list.accessModifiers, list.storageClasses, list.interpolationModifiers, symbol, semantic);
 
-		ASTNode* parent = parser.scopeParent();
-		auto parentType = parent->GetType();
-		switch (parentType)
-		{
-		case NodeType_Namespace:
-			cast<Namespace>(parent)->AddField(std::move(field));
-			break;
-		case NodeType_Struct:
-			cast<Struct>(parent)->AddField(std::move(field));
-			break;
-		case NodeType_Class:
-			cast<Class>(parent)->AddField(std::move(field));
-			break;
-		default:
-			return false;
-		}
+		fieldOut = field;
 
 		return true;
 	}
 
-	static bool ParseParameter(Parser& parser, TokenStream& stream, ast_ptr<Parameter>& parameter)
+	static bool ParseParameter(Parser& parser, TokenStream& stream, Parameter*& parameter)
 	{
 		auto startingToken = stream.Current();
 
@@ -51,7 +36,7 @@ namespace HXSL
 		IdentifierInfo* name;
 		IF_ERR_RET_FALSE(stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER));
 
-		TextSpan semantic = {};
+		IdentifierInfo* semantic = nullptr;
 		if (stream.TryGetOperator(Operator_Colon))
 		{
 			IF_ERR_RET_FALSE(stream.ExpectIdentifier(semantic, EXPECTED_IDENTIFIER));
@@ -59,11 +44,11 @@ namespace HXSL
 
 		auto span = startingToken.Span.merge(stream.LastToken().Span);
 
-		parameter = make_ast_ptr<Parameter>(span, name, std::get<0>(flags), std::get<1>(flags), std::move(symbol.make()), semantic);
+		parameter = Parameter::Create(span, name, std::get<0>(flags), std::get<1>(flags), symbol.make(), semantic);
 		return true;
 	}
 
-	static bool ParseParameters(Parser& parser, TokenStream& stream, std::vector<ast_ptr<Parameter>>& parameters)
+	static bool ParseParameters(Parser& parser, TokenStream& stream, std::vector<Parameter*>& parameters)
 	{
 		bool firstParameter = true;
 		while (!stream.TryGetDelimiter(')'))
@@ -74,7 +59,7 @@ namespace HXSL
 			}
 			firstParameter = false;
 
-			ast_ptr<Parameter> parameter;
+			Parameter* parameter;
 
 			if (ParseParameter(parser, stream, parameter))
 			{
@@ -92,9 +77,9 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseFunction(Parser& parser, TokenStream& stream, const Token& start, IdentifierInfo* name, ast_ptr<SymbolRef> returnSymbol)
+	static bool ParseFunction(Parser& parser, TokenStream& stream, const Token& start, IdentifierInfo* name, SymbolRef* returnSymbol, FunctionOverload*& function)
 	{
-		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		TakeHandle<AttributeDecl>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
 		ModifierList list;
@@ -109,50 +94,32 @@ namespace HXSL
 
 		auto parent = parser.scopeParent();
 
-		std::vector<ast_ptr<Parameter>> parameters;
+		std::vector<Parameter*> parameters;
 		ParseParameters(parser, stream, parameters);
 
+		IdentifierInfo* semantic = nullptr;
 		if (stream.TryGetOperator(Operator_Colon))
 		{
-			TextSpan semantic;
 			stream.ExpectIdentifier(semantic, EXPECTED_IDENTIFIER);
-			function->SetSemantic(semantic.str());
 		}
 
-		ast_ptr<BlockStatement> statement;
+		BlockStatement* statement;
 		ParseStatementBody(ScopeType_Function, parser, stream, statement);
-		function->SetBody(std::move(statement));
 
 		auto span = stream.MakeFromLast(start);
-		std::vector<ast_ptr<AttributeDeclaration>> attributes;
+		std::vector<AttributeDecl*> attributes;
 		if (attribute && attribute->HasResource())
 		{
-			attributes.push_back(std::move(attribute->Take()));
-		}
-		auto function = FunctionOverload::Create(parser.GetASTContext(), span, name, list.accessModifiers, list.functionFlags, std::move(returnSymbol), parameters, attributes);
-
-		auto parentType = parent->GetType();
-		switch (parentType)
-		{
-		case NodeType_Namespace:
-			cast<Namespace>(parent)->AddFunction(std::move(function));
-			break;
-		case NodeType_Struct:
-			cast<Struct>(parent)->AddFunction(std::move(function));
-			break;
-		case NodeType_Class:
-			cast<Class>(parent)->AddFunction(std::move(function));
-			break;
-		default:
-			return false;
+			attributes.push_back(attribute->Take());
 		}
 
+		function = FunctionOverload::Create(span, name, list.accessModifiers, list.functionFlags, returnSymbol, statement, semantic, parameters, attributes);
 		return true;
 	}
 
-	static bool ParseConstructor(Parser& parser, TokenStream& stream, const Token& start, ast_ptr<SymbolRef> returnSymbol)
+	static bool ParseConstructor(Parser& parser, TokenStream& stream, const Token& start, SymbolRef* returnSymbol, ConstructorOverload*& ctor)
 	{
-		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		TakeHandle<AttributeDecl>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
 		ModifierList list;
@@ -165,43 +132,29 @@ namespace HXSL
 			return false;
 		}
 
-		auto parent = parser.scopeParent();
-		auto ctor = make_ast_ptr<ConstructorOverload>(TextSpan(), parser.GetIdentifierTable().Get("#ctor"), list.accessModifiers, list.functionFlags, std::move(returnSymbol));
+		std::vector<AttributeDecl*> attributes;
 		if (attribute && attribute->HasResource())
 		{
-			ctor->AddAttribute(std::move(attribute->Take()));
+			attributes.push_back(attribute->Take());
 		}
 
-		ParseParameters(parser, stream, ctor.get());
+		std::vector<Parameter*> parameters;
+		ParseParameters(parser, stream, parameters);
 
-		ast_ptr<BlockStatement> statement;
+		BlockStatement* statement;
 		ParseStatementBody(ScopeType_Function, parser, stream, statement);
-		ctor->SetBody(std::move(statement));
 
-		ctor->SetSpan(stream.MakeFromLast(start));
-
-		auto parentType = parent->GetType();
-		switch (parentType)
-		{
-		case NodeType_Struct:
-			cast<Struct>(parent)->AddFunction(std::move(ctor));
-			break;
-		case NodeType_Class:
-			cast<Class>(parent)->AddFunction(std::move(ctor));
-			break;
-		default:
-			return false;
-		}
-
+		auto span = stream.MakeFromLast(start);
+		ctor = ConstructorOverload::Create(span, parser.GetIdentifierTable().Get("#ctor"), list.accessModifiers, list.functionFlags, returnSymbol, statement, parameters, attributes);
 		return true;
 	}
 
-	static bool ParseOperator(Parser& parser, TokenStream& stream, const Token& start, OperatorFlags flags)
+	static bool ParseOperator(Parser& parser, TokenStream& stream, const Token& start, OperatorFlags flags, OperatorOverload*& _operator)
 	{
 		auto opKeywordToken = stream.Current();
 		stream.ExpectKeyword(Keyword_Operator, EXPECTED_OPERATOR);
 
-		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		TakeHandle<AttributeDecl>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
 		ModifierList list;
@@ -220,7 +173,7 @@ namespace HXSL
 			op = Operator_Cast;
 		}
 
-		ast_ptr<SymbolRef> symbol;
+		SymbolRef* symbol;
 		IF_ERR_RET_FALSE(parser.ParseSymbol(SymbolRefType_Type, symbol));
 
 		auto scopeType = parser.scopeType();
@@ -231,42 +184,116 @@ namespace HXSL
 
 		auto name = opKeywordToken.Span.merge(opToken.Span);
 
-		auto _operator = make_ast_ptr<OperatorOverload>(TextSpan(), parser.GetIdentifierTable().Get(name.span()), list.accessModifiers, list.functionFlags, flags, op, std::move(symbol));
+		std::vector<AttributeDecl*> attributes;
 		if (attribute && attribute->HasResource())
 		{
-			_operator->AddAttribute(std::move(attribute->Take()));
+			attributes.push_back(attribute->Take());
 		}
 
 		stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
-		ParseParameters(parser, stream, _operator.get());
 
-		if (!stream.TryGetDelimiter(';'))
-		{
-			ast_ptr<BlockStatement> statement;
-			ParseStatementBody(ScopeType_Function, parser, stream, statement);
-			_operator->SetBody(std::move(statement));
-		}
+		std::vector<Parameter*> parameters;
+		ParseParameters(parser, stream, parameters);
 
-		_operator->SetSpan(stream.MakeFromLast(start));
+		BlockStatement* statement;
+		ParseStatementBody(ScopeType_Function, parser, stream, statement);
 
-		auto parent = parser.scopeParent();
-		auto parentType = parent->GetType();
-		switch (parentType)
-		{
-		case NodeType_Struct:
-			cast<Struct>(parent)->AddOperator(std::move(_operator));
-			break;
-		case NodeType_Class:
-			cast<Class>(parent)->AddOperator(std::move(_operator));
-			break;
-		default:
-			return false;
-		}
-
+		auto span = stream.MakeFromLast(start);
+		_operator = OperatorOverload::Create(span, parser.GetIdentifierTable().Get(name.span()), list.accessModifiers, list.functionFlags, flags, op, symbol, statement, parameters, attributes);
 		return true;
 	}
 
-	bool DeclarationParser::TryParse(Parser& parser, TokenStream& stream)
+	static void ParseDeclScope(Parser& parser, DeclContainerBuilder& builder, ScopeType scopeType)
+	{
+		Token t;
+		parser.EnterScope(scopeType, nullptr, t, true, EXPECTED_LEFT_BRACE);
+		while (parser.IterateScope(nullptr))
+		{
+			ASTNode* decl;
+			if (!parser.ParseSubStepInner(decl))
+			{
+				if (!parser.TryRecoverScope(nullptr, true))
+				{
+					break;
+				}
+			}
+			else
+			{
+				builder.AddDeclaration(decl);
+			}
+		}
+	}
+
+	bool NamespaceParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut)
+	{
+		auto start = stream.Current();
+		if (!stream.TryGetKeyword(Keyword_Namespace))
+		{
+			return false;
+		}
+
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
+		parser.RejectModifierList(INVALID_MODIFIER_ON_NAMESPACE);
+
+		IdentifierInfo* name;
+		stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER);
+
+		DeclContainerBuilder builder = DeclContainerBuilder(parser.GetLogger(), DeclContainerFlags::AllowPresetNamespace);
+		std::vector<UsingDecl*> usings;
+		if (stream.TryGetDelimiter(';'))
+		{
+			while (stream.CanAdvance())
+			{
+				ASTNode* decl;
+				if (parser.ParseSubStepInner(decl))
+				{
+					builder.AddDeclaration(decl);
+				}
+			}
+		}
+		else
+		{
+			ParseDeclScope(parser, builder, ScopeType_Namespace);
+		}
+		
+		auto span = stream.MakeFromLast(start);
+		auto ns = Namespace::Create(span, name, builder.structs, builder.classes, builder.functions, builder.fields, builder.namespaces, builder.usings);
+		declOut = ns;
+		return true;
+	}
+
+	bool UsingParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut)
+	{
+		auto start = stream.Current();
+		if (!stream.TryGetKeyword(Keyword_Using))
+		{
+			return false;
+		}
+
+		bool hasDot;
+		auto identifier = parser.ParseQualifiedName(hasDot);
+		IdentifierInfo* target;
+		IdentifierInfo* alias = nullptr;
+		if (hasDot)
+		{
+			target = identifier;
+		}
+		else if (stream.TryGetOperator(Operator_Equal))
+		{
+			alias = identifier;
+			target = parser.ParseQualifiedName(hasDot);
+		}
+		else
+		{
+			target = identifier;
+		}
+		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
+		auto span = stream.MakeFromLast(start);
+		declOut = UsingDecl::Create(span, target, alias);
+		return true;
+	}
+
+	bool DeclarationParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut)
 	{
 		auto startingToken = stream.Current();
 
@@ -278,43 +305,52 @@ namespace HXSL
 		{
 			if (stream.TryGetDelimiter('('))
 			{
-				ParseConstructor(parser, stream, startingToken, std::move(symbol.make()));
+				ConstructorOverload* ctor;
+				ParseConstructor(parser, stream, startingToken, symbol.make(), ctor);
+				declOut = ctor;
 				return true;
 			}
 			return false;
 		}
 
 		std::vector<size_t> arraySizes;
-		TextSpan fieldSemantic;
+		IdentifierInfo* fieldSemantic;
 		if (stream.TryGetDelimiter('('))
 		{
-			ParseFunction(parser, stream, startingToken, name, std::move(symbol.make()));
+			FunctionOverload* function;
+			ParseFunction(parser, stream, startingToken, name, symbol.make(), function);
+			declOut = function;
 			return true;
 		}
 		else if (stream.TryGetOperator(Operator_Colon) && stream.TryGetIdentifier(fieldSemantic))
 		{
 			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-			ParseField(parser, stream, startingToken, name, std::move(symbol.make()), fieldSemantic);
+			Field* field;
+			ParseField(parser, stream, startingToken, name, symbol.make(), fieldSemantic, field);
 			return true;
 		}
 		else if (parser.TryParseArraySizes(arraySizes))
 		{
-			auto hSymbol = symbol.make(SymbolRefType_ArrayType);
-			hSymbol->SetArrayDims(std::move(arraySizes));
+			auto hSymbol = symbol.MakeArrayRef(arraySizes);
 			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-			ParseField(parser, stream, startingToken, name, std::move(hSymbol), {});
+			Field* field;
+			ParseField(parser, stream, startingToken, name, hSymbol, {}, field);
+			declOut = field;
+			return true;
 		}
 		else
 		{
 			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-			ParseField(parser, stream, startingToken, name, std::move(symbol.make()), {});
+			Field* field;
+			ParseField(parser, stream, startingToken, name, symbol.make(), {}, field);
+			declOut = field;
 			return true;
 		}
 
 		return false;
 	}
 
-	bool OperatorParser::TryParse(Parser& parser, TokenStream& stream)
+	bool OperatorParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut)
 	{
 		auto startingToken = stream.Current();
 
@@ -337,12 +373,14 @@ namespace HXSL
 			break;
 		}
 
-		IF_ERR_RET_FALSE(ParseOperator(parser, stream, startingToken, operatorFlags));
+		OperatorOverload* _operator;
+		IF_ERR_RET_FALSE(ParseOperator(parser, stream, startingToken, operatorFlags, _operator));
+		declOut = _operator;
 
 		return true;
 	}
 
-	bool StructParser::TryParse(Parser& parser, TokenStream& stream)
+	bool StructParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut)
 	{
 		auto startingToken = stream.Current();
 
@@ -363,43 +401,13 @@ namespace HXSL
 		ModifierList allowed = ModifierList(AccessModifier_All, true);
 		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_STRUCT);
 
-		auto _struct = make_ast_ptr<Struct>(TextSpan(), name, list.accessModifiers, parser.GetIdentifierTable());
-
-		Token t;
-		parser.EnterScope(ScopeType_Struct, _struct.get(), t, true, EXPECTED_LEFT_BRACE);
-		while (parser.IterateScope(_struct.get()))
-		{
-			if (!parser.ParseSubStepInner())
-			{
-				if (!parser.TryRecoverScope(_struct.get(), true))
-				{
-					break;
-				}
-			}
-		}
-
+		DeclContainerBuilder builder = DeclContainerBuilder(parser.GetLogger(), DeclContainerFlags::AllowPresetStruct);
+		ParseDeclScope(parser, builder, ScopeType_Struct);
 		stream.TryGetDelimiter(';'); // this is optional
 
-		auto span = startingToken.Span.merge(stream.LastToken().Span);
-		_struct->SetSpan(span);
-
-		auto parent = parser.scopeParent();
-		auto parentType = parent->GetType();
-		switch (parentType)
-		{
-		case NodeType_Namespace:
-			cast<Namespace>(parent)->AddStruct(std::move(_struct));
-			break;
-		case NodeType_Struct:
-			cast<Struct>(parent)->AddStruct(std::move(_struct));
-			break;
-		case NodeType_Class:
-			cast<Class>(parent)->AddStruct(std::move(_struct));
-			break;
-		default:
-			return false;
-		}
-
+		auto span = stream.MakeFromLast(startingToken);
+		auto _struct = Struct::Create(span, name, list.accessModifiers, builder.fields, builder.structs, builder.classes, builder.constructors, builder.functions, builder.operators);
+		declOut = _struct;
 		return true;
 	}
 }

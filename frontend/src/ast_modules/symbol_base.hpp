@@ -110,9 +110,9 @@ namespace HXSL
 		}
 
 	public:
-		void SetAssembly(ASTContext* context, const Assembly* assembly, const SymbolHandle& handle);
+		void SetAssembly(const Assembly* assembly, const SymbolHandle& handle);
 
-		void UpdateFQN(ASTContext* context);
+		void UpdateFQN();
 
 		const Assembly* GetAssembly() const noexcept { return assembly; }
 
@@ -135,7 +135,7 @@ namespace HXSL
 
 		SymbolType GetSymbolType() const;
 
-		ast_ptr<SymbolRef> MakeSymbolRef(ASTContext* context) const;
+		SymbolRef* MakeSymbolRef() const;
 
 		const StringSpan& ToString() const noexcept;
 	};
@@ -188,7 +188,7 @@ namespace HXSL
 		}
 
 	public:
-		static SymbolRef* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified);
+		static SymbolRef* Create(const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified);
 
 		bool HasFullyQualifiedName() const noexcept { return isFullyQualified; }
 
@@ -224,24 +224,29 @@ namespace HXSL
 
 		const bool& IsDeferred() const noexcept { return isDeferred; }
 
-		ast_ptr<SymbolRef> Clone(ASTContext* context) const;
+		SymbolRef* Clone() const;
 
 		const StringSpan& ToString() const noexcept;
+
+		bool IsArrayType() const noexcept { return type == SymbolRefType_ArrayType; }
 	};
 
-	class SymbolRefArray : public SymbolRef, TrailingObjects<SymbolRefArray, size_t>
+	class SymbolRefArray : public SymbolRef, public TrailingObjects<SymbolRefArray, size_t>
 	{
 		friend class ASTContext;
 	private:
-		uint32_t numArrayDims;
+		TrailingObjStorage<SymbolRefArray, size_t> storage;
+
 		SymbolRefArray(const TextSpan& span, IdentifierInfo* name) : SymbolRef(span, name, ID, false)
 		{
 		}
 
 	public:
 		static constexpr SymbolRefType ID = SymbolRefType_ArrayType;
-		static SymbolRefArray* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ArrayRef<size_t> arrayDims);
-		static SymbolRefArray* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, uint32_t numArrayDims);
+		static SymbolRefArray* Create(const TextSpan& span, IdentifierInfo* name, const Span<size_t>& arrayDims);
+		static SymbolRefArray* Create(const TextSpan& span, IdentifierInfo* name, uint32_t numArrayDims);
+
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetArrayDims, 0, storage);
 
 		std::string MakeArrayTypeName(size_t dimIndex, SymbolDef* elementType = nullptr)
 		{
@@ -258,13 +263,6 @@ namespace HXSL
 
 			return oss.str();
 		}
-
-		ArrayRef<size_t> GetArrayDims()
-		{
-			return { GetTrailingObjects<0>(numArrayDims), numArrayDims };
-		}
-
-		size_t GetArrayDimCount() const noexcept { return numArrayDims; }
 	};
 
 	class Type : public SymbolDef

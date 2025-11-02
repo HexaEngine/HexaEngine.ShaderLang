@@ -7,30 +7,30 @@
 
 namespace HXSL
 {
-	class Array : public Type
+	class ArrayDecl : public Type
 	{
 		friend class ASTContext;
 	private:
-		ast_ptr<SymbolRef> elementType;
+		SymbolRef* elementType;
 		size_t arraySize;
 
-		Array(const TextSpan& span, IdentifierInfo* name, ast_ptr<SymbolRef>&& elementType, size_t arraySize)
+		ArrayDecl(const TextSpan& span, IdentifierInfo* name, SymbolRef* elementType, size_t arraySize)
 			: Type(TextSpan(), ID, name, AccessModifier_Public),
-			elementType(std::move(elementType)),
+			elementType(elementType),
 			arraySize(arraySize)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_Array;
-		static Array* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ast_ptr<SymbolRef>&& elementType, size_t arraySize);
+		static ArrayDecl* Create(const TextSpan& span, IdentifierInfo* name, SymbolRef* elementType, size_t arraySize);
 
 		SymbolDef* GetElementType() const
 		{
 			return elementType->GetDeclaration();
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef()
+		SymbolRef* GetSymbolRef()
 		{
 			return elementType;
 		}

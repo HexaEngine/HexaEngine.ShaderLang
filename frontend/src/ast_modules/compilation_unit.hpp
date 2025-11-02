@@ -8,12 +8,12 @@ namespace HXSL
 	template<typename T>
 	class ASTBuilder;
 
-	class CompilationUnit : public ASTNode, TrailingObjects<CompilationUnit, ast_ptr<Namespace>>
+	class CompilationUnit : public ASTNode, public TrailingObjects<CompilationUnit, Namespace*, UsingDecl*>
 	{
 		friend class ASTContext;
 		friend class ASTBuilder<CompilationUnit>;
 	private:
-		uint32_t numNamespaces;
+		TrailingObjStorage<CompilationUnit, uint32_t> storage;
 
 		CompilationUnit(bool isExtern = false) : ASTNode({ }, ID, isExtern)
 		{
@@ -21,13 +21,11 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_CompilationUnit;
-		static CompilationUnit* Create(ASTContext* context, bool isExtern, ArrayRef<ast_ptr<Namespace>> namespaces);
-		static CompilationUnit* Create(ASTContext* context, bool isExtern, uint32_t numNamespaces);
+		static CompilationUnit* Create(bool isExtern, const ArrayRef<Namespace*>& namespaces, const ArrayRef<UsingDecl*>& usings);
+		static CompilationUnit* Create(bool isExtern, uint32_t numNamespaces, uint32_t numUsings);
 
-		ArrayRef<ast_ptr<Namespace>> GetNamespaces() noexcept
-		{
-			return { GetTrailingObjects<0>(numNamespaces), numNamespaces };
-		}
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetNamespaces, 0, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetUsings, 1, storage);
 	};
 }
 

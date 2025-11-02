@@ -34,7 +34,7 @@ namespace HXSL
 
 		void Write(Stream& stream) const;
 
-		void Read(Stream& stream, ast_ptr<SymbolDef>& node, StringPool& container);
+		void Read(Stream& stream, SymbolDef*& node, StringPool& container);
 	};
 
 	struct SymbolTableNode

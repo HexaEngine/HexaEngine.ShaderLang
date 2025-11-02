@@ -2,43 +2,47 @@
 #include "declarations.hpp"
 #include "semantics/symbols/symbol_table.hpp"
 #include "il/assembly_collection.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
-	bool UsingDeclaration::Warmup(const AssemblyCollection& references)
+	UsingDecl* UsingDecl::Create(const TextSpan& span, IdentifierInfo* name, IdentifierInfo* alias)
 	{
-		references.FindAssembliesByNamespace(Target->name, AssemblyReferences);
-		return AssemblyReferences.size() > 0;
+		auto* context = ASTContext::GetCurrentContext();
+		return context->Alloc<UsingDecl>(sizeof(UsingDecl), span, name, alias);
 	}
 
-	Namespace* Namespace::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name,
-		ArrayRef<ast_ptr<Struct>> structs,
-		ArrayRef<ast_ptr<Class>> classes,
-		ArrayRef<ast_ptr<FunctionOverload>> functions,
-		ArrayRef<ast_ptr<Field>> fields,
-		ArrayRef<ast_ptr<Namespace>> nestedNamespaces,
-		ArrayRef<UsingDeclaration> usings)
+	bool UsingDecl::Warmup(const AssemblyCollection& references)
 	{
+		auto* context = ASTContext::GetCurrentContext();
+		std::vector<AssemblySymbolRef> refs;
+		references.FindAssembliesByNamespace(target->name, refs);
+		assemblyReferences = context->AllocCopy<AssemblySymbolRef>(refs);
+		return assemblyReferences.size() > 0;
+	}
+
+	Namespace* Namespace::Create(const TextSpan& span, IdentifierInfo* name,
+		const ArrayRef<Struct*>& structs,
+		const ArrayRef<Class*>& classes,
+		const ArrayRef<FunctionOverload*>& functions,
+		const ArrayRef<Field*>& fields,
+		const ArrayRef<Namespace*>& nestedNamespaces,
+		const ArrayRef<UsingDecl*>& usings)
+	{
+		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<Namespace>(TotalSizeToAlloc(structs.size(), classes.size(), functions.size(), fields.size(), nestedNamespaces.size(), usings.size()), span, name);
-		ptr->numStructs = static_cast<uint32_t>(structs.size());
-		ptr->numClasses = static_cast<uint32_t>(classes.size());
-		ptr->numFunctions = static_cast<uint32_t>(functions.size());
-		ptr->numFields = static_cast<uint32_t>(fields.size());
-		ptr->numNestedNamespaces = static_cast<uint32_t>(nestedNamespaces.size());
-		ptr->numUsings = static_cast<uint32_t>(usings.size());
-		std::uninitialized_move(structs.begin(), structs.end(), ptr->GetStructs().data());
-		std::uninitialized_move(classes.begin(), classes.end(), ptr->GetClasses().data());
-		std::uninitialized_move(functions.begin(), functions.end(), ptr->GetFunctions().data());
-		std::uninitialized_move(fields.begin(), fields.end(), ptr->GetFields().data());
-		std::uninitialized_move(nestedNamespaces.begin(), nestedNamespaces.end(), ptr->GetNestedNamespacess().data());
-		std::uninitialized_move(usings.begin(), usings.end(), ptr->GetUsings().data());
+		ptr->storage.InitializeMove(ptr, structs, classes, functions, fields, nestedNamespaces, usings);
 		return ptr;
 	}
 
 	void Namespace::Warmup(const AssemblyCollection& references)
 	{
-		references.FindAssembliesByNamespace(GetName(), this->GetAssemblyReferences());
+		auto* context = ASTContext::GetCurrentContext();
+		std::vector<AssemblySymbolRef> refs;
+		references.FindAssembliesByNamespace(GetName(), refs);
+		assemblyReferences = context->AllocCopy<AssemblySymbolRef>(refs);
 	}
+
 	/*
 	void Namespace::Write(Stream& stream) const
 	{

@@ -14,14 +14,14 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream)
+		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut)
 		{
 			do
 			{
 				for (auto& subParser : parsers)
 				{
 					stream.PushState();
-					if (subParser->TryParse(parser, stream))
+					if (subParser->TryParse(parser, stream, declOut))
 					{
 						stream.PopState(false);
 						return true;
@@ -56,7 +56,7 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut, bool leaveOpen = false)
+		static bool TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut, bool leaveOpen = false)
 		{
 			for (auto& subParser : parsers)
 			{
@@ -90,13 +90,14 @@ namespace HXSL
 		}
 	};
 
-	static bool ParseStatementBodyInner(Parser& parser, TokenStream& stream, std::vector<ast_ptr<ASTNode>>& statements, bool leaveOpen = false)
+	static bool ParseStatementBodyInner(Parser& parser, TokenStream& stream, std::vector<ASTNode*>& statements, bool leaveOpen = false)
 	{
 		if (stream.TryGetDelimiter(';'))
 		{
 			return true;
 		}
-		ast_ptr<ASTNode> outStatement;
+
+		ASTNode* outStatement;
 		bool success = StatementParserRegistry::TryParse(parser, stream, outStatement, leaveOpen);
 
 		if (!success)
@@ -118,14 +119,14 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseStatementBody(ScopeType type, Parser& parser, TokenStream& stream, ast_ptr<BlockStatement>& statement)
+	static bool ParseStatementBody(ScopeType type, Parser& parser, TokenStream& stream, BlockStatement*& statement)
 	{
 		// TODO: single line statements.
 
 		Token first;
 		parser.EnterScope(type, nullptr, first, true);
 
-		std::vector<ast_ptr<ASTNode>> statements;
+		std::vector<ASTNode*> statements;
 		while (parser.IterateScope(nullptr))
 		{
 			parser.ParseInnerBegin();
@@ -145,11 +146,8 @@ namespace HXSL
 		}
 
 		auto span = first.Span.merge(stream.LastToken().Span);
-		ArrayRef<ast_ptr<ASTNode>> statementsRef = statements;
-		auto blockStatement = BlockStatement::Create(parser.GetASTContext(), span, statementsRef);
-
-		blockStatement->SetSpan(span);
-		statement = ast_ptr<BlockStatement>(blockStatement);
+		ArrayRef<ASTNode*> statementsRef = statements;
+		statement = BlockStatement::Create(span, statementsRef);
 		return true;
 	}
 
@@ -162,7 +160,7 @@ namespace HXSL
 	public:
 		static void EnsureCreated();
 
-		static bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
+		static bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut)
 		{
 			auto first = stream.Current();
 			for (auto& subParser : parsers)
@@ -183,9 +181,9 @@ namespace HXSL
 				return false;
 			}
 
-			if (!expressionOut.get())
+			if (!expressionOut)
 			{
-				expressionOut = make_ast_ptr<EmptyExpression>(first.Span.merge(stream.LastToken().Span));
+				expressionOut = EmptyExpression::Create(first.Span.merge(stream.LastToken().Span));
 				return true;
 			}
 

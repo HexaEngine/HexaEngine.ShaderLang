@@ -3,8 +3,9 @@
 
 namespace HXSL
 {
-	SwizzleDefinition* SwizzleDefinition::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, uint8_t mask, Primitive* basePrim, ast_ptr<SymbolRef>&& symbol)
+	SwizzleDefinition* SwizzleDefinition::Create(const TextSpan& span, IdentifierInfo* name, uint8_t mask, Primitive* basePrim, SymbolRef* symbol)
 	{
-		return context->Alloc<SwizzleDefinition>(sizeof(SwizzleDefinition), span, name, mask, basePrim, std::move(symbol));
+		auto context = ASTContext::GetCurrentContext();
+		return context->Alloc<SwizzleDefinition>(sizeof(SwizzleDefinition), span, name, mask, basePrim, symbol);
 	}
 }

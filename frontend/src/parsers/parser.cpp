@@ -2,6 +2,7 @@
 #include "sub_parser_registry.hpp"
 #include "parsers/parser_helper.hpp"
 #include "hybrid_expr_parser.hpp"
+#include "declaration_parser.hpp"
 namespace HXSL
 {
 #define ERR_RETURN_FALSE_INTERNAL(code) \
@@ -9,6 +10,11 @@ namespace HXSL
 		Log(code, stream->Current()); \
 		return false; \
 	} while (0)
+
+	CompilationUnit* CompilationUnitBuilder::Build(bool isExtern)
+	{
+		return CompilationUnit::Create(isExtern, builder.namespaces, builder.usings);
+	}
 
 	void Parser::InitializeSubSystems()
 	{
@@ -82,7 +88,6 @@ namespace HXSL
 		if (ScopeLevel < NamespaceScope)
 		{
 			NamespaceScope = 0;
-			CurrentNamespace = nullptr;
 		}
 	}
 
@@ -336,31 +341,7 @@ namespace HXSL
 			identifier = identifier.merge(secondary);
 		}
 
-		return context.GetIdentiferTable().Get(identifier.span());
-	}
-
-	UsingDeclaration Parser::ParseUsingDeclaration()
-	{
-		auto nsKeywordSpan = stream->LastToken().Span;
-		UsingDeclaration us = UsingDeclaration();
-		bool hasDot;
-		auto identifier = ParseQualifiedName(hasDot);
-		if (hasDot)
-		{
-			us.Target = identifier;
-		}
-		else if (stream->TryGetOperator(Operator_Equal))
-		{
-			us.Alias = identifier;
-			us.Target = ParseQualifiedName(hasDot);
-		}
-		else
-		{
-			us.Target = identifier;
-		}
-		stream->ExpectDelimiter(';', EXPECTED_SEMICOLON);
-		us.Span = nsKeywordSpan.merge(stream->LastToken().Span);
-		return us;
+		return ASTContext::GetCurrentContext()->GetIdentifier(identifier.span());
 	}
 
 	NamespaceDeclaration Parser::ParseNamespaceDeclaration(bool& scoped)
@@ -388,83 +369,27 @@ namespace HXSL
 			return false;
 		}
 
-		while (true)
-		{
-			if (stream->TryGetKeyword(Keyword_Namespace))
-			{
-				if (ScopeLevel != 0) ERR_RETURN_FALSE_INTERNAL(NAMESPACE_MUST_BE_GLOBAL_SCOPE);
-				if (CurrentNamespace != nullptr) ERR_RETURN_FALSE_INTERNAL(ONLY_ONE_NAMESPACE_ALLOWED);
-				bool scoped;
-				CurrentNamespace = compilation->AddNamespace(ParseNamespaceDeclaration(scoped));
-				if (!scoped)
-				{
-					CurrentScope = ParserScopeContext(ScopeType_Namespace, CurrentNamespace, ScopeFlags_None);
-				}
-				NamespaceScope = ScopeLevel;
-			}
-			else if (stream->TryGetKeyword(Keyword_Using))
-			{
-				if (!IsInGlobalOrNamespaceScope()) ERR_RETURN_FALSE_INTERNAL(USINGS_MUST_BE_GLOBAL_OR_NAMESPACE_SCOPE);
-				auto declaration = ParseUsingDeclaration();
-				if (CurrentNamespace != nullptr)
-				{
-					CurrentNamespace->AddUsing(declaration);
-				}
-				else
-				{
-					compilation->AddUsing(declaration);
-				}
-			}
-			else if (stream->TryGetDelimiter('{'))
-			{
-				EnterScopeInternal(ScopeType_Unknown, nullptr);
-				return false;
-			}
-			else if (stream->TryGetDelimiter('}'))
-			{
-				ExitScopeInternal(nullptr);
-				return false;
-			}
-			else
-			{
-				break;
-			}
-
-			if (stream->IsEndOfTokens())
-			{
-				return false;
-			}
-		}
-
-		if (CurrentNamespace == nullptr)
-		{
-			ERR_RETURN_FALSE_INTERNAL(EXPECTED_NAMESPACE);
-		}
-
 		return true;
 	}
 
-	bool Parser::Parse()
+	bool Parser::Parse(CompilationUnitBuilder& builder)
 	{
 		stream->Advance();
 		while (TryAdvance())
 		{
-			if (!ParseSubStepInner())
+			ASTNode* decl;
+			if (!ParseSubStepInner(decl))
 			{
 				Log(UNEXPECTED_TOKEN, stream->Current());
 				stream->TryAdvance();
 			}
+			else
+			{
+				builder.GetBuilder().AddDeclaration(decl);
+			}
 		}
+
 		return !stream->HasCriticalErrors();
-	}
-
-	bool Parser::ParseSubStep()
-	{
-		while (ParseSubStepInner())
-		{
-		}
-
-		return true;
 	}
 
 	void Parser::ParseInnerBegin()
@@ -474,10 +399,10 @@ namespace HXSL
 		ParseModifierList();
 	}
 
-	bool Parser::ParseSubStepInner()
+	bool Parser::ParseSubStepInner(ASTNode*& declOut)
 	{
 		ParseInnerBegin();
-		if (SubParserRegistry::TryParse(*this, *stream))
+		if (SubParserRegistry::TryParse(*this, *stream, declOut))
 		{
 			HXSL_ASSERT(modifierList.Empty(), "Modifier list was not empty, forgot to accept/reject it?.");
 			HXSL_ASSERT(!attribute.HasResource(), "Attribute list was not empty, forgot to accept/reject it?.");
@@ -837,12 +762,12 @@ namespace HXSL
 		auto start = stream->Current();
 		IF_ERR_RET(stream->TryGetDelimiter('['));
 
-		ast_ptr<SymbolRef> symbol;
+		SymbolRef* symbol;
 		IF_ERR_RET(ParseSymbol(SymbolRefType_Attribute, symbol));
 
-		auto attribute = make_ast_ptr<AttributeDeclaration>(TextSpan());
+		
 
-		std::vector<ast_ptr<Expression>> parameters;
+		std::vector<Expression*> parameters;
 		if (stream->TryGetDelimiter('('))
 		{
 			bool firstParam = true;
@@ -853,7 +778,7 @@ namespace HXSL
 					IF_ERR_RET(stream->ExpectDelimiter(',', EXPECTED_COMMA));
 				}
 				firstParam = false;
-				ast_ptr<Expression> parameter;
+				Expression* parameter;
 				if (!HybridExpressionParser::ParseExpression(*this, *stream, parameter))
 				{
 					return;
@@ -863,9 +788,8 @@ namespace HXSL
 		}
 
 		IF_ERR_RET(stream->ExpectDelimiter(']', EXPECTED_RIGHT_BRACKET));
-		attribute->SetParameters(std::move(parameters));
-		attribute->SetSymbol(std::move(symbol));
-		attribute->SetSpan(stream->MakeFromLast(start));
-		this->attribute.Reset(std::move(attribute));
+		auto span = stream->MakeFromLast(start);
+		auto attribute = AttributeDecl::Create(span, symbol, parameters);
+		this->attribute.Reset(attribute);
 	}
 }

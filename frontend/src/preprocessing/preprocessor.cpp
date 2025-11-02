@@ -250,9 +250,9 @@ namespace HXSL
 	void Preprocessor::Process(SourceFile* file)
 	{
 		state.file = file;
-		LexerContext lexerContext = LexerContext(context.GetIdentiferTable(), file, file->GetInputStream().get(), logger, HXSLLexerConfig::InstancePreprocess());
+		LexerContext lexerContext = LexerContext(ASTContext::GetCurrentContext()->GetIdentifierTable(), file, file->GetInputStream().get(), logger, HXSLLexerConfig::InstancePreprocess());
 		PrepTokenStream stream = PrepTokenStream(&lexerContext, outputStream.get());
-		Parser parser = Parser(logger, context, stream, nullptr);
+		Parser parser = Parser(logger, stream);
 		auto result = PrepTransformResult::Keep;
 		while (stream.CanAdvance())
 		{

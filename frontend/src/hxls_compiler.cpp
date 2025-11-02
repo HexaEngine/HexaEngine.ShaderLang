@@ -1,6 +1,6 @@
 #include "hxls_compiler.hpp"
 
-#include "ast_context.hpp"
+#include "ast_modules/ast_context.hpp"
 #include "pch/localization.hpp"
 #include "preprocessing/preprocessor.hpp"
 #include "parsers/parser.hpp"
@@ -29,9 +29,9 @@ namespace HXSL
 	{
 		Parser::InitializeSubSystems();
 
-		ASTContext context;
-		ASTBuilder<CompilationUnit> builder;
-
+		uptr<ASTContext> context = make_uptr<ASTContext>();
+		ASTContext::SetCurrentContext(context.get());
+		CompilationUnitBuilder builder = CompilationUnitBuilder(logger);
 		for (auto& file : files)
 		{
 			auto fs = FileStream::OpenRead(file.c_str());
@@ -42,7 +42,7 @@ namespace HXSL
 				continue;
 			}
 
-			auto source = context.GetSourceManager().AddSource(fs.release(), true);
+			auto source = context->GetSourceManager().AddSource(fs.release(), true);
 
 			if (!source->PrepareInputStream())
 			{
@@ -50,21 +50,21 @@ namespace HXSL
 				continue;
 			}
 
-			Preprocessor preprocessor = Preprocessor(logger, context);
+			Preprocessor preprocessor = Preprocessor(logger);
 			preprocessor.Process(source);
 
-			LexerContext lexerContext = LexerContext(context.GetIdentiferTable(), source, source->GetInputStream().get(), logger, HXSLLexerConfig::Instance());
+			LexerContext lexerContext = LexerContext(context->GetIdentifierTable(), source, source->GetInputStream().get(), logger, HXSLLexerConfig::Instance());
 			TokenStream tokenStream = TokenStream(&lexerContext);
 
-			Parser parser = Parser(logger, context, tokenStream, builder);
+			Parser parser = Parser(logger, tokenStream);
 
-			parser.Parse();
+			parser.Parse(builder);
 		}
 
-		CompilationUnit* compilation = builder.Finish(&context);
+		CompilationUnit* compilation = builder.Build();
 
 		SemanticAnalyzer::InitializeSubSystems();
-		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, context, compilation, references);
+		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, compilation, references);
 		analyzer.Analyze();
 
 		ModuleBuilder conv;

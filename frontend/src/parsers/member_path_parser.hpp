@@ -11,42 +11,41 @@ namespace HXSL
 		bool wantsIdentifier;
 		Parser& parser;
 		TokenStream& stream;
-		ast_ptr<Expression> root;
+		Expression* root;
 		ChainExpression* chainExpr;
 
 		template <typename T>
-		void Chain(ast_ptr<T> newExpr)
+		void Chain(T* newExpr)
 		{
-			auto next = newExpr.get();
 			if (chainExpr)
 			{
-				chainExpr->SetNextExpression(std::move(newExpr));
+				chainExpr->SetNextExpression(newExpr);
 			}
 			else
 			{
-				root = std::move(newExpr);
+				root = newExpr;
 			}
-			chainExpr = next;
+			chainExpr = newExpr;
 		}
 
 		template <typename T>
-		void ChainEnd(ast_ptr<T> newExpr)
+		void ChainEnd(T* newExpr)
 		{
-			Chain(std::move(newExpr));
+			Chain(newExpr);
 			parsing = false;
 		}
 
-		void ChainOrEnd(ast_ptr<ChainExpression> current)
+		void ChainOrEnd(ChainExpression* current)
 		{
 			auto t = stream.Current();
 			if (stream.TryGetOperator(Operator_MemberAccess) || t.isDelimiterOf('['))
 			{
-				Chain(std::move(current));
+				Chain(current);
 				wantsIdentifier = !t.isDelimiterOf('[');
 			}
 			else
 			{
-				ChainEnd(std::move(current));
+				ChainEnd(current);
 			}
 		}
 
@@ -56,9 +55,9 @@ namespace HXSL
 		{
 		}
 
-		ast_ptr<Expression> TakeRoot()
+		Expression* TakeRoot()
 		{
-			return std::move(root);
+			return root;
 		}
 
 		Expression* Head() const noexcept { return chainExpr; }

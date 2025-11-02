@@ -12,7 +12,7 @@ namespace HXSL
 		return false; \
 	} while (0)
 
-	bool ParserHelper::TryParseMemberAccessPath(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut, Expression** headOut)
+	bool ParserHelper::TryParseMemberAccessPath(Parser& parser, TokenStream& stream, Expression*& expressionOut, Expression** headOut)
 	{
 		MemberPathParser context = MemberPathParser(parser, stream);
 
@@ -31,10 +31,10 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseFunctionCallParameter(Parser& parser, TokenStream& stream, ast_ptr<FunctionCallParameter>& parameter)
+	static bool ParseFunctionCallParameter(Parser& parser, TokenStream& stream, FunctionCallParameter*& parameter)
 	{
-		auto callParameter = make_ast_ptr<FunctionCallParameter>(TextSpan(), nullptr);
-		ast_ptr<Expression> expression;
+		auto callParameter = FunctionCallParameter::Create(TextSpan(), nullptr);
+		Expression* expression;
 		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		callParameter->SetSpan(expression->GetSpan());
 		callParameter->SetExpression(std::move(expression));
@@ -42,7 +42,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool ParserHelper::ParseFunctionCallInner(Parser& parser, TokenStream& stream, std::vector<ast_ptr<FunctionCallParameter>>& parameters)
+	bool ParserHelper::ParseFunctionCallInner(Parser& parser, TokenStream& stream, std::vector<FunctionCallParameter*>& parameters)
 	{
 		bool firstParam = true;
 		while (!stream.TryGetDelimiter(')'))
@@ -58,7 +58,7 @@ namespace HXSL
 				}
 			}
 			firstParam = false;
-			ast_ptr<FunctionCallParameter> parameter;
+			FunctionCallParameter* parameter;
 			while (!ParseFunctionCallParameter(parser, stream, parameter))
 			{
 				parser.Log(UNEXPECTED_TOKEN, stream.Current());
@@ -74,27 +74,22 @@ namespace HXSL
 		return true;
 	}
 
-	bool ParserHelper::ParseFunctionCallInner(const Token& start, LazySymbol& lazy, Parser& parser, TokenStream& stream, ast_ptr<FunctionCallExpression>& expression)
+	bool ParserHelper::ParseFunctionCallInner(const Token& start, LazySymbol& lazy, Parser& parser, TokenStream& stream, FunctionCallExpression*& expression)
 	{
-		std::vector<ast_ptr<FunctionCallParameter>> parameters;
+		std::vector<FunctionCallParameter*> parameters;
 		IF_ERR_RET_FALSE(ParseFunctionCallInner(parser, stream, parameters));
 
 		auto span = start.Span.merge(stream.LastToken().Span);
 
-		ast_ptr<SymbolRef> symbol;
-		if (!symbol.get())
-		{
-			symbol = lazy.make();
-		}
-
-		expression = make_ast_ptr<FunctionCallExpression>(span, std::move(symbol), std::move(parameters));
+		SymbolRef* symbol = lazy.make();
+		expression = FunctionCallExpression::Create(span, symbol, parameters);
 		return true;
 	}
 
-	bool ParserHelper::TryParseFunctionCall(Parser& parser, TokenStream& stream, ast_ptr<FunctionCallExpression>& expression)
+	bool ParserHelper::TryParseFunctionCall(Parser& parser, TokenStream& stream, FunctionCallExpression*& expression)
 	{
 		auto start = stream.Current();
-		ast_ptr<SymbolRef> symbol;
+		SymbolRef* symbol;
 		LazySymbol lazy;
 
 		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_FunctionOrConstructor, lazy));
@@ -104,19 +99,19 @@ namespace HXSL
 		return true;
 	}
 
-	bool ParserHelper::TryParseSymbol(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
+	bool ParserHelper::TryParseSymbol(Parser& parser, TokenStream& stream, Expression*& expressionOut)
 	{
 		auto current = stream.Current();
 		LazySymbol symbol;
 		if (parser.TryParseSymbol(SymbolRefType_Any, symbol))
 		{
-			expressionOut = make_ast_ptr<MemberReferenceExpression>(current.Span, std::move(symbol.make()));
+			expressionOut = MemberReferenceExpression::Create(current.Span, std::move(symbol.make()));
 			return true;
 		}
 		return false;
 	}
 
-	bool ParserHelper::TryParseLiteralExpression(Parser& parser, TokenStream& stream, ast_ptr<LiteralExpression>& expressionOut)
+	bool ParserHelper::TryParseLiteralExpression(Parser& parser, TokenStream& stream, LiteralExpression*& expressionOut)
 	{
 		auto current = stream.Current();
 
@@ -124,34 +119,59 @@ namespace HXSL
 		Number number;
 		if (stream.TryGetLiteral(span))
 		{
-			expressionOut = make_ast_ptr<LiteralExpression>(current.Span, current);
+			expressionOut = LiteralExpression::Create(current.Span, current);
 			return true;
 		}
 		else if (stream.TryGetNumber(number))
 		{
-			expressionOut = make_ast_ptr<LiteralExpression>(current.Span, current);
+			expressionOut = LiteralExpression::Create(current.Span, current);
 			return true;
 		}
 		else if (stream.TryGetKeywords({ Keyword_True, Keyword_False, Keyword_Null }))
 		{
-			expressionOut = make_ast_ptr<LiteralExpression>(current.Span, current);
+			expressionOut = LiteralExpression::Create(current.Span, current);
 			return true;
 		}
 
 		return false;
 	}
 
-	bool ParserHelper::TryParseInitializationExpression(Parser& parser, TokenStream& stream, ast_ptr<InitializationExpression>& expressionOut)
+	struct InitExprBuilder
 	{
-		auto root = make_ast_ptr<InitializationExpression>(stream.Current().Span);
-		parser.EnterScope(ScopeType_Initialization, root.get(), true);
-		std::stack<InitializationExpression*> stack;
-		InitializationExpression* current = root.get();
+		TextSpan start;
+		std::vector<Expression*> parameters;
 
+		InitExprBuilder(const TextSpan& start) : start(start) {}
+
+		InitExprBuilder(const InitExprBuilder&) = delete;
+		InitExprBuilder(InitExprBuilder&&) = default;
+		InitExprBuilder& operator= (const InitExprBuilder&) = delete;
+		InitExprBuilder& operator= (InitExprBuilder&&) = default;
+
+		void AddParameter(Expression* expr)
+		{
+			parameters.push_back(expr);
+		}
+
+		InitializationExpression* Build(const TextSpan& end) 
+		{
+			auto span = start.merge(end);
+			auto ptr = InitializationExpression::Create(span, parameters);
+			parameters.clear();
+			return ptr;
+		}
+	};
+
+	bool ParserHelper::TryParseInitializationExpression(Parser& parser, TokenStream& stream, InitializationExpression*& expressionOut)
+	{
+		uptr<InitExprBuilder> current = make_uptr<InitExprBuilder>(stream.Current().Span);
+		std::stack<uptr<InitExprBuilder>> stack;
+		parser.EnterScope(ScopeType_Initialization, nullptr, true);
+		
 		while (true)
 		{
 			bool isFirst = true;
-			while (parser.IterateScope(root.get()))
+			while (parser.IterateScope(nullptr))
 			{
 				if (!isFirst)
 				{
@@ -162,36 +182,35 @@ namespace HXSL
 				auto token = stream.Current();
 				if (token.isDelimiterOf('{'))
 				{
-					auto node = make_ast_ptr<InitializationExpression>(token.Span);
-					parser.EnterScope(ScopeType_Initialization, node.get(), true);
-					stack.push(current);
-					auto next = node.get();
-					current->AddParameter(std::move(node));
-					current = next;
+					auto node = make_uptr<InitExprBuilder>(token.Span);
+					parser.EnterScope(ScopeType_Initialization, nullptr, true);
+					stack.push(std::move(current));
+					current = std::move(node);
 					isFirst = true;
 				}
 				else
 				{
-					ast_ptr<Expression> expression;
+					Expression* expression;
 					IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
-					current->AddParameter(std::move(expression));
+					current->AddParameter(expression);
 				}
 			}
 
-			current->SetSpan(stream.MakeFromLast(current->GetSpan()));
+			auto expr = current->Build(stream.LastToken().Span);
 			if (stack.empty())
 			{
+				expressionOut = expr;
 				break;
 			}
-			current = stack.top();
+			current = std::move(stack.top());
+			current->AddParameter(expr);
 			stack.pop();
 		}
 
-		expressionOut = std::move(root);
 		return true;
 	}
 
-	bool ParserHelper::MakeConcreteSymbolRef(Expression* expression, SymbolRefType type, ast_ptr<SymbolRef>& symbolOut)
+	bool ParserHelper::MakeConcreteSymbolRef(Expression* expression, SymbolRefType type, SymbolRef*& symbolOut)
 	{
 		bool isFQN = false;
 		Expression* current = expression;
@@ -208,14 +227,14 @@ namespace HXSL
 
 			if (auto chainGetter = dyn_cast<ChainExpression>(current))
 			{
-				current = chainGetter->GetNextExpression().get();
+				current = chainGetter->GetNextExpression();
 				continue;
 			}
 
 			break;
 		}
 
-		symbolOut = make_ast_ptr<SymbolRef>(span, type, isFQN);
+		symbolOut = SymbolRef::Create(span, ASTContext::GetCurrentContext()->GetIdentifier(span), type, isFQN);
 
 		return true;
 	}
@@ -247,7 +266,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool Parser::ParseSymbol(SymbolRefType expectedType, ast_ptr<SymbolRef>& type)
+	bool Parser::ParseSymbol(SymbolRefType expectedType, SymbolRef*& type)
 	{
 		LazySymbol symbol;
 		if (!TryParseSymbol(expectedType, symbol))

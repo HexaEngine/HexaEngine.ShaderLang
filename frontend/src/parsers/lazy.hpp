@@ -10,13 +10,13 @@ namespace HXSL
 		TextSpan span;
 		SymbolRefType type;
 		bool fqn;
-		ast_ptr<SymbolRef> ptr;
+		SymbolRef* ptr;
 
 		LazySymbol() : span({}), type(SymbolRefType_Unknown), fqn(false)
 		{
 		}
 
-		LazySymbol(ast_ptr<SymbolRef> ptr) : span({}), type(SymbolRefType_Unknown), ptr(std::move(ptr)), fqn(false)
+		LazySymbol(SymbolRef* ptr) : span({}), type(SymbolRefType_Unknown), ptr(ptr), fqn(false)
 		{
 		}
 
@@ -24,11 +24,11 @@ namespace HXSL
 		{
 		}
 
-		ast_ptr<SymbolRef> make(SymbolRefType overwrite, bool force = false)
+		SymbolRef* make(SymbolRefType overwrite, bool force = false)
 		{
-			if (ptr.get())
+			if (ptr)
 			{
-				return std::move(ptr);
+				return ptr;
 			}
 
 			if (span.source == INVALID_SOURCE_ID && !force)
@@ -36,15 +36,28 @@ namespace HXSL
 				HXSL_ASSERT(false, "Attempted to double create a LazySymbol");
 				return {};
 			}
-			auto result = make_ast_ptr<SymbolRef>(span, overwrite, fqn);
+			auto result = SymbolRef::Create(span, ASTContext::GetCurrentContext()->GetIdentifier(span), overwrite, fqn);
 			span = {};
 			type = {};
-			return std::move(result);
+			return result;
 		};
 
-		ast_ptr<SymbolRef> make(bool force = false)
+		SymbolRef* make(bool force = false)
 		{
-			return std::move(make(type, force));
+			return make(type, force);
+		};
+
+		SymbolRefArray* MakeArrayRef(const Span<size_t>& arrayDims, bool force = false)
+		{
+			if (span.source == INVALID_SOURCE_ID)
+			{
+				HXSL_ASSERT(false, "Attempted to double create a LazySymbol");
+				return {};
+			}
+			auto result = SymbolRefArray::Create(span, ASTContext::GetCurrentContext()->GetIdentifier(span), arrayDims);
+			span = {};
+			type = {};
+			return result;
 		};
 	};
 }

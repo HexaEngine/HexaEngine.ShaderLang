@@ -18,7 +18,7 @@ namespace HXSL
 		case NodeType_Primitive: return cast<Primitive>(this)->GetChildrenIt();
 		case NodeType_Struct: return cast<Struct>(this)->GetChildrenIt();
 		case NodeType_Class: return cast<Class>(this)->GetChildrenIt();
-		case NodeType_Array: return cast<Array>(this)->GetChildrenIt();
+		case NodeType_Array: return cast<ArrayDecl>(this)->GetChildrenIt();
 		case NodeType_Pointer: return cast<Pointer>(this)->GetChildrenIt();
 		case NodeType_Field: return cast<Field>(this)->GetChildrenIt();
 		case NodeType_IntrinsicFunction: break; //return cast<IntrinsicFunction>(this)->GetChildrenIt();
@@ -28,7 +28,7 @@ namespace HXSL
 		case NodeType_Parameter: return cast<Parameter>(this)->GetChildrenIt();
 		case NodeType_ThisDef: return cast<ThisDef>(this)->GetChildrenIt();
 		case NodeType_SwizzleDefinition: return cast<SwizzleDefinition>(this)->GetChildrenIt();
-		case NodeType_AttributeDeclaration: return cast<AttributeDeclaration>(this)->GetChildrenIt();
+		case NodeType_AttributeDeclaration: return cast<AttributeDecl>(this)->GetChildrenIt();
 		case NodeType_BlockStatement: return cast<BlockStatement>(this)->GetChildrenIt();
 		case NodeType_DeclarationStatement: return cast<DeclarationStatement>(this)->GetChildrenIt();
 		case NodeType_AssignmentStatement: return cast<AssignmentStatement>(this)->GetChildrenIt();

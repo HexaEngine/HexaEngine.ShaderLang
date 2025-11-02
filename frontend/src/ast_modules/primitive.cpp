@@ -3,19 +3,19 @@
 
 namespace HXSL
 {
-	Primitive* Primitive::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, ArrayRef<ast_ptr<OperatorOverload>>& operators)
+	Primitive* Primitive::Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, ArrayRef<OperatorOverload*>& operators)
 	{
+		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<Primitive>(TotalSizeToAlloc(operators.size()), span, name, kind, _class, rows, columns);
-		ptr->numOperators = static_cast<uint32_t>(operators.size());
-		std::uninitialized_move(operators.begin(), operators.end(), ptr->GetOperators().data());
+		ptr->storage.InitializeMove(ptr, operators);
 		return ptr;
 	}
 
-	Primitive* Primitive::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, uint32_t numOperators)
+	Primitive* Primitive::Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, uint32_t numOperators)
 	{
+		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<Primitive>(TotalSizeToAlloc(numOperators), span, name, kind, _class, rows, columns);
-		ptr->numOperators = numOperators;
-		ptr->GetOperators().init();
+		ptr->storage.SetCounts(numOperators);
 		return ptr;
 	}
 }

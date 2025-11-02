@@ -5,9 +5,9 @@
 
 namespace HXSL
 {
-	using ExpressionPtr = ast_ptr<Expression>;
-	using BinaryExpressionPtr = ast_ptr<BinaryExpression>;
-	using OperatorPtr = ast_ptr<OperatorExpression>;
+	using ExpressionPtr = Expression*;
+	using BinaryExpressionPtr = BinaryExpression*;
+	using OperatorPtr = OperatorExpression*;
 
 	enum ExpressionParserFlags
 	{
@@ -20,8 +20,8 @@ namespace HXSL
 	struct ExpressionParserOptions
 	{
 		ExpressionParserFlags flags;
-		std::vector<ast_ptr<Expression>> operands;
-		std::vector<ast_ptr<OperatorExpression>> operators;
+		std::vector<Expression*> operands;
+		std::vector<OperatorExpression*> operators;
 	};
 
 	enum TaskType
@@ -46,11 +46,11 @@ namespace HXSL
 		TextSpan start;
 
 		TaskFrame(const TaskType& type, const size_t& stackLimit, ExpressionPtr result)
-			: type(type), stackBoundary(stackLimit), result(std::move(result)), wasOperator(true), hadBrackets(false)
+			: type(type), stackBoundary(stackLimit), result(result), wasOperator(true), hadBrackets(false)
 		{
 		}
 		TaskFrame(const TaskType& type, const size_t& stackLimit, ExpressionPtr result, TextSpan start)
-			: type(type), stackBoundary(stackLimit), result(std::move(result)), wasOperator(true), hadBrackets(false), start(start)
+			: type(type), stackBoundary(stackLimit), result(result), wasOperator(true), hadBrackets(false), start(start)
 		{
 		}
 
@@ -77,15 +77,15 @@ namespace HXSL
 
 		bool IsInTernary() const noexcept { return !ternaryStack.empty() && ternaryStack.top() == tasks.size() + 1; }
 
-		void PushTask(TaskFrame&& frame)
+		void PushTask(const TaskFrame& frame)
 		{
-			tasks.push(std::move(frame));
+			tasks.push(frame);
 			canInject = false;
 		}
 
 		void PushCurrentTask()
 		{
-			PushTask(std::move(currentTask));
+			PushTask(currentTask);
 		}
 
 		void PushParseExpressionTask()
@@ -102,10 +102,10 @@ namespace HXSL
 			canInject = true;
 		}
 
-		void PushSubExpressionTask(TaskType type, ExpressionPtr&& expr)
+		void PushSubExpressionTask(TaskType type, ExpressionPtr expr)
 		{
 			PushCurrentTask();
-			PushTask(TaskFrame(type, operatorStack.size(), std::move(expr)));
+			PushTask(TaskFrame(type, operatorStack.size(), expr));
 			PushParseExpressionTask();
 			if (type == TaskType_TernaryTrue)
 			{
@@ -117,9 +117,9 @@ namespace HXSL
 			}
 		}
 
-		void PushSubTask(TaskType type, ExpressionPtr&& expr)
+		void PushSubTask(TaskType type, ExpressionPtr expr)
 		{
-			PushTask(TaskFrame(type, operatorStack.size(), std::move(expr)));
+			PushTask(TaskFrame(type, operatorStack.size(), expr));
 			PushParseExpressionTask();
 			if (type == TaskType_TernaryTrue)
 			{
@@ -134,25 +134,25 @@ namespace HXSL
 		template<typename ExpressionType, typename... Args>
 		void PushSubExpressionTask(TaskType type, Args&&... args)
 		{
-			PushSubExpressionTask(type, make_ast_ptr<ExpressionType>(std::forward<Args>(args)...));
+			PushSubExpressionTask(type, ExpressionType::Create(std::forward<Args>(args)...));
 		}
 
-		void InjectTask(TaskType type, ExpressionPtr&& expr);
+		void InjectTask(TaskType type, ExpressionPtr expr);
 
-		void PushOperand(ExpressionPtr&& operand)
+		void PushOperand(ExpressionPtr operand)
 		{
-			operandStack.push(std::move(operand));
+			operandStack.push(operand);
 		}
 
-		void PushOperator(OperatorPtr&& _operator)
+		void PushOperator(OperatorPtr _operator)
 		{
-			operatorStack.push(std::move(_operator));
+			operatorStack.push(_operator);
 		}
 
 		template<typename ExpressionType, typename... Args>
 		void PushOperator(Args&&... args)
 		{
-			PushOperator(make_ast_ptr<ExpressionType>(std::forward<Args>(args)...));
+			PushOperator(ExpressionType::Create(std::forward<Args>(args)...));
 		}
 
 		ExpressionPtr PopOperand();
@@ -175,7 +175,7 @@ namespace HXSL
 		{
 			if (operandStack.size() == 1)
 			{
-				exprOut = std::move(operandStack.top());
+				exprOut = operandStack.top();
 				return true;
 			}
 			return false;
@@ -185,9 +185,9 @@ namespace HXSL
 	class HybridExpressionParser
 	{
 	public:
-		static bool ParseExpression(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expression, ExpressionParserFlags flags = ExpressionParserFlags_None);
+		static bool ParseExpression(Parser& parser, TokenStream& stream, Expression*& expression, ExpressionParserFlags flags = ExpressionParserFlags_None);
 
-		static bool ParseExpression(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expression, ParseContext& context);
+		static bool ParseExpression(Parser& parser, TokenStream& stream, Expression*& expression, ParseContext& context);
 	};
 }
 

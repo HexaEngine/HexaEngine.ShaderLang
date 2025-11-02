@@ -165,7 +165,6 @@ namespace HXSL
 	class Preprocessor
 	{
 		ILogger* logger;
-		ASTContext& context;
 		std::unordered_map<StringSpan, MacroSymbol, StringSpanHash, StringSpanEqual> symbolTable;
 		std::vector<TextMapping> mappings;
 		OffsetMappingStorage lineOffsets;
@@ -302,7 +301,7 @@ namespace HXSL
 		void MakeMapping(size_t start, size_t end, int32_t lineOffset, int32_t columnOffset, bool resetColumn = false);
 
 	public:
-		Preprocessor(ILogger* logger, ASTContext& context) : logger(logger), context(context), outputStream(std::make_unique<TextStream>())
+		Preprocessor(ILogger* logger) : logger(logger), outputStream(std::make_unique<TextStream>())
 		{
 		}
 

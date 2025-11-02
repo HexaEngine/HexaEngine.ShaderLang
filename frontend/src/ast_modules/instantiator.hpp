@@ -5,7 +5,7 @@
 
 namespace HXSL
 {
-	static ast_ptr<SymbolDef> CreateInstance(NodeType type)
+	static SymbolDef* CreateInstance(NodeType type)
 	{
 		return nullptr;
 	}

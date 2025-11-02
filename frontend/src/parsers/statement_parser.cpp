@@ -6,7 +6,7 @@
 
 namespace HXSL
 {
-	bool MiscKeywordStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool MiscKeywordStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 		if (stream.TryGetKeyword(Keyword_Break))
@@ -14,7 +14,7 @@ namespace HXSL
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop | ScopeFlags_InsideSwitch, UNEXPECTED_BREAK_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
-			statementOut = make_ast_ptr<BreakStatement>(start.Span);
+			statementOut = BreakStatement::Create(start.Span);
 			return true;
 		}
 		else if (stream.TryGetKeyword(Keyword_Continue))
@@ -22,7 +22,7 @@ namespace HXSL
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideLoop, UNEXPECTED_CONTINUE_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
-			statementOut = make_ast_ptr<ContinueStatement>(start.Span);
+			statementOut = ContinueStatement::Create(start.Span);
 			return true;
 		}
 		else if (stream.TryGetKeyword(Keyword_Discard))
@@ -30,13 +30,13 @@ namespace HXSL
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 			IF_ERR_RET_FALSE(parser.inScope(ScopeFlags_InsideFunction, UNEXPECTED_DISCARD_STATEMENT));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
-			statementOut = make_ast_ptr<DiscardStatement>(start.Span);
+			statementOut = DiscardStatement::Create(start.Span);
 			return true;
 		}
 		return false;
 	}
 
-	bool BlockStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool BlockStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 		if (!start.isDelimiterOf('{'))
@@ -44,13 +44,13 @@ namespace HXSL
 			return false;
 		}
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
-		ast_ptr<BlockStatement> body;
+		BlockStatement* body;
 		IF_ERR_RET_FALSE(ParseStatementBody(parser.scopeType(), parser, stream, body));
 		statementOut = std::move(body);
 		return true;
 	}
 
-	bool ForStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool ForStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 
@@ -59,62 +59,56 @@ namespace HXSL
 			return false;
 		}
 
-		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		TakeHandle<AttributeDecl>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
 
-		auto forStatement = make_ast_ptr<ForStatement>(TextSpan());
-
+		std::vector<AttributeDecl*> attributes;
 		if (attribute && attribute->HasResource())
 		{
-			forStatement->AddAttribute(std::move(attribute->Take()));
+			attributes.push_back(attribute->Take());
 		}
 
-		ast_ptr<ASTNode> init;
-		IF_ERR_RET_FALSE(StatementParserRegistry::TryParse(parser, stream, init));
+		ASTNode* init;
+		StatementParserRegistry::TryParse(parser, stream, init);
 		stream.LastToken().isDelimiterOf(';');
-		forStatement->SetInit(std::move(init));
 
-		ast_ptr<Expression> condition;
-		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, condition));
+		Expression* condition;
+		HybridExpressionParser::ParseExpression(parser, stream, condition);
 		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-		forStatement->SetCondition(std::move(condition));
 
-		ast_ptr<Expression> iteration;
-		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, iteration));
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
-		forStatement->SetIteration(std::move(iteration));
+		Expression* iteration;
+		HybridExpressionParser::ParseExpression(parser, stream, iteration);
+		stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN);
 
-		ast_ptr<BlockStatement> body; // TODO: single line statements.
-		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_For, parser, stream, body));
-		forStatement->SetBody(std::move(body));
+		BlockStatement* body; // TODO: single line statements.
+		ParseStatementBody(ScopeType_For, parser, stream, body);
 
-		forStatement->SetSpan(stream.MakeFromLast(start));
-
-		statementOut = std::move(forStatement);
+		auto span = stream.MakeFromLast(start);
+		auto forStatement = ForStatement::Create(span, init, condition, iteration, body, attributes);
+		statementOut = forStatement;
 		return true;
 	}
 
-	static bool ParseCaseInner(Parser& parser, TokenStream& stream, StatementContainer* container)
+	static bool ParseCaseInner(Parser& parser, TokenStream& stream, std::vector<ASTNode*>& statements)
 	{
 		static const std::unordered_set<NodeType> breakoutTypes = { NodeType_BreakStatement, NodeType_ReturnStatement, NodeType_ContinueStatement, NodeType_DiscardStatement };
 
 		while (true)
 		{
-			if (ParseStatementBodyInner(parser, stream, container, true))
+			if (ParseStatementBodyInner(parser, stream, statements, true))
 			{
 				HXSL_ASSERT(parser.modifierList.Empty(), "Modifier list was not empty, forgot to accept/reject it?.");
 				HXSL_ASSERT(!parser.attribute.HasResource(), "Attribute list was not empty, forgot to accept/reject it?.");
 			}
 			else
 			{
-				if (!parser.TryRecoverScope(container->GetSelf(), true))
+				if (!parser.TryRecoverScope(nullptr, true))
 				{
 					break;
 				}
 			}
-			auto& statements = container->GetStatements();
 			if (!statements.empty())
 			{
 				auto& last = statements.back();
@@ -125,7 +119,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool SwitchStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool SwitchStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 
@@ -134,25 +128,27 @@ namespace HXSL
 			return false;
 		}
 
-		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		TakeHandle<AttributeDecl>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
-		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
-		auto switchStatement = make_ast_ptr<SwitchStatement>(TextSpan());
+		stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
+
+		std::vector<AttributeDecl*> attributes;
 		if (attribute != nullptr && attribute->HasResource())
 		{
-			switchStatement->AddAttribute(std::move(attribute->Take()));
+			attributes.push_back(attribute->Take());
 		}
-		ast_ptr<Expression> expression;
+		Expression* expression;
 		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
-		switchStatement->SetExpression(std::move(expression));
 
-		parser.EnterScope(ScopeType_Switch, switchStatement.get(), true);
+		parser.EnterScope(ScopeType_Switch, nullptr, true);
 
 		static const std::unordered_set<Keyword> keywords = { Keyword_Case, Keyword_Default };
 
-		while (parser.IterateScope(switchStatement.get()))
+		std::vector<CaseStatement*> cases;
+		DefaultCaseStatement* defaultCase = nullptr;
+		while (parser.IterateScope(nullptr))
 		{
 			Keyword keyword;
 			auto caseStart = stream.Current();
@@ -160,36 +156,40 @@ namespace HXSL
 
 			if (keyword == Keyword_Case)
 			{
-				auto caseStatement = make_ast_ptr<CaseStatement>(TextSpan(), nullptr);
-				ast_ptr<Expression> caseExpression;
+				Expression* caseExpression;
 				HybridExpressionParser::ParseExpression(parser, stream, caseExpression, ExpressionParserFlags_SwitchCase);
-				caseStatement->SetExpression(std::move(caseExpression));
+
 				stream.ExpectOperator(Operator_Colon, EXPECTED_COLON);
-				ParseCaseInner(parser, stream, caseStatement.get());
-				caseStatement->SetSpan(stream.MakeFromLast(caseStart));
-				switchStatement->AddCase(std::move(caseStatement));
+				std::vector<ASTNode*> statements;
+				ParseCaseInner(parser, stream, statements);
+				auto span = stream.MakeFromLast(caseStart);
+				auto caseStatement = CaseStatement::Create(span, caseExpression, statements);
+				cases.push_back(caseStatement);
 			}
 			else
 			{
-				if (switchStatement->GetDefaultCase())
+				if (defaultCase)
 				{
 					parser.Log(DUPLICATE_DEFAULT_CASE, caseStart);
 				}
 
 				stream.ExpectOperator(Operator_Colon, EXPECTED_COLON);
-				auto defaultCaseStatement = make_ast_ptr<DefaultCaseStatement>(TextSpan());
-				ParseCaseInner(parser, stream, defaultCaseStatement.get());
-				defaultCaseStatement->SetSpan(stream.MakeFromLast(caseStart));
-				switchStatement->SetDefaultCase(std::move(defaultCaseStatement));
+				
+				std::vector<ASTNode*> statements;
+				ParseCaseInner(parser, stream, statements);
+
+				auto span = stream.MakeFromLast(caseStart);
+				defaultCase = DefaultCaseStatement::Create(span, statements);
 			}
 		}
 
-		switchStatement->SetSpan(stream.MakeFromLast(start));
+		auto span = stream.MakeFromLast(start);
+		auto switchStatement = SwitchStatement::Create(span, expression, cases, defaultCase, attributes);
 		statementOut = std::move(switchStatement);
 		return true;
 	}
 
-	static bool TryParseElseStatement(Parser& parser, TokenStream& stream, IfStatement* ifStatement)
+	static bool TryParseElseStatement(Parser& parser, TokenStream& stream, std::vector<ElseIfStatement*>& elseIfStatements, ElseStatement*& elseStatement)
 	{
 		auto start = stream.Current();
 		if (!stream.TryGetKeyword(Keyword_Else))
@@ -197,45 +197,40 @@ namespace HXSL
 			return false;
 		}
 
+		elseStatement = nullptr;
 		if (stream.TryGetKeyword(Keyword_If))
 		{
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
-			auto elseIfStatement = make_ast_ptr<ElseIfStatement>(TextSpan(), nullptr, nullptr);
+			
 
-			ast_ptr<Expression> expression;
+			Expression* expression;
 			stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
 			HybridExpressionParser::ParseExpression(parser, stream, expression);
 			stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN);
 
-			elseIfStatement->SetCondition(std::move(expression));
-
-			ast_ptr<BlockStatement> statement;
+			BlockStatement* statement;
 			ParseStatementBody(ScopeType_ElseIf, parser, stream, statement);
 
-			elseIfStatement->SetBody(std::move(statement));
-			elseIfStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-
-			ifStatement->AddElseIf(std::move(elseIfStatement));
+			auto span = stream.MakeFromLast(start);
+			auto elseIfStatement = ElseIfStatement::Create(span, expression, statement);
+			elseIfStatements.push_back(elseIfStatement);
 		}
 		else
 		{
 			parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
-			auto elseStatement = make_ast_ptr<ElseStatement>(TextSpan(), nullptr);
-
-			ast_ptr<BlockStatement> statement;
+			
+			BlockStatement* statement;
 			ParseStatementBody(ScopeType_Else, parser, stream, statement);
 
-			elseStatement->SetBody(std::move(statement));
-			elseStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-
-			ifStatement->SetElseStatement(std::move(elseStatement));
+			auto span = stream.MakeFromLast(start);
+			elseStatement = ElseStatement::Create(span, statement);
 		}
 
 		return true;
 	}
 
-	bool IfStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool IfStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 
@@ -244,33 +239,34 @@ namespace HXSL
 			return false;
 		}
 
-		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		TakeHandle<AttributeDecl>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN));
-		auto ifStatement = make_ast_ptr<IfStatement>(TextSpan(), nullptr, nullptr);
+		
+		std::vector<AttributeDecl*> attributes;
 		if (attribute != nullptr && attribute->HasResource())
 		{
-			ifStatement->AddAttribute(std::move(attribute->Take()));
+			attributes.push_back(attribute->Take());
 		}
-		ast_ptr<Expression> expression;
+		Expression* expression;
 		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		IF_ERR_RET_FALSE(stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN));
-		ifStatement->SetCondition(std::move(expression));
 
-		ast_ptr<BlockStatement> statement; // TODO: single line statements.
+		BlockStatement* statement; // TODO: single line statements.
 		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_If, parser, stream, statement));
-		ifStatement->SetBody(std::move(statement));
 
-		while (stream.CanAdvance() && TryParseElseStatement(parser, stream, ifStatement.get()) && ifStatement->GetElseStatement() == nullptr) {}
+		std::vector<ElseIfStatement*> elseIfStatements;
+		ElseStatement* elseStatement = nullptr;
+		while (stream.CanAdvance() && TryParseElseStatement(parser, stream, elseIfStatements, elseStatement) && elseStatement == nullptr) {}
 
-		ifStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-
+		auto span = stream.MakeFromLast(start);
+		auto ifStatement = IfStatement::Create(span, expression, statement, elseIfStatements, elseStatement, attributes);
 		statementOut = std::move(ifStatement);
 		return true;
 	}
 
-	bool WhileStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool WhileStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 		if (!stream.TryGetKeyword(Keyword_While))
@@ -278,31 +274,31 @@ namespace HXSL
 			return false;
 		}
 
-		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		TakeHandle<AttributeDecl>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
 		stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
-		auto whileStatement = make_ast_ptr<WhileStatement>(TextSpan(), nullptr, nullptr);
 
+		std::vector<AttributeDecl*> attributes;
 		if (attribute != nullptr && attribute->HasResource())
 		{
-			whileStatement->AddAttribute(attribute->Take());
+			attributes.push_back(attribute->Take());
 		}
 
-		ast_ptr<Expression> expression;
+		Expression* expression;
 		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN);
-		whileStatement->SetCondition(std::move(expression));
 
-		ast_ptr<BlockStatement> statement;
+		BlockStatement* statement;
 		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_While, parser, stream, statement));
-		whileStatement->SetBody(std::move(statement));
-		whileStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-		statementOut = std::move(whileStatement);
+
+		auto span = stream.MakeFromLast(start);
+		auto whileStatement = WhileStatement::Create(span, expression, statement, attributes);
+		statementOut = whileStatement;
 		return true;
 	}
 
-	bool DoWhileStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool DoWhileStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 		if (!stream.TryGetKeyword(Keyword_Do))
@@ -310,34 +306,32 @@ namespace HXSL
 			return false;
 		}
 
-		TakeHandle<AttributeDeclaration>* attribute = nullptr;
+		TakeHandle<AttributeDecl>* attribute = nullptr;
 		parser.AcceptAttribute(&attribute, 0);
 
-		auto doWhileStatement = make_ast_ptr<DoWhileStatement>(TextSpan());
-
+		std::vector<AttributeDecl*> attributes;
 		if (attribute != nullptr && attribute->HasResource())
 		{
-			doWhileStatement->AddAttribute(attribute->Take());
+			attributes.push_back(attribute->Take());
 		}
 
-		ast_ptr<BlockStatement> statement;
+		BlockStatement* statement;
 		IF_ERR_RET_FALSE(ParseStatementBody(ScopeType_While, parser, stream, statement));
-		doWhileStatement->SetBody(std::move(statement));
-
 		stream.ExpectKeyword(Keyword_While, EXPECTED_WHILE);
 
 		stream.ExpectDelimiter('(', EXPECTED_LEFT_PAREN);
-		ast_ptr<Expression> expression;
+		Expression* expression;
 		IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 		stream.ExpectDelimiter(')', EXPECTED_RIGHT_PAREN);
-		doWhileStatement->SetCondition(std::move(expression));
-		doWhileStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-		statementOut = std::move(doWhileStatement);
+
+		auto span = stream.MakeFromLast(start);
+		auto doWhileStatement = DoWhileStatement::Create(span, expression, statement, attributes);
+		statementOut = doWhileStatement;
 
 		return true;
 	}
 
-	bool ReturnStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool ReturnStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 		if (!stream.TryGetKeyword(Keyword_Return))
@@ -345,10 +339,10 @@ namespace HXSL
 			return false;
 		}
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
-		auto returnStatement = make_ast_ptr<ReturnStatement>(TextSpan(), nullptr);
+		auto returnStatement = ReturnStatement::Create(TextSpan(), nullptr);
 		if (!stream.Current().isDelimiterOf(';'))
 		{
-			ast_ptr<Expression> expression;
+			Expression* expression;
 			IF_ERR_RET_FALSE(HybridExpressionParser::ParseExpression(parser, stream, expression));
 			returnStatement->SetReturnValueExpression(std::move(expression));
 		}
@@ -360,7 +354,7 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseAssignment(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	static bool ParseAssignment(const Token& start, Expression* target, Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		parser.RejectModifierList(NO_MODIFIER_INVALID_IN_CONTEXT, true);
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
@@ -372,23 +366,23 @@ namespace HXSL
 			parser.Log(EXPECTED_ASSIGNMENT_OP, current);
 		}
 
-		ast_ptr<AssignmentStatement> assignmentStatement;
+		AssignmentStatement* assignmentStatement;
 		if (op == Operator_Assign)
 		{
 			stream.TryAdvance();
-			assignmentStatement = make_ast_ptr<AssignmentStatement>(TextSpan(), std::move(target), nullptr);
+			assignmentStatement = AssignmentStatement::Create(TextSpan(), std::move(target), nullptr);
 		}
 		else
 		{
 			stream.TryAdvance();
-			assignmentStatement = make_ast_ptr<CompoundAssignmentStatement>(TextSpan(), op, std::move(target), nullptr);
+			assignmentStatement = CompoundAssignmentStatement::Create(TextSpan(), op, std::move(target), nullptr);
 		}
 
-		ast_ptr<Expression> expression;
+		Expression* expression;
 
 		if (stream.Current().isDelimiterOf('{'))
 		{
-			ast_ptr<InitializationExpression> initExpression;
+			InitializationExpression* initExpression;
 			IF_ERR_RET_FALSE(ParserHelper::TryParseInitializationExpression(parser, stream, initExpression));
 			expression = std::move(initExpression);
 		}
@@ -408,10 +402,10 @@ namespace HXSL
 		return true;
 	}
 
-	static bool ParseDeclaration(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	static bool ParseDeclaration(const Token& start, Expression* target, Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
-		ast_ptr<SymbolRef> symbol;
-		if (!ParserHelper::MakeConcreteSymbolRef(target.get(), SymbolRefType_Type, symbol))
+		SymbolRef* symbol;
+		if (!ParserHelper::MakeConcreteSymbolRef(target, SymbolRefType_Type, symbol))
 		{
 			parser.Log(EXPECTED_TYPE_EXPR, target->GetSpan());
 		}
@@ -420,8 +414,8 @@ namespace HXSL
 		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_VAR);
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
 
-		IdentifierInfo* identifer;
-		stream.ExpectIdentifier(identifer, EXPECTED_IDENTIFIER);
+		IdentifierInfo* identifier;
+		stream.ExpectIdentifier(identifier, EXPECTED_IDENTIFIER);
 
 		std::vector<size_t> arraySizes;
 		if (parser.TryParseArraySizes(arraySizes))
@@ -441,31 +435,30 @@ namespace HXSL
 			stream.Advance();
 		}
 
-		auto declarationStatement = make_ast_ptr<DeclarationStatement>(TextSpan(), identifer, std::move(symbol), list.storageClasses, nullptr);
+		Expression* expression;
 		if (stream.Current().isDelimiterOf('{'))
 		{
-			ast_ptr<InitializationExpression> initExpression;
+			InitializationExpression* initExpression;
 			IF_ERR_RET_FALSE(ParserHelper::TryParseInitializationExpression(parser, stream, initExpression));
 			IF_ERR_RET_FALSE(stream.ExpectDelimiter(';', EXPECTED_SEMICOLON));
-			declarationStatement->SetInitializer(std::move(initExpression));
+			expression = initExpression;
 		}
 		else if (!stream.TryGetDelimiter(';'))
 		{
-			ast_ptr<Expression> expression;
 			if (!HybridExpressionParser::ParseExpression(parser, stream, expression))
 			{
 				parser.TryRecoverStatement();
 			}
 			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-			declarationStatement->SetInitializer(std::move(expression));
 		}
 
-		declarationStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-		statementOut = std::move(declarationStatement);
+		auto span = stream.MakeFromLast(start);
+		auto declarationStatement = DeclarationStatement::Create(span, identifier, symbol, list.storageClasses, expression);
+		statementOut = declarationStatement;
 		return true;
 	}
 
-	static bool ParseExpressionStatement(const Token& start, ast_ptr<Expression> target, Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	static bool ParseExpressionStatement(const Token& start, Expression* target, Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		parser.RejectModifierList(NO_MODIFIER_INVALID_IN_CONTEXT);
 		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
@@ -475,23 +468,23 @@ namespace HXSL
 
 		if (target)
 		{
-			ctx.operandStack.push(std::move(target));
+			ctx.operandStack.push(target);
 			auto& task = ctx.tasks.top();
 			task.wasOperator = false;
 			task.hadBrackets = false;
 		}
 
-		ast_ptr<Expression> expr;
+		Expression* expr;
 		HybridExpressionParser::ParseExpression(parser, stream, expr, ctx);
 
-		auto expressionStatement = make_ast_ptr<ExpressionStatement>(TextSpan(), std::move(expr));
 		stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
-		expressionStatement->SetSpan(start.Span.merge(stream.LastToken().Span));
-		statementOut = std::move(expressionStatement);
+		auto span = stream.MakeFromLast(start);
+		auto expressionStatement = ExpressionStatement::Create(span, expr);
+		statementOut = expressionStatement;
 		return true;
 	}
 
-	bool MemberAccessStatementParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut)
+	bool MemberAccessStatementParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut)
 	{
 		auto start = stream.Current();
 		if (start.isDelimiterOf('(') || start.isUnaryOperator() || start.isLiteral() || start.isNumeric() || start.isKeywordOf(KeywordLiterals))
@@ -499,7 +492,7 @@ namespace HXSL
 			return ParseExpressionStatement(start, nullptr, parser, stream, statementOut);
 		}
 
-		ast_ptr<Expression> target;
+		Expression* target;
 		if (!ParserHelper::TryParseMemberAccessPath(parser, stream, target))
 		{
 			return false;
@@ -509,15 +502,15 @@ namespace HXSL
 
 		if (current.isAssignment() || current.isCompoundAssignment())
 		{
-			return ParseAssignment(start, std::move(target), parser, stream, statementOut);
+			return ParseAssignment(start, target, parser, stream, statementOut);
 		}
 		else if (current.isIdentifier())
 		{
-			return ParseDeclaration(start, std::move(target), parser, stream, statementOut);
+			return ParseDeclaration(start, target, parser, stream, statementOut);
 		}
 		else
 		{
-			return ParseExpressionStatement(start, std::move(target), parser, stream, statementOut);
+			return ParseExpressionStatement(start, target, parser, stream, statementOut);
 		}
 	}
 }

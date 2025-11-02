@@ -18,7 +18,7 @@ namespace HXSL
 		case NodeType_ExpressionStatement:
 		{
 			MappingStart();
-			TraverseExpression(cast<ExpressionStatement>(statement)->GetExpression().get());
+			TraverseExpression(cast<ExpressionStatement>(statement)->GetExpression());
 			MappingEnd(statement->GetSpan());
 		}
 		break;
@@ -27,7 +27,7 @@ namespace HXSL
 			MappingStart();
 			auto decl = cast<DeclarationStatement>(statement);
 			if (decl->GetDeclaredType() == nullptr) break;
-			auto init = decl->GetInitializer().get();
+			auto init = decl->GetInitializer();
 
 			auto flags = RegType(decl->GetDeclaredType())->GetVarTypeFlags();
 			ILType typeId;
@@ -89,7 +89,7 @@ namespace HXSL
 		{
 			MappingStart();
 			auto assign = cast<AssignmentStatement>(statement);
-			auto expr = assign->GetAssignmentExpression().get();
+			auto expr = assign->GetAssignmentExpression();
 			TraverseExpression(expr);
 			MappingEnd(statement->GetSpan());
 		}
@@ -97,7 +97,7 @@ namespace HXSL
 		case NodeType_IfStatement:
 		{
 			auto ifStatement = cast<IfStatement>(statement);
-			auto condition = ifStatement->GetCondition().get();
+			auto condition = ifStatement->GetCondition();
 
 			auto endIfId = MakeJumpLocation();
 
@@ -108,14 +108,14 @@ namespace HXSL
 			AddInstrNO<JumpInstr>(OpCode_JumpZero, endIfId);
 
 			PushFrame(ILFrame(ifStatement, endIfId));
-			PushFrame(ILFrame(ifStatement->GetBody().get(), 0));
+			PushFrame(ILFrame(ifStatement->GetBody(), 0));
 			return true;
 		}
 		break;
 		case NodeType_WhileStatement:
 		{
 			auto whileStatement = cast<WhileStatement>(statement);
-			auto condition = whileStatement->GetCondition().get();
+			auto condition = whileStatement->GetCondition();
 
 			auto whileBeginId = MakeJumpLocationFromCurrent();
 			auto whileEndId = MakeJumpLocation();
@@ -127,7 +127,7 @@ namespace HXSL
 			AddInstrNO<JumpInstr>(OpCode_JumpZero, whileEndId);
 
 			PushFrame(ILFrame(whileStatement, whileBeginId, whileEndId));
-			PushFrame(ILFrame(whileStatement->GetBody().get(), 0));
+			PushFrame(ILFrame(whileStatement->GetBody(), 0));
 			PushLoop(ILLoopFrame(whileBeginId, whileEndId));
 			return true;
 		}
@@ -141,7 +141,7 @@ namespace HXSL
 			auto doWhileEndId = MakeJumpLocation();
 
 			PushFrame(ILFrame(doWhileStatement, doWhileBeginId, doWhileCondId, doWhileEndId));
-			PushFrame(ILFrame(doWhileStatement->GetBody().get(), 0));
+			PushFrame(ILFrame(doWhileStatement->GetBody(), 0));
 			PushLoop(ILLoopFrame(doWhileCondId, doWhileEndId));
 			return true;
 		}
@@ -149,9 +149,9 @@ namespace HXSL
 		case NodeType_ForStatement:
 		{
 			auto forStatement = cast<ForStatement>(statement);
-			auto condition = forStatement->GetCondition().get();
+			auto condition = forStatement->GetCondition();
 
-			TraverseStatement(forStatement->GetInit().get());
+			TraverseStatement(forStatement->GetInit());
 
 			auto forBeginId = MakeJumpLocationFromCurrent();
 			auto forIncId = MakeJumpLocation();
@@ -164,7 +164,7 @@ namespace HXSL
 			AddInstrNO<JumpInstr>(OpCode_JumpZero, forEndId);
 
 			PushFrame(ILFrame(forStatement, forBeginId, forIncId, forEndId));
-			PushFrame(ILFrame(forStatement->GetBody().get(), 0));
+			PushFrame(ILFrame(forStatement->GetBody(), 0));
 			PushLoop(ILLoopFrame(forIncId, forEndId));
 			return true;
 		}
@@ -191,7 +191,7 @@ namespace HXSL
 
 			auto returnStatement = cast<ReturnStatement>(statement);
 
-			auto expr = returnStatement->GetReturnValueExpression().get();
+			auto expr = returnStatement->GetReturnValueExpression();
 			if (!expr)
 			{
 				AddInstrONO<ReturnInstr>();
@@ -236,7 +236,7 @@ namespace HXSL
 		auto statements = frame.block->GetStatements();
 		for (; frame.index < statements.size(); frame.index++)
 		{
-			auto statement = statements[frame.index].get();
+			auto statement = statements[frame.index];
 			if (TraverseStatement(statement))
 			{
 				break;
@@ -246,7 +246,7 @@ namespace HXSL
 
 	void ILBuilder::Build(FunctionOverload* func)
 	{
-		stack.push(ILFrame(func->GetBody().get(), 0));
+		stack.push(ILFrame(func->GetBody(), 0));
 
 		auto parent = func->GetParent();
 		auto type = parent->GetType();
@@ -257,7 +257,7 @@ namespace HXSL
 		{
 			ast_ptr<ThisDef> thisDef = make_ast_ptr<ThisDef>(make_ast_ptr<SymbolRef>("", SymbolRefType_Type, false));
 			auto typeId = RegType(canonicalParent->As<SymbolDef>());
-			auto& varId = RegVar(typeId, param.get());
+			auto& varId = RegVar(typeId, param);
 			AddInstr(OpCode_LoadParam, Number(parameterBase), ILOperand(ILOperandKind_Type, typeId), varId.AsOperand());
 			parameterBase++;
 		}*/
@@ -267,7 +267,7 @@ namespace HXSL
 		{
 			auto& param = parameters[i];
 			auto typeId = RegType(param->GetDeclaredType());
-			auto& varId = RegVar(typeId, param.get());
+			auto& varId = RegVar(typeId, param);
 			AddInstrO<LoadParamInstr>(varId, Number(parameterBase + i));
 		}
 
@@ -293,9 +293,9 @@ namespace HXSL
 					AddInstrNO<JumpInstr>(OpCode_Jump, endLoc);
 					SetLocation(frame.nextLocation);
 
-					auto elseIfStatement = elseIfStatements[frame.state].get();
+					auto elseIfStatement = elseIfStatements[frame.state];
 
-					auto condition = elseIfStatement->GetCondition().get();
+					auto condition = elseIfStatement->GetCondition();
 
 					MappingStart();
 					TraverseExpression(condition);
@@ -306,12 +306,12 @@ namespace HXSL
 
 					frame.state++;
 					PushFrame(currentFrame);
-					PushFrame(ILFrame(elseIfStatement->GetBody().get()));
+					PushFrame(ILFrame(elseIfStatement->GetBody()));
 					break;
 				}
 				else
 				{
-					auto elseStatement = ifStatement->GetElseStatement().get();
+					auto elseStatement = ifStatement->GetElseStatement();
 					if (elseStatement)
 					{
 						auto endLoc = frame.endLocation == INVALID_JUMP_LOCATION ? frame.endLocation = MakeJumpLocation() : frame.endLocation;
@@ -319,7 +319,7 @@ namespace HXSL
 						SetLocation(frame.nextLocation);
 
 						PushFrame(ILFrame(endLoc));
-						PushFrame(ILFrame(elseStatement->GetBody().get()));
+						PushFrame(ILFrame(elseStatement->GetBody()));
 					}
 					else
 					{
@@ -348,7 +348,7 @@ namespace HXSL
 				auto& frame = currentFrame.doWhileFrame;
 				SetLocation(frame.condLocation);
 				MappingStart();
-				TraverseExpression(frame.statement->GetCondition().get());
+				TraverseExpression(frame.statement->GetCondition());
 				MappingEnd(frame.statement->GetCondition()->GetSpan());
 				AddInstrNO<JumpInstr>(OpCode_JumpNotZero, frame.startLocation);
 				SetLocation(frame.endLocation);
@@ -359,7 +359,7 @@ namespace HXSL
 			{
 				auto& frame = currentFrame.forFrame;
 				SetLocation(frame.incrLocation);
-				TraverseExpression(frame.statement->GetIteration().get());
+				TraverseExpression(frame.statement->GetIteration());
 				AddInstrNO<JumpInstr>(OpCode_Jump, frame.startLocation);
 				SetLocation(frame.endLocation);
 				PopLoop();

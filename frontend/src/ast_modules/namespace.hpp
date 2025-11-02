@@ -29,77 +29,74 @@ namespace HXSL
 		}
 	};
 
-	struct UsingDeclaration
+	class UsingDecl : public ASTNode
 	{
-		TextSpan Span;
-		IdentifierInfo* Target;
-		IdentifierInfo* Alias;
-		std::vector<AssemblySymbolRef> AssemblyReferences;
+		friend class ASTContext;
+	private:
+		IdentifierInfo* target;
+		IdentifierInfo* alias;
+		Span<AssemblySymbolRef> assemblyReferences;
 
-		UsingDeclaration() : Span({}), Target(nullptr), Alias(nullptr) {}
-		UsingDeclaration(TextSpan span, IdentifierInfo* name) : Span(span), Target(name), Alias(nullptr) {}
-		UsingDeclaration(TextSpan span, IdentifierInfo* name, IdentifierInfo* alias) : Span(span), Target(name), Alias(alias) {}
+		UsingDecl(const TextSpan& span, IdentifierInfo* name, IdentifierInfo* alias) 
+			: ASTNode(span, ID), 
+			target(name), 
+			alias(alias) 
+		{
+		}
+	
+	public:
+		static constexpr NodeType ID = NodeType_UsingDecl;
 
-		bool IsAlias() const noexcept { return Alias != nullptr; }
+		static UsingDecl* Create(const TextSpan& span, IdentifierInfo* name, IdentifierInfo* alias = nullptr);
+
+		DEFINE_GETTER_SETTER_PTR(IdentifierInfo*, Target, target);
+		DEFINE_GETTER_SETTER_PTR(IdentifierInfo*, Alias, alias);
+		
+		bool IsAlias() const noexcept { return alias != nullptr; }
 
 		bool Warmup(const AssemblyCollection& references);
+
+		Span<AssemblySymbolRef> GetAssemblyReferences() const noexcept
+		{
+			return assemblyReferences;
+		}
 	};
 
-	class Namespace : public SymbolDef, TrailingObjects<Namespace, ast_ptr<Struct>, ast_ptr<Class>, ast_ptr<FunctionOverload>, ast_ptr<Field>, ast_ptr<Namespace>, UsingDeclaration>
+	class Namespace : public SymbolDef, public TrailingObjects<Namespace, Struct*, Class*, FunctionOverload*, Field*, Namespace*, UsingDecl*>
 	{
+		friend class ASTContext;
 	private:
-		uint32_t numStructs;
-		uint32_t numClasses;
-		uint32_t numFunctions;
-		uint32_t numFields;
-		uint32_t numNestedNamespaces;
-		uint32_t numUsings;
-	public:
-		static constexpr NodeType ID = NodeType_Namespace;
+		TrailingObjStorage<Namespace, uint32_t> storage;
+		Span<AssemblySymbolRef> assemblyReferences;
+	
 		Namespace(const TextSpan& span, IdentifierInfo* name)
 			: SymbolDef(span, ID, name)
 		{
 		}
+	public:
+		static constexpr NodeType ID = NodeType_Namespace;
 
-		static Namespace* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name,
-			ArrayRef<ast_ptr<Struct>> structs,
-			ArrayRef<ast_ptr<Class>> classes,
-			ArrayRef<ast_ptr<FunctionOverload>> functions,
-			ArrayRef<ast_ptr<Field>> fields,
-			ArrayRef<ast_ptr<Namespace>> nestedNamespaces,
-			ArrayRef<UsingDeclaration> usings);
+		static Namespace* Create(const TextSpan& span, IdentifierInfo* name,
+			const ArrayRef<Struct*>& structs,
+			const ArrayRef<Class*>& classes,
+			const ArrayRef<FunctionOverload*>& functions,
+			const ArrayRef<Field*>& fields,
+			const ArrayRef<Namespace*>& nestedNamespaces,
+			const ArrayRef<UsingDecl*>& usings);
 
-		ArrayRef<ast_ptr<Struct>> GetStructs()
-		{
-			return { GetTrailingObjects<0>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numStructs };
-		}
-
-		ArrayRef<ast_ptr<Class>> GetClasses()
-		{
-			return { GetTrailingObjects<1>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numClasses };
-		}
-
-		ArrayRef<ast_ptr<FunctionOverload>> GetFunctions()
-		{
-			return { GetTrailingObjects<2>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numFunctions };
-		}
-
-		ArrayRef<ast_ptr<Field>> GetFields()
-		{
-			return { GetTrailingObjects<3>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numFields };
-		}
-
-		ArrayRef<ast_ptr<Namespace>> GetNestedNamespacess()
-		{
-			return { GetTrailingObjects<4>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numNestedNamespaces };
-		}
-
-		ArrayRef<UsingDeclaration> GetUsings()
-		{
-			return { GetTrailingObjects<5>(numStructs, numClasses, numFunctions, numFields, numNestedNamespaces, numUsings), numUsings };
-		}
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetStructs, 0, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetClasses, 1, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetFunctions, 2, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetFields, 3, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetNestedNamespaces, 4, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetUsings, 5, storage);
 
 		void Warmup(const AssemblyCollection& references);
+
+		Span<AssemblySymbolRef> GetAssemblyReferences() const noexcept
+		{
+			return assemblyReferences;
+		}
 	};
 }
 

@@ -59,14 +59,14 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(right.get());
-			stack.push(left.get());
+			stack.push(right);
+			stack.push(left);
 		}
 	}
 
 	void CastExpressionChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CastExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto operand = expression->GetOperand().get();
+		auto operand = expression->GetOperand();
 		if (expression->GetLazyEvalState())
 		{
 			auto targetType = expression->GetTypeSymbol()->GetDeclaration();
@@ -98,7 +98,7 @@ namespace HXSL
 	{
 		if (expression->GetLazyEvalState())
 		{
-			auto& nextExpr = expression->GetNextExpression();
+			auto nextExpr = expression->GetNextExpression();
 			expression->SetInferredType(nextExpr->GetInferredType());
 			expression->SetTraits(nextExpr->GetTraits());
 		}
@@ -106,13 +106,13 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(expression->GetNextExpression().get());
+			stack.push(expression->GetNextExpression());
 		}
 	}
 
 	void MemberReferenceExpressionChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, MemberReferenceExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto& ref = expression->GetSymbolRef();
+		auto ref = expression->GetSymbolRef();
 		if (!ref->IsResolved() && !ref->IsNotFound())
 		{
 			HXSL_ASSERT(false, "");
@@ -156,7 +156,7 @@ namespace HXSL
 				type = function->GetReturnSymbolRef()->GetDeclaration();
 			}
 
-			auto next = expression->GetNextExpression().get();
+			auto next = expression->GetNextExpression();
 			if (next)
 			{
 				SymbolRefHelper::GetSymbolRef(next)->SetDeclaration(type);
@@ -174,7 +174,7 @@ namespace HXSL
 		}
 		else if (state == 2)
 		{
-			auto next = expression->GetNextExpression().get();
+			auto next = expression->GetNextExpression();
 			expression->SetInferredType(next->GetInferredType());
 			expression->SetTraits(next->GetTraits());
 		}
@@ -182,10 +182,10 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			auto& parameters = expression->GetParameters();
+			auto parameters = expression->GetParameters();
 			for (auto it = parameters.rbegin(); it != parameters.rend(); ++it)
 			{
-				stack.push(it->get()->GetExpression().get());
+				stack.push(it->GetExpression());
 			}
 		}
 	}
@@ -230,9 +230,9 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(falseBranch.get());
-			stack.push(trueBranch.get());
-			stack.push(condition.get());
+			stack.push(falseBranch);
+			stack.push(trueBranch);
+			stack.push(condition);
 		}
 	}
 
@@ -265,7 +265,7 @@ namespace HXSL
 
 	void PrefixPostfixExpressionChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, UnaryExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto operand = expression->GetOperand().get();
+		auto operand = expression->GetOperand();
 
 		if (expression->GetLazyEvalState())
 		{
@@ -331,14 +331,14 @@ namespace HXSL
 				return;
 			}
 
-			auto array = dyn_cast<Array>(type);
+			auto array = dyn_cast<ArrayDecl>(type);
 			if (array == nullptr)
 			{
 				HXSL_ASSERT(false, "Array was null, this should never happen.");
 				return;
 			}
 
-			auto next = expression->GetNextExpression().get();
+			auto next = expression->GetNextExpression();
 			if (next)
 			{
 				SymbolRefHelper::GetSymbolRef(next)->SetDeclaration(array);
@@ -356,7 +356,7 @@ namespace HXSL
 		}
 		else if (state == 2)
 		{
-			auto next = expression->GetNextExpression().get();
+			auto next = expression->GetNextExpression();
 			expression->SetInferredType(next->GetInferredType());
 			expression->SetTraits(next->GetTraits());
 		}
@@ -364,13 +364,13 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(index.get());
+			stack.push(index);
 		}
 	}
 
 	void AssignmentChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, AssignmentExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto target = expression->GetTarget().get();
+		auto target = expression->GetTarget();
 		auto& assignment = expression->GetExpressionMut();
 
 		if (expression->GetLazyEvalState())
@@ -395,14 +395,14 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(assignment.get());
+			stack.push(assignment);
 			stack.push(target);
 		}
 	}
 
 	void CompoundAssignmentChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CompoundAssignmentExpression* expression, std::stack<Expression*>& stack)
 	{
-		auto& target = expression->GetTarget();
+		auto target = expression->GetTarget();
 		auto& assignment = expression->GetExpressionMut();
 
 		if (expression->GetLazyEvalState())
@@ -433,8 +433,8 @@ namespace HXSL
 		{
 			expression->IncrementLazyEvalState();
 			stack.push(expression);
-			stack.push(assignment.get());
-			stack.push(target.get());
+			stack.push(assignment);
+			stack.push(target);
 		}
 	}
 }

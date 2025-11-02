@@ -480,129 +480,201 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL0200</para>
-	/// <para>Message: cannot declare a struct in this scope</para>
-	/// <para>Description: Desc</para>
-	/// <para>Category: Semantic Error</para>
-	/// <para>Severity: Error</para>
-	/// </summary>
-	constexpr DiagnosticCode STRUCT_DECL_OUT_OF_SCOPE = 9223373187906027720;
-	
-	/// <summary>
-	/// <para>Code: HL0201</para>
-	/// <para>Message: cannot declare field in this scope</para>
-	/// <para>Description: Desc</para>
-	/// <para>Category: Semantic Error</para>
-	/// <para>Severity: Error</para>
-	/// </summary>
-	constexpr DiagnosticCode FIELD_DECL_OUT_OF_SCOPE = 9223373187906027721;
-	
-	/// <summary>
-	/// <para>Code: HL0202</para>
 	/// <para>Message: 'break' statement used outside of a loop or switch context</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode UNEXPECTED_BREAK_STATEMENT = 9223373187906027722;
+	constexpr DiagnosticCode UNEXPECTED_BREAK_STATEMENT = 9223373187906027720;
 	
 	/// <summary>
-	/// <para>Code: HL0203</para>
+	/// <para>Code: HL0201</para>
 	/// <para>Message: 'continue' statement used outside of a loop context</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode UNEXPECTED_CONTINUE_STATEMENT = 9223373187906027723;
+	constexpr DiagnosticCode UNEXPECTED_CONTINUE_STATEMENT = 9223373187906027721;
 	
 	/// <summary>
-	/// <para>Code: HL0204</para>
+	/// <para>Code: HL0202</para>
 	/// <para>Message: 'discard' statement used outside of a function scope</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode UNEXPECTED_DISCARD_STATEMENT = 9223373187906027724;
+	constexpr DiagnosticCode UNEXPECTED_DISCARD_STATEMENT = 9223373187906027722;
 	
 	/// <summary>
-	/// <para>Code: HL0205</para>
+	/// <para>Code: HL0203</para>
 	/// <para>Message: cannot declare two default cases in a switch-case</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode DUPLICATE_DEFAULT_CASE = 9223373187906027725;
+	constexpr DiagnosticCode DUPLICATE_DEFAULT_CASE = 9223373187906027723;
 	
 	/// <summary>
-	/// <para>Code: HL0206</para>
+	/// <para>Code: HL0204</para>
 	/// <para>Message: attribute '{}' is not allowed in this context</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode ATTRIBUTE_INVALID_IN_CONTEXT = 9223373187906027726;
+	constexpr DiagnosticCode ATTRIBUTE_INVALID_IN_CONTEXT = 9223373187906027724;
 	
 	/// <summary>
-	/// <para>Code: HL0207</para>
+	/// <para>Code: HL0205</para>
 	/// <para>Message: no modifiers are allowed in this context</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode NO_MODIFIER_INVALID_IN_CONTEXT = 9223373187906027727;
+	constexpr DiagnosticCode NO_MODIFIER_INVALID_IN_CONTEXT = 9223373187906027725;
 	
 	/// <summary>
-	/// <para>Code: HL0208</para>
+	/// <para>Code: HL0206</para>
 	/// <para>Message: specified modifier is not allowed on variables</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_MODIFIER_ON_VAR = 9223373187906027728;
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_VAR = 9223373187906027726;
 	
 	/// <summary>
-	/// <para>Code: HL0209</para>
+	/// <para>Code: HL0207</para>
 	/// <para>Message: specified modifier is not allowed on fields</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_MODIFIER_ON_FIELD = 9223373187906027729;
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_FIELD = 9223373187906027727;
 	
 	/// <summary>
-	/// <para>Code: HL0210</para>
+	/// <para>Code: HL0208</para>
 	/// <para>Message: specified modifier is not allowed on functions</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_MODIFIER_ON_FUNC = 9223373187906027730;
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_FUNC = 9223373187906027728;
 	
 	/// <summary>
-	/// <para>Code: HL0211</para>
+	/// <para>Code: HL0209</para>
 	/// <para>Message: specified modifier is not allowed on operators</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_MODIFIER_ON_OP = 9223373187906027731;
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_OP = 9223373187906027729;
 	
 	/// <summary>
-	/// <para>Code: HL0212</para>
+	/// <para>Code: HL0210</para>
 	/// <para>Message: specified modifier is not allowed on structs</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_MODIFIER_ON_STRUCT = 9223373187906027732;
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_STRUCT = 9223373187906027730;
 	
 	/// <summary>
-	/// <para>Code: HL0213</para>
+	/// <para>Code: HL0211</para>
 	/// <para>Message: specified modifier is not allowed on constructor</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_MODIFIER_ON_CTOR = 9223373187906027733;
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_CTOR = 9223373187906027731;
+	
+	/// <summary>
+	/// <para>Code: HL0212</para>
+	/// <para>Message: specified modifier is not allowed on namespace</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_NAMESPACE = 9223373187906027732;
+	
+	/// <summary>
+	/// <para>Code: HL0220</para>
+	/// <para>Message: cannot declare field in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode FIELD_DECL_OUT_OF_SCOPE = 9223373187906027740;
+	
+	/// <summary>
+	/// <para>Code: HL0221</para>
+	/// <para>Message: cannot declare a struct in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode STRUCT_DECL_OUT_OF_SCOPE = 9223373187906027741;
+	
+	/// <summary>
+	/// <para>Code: HL0222</para>
+	/// <para>Message: cannot declare a class in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode CLASS_DECL_OUT_OF_SCOPE = 9223373187906027742;
+	
+	/// <summary>
+	/// <para>Code: HL0223</para>
+	/// <para>Message: cannot declare a enum in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode ENUM_DECL_OUT_OF_SCOPE = 9223373187906027743;
+	
+	/// <summary>
+	/// <para>Code: HL0224</para>
+	/// <para>Message: cannot declare a constructor in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode CTOR_DECL_OUT_OF_SCOPE = 9223373187906027744;
+	
+	/// <summary>
+	/// <para>Code: HL0225</para>
+	/// <para>Message: cannot declare a function in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode FUNC_DECL_OUT_OF_SCOPE = 9223373187906027745;
+	
+	/// <summary>
+	/// <para>Code: HL0226</para>
+	/// <para>Message: cannot declare a operator in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode OP_DECL_OUT_OF_SCOPE = 9223373187906027746;
+	
+	/// <summary>
+	/// <para>Code: HL0227</para>
+	/// <para>Message: cannot declare a namespace in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode NAMESPACE_DECL_OUT_OF_SCOPE = 9223373187906027747;
+	
+	/// <summary>
+	/// <para>Code: HL0228</para>
+	/// <para>Message: cannot declare a using in this scope</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode USING_DECL_OUT_OF_SCOPE = 9223373187906027748;
 	
 	/// <summary>
 	/// <para>Code: HL0300</para>

@@ -19,7 +19,7 @@
 #include "ast_modules/compilation_unit.hpp"
 
 #include "ast_modules/helpers.hpp"
-#include "ast_context.hpp"
+#include "ast_modules/ast_context.hpp"
 #include "ast_modules/ast_builder.hpp"
 
 #endif

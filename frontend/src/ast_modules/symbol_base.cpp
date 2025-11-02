@@ -8,14 +8,14 @@ namespace HXSL
 {
 #pragma region SymbolDef
 
-	void SymbolDef::SetAssembly(ASTContext* context, const Assembly* assembly, const SymbolHandle& handle)
+	void SymbolDef::SetAssembly(const Assembly* assembly, const SymbolHandle& handle)
 	{
 		this->assembly = assembly;
 		this->symbolHandle = handle;
-		UpdateFQN(context);
+		UpdateFQN();
 	}
 
-	void SymbolDef::UpdateFQN(ASTContext* context)
+	void SymbolDef::UpdateFQN()
 	{
 		if (symbolHandle.invalid())
 		{
@@ -23,7 +23,8 @@ namespace HXSL
 			return;
 		}
 
-		fullyQualifiedName = context->GetIdentiferTable().Get(symbolHandle.GetFullyQualifiedName());
+		auto* context = ASTContext::GetCurrentContext();
+		fullyQualifiedName = context->GetIdentifierTable().Get(symbolHandle.GetFullyQualifiedName());
 	}
 
 	const StringSpan& SymbolDef::GetName() const
@@ -79,9 +80,10 @@ namespace HXSL
 		return SymbolType_Unknown;
 	}
 
-	ast_ptr<SymbolRef> SymbolDef::MakeSymbolRef(ASTContext* context) const
+	SymbolRef* SymbolDef::MakeSymbolRef() const
 	{
-		auto ref = ast_ptr<SymbolRef>(SymbolRef::Create(context, {}, context->GetIdentiferTable().Get(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false));
+		auto* context = ASTContext::GetCurrentContext();
+		auto ref = SymbolRef::Create({}, context->GetIdentifierTable().Get(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
 		ref->SetTable(GetSymbolHandle());
 		return ref;
 	}
@@ -95,8 +97,9 @@ namespace HXSL
 
 #pragma region SymbolRef
 
-	SymbolRef* SymbolRef::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified)
+	SymbolRef* SymbolRef::Create(const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified)
 	{
+		auto* context = ASTContext::GetCurrentContext();
 		return context->Alloc<SymbolRef>(sizeof(SymbolRef), span, identifer, type, isFullyQualified);
 	}
 
@@ -144,9 +147,8 @@ namespace HXSL
 	{
 		std::unordered_set<const SymbolDef*> visited;
 		auto decl = GetDeclaration();
-		while (auto refPtr = SymbolRefHelper::TryGetSymbolRef(decl))
+		while (auto ref = SymbolRefHelper::TryGetSymbolRef(decl))
 		{
-			auto& ref = *refPtr;
 			if (!visited.insert(decl).second)
 			{
 				return nullptr;
@@ -160,9 +162,8 @@ namespace HXSL
 	{
 		std::unordered_set<const SymbolDef*> visited;
 		auto decl = GetDeclaration();
-		while (auto refPtr = SymbolRefHelper::TryGetSymbolRef(decl))
+		while (auto ref = SymbolRefHelper::TryGetSymbolRef(decl))
 		{
-			auto& ref = *refPtr;
 			if (!visited.insert(decl).second)
 			{
 				return nullptr;
@@ -176,16 +177,16 @@ namespace HXSL
 		return decl;
 	}
 
-	ast_ptr<SymbolRef> SymbolRef::Clone(ASTContext* context) const
+	SymbolRef* SymbolRef::Clone() const
 	{
-		auto cloned = Create(context, span, identifer, type, isFullyQualified);
+		auto cloned = Create(span, identifer, type, isFullyQualified);
 		cloned->identifer = identifer;
 		cloned->span = span;
 		cloned->type = type;
 		cloned->def = def;
 		cloned->isDeferred = isDeferred;
 		cloned->notFound = notFound;
-		return ast_ptr<SymbolRef>(cloned);
+		return cloned;
 	}
 
 	const StringSpan& SymbolRef::ToString() const noexcept
@@ -195,19 +196,19 @@ namespace HXSL
 
 #pragma endregion
 
-	SymbolRefArray* SymbolRefArray::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ArrayRef<size_t> arrayDims)
+	SymbolRefArray* SymbolRefArray::Create(const TextSpan& span, IdentifierInfo* name, const Span<size_t>& arrayDims)
 	{
+		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<SymbolRefArray>(TotalSizeToAlloc(arrayDims.size()), span, name);
-		ptr->numArrayDims = static_cast<uint32_t>(arrayDims.size());
-		std::uninitialized_move(arrayDims.begin(), arrayDims.end(), ptr->GetArrayDims().data());
+		ptr->storage.InitializeMove(ptr, arrayDims);
 		return ptr;
 	}
 
-	SymbolRefArray* SymbolRefArray::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, uint32_t numArrayDims)
+	SymbolRefArray* SymbolRefArray::Create(const TextSpan& span, IdentifierInfo* name, uint32_t numArrayDims)
 	{
+		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<SymbolRefArray>(TotalSizeToAlloc(numArrayDims), span, name);
-		ptr->numArrayDims = numArrayDims;
-		ptr->GetArrayDims().init();
+		ptr->storage.SetCounts(numArrayDims);
 		return ptr;
 	}
 }

@@ -3,8 +3,9 @@
 
 namespace HXSL
 {
-	Pointer* Pointer::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ast_ptr<SymbolRef>&& elementType)
+	Pointer* Pointer::Create(const TextSpan& span, IdentifierInfo* name, SymbolRef* elementType)
 	{
-		return context->Alloc<Pointer>(sizeof(Pointer), span, name, std::move(elementType));
+		auto* context = ASTContext::GetCurrentContext();
+		return context->Alloc<Pointer>(sizeof(Pointer), span, name, elementType);
 	}
 }

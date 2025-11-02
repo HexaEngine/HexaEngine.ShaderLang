@@ -14,7 +14,7 @@ namespace HXSL
 			return false;
 		}
 
-		auto dimsCount = arrayRef->GetArrayDimCount();
+		auto dimsCount = arrayRef->GetArrayDims().size();
 		std::string arrayHeadKey = arrayRef->MakeArrayTypeName(dimsCount - 1, elementType); // full name
 
 		auto arrayTable = arrayAssembly->GetMutableSymbolTable();
@@ -28,21 +28,22 @@ namespace HXSL
 			return true;
 		}
 
+		auto context = ASTContext::GetCurrentContext();
 		auto dims = arrayRef->GetArrayDims();
 		SymbolDef* currentType = elementType;
 		for (size_t i = 0; i < dimsCount; i++)
 		{
-			auto arrayKey = context->GetIdentiferTable().Get(arrayRef->MakeArrayTypeName(i, currentType));
+			auto arrayKey = context->GetIdentifierTable().Get(arrayRef->MakeArrayTypeName(i, currentType));
 
-			auto symbolRef = ref->Clone(context);
+			auto symbolRef = ref->Clone();
 			symbolRef->OverwriteType(SymbolRefType_Type);
 			symbolRef->SetDeclaration(currentType);
 
-			auto array = Array::Create(context, TextSpan(), arrayKey, std::move(symbolRef), dims[i]);
+			auto array = ArrayDecl::Create(TextSpan(), arrayKey, symbolRef, dims[i]);
 
 			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Array, SymbolScopeType_Global, AccessModifier_Public, 0, array);
 			handle = arrayTable->Insert(array->GetName(), meta);
-			array->SetAssembly(context, arrayAssembly.get(), handle);
+			array->SetAssembly(arrayAssembly.get(), handle);
 
 			currentType = array;
 		}

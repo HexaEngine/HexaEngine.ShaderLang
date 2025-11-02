@@ -27,7 +27,7 @@ namespace HXSL
 	class Struct;
 	class Class;
 	class Field;
-	class Array;
+	class ArrayDecl;
 	class Primitive;
 	class Expression;
 	class ASTNode;
@@ -50,7 +50,8 @@ namespace HXSL
 	/// Parsing: All Done.
 	/// Symbol Collection: All Done.
 	/// Symbol Resolve: All Done.
-	/// Type Check: WIP.
+	/// Type Check: All Done.
+	/// Code Gen: Partially.
 	/// </summary>
 	enum NodeType : uint8_t
 	{
@@ -60,6 +61,7 @@ namespace HXSL
 		NodeType_Unknown,
 		NodeType_CompilationUnit,
 		NodeType_Namespace,
+		NodeType_UsingDecl,
 		NodeType_Enum, // Placeholder (Will be added in the future.)
 		NodeType_Primitive,
 		NodeType_Struct,
@@ -426,7 +428,7 @@ namespace HXSL
 	};
 
 	template <class Target, class Injector, class InsertFunc>
-	static void	InjectNode(ast_ptr<Target>& target, ast_ptr<Injector> inject, InsertFunc func)
+	static void	InjectNode(Target& target, Injector inject, InsertFunc func)
 	{
 		static_assert(std::is_base_of<ASTNode, Target>::value, "Target must derive from ASTNode");
 		static_assert(std::is_base_of<Target, Injector>::value, "Injector must derive from Target");

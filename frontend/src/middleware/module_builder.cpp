@@ -11,7 +11,7 @@ namespace HXSL
 		module = std::make_unique<Module>();
 		for (auto& ns : compilation->GetNamespaces())
 		{
-			module->AddNamespace(ConvertNamespace(ns.get()));
+			module->AddNamespace(ConvertNamespace(ns));
 		}
 
 		module->SetAllFunctions(module->GetAllocator().CopySpan(functions));
@@ -28,7 +28,7 @@ namespace HXSL
 		}
 
 		std::string name = elementType->GetName().str() + "*";
-		PointerLayoutBuilder builder = PointerLayoutBuilder(*module.get());
+		PointerLayoutBuilder builder = PointerLayoutBuilder(*module);
 		builder
 			.Name(name)
 			.Access(AccessModifier_Public)
@@ -79,7 +79,7 @@ namespace HXSL
 			return cast<PrimitiveLayout>(it->second);
 		}
 
-		PrimitiveLayoutBuilder builder = PrimitiveLayoutBuilder(*module.get());
+		PrimitiveLayoutBuilder builder = PrimitiveLayoutBuilder(*module);
 		builder
 			.Name(prim->GetName())
 			.Access(AccessModifier_Public)
@@ -100,7 +100,7 @@ namespace HXSL
 			return cast<FieldLayout>(it->second);
 		}
 
-		FieldLayoutBuilder builder = FieldLayoutBuilder(*module.get());
+		FieldLayoutBuilder builder = FieldLayoutBuilder(*module);
 		builder
 			.Name(field->GetName())
 			.Semantic(field->GetSemantic()->name)
@@ -122,7 +122,7 @@ namespace HXSL
 			return cast<ParameterLayout>(it->second);
 		}
 
-		ParameterLayoutBuilder builder = ParameterLayoutBuilder(*module.get());
+		ParameterLayoutBuilder builder = ParameterLayoutBuilder(*module);
 		builder
 			.Name(param->GetName())
 			.Semantic(param->GetSemantic()->name)
@@ -147,12 +147,12 @@ namespace HXSL
 
 		for (auto& param : func->GetParameters())
 		{
-			builder.AddParameter(ConvertParameter(param.get()));
+			builder.AddParameter(ConvertParameter(param));
 		}
 
 		functions.push_back(builder.Peek());
 
-		ILContext* context = module->GetAllocator().Alloc<ILContext>(module.get(), builder.Peek());
+		ILContext* context = module->GetAllocator().Alloc<ILContext>(module, builder.Peek());
 
 		auto& allocator = context->GetAllocator();
 
@@ -180,7 +180,7 @@ namespace HXSL
 			return cast<FunctionLayout>(it->second);
 		}
 
-		FunctionLayoutBuilder builder = FunctionLayoutBuilder(*module.get());
+		FunctionLayoutBuilder builder = FunctionLayoutBuilder(*module);
 		map.insert({ func, builder.Peek() });
 		ConvertFunction(func, builder);
 		return builder.Build();
@@ -194,7 +194,7 @@ namespace HXSL
 			return cast<OperatorLayout>(it->second);
 		}
 
-		OperatorLayoutBuilder builder = OperatorLayoutBuilder(*module.get());
+		OperatorLayoutBuilder builder = OperatorLayoutBuilder(*module);
 		map.insert({ op, builder.Peek() });
 		ConvertFunction(op, builder);
 		builder
@@ -211,7 +211,7 @@ namespace HXSL
 			return cast<ConstructorLayout>(it->second);
 		}
 
-		ConstructorLayoutBuilder builder = ConstructorLayoutBuilder(*module.get());
+		ConstructorLayoutBuilder builder = ConstructorLayoutBuilder(*module);
 		map.insert({ ctor, builder.Peek() });
 		ConvertFunction(ctor, builder);
 		return builder.Build();
@@ -225,7 +225,7 @@ namespace HXSL
 			return cast<StructLayout>(it->second);
 		}
 
-		StructLayoutBuilder builder = StructLayoutBuilder(*module.get());
+		StructLayoutBuilder builder = StructLayoutBuilder(*module);
 		ConvertType(strct, builder);
 		builder
 			.StructFlags(StructLayoutFlags_None);
@@ -242,7 +242,7 @@ namespace HXSL
 			return cast<StructLayout>(it->second);
 		}
 
-		StructLayoutBuilder builder = StructLayoutBuilder(*module.get());
+		StructLayoutBuilder builder = StructLayoutBuilder(*module);
 		ConvertType(clss, builder);
 		builder
 			.StructFlags(StructLayoutFlags_Class);
@@ -259,32 +259,32 @@ namespace HXSL
 			return cast<NamespaceLayout>(it->second);
 		}
 
-		NamespaceLayoutBuilder builder = NamespaceLayoutBuilder(*module.get());
+		NamespaceLayoutBuilder builder = NamespaceLayoutBuilder(*module);
 		builder.Name(ns->GetName());
 
 		for (auto& strct : ns->GetStructs())
 		{
-			builder.AddStruct(ConvertStruct(strct.get()));
+			builder.AddStruct(ConvertStruct(strct));
 		}
 
 		for (auto& clss : ns->GetClasses())
 		{
-			builder.AddStruct(ConvertClass(clss.get()));
+			builder.AddStruct(ConvertClass(clss));
 		}
 
 		for (auto& func : ns->GetFunctions())
 		{
-			builder.AddFunction(ConvertFunction(func.get()));
+			builder.AddFunction(ConvertFunction(func));
 		}
 
 		for (auto& field : ns->GetFields())
 		{
-			builder.AddGlobalField(ConvertField(field.get()));
+			builder.AddGlobalField(ConvertField(field));
 		}
 
 		for (auto& nestedNs : ns->GetNestedNamespaces())
 		{
-			builder.AddNestedNamespace(ConvertNamespace(nestedNs.get()));
+			builder.AddNestedNamespace(ConvertNamespace(nestedNs));
 		}
 
 		auto res = builder.Build();

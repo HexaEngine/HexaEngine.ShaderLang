@@ -1,6 +1,29 @@
 namespace Test;
 using Core;
 
+SamplerState samplerState;
+Texture2D fontTex;
+
+struct MyStruct
+{
+    float4 pos;
+
+    public MyStruct(float4 pos)
+    {
+        this.pos = pos;
+    }
+
+    public void Add(float4 p)
+    {
+        pos += p;
+    }
+
+    public static implicit operator float4(in MyStruct val)
+    {
+        return val.pos;
+    }
+}
+
 float4 main(PS_INPUT pixel) : SV_TARGET
 {
     float array[10];

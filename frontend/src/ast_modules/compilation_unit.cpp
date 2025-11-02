@@ -3,19 +3,19 @@
 
 namespace HXSL
 {
-	CompilationUnit* CompilationUnit::Create(ASTContext* context, bool isExtern, ArrayRef<ast_ptr<Namespace>> namespaces)
+	CompilationUnit* CompilationUnit::Create(bool isExtern, const ArrayRef<Namespace*>& namespaces, const ArrayRef<UsingDecl*>& usings)
 	{
-		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(namespaces.size()), isExtern);
-		ptr->numNamespaces = static_cast<uint32_t>(namespaces.size());
-		std::uninitialized_move(namespaces.begin(), namespaces.end(), ptr->GetNamespaces().data());
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(namespaces.size(), usings.size()), isExtern);
+		ptr->storage.InitializeMove(ptr, namespaces, usings);
 		return ptr;
 	}
 
-	CompilationUnit* CompilationUnit::Create(ASTContext* context, bool isExtern, uint32_t numNamespaces)
+	CompilationUnit* CompilationUnit::Create(bool isExtern, uint32_t numNamespaces, uint32_t numUsings)
 	{
-		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(numNamespaces), isExtern);
-		ptr->numNamespaces = numNamespaces;
-		ptr->GetNamespaces().init();
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(numNamespaces, numUsings), isExtern);
+		ptr->storage.SetCounts(numNamespaces, numUsings);
 		return ptr;
 	}
 }

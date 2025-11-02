@@ -3,8 +3,9 @@
 
 namespace HXSL
 {
-	Array* Array::Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ast_ptr<SymbolRef>&& elementType, size_t arraySize)
+	ArrayDecl* ArrayDecl::Create(const TextSpan& span, IdentifierInfo* name, SymbolRef* elementType, size_t arraySize)
 	{
-		return context->Alloc<Array>(sizeof(Array), span, name, std::move(elementType), arraySize);
+		auto* context = ASTContext::GetCurrentContext();
+		return context->Alloc<ArrayDecl>(sizeof(ArrayDecl), span, name, elementType, arraySize);
 	}
 }

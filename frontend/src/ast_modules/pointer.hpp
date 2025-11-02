@@ -11,24 +11,24 @@ namespace HXSL
 	{
 		friend class ASTContext;
 	private:
-		ast_ptr<SymbolRef> elementType;
+		SymbolRef* elementType;
 
-		Pointer(const TextSpan& span, IdentifierInfo* name, ast_ptr<SymbolRef>&& elementType)
+		Pointer(const TextSpan& span, IdentifierInfo* name, SymbolRef* elementType)
 			: Type(span, ID, name, AccessModifier_Public),
-			elementType(std::move(elementType))
+			elementType(elementType)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_Pointer;
-		static Pointer* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ast_ptr<SymbolRef>&& elementType);
+		static Pointer* Create(const TextSpan& span, IdentifierInfo* name, SymbolRef* elementType);
 
 		SymbolDef* GetElementType() const
 		{
 			return elementType->GetDeclaration();
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef()
+		SymbolRef* GetSymbolRef()
 		{
 			return elementType;
 		}

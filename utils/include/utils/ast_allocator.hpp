@@ -352,6 +352,51 @@ struct ASTAllocatorDeleter
 template <typename T>
 using ast_ptr = std::unique_ptr<T, ASTAllocatorDeleter<T>>;
 
+template <typename T>
+using uptr = std::unique_ptr<T>;
+
+template <typename T, typename... Args>
+inline uptr<T> make_uptr(Args&& ... args)
+{
+	return std::make_unique<T>(std::forward<Args>(args)...);
+}
+
+template <typename T>
+struct ptr
+{
+	T* p;
+
+	constexpr ptr() : p(nullptr) {}
+	constexpr ptr(T* p) : p(p) {}
+	template <typename U, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+	constexpr ptr(U* p) : p(p) {}
+
+	constexpr operator T* () const { return p; }
+	constexpr T* operator->() const { return p; }
+	constexpr T& operator*() const { return *p; }
+
+	constexpr T* get() const { return p; }
+	constexpr T* release()
+	{
+		T* temp = p;
+		p = nullptr;
+		return temp;
+	}
+
+	constexpr void reset(T* newP = nullptr)
+	{
+		p = newP;
+	}
+
+	template <typename U>
+	constexpr bool operator==(const ptr<U>& other) const { return p == other.p; }
+	template <typename U>
+	constexpr bool operator!=(const ptr<U>& other) const { return p != other.p; }
+	constexpr operator bool() const { return p != nullptr; }
+
+	
+};
+
 template <typename U>
 inline void destroy(void* p) { static_cast<U*>(p)->~U(); }
 

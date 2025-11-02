@@ -15,28 +15,28 @@ namespace HXSL
 	private:
 		ParameterFlags paramaterFlags;
 		InterpolationModifier interpolationModifiers;
-		ast_ptr<SymbolRef> symbol;
+		SymbolRef* symbol;
 		IdentifierInfo* semantic;
 
-		Parameter(const TextSpan& span, IdentifierInfo* name, ParameterFlags flags, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic)
+		Parameter(const TextSpan& span, IdentifierInfo* name, ParameterFlags flags, InterpolationModifier interpolationModifiers, SymbolRef* symbol, IdentifierInfo* semantic)
 			: SymbolDef(span, ID, name),
 			paramaterFlags(flags),
 			interpolationModifiers(interpolationModifiers),
-			symbol(std::move(symbol)),
+			symbol(symbol),
 			semantic(semantic)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_Parameter;
-		static Parameter* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, ParameterFlags flags, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic);
+		static Parameter* Create(const TextSpan& span, IdentifierInfo* name, ParameterFlags flags, InterpolationModifier interpolationModifiers, SymbolRef* symbol, IdentifierInfo* semantic);
 
-		void SetSymbolRef(ast_ptr<SymbolRef> ref)
+		void SetSymbolRef(SymbolRef* value)
 		{
-			symbol = std::move(ref);
+			symbol = value;
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef()
+		SymbolRef* GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -53,7 +53,7 @@ namespace HXSL
 			DEFINE_GETTER_SETTER_PTR(IdentifierInfo*, Semantic, semantic)
 	};
 
-	class FunctionOverload : public SymbolDef, protected TrailingObjects<FunctionOverload, ast_ptr<Parameter>, ast_ptr<AttributeDeclaration>>
+	class FunctionOverload : public SymbolDef, public TrailingObjects<FunctionOverload, Parameter*, AttributeDecl*>
 	{
 		friend class ASTContext;
 		friend class TrailingObjects;
@@ -61,41 +61,37 @@ namespace HXSL
 		std::string cachedSignature;
 		AccessModifier accessModifiers;
 		FunctionFlags functionFlags;
-		ast_ptr<SymbolRef> returnSymbol;
+		SymbolRef* returnSymbol;
 		IdentifierInfo* semantic;
-		ast_ptr<BlockStatement> body;
-		uint32_t numParameters;
-		uint32_t numAttributes;
+		BlockStatement* body;
+		TrailingObjStorage<FunctionOverload, uint32_t> storage;
 
-		FunctionOverload(const TextSpan& span, NodeType type, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef> returnSymbol)
+		FunctionOverload(const TextSpan& span, NodeType type, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* returnSymbol, BlockStatement* body)
 			: SymbolDef(span, type, name),
 			accessModifiers(accessModifiers),
 			functionFlags(functionFlags),
-			returnSymbol(std::move(returnSymbol))
+			returnSymbol(returnSymbol),
+			body(body)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_FunctionOverload;
-		static FunctionOverload* Create(ASTContext* context,
+		static FunctionOverload* Create(
 			const TextSpan& span,
 			IdentifierInfo* name,
 			AccessModifier accessModifiers,
 			FunctionFlags functionFlags,
-			ast_ptr<SymbolRef>&& returnSymbol,
-			ast_ptr<BlockStatement>&& body,
+			SymbolRef* returnSymbol,
+			BlockStatement* body,
 			IdentifierInfo* semantic,
-			ArrayRef<ast_ptr<Parameter>> parameters,
-			ArrayRef<ast_ptr<AttributeDeclaration>> attributes);
+			const ArrayRef<Parameter*>& parameters = {},
+			const ArrayRef<AttributeDecl*>& attributes = {});
 
-		static FunctionOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters, uint32_t numAttributes);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetParameters, 0, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 1, storage);
 
-		ArrayRef<ast_ptr<Parameter>> GetParameters()
-		{
-			return { GetTrailingObjects<0>(numParameters), numParameters };
-		}
-
-		ast_ptr<SymbolRef>& GetReturnSymbolRef()
+		SymbolRef* GetReturnSymbolRef()
 		{
 			return returnSymbol;
 		}
@@ -105,12 +101,7 @@ namespace HXSL
 			return returnSymbol->GetDeclaration();
 		}
 
-		std::string BuildOverloadSignature(bool placeholder) noexcept;
-
-		std::string BuildOverloadSignature() noexcept
-		{
-			return BuildOverloadSignature(false);
-		}
+		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
 
 		std::string BuildTemporaryOverloadSignature() noexcept
 		{
@@ -126,34 +117,33 @@ namespace HXSL
 
 		DEFINE_GETTER_SETTER(FunctionFlags, FunctionFlags, functionFlags)
 			DEFINE_GETTER_SETTER(AccessModifier, AccessModifiers, accessModifiers)
-			DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, ReturnSymbol, returnSymbol)
+			DEFINE_GETTER_SETTER_PTR(SymbolRef*, ReturnSymbol, returnSymbol)
 			DEFINE_GETTER_SETTER_PTR(IdentifierInfo*, Semantic, semantic)
 
-			const ast_ptr<BlockStatement>& GetBody() const noexcept;
+			BlockStatement* GetBody() const noexcept;
 
-		void SetBody(ast_ptr<BlockStatement>&& value) noexcept;
+		void SetBody(BlockStatement* value) noexcept;
 
-		ast_ptr<BlockStatement>& GetBodyMut() noexcept;
+		BlockStatement*& GetBodyMut() noexcept;
 	};
 
 	class ConstructorOverload : public FunctionOverload
 	{
 		friend class ASTContext;
 	private:
-		ast_ptr<SymbolRef> targetTypeSymbol;
+		SymbolRef* targetTypeSymbol;
 
-		ConstructorOverload(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef> targetTypeSymbol, ast_ptr<SymbolRef>&& returnType)
-			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, std::move(returnType)),
-			targetTypeSymbol(std::move(targetTypeSymbol))
+		ConstructorOverload(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, SymbolRef* returnType, BlockStatement* body)
+			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, returnType, body),
+			targetTypeSymbol(targetTypeSymbol)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_ConstructorOverload;
-		static ConstructorOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& targetTypeSymbol, ArrayRef<ast_ptr<Parameter>>& parameters);
-		static ConstructorOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, ast_ptr<SymbolRef>&& targetTypeSymbol, uint32_t numParameters);
+		static ConstructorOverload* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes);
 
-		ast_ptr<SymbolRef>& GetTargetTypeSymbolRef()
+		SymbolRef* GetTargetTypeSymbolRef()
 		{
 			return targetTypeSymbol;
 		}
@@ -163,9 +153,9 @@ namespace HXSL
 			return targetTypeSymbol->GetDeclaration();
 		}
 
-		std::string BuildOverloadSignature(bool placeholder) noexcept;
+		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
 
-		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, TargetTypeSymbol, targetTypeSymbol)
+		DEFINE_GETTER_SETTER_PTR(SymbolRef*, TargetTypeSymbol, targetTypeSymbol)
 	};
 
 	class OperatorOverload : public FunctionOverload
@@ -176,17 +166,16 @@ namespace HXSL
 		Operator _operator;
 	public:
 		static constexpr NodeType ID = NodeType_OperatorOverload;
-		OperatorOverload(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, ast_ptr<SymbolRef>&& returnSymbol)
-			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, std::move(returnSymbol)),
+		OperatorOverload(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body)
+			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, returnSymbol, body),
 			_operator(_operator),
 			operatorFlags(operatorFlags)
 		{
 		}
 
-		static OperatorOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, ast_ptr<SymbolRef>&& returnSymbol, ArrayRef<ast_ptr<Parameter>>& parameters);
-		static OperatorOverload* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, ast_ptr<SymbolRef>&& returnSymbol, uint32_t numParameters);
+		static OperatorOverload* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes);
 
-		std::string BuildOverloadSignature(bool placeholder) noexcept;
+		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
 
 		const OperatorFlags& GetOperatorFlags() const noexcept { return operatorFlags; }
 
@@ -204,29 +193,29 @@ namespace HXSL
 		AccessModifier accessModifiers;
 		StorageClass storageClass;
 		InterpolationModifier interpolationModifiers;
-		ast_ptr<SymbolRef> symbol;
+		SymbolRef* symbol;
 		IdentifierInfo* semantic;
 
-		Field(const TextSpan& span, IdentifierInfo* name, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic)
+		Field(const TextSpan& span, IdentifierInfo* name, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, SymbolRef* symbol, IdentifierInfo* semantic)
 			: SymbolDef(span, ID, name),
 			accessModifiers(access),
 			storageClass(storageClass),
 			interpolationModifiers(interpolationModifiers),
-			symbol(std::move(symbol)),
+			symbol(symbol),
 			semantic(semantic)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_Field;
-		static Field* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, ast_ptr<SymbolRef>&& symbol, IdentifierInfo* semantic);
+		static Field* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, StorageClass storageClass, InterpolationModifier interpolationModifiers, SymbolRef* symbol, IdentifierInfo* semantic);
 
-		void SetSymbolRef(ast_ptr<SymbolRef> ref)
+		void SetSymbolRef(SymbolRef* ref)
 		{
-			symbol = std::move(ref);
+			symbol = ref;
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef()
+		SymbolRef* GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -247,23 +236,23 @@ namespace HXSL
 	{
 		friend class ASTContext;
 	private:
-		ast_ptr<SymbolRef> parentSymbol;
+		SymbolRef* parentSymbol;
 
-		ThisDef(IdentifierInfo* name, ast_ptr<SymbolRef>&& parentSymbol)
+		ThisDef(IdentifierInfo* name, SymbolRef* parentSymbol)
 			: SymbolDef(TextSpan(), ID, name),
-			parentSymbol(std::move(parentSymbol))
+			parentSymbol(parentSymbol)
 		{
 		}
 	public:
 		static constexpr NodeType ID = NodeType_ThisDef;
-		static ThisDef* Create(ASTContext* context, IdentifierInfo* parentIdentifier);
+		static ThisDef* Create(IdentifierInfo* parentIdentifier);
 
-		void SetSymbolRef(ast_ptr<SymbolRef> ref)
+		void SetSymbolRef(SymbolRef* ref)
 		{
-			parentSymbol = std::move(ref);
+			parentSymbol = ref;
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef()
+		SymbolRef* GetSymbolRef()
 		{
 			return parentSymbol;
 		}
@@ -274,58 +263,30 @@ namespace HXSL
 		}
 	};
 
-	class Struct : public Type, TrailingObjects<Struct, ast_ptr<Field>, ast_ptr<Struct>, ast_ptr<Class>, ast_ptr<ConstructorOverload>, ast_ptr<FunctionOverload>, ast_ptr<OperatorOverload>>
+	class Struct : public Type, public TrailingObjects<Struct, Field*, Struct*, Class*, ConstructorOverload*, FunctionOverload*, OperatorOverload*>
 	{
 		friend class ASTContext;
 	private:
-		ast_ptr<ThisDef> thisDef;
-		uint32_t numFields;
-		uint32_t numClasses;
-		uint32_t numStructs;
-		uint32_t numConstructors;
-		uint32_t numFunctions;
-		uint32_t numOperators;
+		ThisDef* thisDef;
+		TrailingObjStorage<Struct, uint32_t> storage;
 
-		Struct(const TextSpan& span, IdentifierInfo* name, AccessModifier access, ast_ptr<ThisDef>&& thisDef)
+		Struct(const TextSpan& span, IdentifierInfo* name, AccessModifier access, ThisDef* thisDef)
 			: Type(span, ID, name, access),
-			thisDef(std::move(thisDef))
+			thisDef(thisDef)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_Struct;
-		static Struct* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, ArrayRef<ast_ptr<Field>>& fields, ArrayRef<ast_ptr<Struct>>& structs, ArrayRef<ast_ptr<Class>>& classes, ArrayRef<ast_ptr<ConstructorOverload>>& constructors, ArrayRef<ast_ptr<FunctionOverload>>& functions, ArrayRef<ast_ptr<OperatorOverload>>& operators);
-		static Struct* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators);
+		static Struct* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const ArrayRef<Field*>& fields, const ArrayRef<Struct*>& structs, const ArrayRef<Class*>& classes, const ArrayRef<ConstructorOverload*>& constructors, const ArrayRef<FunctionOverload*>& functions, const ArrayRef<OperatorOverload*>& operators);
+		static Struct* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators);
 
-		ArrayRef<ast_ptr<Field>> GetFields()
-		{
-			return { GetTrailingObjects<0>(numFields, numStructs, numClasses,  numConstructors, numFunctions, numOperators), numFields };
-		}
-
-		ArrayRef<ast_ptr<Struct>> GetStructs()
-		{
-			return { GetTrailingObjects<1>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numStructs };
-		}
-
-		ArrayRef<ast_ptr<Class>> GetClasses()
-		{
-			return { GetTrailingObjects<2>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numClasses };
-		}
-
-		ArrayRef<ast_ptr<ConstructorOverload>> GetConstructors()
-		{
-			return { GetTrailingObjects<3>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numConstructors };
-		}
-
-		ArrayRef<ast_ptr<FunctionOverload>> GetFunctions()
-		{
-			return { GetTrailingObjects<4>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numFunctions };
-		}
-
-		ArrayRef<ast_ptr<OperatorOverload>> GetOperators()
-		{
-			return { GetTrailingObjects<5>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numOperators };
-		}
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetFields, 0, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetStructs, 1, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetClasses, 2, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetConstructors, 3, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetFunctions, 4, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetOperators, 5, storage)
 
 		std::string DebugName() const
 		{
@@ -334,63 +295,40 @@ namespace HXSL
 			return oss.str();
 		}
 
-		const ast_ptr<ThisDef>& GetThisDef() const
+		ThisDef* GetThisDef() const
 		{
 			return thisDef;
 		}
 	};
 
-	class Class : public Type, TrailingObjects<Class, ast_ptr<Field>, ast_ptr<Struct>, ast_ptr<Class>, ast_ptr<ConstructorOverload>, ast_ptr<FunctionOverload>, ast_ptr<OperatorOverload>>
+	class Class : public Type, public TrailingObjects<Class, Field*, Struct*, Class*, ConstructorOverload*, FunctionOverload*, OperatorOverload*>
 	{
 		friend class ASTContext;
 	private:
-		uint32_t numFields;
-		uint32_t numClasses;
-		uint32_t numStructs;
-		uint32_t numConstructors;
-		uint32_t numFunctions;
-		uint32_t numOperators;
-		ast_ptr<ThisDef> thisDef;
+		ThisDef* thisDef;
+		TrailingObjStorage<Class, uint32_t> storage;
 
-		Class(const TextSpan& span, IdentifierInfo* name, AccessModifier access, ast_ptr<ThisDef>&& thisDef)
+		Class(const TextSpan& span, IdentifierInfo* name, AccessModifier access, ThisDef* thisDef)
 			: Type(span, ID, name, access),
-			thisDef(std::move(thisDef))
+			thisDef(thisDef)
 		{
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_Class;
-		static Class* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, ArrayRef<ast_ptr<Field>>& fields, ArrayRef<ast_ptr<Struct>>& structs, ArrayRef<ast_ptr<Class>>& classes, ArrayRef<ast_ptr<ConstructorOverload>>& constructors, ArrayRef<ast_ptr<FunctionOverload>>& functions, ArrayRef<ast_ptr<OperatorOverload>>& operators);
-		static Class* Create(ASTContext* context, const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators);
+		static Class* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const ArrayRef<Field*>& fields, const ArrayRef<Struct*>& structs, const ArrayRef<Class*>& classes, const ArrayRef<ConstructorOverload*>& constructors, const ArrayRef<FunctionOverload*>& functions, const ArrayRef<OperatorOverload*>& operators);
+		static Class* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators);
 
-		ArrayRef<ast_ptr<Field>> GetFields()
-		{
-			return { GetTrailingObjects<0>(numFields, numStructs, numClasses,  numConstructors, numFunctions, numOperators), numFields };
-		}
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetFields, 0, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetStructs, 1, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetClasses, 2, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetConstructors, 3, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetFunctions, 4, storage)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetOperators, 5, storage)
 
-		ArrayRef<ast_ptr<Struct>> GetStructs()
+		ThisDef* GetThisDef() const
 		{
-			return { GetTrailingObjects<1>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numStructs };
-		}
-
-		ArrayRef<ast_ptr<Class>> GetClasses()
-		{
-			return { GetTrailingObjects<2>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numClasses };
-		}
-
-		ArrayRef<ast_ptr<ConstructorOverload>> GetConstructors()
-		{
-			return { GetTrailingObjects<3>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numConstructors };
-		}
-
-		ArrayRef<ast_ptr<FunctionOverload>> GetFunctions()
-		{
-			return { GetTrailingObjects<4>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numFunctions };
-		}
-
-		ArrayRef<ast_ptr<OperatorOverload>> GetOperators()
-		{
-			return { GetTrailingObjects<5>(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), numOperators };
+			return thisDef;
 		}
 
 		std::string DebugName() const

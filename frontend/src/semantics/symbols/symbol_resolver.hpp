@@ -74,7 +74,7 @@ namespace HXSL
 
 		bool TryResolveFromRoot(const SymbolTable* table, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
-		bool TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
+		bool TryResolveInAssemblies(const Span<AssemblySymbolRef>& references, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
 		SymbolDef* ResolveSymbol(const TextSpan& span, const StringSpan& name, bool isFullyQualified, SymbolHandle& outHandle, bool silent = false) const;
 

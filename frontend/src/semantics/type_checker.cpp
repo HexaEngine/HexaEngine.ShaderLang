@@ -168,7 +168,7 @@ namespace HXSL
 			auto match = handleB.FindPart(signature);
 			if (match.valid())
 			{
-				castMatchOut = _operator.get();
+				castMatchOut = _operator;
 				opRef->SetTable(match);
 				return true;
 			}
@@ -177,14 +177,14 @@ namespace HXSL
 		return false;
 	}
 
-	static void InjectCast(ast_ptr<Expression>& target, OperatorOverload* cast, SymbolDef* targetType)
+	static void InjectCast(Expression*& target, OperatorOverload* cast, SymbolDef* targetType)
 	{
-		auto castExpr = make_ast_ptr<CastExpression>(TextSpan(), cast->MakeSymbolRef(), targetType->MakeSymbolRef(), nullptr);
+		auto castExpr = CastExpression::Create(TextSpan(), cast->MakeSymbolRef(), targetType->MakeSymbolRef(), nullptr);
 		castExpr->SetInferredType(targetType);
-		InjectNode(target, std::move(castExpr), &CastExpression::SetOperand);
+		InjectNode(target, castExpr, &CastExpression::SetOperand);
 	}
 
-	bool TypeChecker::BinaryOperatorCheck(BinaryExpression* binary, ast_ptr<Expression>& left, ast_ptr<Expression>& right, SymbolDef*& result)
+	bool TypeChecker::BinaryOperatorCheck(BinaryExpression* binary, Expression*& left, Expression*& right, SymbolDef*& result)
 	{
 		const Operator& op = binary->GetOperator();
 		if (!Operators::IsValidOverloadOperator(op))
@@ -201,9 +201,9 @@ namespace HXSL
 			return false;
 		}
 
-		if (!TryLiteralReinterpret(right.get(), leftType))
+		if (!TryLiteralReinterpret(right, leftType))
 		{
-			TryLiteralReinterpret(left.get(), rightType);
+			TryLiteralReinterpret(left, rightType);
 		}
 
 		auto signature = binary->BuildOverloadSignature();
@@ -215,14 +215,14 @@ namespace HXSL
 		{
 			auto table = leftType->GetTable();
 			auto& index = leftType->GetSymbolHandle();
-			found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
+			found = resolver.ResolveSymbol(ref, signature, table, index, true);
 		}
 
 		if (!leftType->IsEquivalentTo(rightType))
 		{
 			auto table = rightType->GetTable();
 			auto& index = rightType->GetSymbolHandle();
-			if (resolver.ResolveSymbol(ref.get(), signature, table, index, true))
+			if (resolver.ResolveSymbol(ref, signature, table, index, true))
 			{
 				if (found)
 				{
@@ -236,13 +236,13 @@ namespace HXSL
 		if (!found)
 		{
 			OperatorOverload* castMatch;
-			if (ImplicitBinaryOperatorCheck(ref.get(), leftType, rightType, op, castMatch))
+			if (ImplicitBinaryOperatorCheck(ref, leftType, rightType, op, castMatch))
 			{
 				InjectCast(left, castMatch, rightType);
 				found = true;
 			}
 
-			if (!found && ImplicitBinaryOperatorCheck(ref.get(), rightType, leftType, op, castMatch))
+			if (!found && ImplicitBinaryOperatorCheck(ref, rightType, leftType, op, castMatch))
 			{
 				InjectCast(right, castMatch, leftType);
 				found = true;
@@ -267,7 +267,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool TypeChecker::BinaryCompoundOperatorCheck(CompoundAssignmentExpression* binary, const ast_ptr<Expression>& left, ast_ptr<Expression>& right, SymbolDef*& result)
+	bool TypeChecker::BinaryCompoundOperatorCheck(CompoundAssignmentExpression* binary, Expression* left, Expression*& right, SymbolDef*& result)
 	{
 		const Operator& op = binary->GetOperator();
 		if (!Operators::IsValidOverloadOperator(op))
@@ -286,14 +286,14 @@ namespace HXSL
 		{
 			auto table = leftType->GetTable();
 			auto& index = leftType->GetSymbolHandle();
-			found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
+			found = resolver.ResolveSymbol(ref, signature, table, index, true);
 		}
 
 		if (!leftType->IsEquivalentTo(rightType))
 		{
 			auto table = rightType->GetTable();
 			auto& index = rightType->GetSymbolHandle();
-			if (resolver.ResolveSymbol(ref.get(), signature, table, index, true))
+			if (resolver.ResolveSymbol(ref, signature, table, index, true))
 			{
 				if (found)
 				{
@@ -307,7 +307,7 @@ namespace HXSL
 		if (!found)
 		{
 			OperatorOverload* castMatch;
-			if (ImplicitBinaryOperatorCheck(ref.get(), rightType, leftType, op, castMatch))
+			if (ImplicitBinaryOperatorCheck(ref, rightType, leftType, op, castMatch))
 			{
 				InjectCast(right, castMatch, leftType);
 				found = true;
@@ -349,7 +349,7 @@ namespace HXSL
 
 		auto table = leftType->GetTable();
 		auto& index = leftType->GetSymbolHandle();
-		found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
+		found = resolver.ResolveSymbol(ref, signature, table, index, true);
 
 		auto operatorDecl = dyn_cast<OperatorOverload>(ref->GetDeclaration());
 		if (!operatorDecl || !found)
@@ -378,7 +378,7 @@ namespace HXSL
 
 		auto table = operandType->GetTable();
 		auto& index = operandType->GetSymbolHandle();
-		found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
+		found = resolver.ResolveSymbol(ref, signature, table, index, true);
 
 		auto operatorDecl = dyn_cast<OperatorOverload>(ref->GetDeclaration());
 		if (!operatorDecl || !found)
@@ -392,15 +392,15 @@ namespace HXSL
 		return true;
 	}
 
-	bool TypeChecker::CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, ast_ptr<SymbolRef>& result)
+	bool TypeChecker::CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, SymbolRef*& result)
 	{
 		auto signature = CastExpression::BuildOverloadSignature(target, source);
 
-		auto ref = make_ast_ptr<SymbolRef>(signature, SymbolRefType_OperatorOverload, false);
+		auto ref = SymbolRef::Create({}, ASTContext::GetCurrentContext()->GetIdentifier(signature), SymbolRefType_OperatorOverload, false);
 
 		auto table = source->GetTable();
 		auto& index = source->GetSymbolHandle();
-		auto found = resolver.ResolveSymbol(ref.get(), signature, table, index, true);
+		auto found = resolver.ResolveSymbol(ref, signature, table, index, true);
 		if (!found)
 		{
 			return false;
@@ -419,34 +419,34 @@ namespace HXSL
 	}
 
 	// for unary-like operations.
-	bool TypeChecker::AreTypesCompatible(ast_ptr<Expression>& insertPoint, SymbolDef* target, SymbolDef* source)
+	bool TypeChecker::AreTypesCompatible(Expression*& insertPoint, SymbolDef* target, SymbolDef* source)
 	{
 		if (source->IsEquivalentTo(target))
 		{
 			return true;
 		}
 
-		if (TryLiteralReinterpret(insertPoint.get(), target))
+		if (TryLiteralReinterpret(insertPoint, target))
 		{
 			return true;
 		}
 
 		// implicit cast handling.
-		ast_ptr<SymbolRef> opRef;
+		SymbolRef* opRef;
 		if (!CastOperatorCheck(target, source, opRef))
 		{
 			return false;
 		}
 
-		auto castExpr = make_ast_ptr<CastExpression>(TextSpan(), std::move(opRef), target->MakeSymbolRef(), nullptr);
+		auto castExpr = CastExpression::Create(TextSpan(), opRef, target->MakeSymbolRef(), nullptr);
 		castExpr->SetInferredType(target);
-		InjectNode(insertPoint, std::move(castExpr), &CastExpression::SetOperand);
+		InjectNode(insertPoint, castExpr, &CastExpression::SetOperand);
 
 		return true;
 	}
 
 	// for binary-like operations.
-	bool TypeChecker::AreTypesCompatible(ast_ptr<Expression>& insertPointA, SymbolDef* a, ast_ptr<Expression>& insertPointB, SymbolDef* b)
+	bool TypeChecker::AreTypesCompatible(Expression*& insertPointA, SymbolDef* a, Expression*& insertPointB, SymbolDef* b)
 	{
 		if (a->IsEquivalentTo(b))
 		{
@@ -456,12 +456,12 @@ namespace HXSL
 		return false; // TODO: set me true later.
 	}
 
-	bool TypeChecker::IsBooleanType(ast_ptr<Expression>& insertPoint, SymbolDef* source)
+	bool TypeChecker::IsBooleanType(Expression*& insertPoint, SymbolDef* source)
 	{
 		return AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("bool"), source);
 	}
 
-	bool TypeChecker::IsIndexerType(ast_ptr<Expression>& insertPoint, SymbolDef* source)
+	bool TypeChecker::IsIndexerType(Expression*& insertPoint, SymbolDef* source)
 	{
 		return AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("int"), source) || AreTypesCompatible(insertPoint, resolver.ResolvePrimitiveSymbol("uint"), source);
 	}
