@@ -141,8 +141,7 @@ namespace HXSL
 			for (auto& reference : references.GetAssemblies())
 			{
 				targetAssembly = reference.get();
-				auto table = reference->GetSymbolTable();
-				ASTVisitor::Traverse(table->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
+				ASTVisitor::Traverse(reference->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 			}
 
 			targetAssembly = assemblyBackup;

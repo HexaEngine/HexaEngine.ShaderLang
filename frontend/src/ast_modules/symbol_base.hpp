@@ -179,17 +179,19 @@ namespace HXSL
 		bool isDeferred : 1;
 		bool notFound : 1;
 		TextSpan span;
-		IdentifierInfo* identifer;
+		IdentifierInfo* identifier;
 		SymbolDef* def;
 
 	protected:
-		SymbolRef(const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified) : span(span), identifer(identifer), type(type), def(nullptr), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
+		SymbolRef(const TextSpan& span, IdentifierInfo* identifier, SymbolRefType type, bool isFullyQualified) : span(span), identifier(identifier), type(type), def(nullptr), isDeferred(false), notFound(false), isFullyQualified(isFullyQualified)
 		{
 		}
 
 	public:
 		static SymbolRef* Create(const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified);
 
+		IdentifierInfo* GetIdentifier() const noexcept { return identifier; }
+		
 		bool HasFullyQualifiedName() const noexcept { return isFullyQualified; }
 
 		const SymbolRefType& GetType() const noexcept { return type; }
@@ -209,6 +211,8 @@ namespace HXSL
 		void SetNotFound(bool value) noexcept { notFound = value; }
 
 		const bool& IsNotFound() const noexcept { return notFound; }
+
+		void TrimCastType();
 
 		const SymbolHandle& GetSymbolHandle() const;
 

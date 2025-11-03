@@ -152,7 +152,7 @@ namespace HXSL
 
 		functions.push_back(builder.Peek());
 
-		ILContext* context = module->GetAllocator().Alloc<ILContext>(module, builder.Peek());
+		ILContext* context = module->GetAllocator().Alloc<ILContext>(module.get(), builder.Peek());
 
 		auto& allocator = context->GetAllocator();
 

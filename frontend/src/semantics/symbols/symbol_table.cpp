@@ -3,42 +3,6 @@
 
 namespace HXSL
 {
-	void SymbolMetadata::Write(Stream& stream) const
-	{
-		stream.WriteUInt((uint32_t)symbolType);
-		stream.WriteUInt((uint32_t)scope);
-		stream.WriteUInt((uint32_t)accessModifier);
-		stream.WriteUInt((uint32_t)size);
-		if (symbolType == SymbolType_Namespace)
-		{
-			stream.WriteValue<bool>(false);
-			return;
-		}
-		stream.WriteValue<bool>(declaration);
-		if (declaration)
-		{
-			stream.WriteUInt(declaration->GetType());
-			declaration->Write(stream);
-		}
-	}
-
-	void SymbolMetadata::Read(Stream& stream, SymbolDef*& node, StringPool& container)
-	{
-		symbolType = static_cast<SymbolType>(stream.ReadUInt());
-		scope = static_cast<SymbolScopeType>(stream.ReadUInt());
-		accessModifier = static_cast<AccessModifier>(stream.ReadUInt());
-		size = stream.ReadUInt();
-		bool hasDeclaration = stream.ReadValue<bool>();
-		if (hasDeclaration)
-		{
-			auto type = static_cast<NodeType>(stream.ReadUInt());
-			auto pt = CreateInstance(type);
-			declaration = pt;
-			declaration->Read(stream, container);
-			node = pt;
-		}
-	}
-
 	SymbolHandle SymbolTable::Insert(StringSpan span, std::shared_ptr<SymbolMetadata>& metadata, size_t start)
 	{
 		HXSL_ASSERT(metadata.get(), "Metadata cannot be nullptr");
@@ -163,7 +127,6 @@ namespace HXSL
 		nodes.clear();
 		stringPool.clear();
 		nodes.emplace_back();
-		compilation->Clear();
 	}
 
 	void SymbolTable::Strip()
@@ -248,6 +211,43 @@ namespace HXSL
 		nodes = std::move(output);
 	}
 
+	/*
+	void SymbolMetadata::Write(Stream& stream) const
+	{
+		stream.WriteUInt((uint32_t)symbolType);
+		stream.WriteUInt((uint32_t)scope);
+		stream.WriteUInt((uint32_t)accessModifier);
+		stream.WriteUInt((uint32_t)size);
+		if (symbolType == SymbolType_Namespace)
+		{
+			stream.WriteValue<bool>(false);
+			return;
+		}
+		stream.WriteValue<bool>(declaration);
+		if (declaration)
+		{
+			stream.WriteUInt(declaration->GetType());
+			declaration->Write(stream);
+		}
+	}
+
+	void SymbolMetadata::Read(Stream& stream, SymbolDef*& node, StringPool& container)
+	{
+		symbolType = static_cast<SymbolType>(stream.ReadUInt());
+		scope = static_cast<SymbolScopeType>(stream.ReadUInt());
+		accessModifier = static_cast<AccessModifier>(stream.ReadUInt());
+		size = stream.ReadUInt();
+		bool hasDeclaration = stream.ReadValue<bool>();
+		if (hasDeclaration)
+		{
+			auto type = static_cast<NodeType>(stream.ReadUInt());
+			auto pt = CreateInstance(type);
+			declaration = pt;
+			declaration->Read(stream, container);
+			node = pt;
+		}
+	}
+
 	static void WriteNode(Stream& stream, const SymbolTableNode& node, const size_t& index)
 	{
 		stream.WriteUInt((uint32_t)index);
@@ -327,6 +327,7 @@ namespace HXSL
 		}
 	}
 
+	
 	void SymbolTable::Read(Stream& stream, Assembly* parentAssembly)
 	{
 		size_t nodeCount = stream.ReadUInt();
@@ -389,5 +390,5 @@ namespace HXSL
 				walkStack.push(childIdx);
 			}
 		}
-	}
+	}*/
 }

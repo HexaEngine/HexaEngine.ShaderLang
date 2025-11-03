@@ -6,7 +6,12 @@
 #include "utils/interval_tree.hpp"
 
 #include "fmt/core.h"
+#include "fmt/ostream.h"
 #include "pch/std.hpp"
+
+#include "utils/span.hpp"
+
+template <> struct fmt::formatter<HXSL::StringSpan> : ostream_formatter {};
 
 namespace HXSL
 {

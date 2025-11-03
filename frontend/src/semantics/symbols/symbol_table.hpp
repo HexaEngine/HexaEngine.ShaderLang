@@ -14,34 +14,128 @@ namespace HXSL
 	class SymbolMetadata
 	{
 	public:
-		SymbolType symbolType;
-		SymbolScopeType scope;
-		AccessModifier accessModifier;
-		size_t size;
+		std::atomic<size_t> refCount{ 1 };
 		SymbolDef* declaration;
 
-		SymbolMetadata() : symbolType(SymbolType_Unknown), scope(SymbolScopeType_Global), accessModifier(AccessModifier_Private), size(0), declaration(nullptr)
-		{
-		}
-
-		SymbolMetadata(const SymbolType& symbolType, const SymbolScopeType& scope, const AccessModifier& modifier, const size_t& size) : symbolType(symbolType), scope(scope), accessModifier(modifier), size(size), declaration(nullptr)
-		{
-		}
-
-		SymbolMetadata(const SymbolType& symbolType, const SymbolScopeType& scope, const AccessModifier& modifier, const size_t& size, SymbolDef* declaration) : symbolType(symbolType), scope(scope), accessModifier(modifier), size(size), declaration(declaration)
+		SymbolMetadata(SymbolDef* declaration) : declaration(declaration)
 		{
 		}
 
 		void Write(Stream& stream) const;
 
 		void Read(Stream& stream, SymbolDef*& node, StringPool& container);
+
+		size_t AddRef()
+		{
+			return refCount.fetch_add(1, std::memory_order_acq_rel) + 1;
+		}
+
+		void Release()
+		{
+			if (refCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+			{
+				delete this;
+			}
+		}
+	};
+
+	template <typename T>
+	struct SharedPtr
+	{
+		T* ptr;
+
+		SharedPtr() : ptr(nullptr)
+		{
+		}
+
+		SharedPtr(T* p) : ptr(p)
+		{
+			if (ptr)
+			{
+				ptr->AddRef();
+			}
+		}
+
+		SharedPtr(const SharedPtr<T>& other) : ptr(other.ptr)
+		{
+			if (ptr)
+			{
+				ptr->AddRef();
+			}
+		}
+
+		SharedPtr<T>& operator=(const SharedPtr<T>& other)
+		{
+			if (ptr != other.ptr)
+			{
+				if (ptr)
+				{
+					ptr->Release();
+				}
+				ptr = other.ptr;
+				if (ptr)
+				{
+					ptr->AddRef();
+				}
+			}
+			return *this;
+		}
+
+		~SharedPtr()
+		{
+			if (ptr)
+			{
+				ptr->Release();
+			}
+		}
+
+		T* operator->() const
+		{
+			return ptr;
+		}
+
+		T& operator*() const
+		{
+			return *ptr;
+		}
+
+		operator bool() const
+		{
+			return ptr != nullptr;
+		}
+
+		void reset()
+		{
+			if (ptr)
+			{
+				ptr->Release();
+				ptr = nullptr;
+			}
+		}
+
+		T* get() const
+		{
+			return ptr;
+		}
+
+		T* detach()
+		{
+			T* temp = ptr;
+			ptr = nullptr;
+			return temp;
+		}
+
+		static SharedPtr<T> make_shared(T* p)
+		{
+			return SharedPtr<T>(p);
+		}
 	};
 
 	struct SymbolTableNode
 	{
 		std::unique_ptr<std::string> Name;
 		dense_map<StringSpan, size_t> Children;
-		std::shared_ptr<SymbolMetadata> Metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
+		SharedPtr<SymbolMetadata> Metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
 		std::shared_ptr<size_t> handle; // Pointer to own index, this is crucial to support stable indices even if the node gets moved see SymbolHandle for more info.
 		size_t Depth;
 		size_t ParentIndex;
@@ -50,7 +144,7 @@ namespace HXSL
 		{
 		}
 
-		SymbolTableNode(std::unique_ptr<std::string> name, std::shared_ptr<SymbolMetadata> metadata, std::shared_ptr<size_t> handle, size_t depth, size_t parentIndex) : Name(std::move(name)), Metadata(std::move(metadata)), handle(std::move(handle)), Depth(depth), ParentIndex(parentIndex)
+		SymbolTableNode(std::unique_ptr<std::string> name, SharedPtr<SymbolMetadata> metadata, std::shared_ptr<size_t> handle, size_t depth, size_t parentIndex) : Name(std::move(name)), Metadata(std::move(metadata)), handle(std::move(handle)), Depth(depth), ParentIndex(parentIndex)
 		{
 		}
 

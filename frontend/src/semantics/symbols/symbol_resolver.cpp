@@ -814,10 +814,10 @@ namespace HXSL
 		auto indexNext = handle.FindPart(refInner->GetName());
 		if (indexNext.invalid())
 		{
-			auto metadata = type->GetMetadata();
-			if (metadata && metadata->declaration->GetType() == NodeType_Primitive)
+			auto decl = type->GetDeclaration();
+			if (auto prim = dyn_cast<Primitive>(decl))
 			{
-				if (swizzleManager.VerifySwizzle(cast<Primitive>(metadata->declaration), refInner))
+				if (swizzleManager.VerifySwizzle(prim, refInner))
 				{
 					return ResolveMemberResult::Success;
 				}

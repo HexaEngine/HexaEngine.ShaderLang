@@ -27,11 +27,14 @@ namespace HXSL
 
 		std::unique_ptr<std::string> name;
 		std::unique_ptr<SymbolTable> table;
+		std::unique_ptr<CompilationUnit> compilation;
 		bool sealed;
 	public:
 		const std::string& GetName() const noexcept { return *name.get(); }
 
 		const SymbolTable* GetSymbolTable() const noexcept { return table.get(); }
+
+		CompilationUnit* GetCompilation() const noexcept { return compilation.get(); }
 
 		SymbolTable* GetMutableSymbolTable() const { if (sealed) { throw std::logic_error("Cannot modify symbol table: Assembly is sealed."); } return table.get(); }
 

@@ -420,7 +420,7 @@ namespace HXSL
 		std::vector<size_t> arraySizes;
 		if (parser.TryParseArraySizes(arraySizes))
 		{
-			symbol->SetArrayDims(arraySizes);
+			symbol = SymbolRefArray::Create(symbol->GetSpan(), symbol->GetIdentifier(), arraySizes);
 		}
 
 		auto token = stream.Current();

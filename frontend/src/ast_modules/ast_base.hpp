@@ -430,16 +430,18 @@ namespace HXSL
 	template <class Target, class Injector, class InsertFunc>
 	static void	InjectNode(Target& target, Injector inject, InsertFunc func)
 	{
-		static_assert(std::is_base_of<ASTNode, Target>::value, "Target must derive from ASTNode");
-		static_assert(std::is_base_of<Target, Injector>::value, "Injector must derive from Target");
+		using TargetType = std::remove_pointer_t<Target>;
+		using InjectorType = std::remove_pointer_t<Injector>;
+		static_assert(std::is_base_of<ASTNode, TargetType>::value, "Target must derive from ASTNode");
+		static_assert(std::is_base_of<TargetType, InjectorType>::value, "Injector must derive from Target");
 
 		auto parent = target->GetParent();
 		inject->SetParent(parent);
-		target->SetParent(inject.get());
+		target->SetParent(inject);
 
-		(inject.get()->*func)(std::move(target));
+		(inject->*func)(target);
 
-		target = std::move(inject);
+		target = inject;
 	}
 
 	template<typename T>

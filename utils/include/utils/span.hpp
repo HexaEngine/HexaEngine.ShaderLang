@@ -5,8 +5,8 @@
 
 namespace HXSL
 {
-	template <typename T>
-	class Span
+	template <typename TImpl, typename T>
+	class SpanBase
 	{
 	public:
 		static constexpr bool IsConst = std::is_const_v<T>;
@@ -27,11 +27,11 @@ namespace HXSL
 		size_t size_m;
 
 	public:
-		Span() : data_m(nullptr), size_m(0) {}
+		SpanBase() : data_m(nullptr), size_m(0) {}
 
-		Span(TPtr d, size_t size) : data_m(d), size_m(size) {}
+		SpanBase(TPtr d, size_t size) : data_m(d), size_m(size) {}
 
-		Span(std::vector<TClean>& vec) : data_m(vec.data()), size_m(vec.size()) {}
+		SpanBase(std::vector<TClean>& vec) : data_m(vec.data()), size_m(vec.size()) {}
 
 		TPtr data() { return data_m; }
 		TConstPtr data() const { return data_m; }
@@ -48,16 +48,16 @@ namespace HXSL
 			return data_m[index];
 		}
 
-		Span<T> slice(size_t start) const
+		TImpl slice(size_t start) const
 		{
 			if (start >= size_m) throw std::out_of_range("Index out of range in Span");
-			return Span<T>(data_m + start, size_m - start);
+			return TImpl(data_m + start, size_m - start);
 		}
 
-		Span<T> slice(size_t start, size_t length) const
+		TImpl slice(size_t start, size_t length) const
 		{
 			if (start + length > this->size_m) throw std::out_of_range("Slice exceeds span bounds");
-			return Span<T>(data_m + start, length);
+			return TImpl(data_m + start, length);
 		}
 
 		size_t find(const T& c) const noexcept
@@ -72,9 +72,9 @@ namespace HXSL
 			return npos;
 		}
 
-		size_t find(const Span<T>& c) const noexcept
+		size_t find(const TImpl& c) const noexcept
 		{
-			size_t len = c.size_m;
+			size_t len = c.size();
 			if (len == 0) return 0;
 			if (len > size_m) return npos;
 
@@ -157,68 +157,112 @@ namespace HXSL
 			return npos;
 		}
 
-		bool operator==(const Span<T>& other) const
+		bool operator==(const TImpl& other) const
 		{
-			if (this->size_m != other.size_m) return false;
+			if (this->size_m != other.size()) return false;
 			return std::memcmp(this->begin(), other.begin(), this->size_m * sizeof(T)) == 0;
 		}
 
-		bool operator!=(const Span<T>& other) const
+		bool operator!=(const TImpl& other) const
 		{
 			return !(*this == other);
 		}
 	};
 
-	template <typename T>
-	struct SpanHash
+
+	template <typename TImpl>
+	struct SpanBaseHash
 	{
-		size_t operator()(const Span<T>& span) const noexcept
+		size_t operator()(const TImpl& span) const noexcept
 		{
 			return static_cast<size_t>(span.hash());
 		}
 	};
 
-	template <typename T>
-	struct SpanEqual
+	template <typename TImpl>
+	struct SpanBaseEqual
 	{
-		bool operator()(const Span<T>& a, const Span<T>& b) const noexcept
+		bool operator()(const TImpl& a, const TImpl& b) const noexcept
 		{
 			if (a.size() != b.size()) return false;
-			return std::memcmp(a.begin(), b.begin(), a.size() * sizeof(T)) == 0;
+			return std::memcmp(a.begin(), b.begin(), a.size() * sizeof(TImpl::TClean)) == 0;
 		}
 	};
 
-	using StringSpanHash = SpanHash<const char>;
-	using StringSpanEqual = SpanEqual<const char>;
-
-	struct StringSpan : public Span<const char>
+	template <typename T>
+	struct Span : public SpanBase<Span<T>, T>
 	{
-		StringSpan() : Span(nullptr, 0)
+		using TBase = SpanBase<Span<T>, T>;
+		Span() : TBase(nullptr, 0)
 		{
 		}
 
-		StringSpan(const std::string& str) : Span(str.c_str(), str.length())
+		Span(T* data, size_t size) : TBase(data, size)
 		{
 		}
 
-		StringSpan(const char* str) : Span(str, strlen(str))
+		Span(std::vector<std::remove_const_t<T>>& vec) : TBase(vec.data(), vec.size())
+		{
+		}
+	};
+
+	template <typename T>
+	using SpanHash = SpanBaseHash<Span<T>>;
+
+	template <typename T>
+	using SpanEqual = SpanBaseEqual<Span<T>>;
+
+	struct StringSpan : public SpanBase<StringSpan, const char>
+	{
+		using TBase = SpanBase<StringSpan, const char>;
+
+		StringSpan() : TBase(nullptr, 0)
 		{
 		}
 
-		StringSpan(const char* str, size_t length) : Span(str, length)
+		StringSpan(const std::string& str) : TBase(str.c_str(), str.length())
 		{
 		}
 
-		StringSpan(const char* str, size_t start, size_t length) : Span(str + start, length)
+		StringSpan(const char* str) : TBase(str, strlen(str))
 		{
 		}
 
-		StringSpan(const Span<char>& span) : Span(span.data(), span.size())
+		StringSpan(const char* str, size_t length) : TBase(str, length)
 		{
 		}
 
-		StringSpan(const std::string_view& span) : Span(span.data(), span.size())
+		StringSpan(const char* str, size_t start, size_t length) : TBase(str + start, length)
 		{
+		}
+
+		StringSpan(const Span<char>& span) : TBase(span.data(), span.size())
+		{
+		}
+
+		StringSpan(const std::string_view& span) : TBase(span.data(), span.size())
+		{
+		}
+
+		StringSpan trim_start(char c) const
+		{
+			size_t start = 0;
+			while (start < this->size_m && this->data_m[start] == c)
+			{
+				start++;
+			}
+			return StringSpan(this->data_m + start, this->size_m - start);
+		}
+
+		StringSpan trim_end(char c) const
+		{
+			if (this->size_m == 0) return *this;
+			size_t end = this->size_m;
+			while (end > 0 && this->data_m[end - 1] == c)
+			{
+				end--;
+			}
+			return StringSpan(this->data_m, end);
 		}
 
 		constexpr std::string_view view() const
@@ -259,12 +303,20 @@ namespace HXSL
 		{
 			return !(*this == other);
 		}
+
+		operator std::string_view() const
+		{
+			return std::string_view(this->data_m, this->size_m);
+		}
 	};
 
 	inline std::ostream& operator<<(std::ostream& os, const StringSpan& span)
 	{
 		return os.write(span.data(), span.size());
 	}
+
+	using StringSpanHash = SpanBaseHash<StringSpan>;
+	using StringSpanEqual = SpanBaseEqual<StringSpan>;
 
 	template <typename T>
 	class ArrayRef

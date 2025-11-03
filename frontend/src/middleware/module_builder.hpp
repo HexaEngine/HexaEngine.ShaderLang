@@ -26,22 +26,22 @@ namespace HXSL
 
 			for (auto& field : type->GetFields())
 			{
-				builder.AddField(ConvertField(field.get()));
+				builder.AddField(ConvertField(field));
 			}
 
 			for (auto& func : type->GetFunctions())
 			{
-				builder.AddFunction(ConvertFunction(func.get()));
+				builder.AddFunction(ConvertFunction(func));
 			}
 
 			for (auto& op : type->GetOperators())
 			{
-				builder.AddOperator(ConvertOperator(op.get()));
+				builder.AddOperator(ConvertOperator(op));
 			}
 
 			for (auto& ctor : type->GetConstructors())
 			{
-				builder.AddConstructor(ConvertConstructor(ctor.get()));
+				builder.AddConstructor(ConvertConstructor(ctor));
 			}
 		}
 

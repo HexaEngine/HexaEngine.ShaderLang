@@ -185,7 +185,8 @@ namespace HXSL
 			auto parameters = expression->GetParameters();
 			for (auto it = parameters.rbegin(); it != parameters.rend(); ++it)
 			{
-				stack.push(it->GetExpression());
+				auto param = *it;
+				stack.push(param->GetExpression());
 			}
 		}
 	}

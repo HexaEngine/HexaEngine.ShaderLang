@@ -97,15 +97,15 @@ namespace HXSL
 
 #pragma region SymbolRef
 
-	SymbolRef* SymbolRef::Create(const TextSpan& span, IdentifierInfo* identifer, SymbolRefType type, bool isFullyQualified)
+	SymbolRef* SymbolRef::Create(const TextSpan& span, IdentifierInfo* identifier, SymbolRefType type, bool isFullyQualified)
 	{
 		auto* context = ASTContext::GetCurrentContext();
-		return context->Alloc<SymbolRef>(sizeof(SymbolRef), span, identifer, type, isFullyQualified);
+		return context->Alloc<SymbolRef>(sizeof(SymbolRef), span, identifier, type, isFullyQualified);
 	}
 
 	const StringSpan& SymbolRef::GetName() const noexcept
 	{
-		auto span = identifer->name.view();
+		auto span = identifier->name.view();
 		if (isFullyQualified)
 		{
 			auto pos = span.find_last_of(QUALIFIER_SEP);
@@ -126,6 +126,14 @@ namespace HXSL
 	void SymbolRef::SetDeclaration(const SymbolDef* node)
 	{
 		SetTable(node->GetSymbolHandle());
+	}
+
+	void SymbolRef::TrimCastType()
+	{
+		StringSpan result = identifier->name;
+		result = result.trim_start('(');
+		result = result.trim_end(')');
+		identifier = ASTContext::GetCurrentContext()->GetIdentifier(result);
 	}
 
 	const SymbolHandle& SymbolRef::GetSymbolHandle() const
@@ -179,8 +187,8 @@ namespace HXSL
 
 	SymbolRef* SymbolRef::Clone() const
 	{
-		auto cloned = Create(span, identifer, type, isFullyQualified);
-		cloned->identifer = identifer;
+		auto cloned = Create(span, identifier, type, isFullyQualified);
+		cloned->identifier = identifier;
 		cloned->span = span;
 		cloned->type = type;
 		cloned->def = def;
