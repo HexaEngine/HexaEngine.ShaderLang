@@ -3,26 +3,50 @@
 
 namespace HXSL
 {
-	SymbolHandle SymbolTable::Insert(StringSpan span, std::shared_ptr<SymbolMetadata>& metadata, size_t start)
+	SymbolType SymbolMetadata::GetSymbolType() const
+	{
+		return declaration->GetSymbolType();
+	}
+
+	AccessModifier SymbolMetadata::GetAccessModifiers() const
+	{
+		return declaration->GetAccessModifiers();
+	}
+
+	void SymbolTable::RemoveNode(SymbolTableNode* node)
+	{
+		std::stack<SymbolTableNode*> stack;
+		stack.push(node);
+		while (!stack.empty())
+		{
+			auto* node = stack.top();
+			stack.pop();
+			for (const auto& [childSpan, childNode] : node->GetChildren())
+			{
+				stack.push(childNode);
+			}
+			allocator.Free(node);
+		}
+	}
+
+	SymbolHandle SymbolTable::Insert(StringSpan span, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* start)
 	{
 		HXSL_ASSERT(metadata.get(), "Metadata cannot be nullptr");
-		size_t current = start;
+		SymbolTableNode* current = start;
 		while (true)
 		{
 			size_t idx = span.indexOf('.');
 			if (idx == -1) idx = span.size();
 			StringSpan part = span.slice(0, idx);
 
-			auto& node = nodes[current];
-
-			auto it = node.Children.find(part);
-			if (it == node.Children.end())
+			auto child = current->GetChild(part);
+			if (child)
 			{
-				current = AddNode(part, nullptr, current);
+				current = child;
 			}
 			else
 			{
-				current = it->second;
+				current = AddNode(part, nullptr, current);
 			}
 
 			if (idx == span.size())
@@ -32,14 +56,13 @@ namespace HXSL
 			span = span.slice(idx + 1);
 		}
 
-		auto& node = nodes[current];
-		if (node.Metadata)
+		if (current->GetMetadata())
 		{
 			return {};
 		}
 
-		node.Metadata = metadata;
-		return SymbolHandle(this, node.handle);
+		current->metadata = metadata;
+		return SymbolHandle(this, current);
 	}
 
 	static size_t FindSep(const StringSpan& span)
@@ -59,25 +82,25 @@ namespace HXSL
 		return -1;
 	}
 
-	SymbolHandle SymbolTable::FindNodeIndexFullPath(StringSpan span, size_t startingIndex) const
+	SymbolHandle SymbolTable::FindNodeIndexFullPath(StringSpan span, SymbolTableNode* startingNode) const
 	{
-		if (startingIndex >= nodes.size())
+		if (startingNode == nullptr)
 		{
 			return {};
 		}
 
-		size_t current = startingIndex;
+		auto* current = startingNode;
 		while (true)
 		{
 			size_t idx = FindSep(span);
 			if (idx == -1) idx = span.size();
 			StringSpan part = span.slice(0, idx);
 
-			size_t index = FindNodeIndexPartInternal(part, current);
+			auto* child = current->GetChild(part);
 
-			if (index != -1)
+			if (child)
 			{
-				current = index;
+				current = child;
 			}
 			else
 			{
@@ -95,120 +118,52 @@ namespace HXSL
 		return MakeHandle(current);
 	}
 
-	void SymbolTable::RemoveRange(const size_t& start, const size_t& end)
-	{
-		const size_t size = nodes.size();
-		size_t delta = (end - start);
-		nodes.erase(nodes.begin() + start, nodes.begin() + end);
-
-		if (end != size)
-		{
-			for (size_t i = start; i < nodes.size(); i++)
-			{
-				auto& node = nodes[i];
-				if (node.ParentIndex > start)
-				{
-					node.ParentIndex -= delta;
-				}
-
-				for (auto& pair : node.Children)
-				{
-					if (pair.second > start)
-					{
-						pair.second -= delta;
-					}
-				}
-			}
-		}
-	}
-
 	void SymbolTable::Clear()
 	{
-		nodes.clear();
 		stringPool.clear();
-		nodes.emplace_back();
+		RemoveNode(root);
+		root = allocator.Alloc(StringSpan(), SharedPtr<SymbolMetadata>(), nullptr);
 	}
 
 	void SymbolTable::Strip()
 	{
-		std::vector<size_t> toRemove;
-		for (size_t i = 0; i < nodes.size(); i++)
+		std::stack<SymbolTableNode*> stack;
+		stack.push(root);
+
+		while (!stack.empty())
 		{
-			auto& node = nodes[i];
-			auto& type = node.Metadata->symbolType;
-			if (type == SymbolType_Scope || type == SymbolType_Variable)
+			auto* node = stack.top();
+			stack.pop();
+
+			for (const auto& [childSpan, childNode] : node->GetChildren())
 			{
-				toRemove.push_back(i);
-				auto& parent = nodes[node.ParentIndex];
-				parent.Children.erase(*node.Name.get());
-				node.ParentIndex = 0;
+				stack.push(childNode);
 			}
 		}
-
-		if (toRemove.empty())
-		{
-			return;
-		}
-
-		std::sort(toRemove.begin(), toRemove.end(), std::greater<size_t>());
-
-		size_t last = toRemove[0];
-		size_t start = last;
-
-		const size_t size = toRemove.size();
-		for (size_t i = 1; i < size; i++)
-		{
-			auto& index = toRemove[i];
-			if (last == index + 1)
-			{
-				last = index;
-				continue;
-			}
-			else
-			{
-				RemoveRange(start, last + 1);
-				start = index;
-			}
-		}
-
-		RemoveRange(start, last + 1);
 	}
 
-	void SymbolTable::Sort()
+	void SymbolMetadata::Write(Stream& stream) const
 	{
-		std::vector<SymbolTableNode> output;
-		output.reserve(nodes.size());
+		// TODO: Remove stub.
+		HXSL_ASSERT(false, "SymbolMetadata::Write is not implemented.");
+	}
 
-		std::stack<dense_map<StringSpan, size_t>::iterator> walkStack;
+	void SymbolMetadata::Read(Stream& stream, SymbolDef*& node, StringPool& container)
+	{
+		// TODO: Remove stub.
+		HXSL_ASSERT(false, "SymbolMetadata::Read is not implemented.");
+	}
 
-		output.push_back(std::move(nodes[rootIndex]));
-		auto& rootNode = output[rootIndex];
+	void SymbolTable::Write(Stream& stream) const
+	{
+		// TODO: Remove stub.
+		HXSL_ASSERT(false, "SymbolTable::Write is not implemented.");
+	}
 
-		for (auto it = rootNode.Children.begin(); it != rootNode.Children.end(); ++it)
-		{
-			walkStack.push(it);
-		}
-
-		while (!walkStack.empty())
-		{
-			auto p = walkStack.top();
-			walkStack.pop();
-
-			auto newIndex = output.size();
-			output.push_back(std::move(nodes[p->second]));
-
-			auto& node = output[newIndex];
-			*node.handle = newIndex;
-			p->second = newIndex;
-
-			for (auto it = node.Children.begin(); it != node.Children.end(); ++it)
-			{
-				nodes[it->second].ParentIndex = newIndex;
-				walkStack.push(it);
-			}
-		}
-
-		nodes = std::move(output);
+	void SymbolTable::Read(Stream& stream, Assembly* parentAssembly)
+	{
+		// TODO: Remove stub.
+		HXSL_ASSERT(false, "SymbolTable::Read is not implemented.");
 	}
 
 	/*

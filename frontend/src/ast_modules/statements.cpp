@@ -24,7 +24,7 @@ namespace HXSL
 		return context->Alloc<AssignmentStatement>(sizeof(AssignmentStatement), span, ID, expr);
 	}
 
-	CompoundAssignmentStatement* Create(const TextSpan& span, Operator op, Expression* target, Expression* expression)
+	CompoundAssignmentStatement* CompoundAssignmentStatement::Create(const TextSpan& span, Operator op, Expression* target, Expression* expression)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto expr = CompoundAssignmentExpression::Create(span, op, target, expression);

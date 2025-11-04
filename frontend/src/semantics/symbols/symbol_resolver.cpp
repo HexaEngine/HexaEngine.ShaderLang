@@ -11,7 +11,7 @@ namespace HXSL
 		}
 
 		auto refType = ref->GetType();
-		auto defType = metadata->symbolType;
+		auto defType = metadata->GetSymbolType();
 		auto& name = ref->GetName();
 		auto& span = ref->GetSpan();
 
@@ -173,7 +173,7 @@ namespace HXSL
 
 	bool SymbolResolver::SymbolVisibilityChecks(const SymbolMetadata* metadata, SymbolRef* ref, ResolverScopeContext& context) const
 	{
-		auto& access = metadata->accessModifier;
+		auto access = metadata->GetAccessModifiers();
 		if (access == AccessModifier_Public) return true;
 
 		auto decl = metadata->declaration;

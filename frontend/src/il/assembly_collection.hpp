@@ -33,7 +33,7 @@ namespace HXSL
 			return assemblies;
 		}
 
-		void FindAssembliesByNamespace(const StringSpan& target, std::vector<AssemblySymbolRef>& assemblyRefs, size_t lookupIndex = 0) const
+		void FindAssembliesByNamespace(const StringSpan& target, std::vector<AssemblySymbolRef>& assemblyRefs, SymbolTableNode* lookupIndex = nullptr) const
 		{
 			for (auto& assembly : assemblies)
 			{

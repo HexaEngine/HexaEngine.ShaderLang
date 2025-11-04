@@ -300,7 +300,8 @@ namespace HXSL
 		TrailingObjStorage<IfStatement, uint32_t> storage;
 
 		IfStatement(const TextSpan& span, Expression* condition, BlockStatement* body, ElseStatement* elseStatement)
-			: ConditionalStatement(span, ID, condition, body)
+			: ConditionalStatement(span, ID, condition, body),
+			elseStatement(elseStatement)
 		{
 		}
 

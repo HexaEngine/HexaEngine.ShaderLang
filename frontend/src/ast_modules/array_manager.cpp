@@ -41,7 +41,7 @@ namespace HXSL
 
 			auto array = ArrayDecl::Create(TextSpan(), arrayKey, symbolRef, dims[i]);
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Array, SymbolScopeType_Global, AccessModifier_Public, 0, array);
+			auto meta = SharedPtr<SymbolMetadata>::Create(array);
 			handle = arrayTable->Insert(array->GetName(), meta);
 			array->SetAssembly(arrayAssembly.get(), handle);
 

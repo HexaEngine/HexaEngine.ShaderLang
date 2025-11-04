@@ -9,11 +9,11 @@ namespace HXSL
 	struct CollectorScopeContext
 	{
 		const ASTNode* Parent;
-		size_t NodeIndex;
+		SymbolTableNode* Node;
 		uint32_t ScopeCounter;
 		SymbolScopeType Type;
 
-		CollectorScopeContext() : Parent(nullptr), NodeIndex(0), ScopeCounter(0), Type(SymbolScopeType_Global)
+		CollectorScopeContext() : Parent(nullptr), Node(nullptr), ScopeCounter(0), Type(SymbolScopeType_Global)
 		{
 		}
 	};
@@ -34,11 +34,11 @@ namespace HXSL
 		std::stack<CollectorScopeContext> stack;
 		std::vector<ASTNode*> lateNodes;
 
-		bool Push(const StringSpan& span, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
+		bool Push(const StringSpan& span, SymbolDef* def, const SharedPtr<SymbolMetadata>& metadata, SymbolScopeType type);
 
-		bool PushScope(const ASTNode* parent, const StringSpan& span, std::shared_ptr<SymbolMetadata>& metadata, SymbolScopeType type);
+		bool PushScope(const ASTNode* parent, const StringSpan& span, const SharedPtr<SymbolMetadata>& metadata, SymbolScopeType type);
 
-		bool PushLeaf(SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata);
+		bool PushLeaf(SymbolDef* def, const SharedPtr<SymbolMetadata>& metadata);
 
 		void RegisterForLatePass(ASTNode* node)
 		{

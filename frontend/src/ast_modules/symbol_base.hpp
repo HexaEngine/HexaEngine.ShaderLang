@@ -135,6 +135,8 @@ namespace HXSL
 
 		SymbolType GetSymbolType() const;
 
+		AccessModifier GetAccessModifiers() const;
+
 		SymbolRef* MakeSymbolRef() const;
 
 		const StringSpan& ToString() const noexcept;

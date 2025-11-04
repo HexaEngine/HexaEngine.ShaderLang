@@ -91,7 +91,7 @@ namespace HXSL
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetParameters, 0, storage);
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 1, storage);
 
-		SymbolRef* GetReturnSymbolRef()
+		SymbolRef* GetReturnSymbolRef() const noexcept
 		{
 			return returnSymbol;
 		}

@@ -39,8 +39,7 @@ namespace HXSL
 
 	const SymbolMetadata* SymbolDef::GetMetadata() const
 	{
-		auto& node = symbolHandle.GetNode();
-		return node.Metadata.get();
+		return symbolHandle.GetMetadata();
 	}
 
 	bool SymbolDef::IsConstant() const
@@ -51,6 +50,33 @@ namespace HXSL
 		case NodeType_DeclarationStatement: return (cast<DeclarationStatement>(this)->GetStorageClass() & StorageClass_Const) != 0;
 		}
 		return false;
+	}
+
+	AccessModifier SymbolDef::GetAccessModifiers() const
+	{
+		switch (type)
+		{
+		case NodeType_Namespace: return AccessModifier_Public;
+		case NodeType_Enum: HXSL_ASSERT(false, "Enums not implemented."); return AccessModifier_None; // TODO: Enums.
+		case NodeType_Primitive: return AccessModifier_Public;
+		case NodeType_Struct: return cast<Struct>(this)->GetAccessModifiers();
+		case NodeType_Class: return cast<Class>(this)->GetAccessModifiers();
+		case NodeType_Array: return AccessModifier_Public;
+		case NodeType_Pointer: return AccessModifier_Public;
+		case NodeType_Field: return cast<Field>(this)->GetAccessModifiers();;
+		case NodeType_IntrinsicFunction: return AccessModifier_Public;
+		case NodeType_FunctionOverload: return cast<FunctionOverload>(this)->GetAccessModifiers();
+		case NodeType_OperatorOverload: return cast<OperatorOverload>(this)->GetAccessModifiers();
+		case NodeType_ConstructorOverload: return cast<ConstructorOverload>(this)->GetAccessModifiers();;
+		case NodeType_ThisDef: return AccessModifier_Public;
+		case NodeType_SwizzleDefinition: return AccessModifier_Public;
+		case NodeType_DeclarationStatement: return AccessModifier_Public;
+		case NodeType_Parameter: return AccessModifier_Public;
+		default:
+			break;
+		}
+		HXSL_ASSERT(false, "Unhandled SymbolDef type.");
+		return AccessModifier_None;
 	}
 
 	SymbolType SymbolDef::GetSymbolType() const

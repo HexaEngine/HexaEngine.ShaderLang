@@ -13,20 +13,17 @@ namespace HXSL
 		SymbolRef* symbol;
 		TrailingObjStorage<AttributeDecl, uint32_t> storage;
 
-	public:
-		static constexpr NodeType ID = NodeType_AttributeDeclaration;
-		AttributeDecl(TextSpan span, SymbolRef* symbol)
+		AttributeDecl(const TextSpan& span, SymbolRef* symbol)
 			: ASTNode(span, ID),
 			symbol(symbol)
 		{
 		}
 
-		AttributeDecl(TextSpan span)
-			: ASTNode(span, ID)
-		{
-		}
+	public:
+		static constexpr NodeType ID = NodeType_AttributeDeclaration;
 
-		static AttributeDecl* Create(TextSpan span, SymbolRef* symbol, const ArrayRef<Expression*>& parameters);
+		static AttributeDecl* Create(const TextSpan& span, SymbolRef* symbol, const ArrayRef<Expression*>& parameters);
+		static AttributeDecl* Create(const TextSpan& span, SymbolRef* symbol, uint32_t numParameters);
 
 		SymbolRef*& GetSymbolRef()
 		{

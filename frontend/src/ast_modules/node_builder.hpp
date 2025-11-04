@@ -76,9 +76,9 @@ namespace HXSL
 			}
 			ResolveInternal(returnType_m);
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Function, SymbolScopeType_Class, AccessModifier_Public, 0, ptr);
+			auto meta = SharedPtr<SymbolMetadata>::Create(ptr);
 			auto signature = ptr->BuildOverloadSignature();
-			auto funcIndex = table->Insert(signature, meta, root.GetIndex());
+			auto funcIndex = table->Insert(signature, meta, root);
 			ptr->SetAssembly(assembly, funcIndex);
 
 			return ptr;
@@ -135,9 +135,9 @@ namespace HXSL
 			}
 			ResolveInternal(returnType_m);
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Operator, SymbolScopeType_Struct, AccessModifier_Public, 0, ptr);
+			auto meta = SharedPtr<SymbolMetadata>::Create(ptr);
 			auto signature = ptr->BuildOverloadSignature(false);
-			auto funcIndex = table->Insert(signature, meta, root.GetIndex());
+			auto funcIndex = table->Insert(signature, meta, root);
 			ptr->SetAssembly(assembly, funcIndex);
 			return ptr;
 		}
@@ -201,8 +201,8 @@ namespace HXSL
 			auto field = Field::Create({}, name_m, access_m, storageClass_m, interpolMod_m, type_m, semantic_m);
 			ResolveInternal(type_m);
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, access_m, 0, field);
-			auto fieldIndex = table->Insert(field->GetName(), meta, root.GetIndex());
+			auto meta = SharedPtr<SymbolMetadata>::Create(field);
+			auto fieldIndex = table->Insert(field->GetName(), meta, root);
 			field->SetAssembly(assembly, fieldIndex);
 			return field;
 		}
@@ -250,8 +250,8 @@ namespace HXSL
 		Class* Finish()
 		{
 			auto pClass = Class::Create({}, name_m, AccessModifier_Public, static_cast<uint32_t>(fields.size()), 0, 0, 0, static_cast<uint32_t>(functions.size()), static_cast<uint32_t>(operators.size()));
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, pClass);
-			auto index = table->Insert(pClass->GetName(), meta, 0);
+			auto meta = SharedPtr<SymbolMetadata>::Create(pClass);
+			auto index = table->Insert(pClass->GetName(), meta);
 			pClass->SetAssembly(assembly, index);
 
 			auto fieldsDst = pClass->GetFields();
@@ -409,8 +409,8 @@ namespace HXSL
 		{
 			prim = Primitive::Create({}, name_m, kind_m, _class_m, rows_m, columns_m, static_cast<uint32_t>(operators.size()));
 
-			auto meta = std::make_shared<SymbolMetadata>(SymbolType_Primitive, SymbolScopeType_Global, AccessModifier_Public, 0, prim);
-			auto index = table->Insert(prim->GetName(), meta, 0);
+			auto meta = SharedPtr<SymbolMetadata>::Create(prim);
+			auto index = table->Insert(prim->GetName(), meta);
 			prim->SetAssembly(assembly, index);
 		}
 
