@@ -4,7 +4,7 @@
 
 HXSL (HexaEngine Shading Language) is a modern shading language designed as a more flexible, readable, and user-friendly alternative to HLSL (High-Level Shading Language). Built with features like user-defined operators, member functions, and namespace support, HXSL enhances the shader programming experience by providing additional syntactical sugar. The goal is to improve developer productivity and code maintainability while keeping performance and compatibility with graphics hardware.
 
-Currently, HXSL is in the **Semantic Analyzer** stage of development and is actively being worked on.
+Currently, HXSL is in the **Intermediate Language (IL) Optimization** stage of development. The frontend (lexer, parser, semantic analyzer) and the middle-end (IL generation, SSA conversion, and optimizations) are complete. Active work is now focused on backend code generation.
 
 ## Key Features
 
@@ -12,23 +12,41 @@ Currently, HXSL is in the **Semantic Analyzer** stage of development and is acti
 - **User-defined Operators**: Allows for the creation of custom operators for greater expressiveness and readability in shader code.
 - **Member Functions**: Supports defining functions within structures and types, improving modularity and code reuse.
 - **Namespaces and Usings**: Removes the need for `#include` directives, allowing for better organization and cleaner code.
-- **Ongoing Development**: Currently in the **Semantic Analyzer** phase, with features continually being added and improved.
+- **C API**: A C API is available for integration with other languages like C#.
 
-## Features in Progress
+## Compiler Architecture
 
-- **Semantic Analyzer**: The compiler is currently focusing on parsing and analyzing code semantics, ensuring proper type checking and variable usage.
-- **Type Checking**: Advanced type-checking is being developed to prevent errors and improve shader program correctness.
+The compiler is structured into the following stages:
+
+### Completed Stages
+
+- **Preprocessing**: Macro expansion and preprocessor directive handling.
+- **Lexical Analysis**: Tokenization of HXSL source code.
+- **Parsing**: Full parsing support for declarations, expressions, and statements using a hybrid Pratt parser.
+- **Semantic Analysis**: Complete type checking, symbol resolution, and expression validation.
+- **IL Generation**: Conversion of the AST to an intermediate representation (Module Builder).
+- **Control Flow Analysis**: Construction and analysis of control flow graphs.
+- **SSA Conversion**: Static Single Assignment form conversion for optimization.
+- **IL Optimizations**:
+  - Constant Folding
+  - Algebraic Simplification
+  - Common Subexpression Elimination
+  - Dead Code Elimination
+  - Strength Reduction
+  - Function Inlining
+
+### In Progress
+
+- **Backend Code Generation**: Implementation of code generation targeting HLSL, GLSL, and SPIR-V.
 
 ## Future Plans
 
-- **Code Generation**: The next milestone will be to implement the code generation phase, producing optimized machine code or an intermediate representation for execution on the GPU.
-- **Cross-compilation**: HXSL will eventually be compiled back to HLSL, and there are plans to extend support for generating GLSL and SPIR-V as well, enabling wider compatibility across different platforms and graphics APIs.
+- **Cross-compilation**: HXSL will be transpiled to HLSL, with plans to extend support for generating GLSL and SPIR-V, enabling wider compatibility across different platforms and graphics APIs.
 - **Extended Language Features**: More language features and optimizations will be added as development progresses.
-- **C-Headers**: C-Headers for interop with other languages like C#.
 
 ### Prerequisites
 
-- HXSL has no external dependencies and works with the C++17 standard library.
+- HXSL uses the C++20 standard library.
 
 ### Syntax and Usage
 
