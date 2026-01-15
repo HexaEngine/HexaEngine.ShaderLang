@@ -18,4 +18,14 @@ namespace HXSL
 		ptr->storage.SetCounts(numParameters);
 		return ptr;
 	}
+
+	void AttributeDecl::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetParameters);
+	}
+
+	void AttributeDecl::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetParameters);
+	}
 }

@@ -45,6 +45,9 @@ namespace HXSL
 
 		PrimitiveClass GetClass() const noexcept { return _class; }
 		void SetClass(const PrimitiveClass& value) noexcept { _class = value; }
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 }
 #endif

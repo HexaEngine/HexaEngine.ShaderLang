@@ -90,7 +90,7 @@ namespace HXSL
 	{
 		if (startingNode == nullptr)
 		{
-			return {};
+			startingNode = root;
 		}
 
 		auto* current = startingNode;

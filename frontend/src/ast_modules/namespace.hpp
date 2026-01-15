@@ -97,6 +97,9 @@ namespace HXSL
 		{
 			return assemblyReferences;
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 }
 

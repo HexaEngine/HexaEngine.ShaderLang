@@ -134,7 +134,7 @@ namespace HXSL
 
 	class UnaryExpression : public OperatorExpression
 	{
-	private:
+	protected:
 		SymbolRef* operatorSymbol;
 		Operator _operator;
 		Expression* operand;
@@ -196,6 +196,9 @@ namespace HXSL
 	public:
 		static constexpr NodeType ID = NodeType_PrefixExpression;
 		static PrefixExpression* Create(const TextSpan& span, Operator op, Expression* operand);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class PostfixExpression : public UnaryExpression
@@ -210,6 +213,9 @@ namespace HXSL
 	public:
 		static constexpr NodeType ID = NodeType_PostfixExpression;
 		static PostfixExpression* Create(const TextSpan& span, Operator op, Expression* operand);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class BinaryExpression : public OperatorExpression
@@ -286,9 +292,11 @@ namespace HXSL
 			_operator = value;
 		}
 
-		DEFINE_GET_SET_MOVE_CHILD(Expression*, Left, left)
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Left, left);
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Right, right);
 
-			DEFINE_GET_SET_MOVE_CHILD(Expression*, Right, right)
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class CastExpression : public Expression
@@ -341,9 +349,11 @@ namespace HXSL
 			return operatorSymbol;
 		}
 
-		DEFINE_GETTER_SETTER_PTR(SymbolRef*, TypeSymbol, typeSymbol)
+		DEFINE_GETTER_SETTER_PTR(SymbolRef*, TypeSymbol, typeSymbol);
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Operand, operand);
 
-			DEFINE_GET_SET_MOVE_CHILD(Expression*, Operand, operand)
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class TernaryExpression : public OperatorExpression
@@ -380,6 +390,9 @@ namespace HXSL
 			DEFINE_GET_SET_MOVE_CHILD(Expression*, TrueBranch, trueBranch)
 
 			DEFINE_GET_SET_MOVE_CHILD(Expression*, FalseBranch, falseBranch)
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class EmptyExpression : public Expression
@@ -394,6 +407,9 @@ namespace HXSL
 	public:
 		static constexpr NodeType ID = NodeType_EmptyExpression;
 		static EmptyExpression* Create(const TextSpan& span);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
 	class LiteralExpression : public Expression
@@ -421,6 +437,9 @@ namespace HXSL
 		{
 			literal = value;
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
 	class MemberReferenceExpression : public ChainExpression
@@ -445,6 +464,9 @@ namespace HXSL
 		}
 
 		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class FunctionCallParameter : public ASTNode
@@ -465,6 +487,9 @@ namespace HXSL
 		static FunctionCallParameter* Create(const TextSpan& span, Expression* expression);
 
 		DEFINE_GET_SET_MOVE_CHILD(Expression*, Expression, expression);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	enum class FunctionCallExpressionFlags : uint32_t
@@ -554,7 +579,10 @@ namespace HXSL
 			return symbol;
 		}
 
-		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol)
+		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class MemberAccessExpression : public ChainExpression
@@ -579,6 +607,9 @@ namespace HXSL
 		}
 
 		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class IndexerAccessExpression : public ChainExpression
@@ -608,6 +639,9 @@ namespace HXSL
 		DEFINE_GET_SET_MOVE_CHILD(Expression*, IndexExpression, indexExpression);
 
 		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class AssignmentExpression : public OperatorExpression
@@ -643,8 +677,10 @@ namespace HXSL
 		}
 
 		DEFINE_GET_SET_MOVE_CHILD(Expression*, Target, target);
-
 		DEFINE_GET_SET_MOVE_CHILD(Expression*, Expression, expression);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class CompoundAssignmentExpression : public AssignmentExpression
@@ -687,6 +723,9 @@ namespace HXSL
 		{
 			_operator = value;
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class InitializationExpression : public Expression, public TrailingObjects<InitializationExpression, Expression*>
@@ -706,6 +745,9 @@ namespace HXSL
 		static InitializationExpression* Create(const TextSpan& span, uint32_t numParameters);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetParameters, 0, storage);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 }
 

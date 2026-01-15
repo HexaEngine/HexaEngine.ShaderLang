@@ -132,4 +132,148 @@ namespace HXSL
 		ptr->storage.SetCounts(numParameters);
 		return ptr;
 	}
+
+	void BinaryExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(left);
+		AST_ITERATE_CHILD_MUT(right);
+	}
+
+	void BinaryExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(left);
+		AST_ITERATE_CHILD(right);
+	}
+
+	void MemberReferenceExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		if (next) AST_ITERATE_CHILD_MUT(next);
+	}
+
+	void MemberReferenceExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		if (next) AST_ITERATE_CHILD(next);
+	}
+
+	void FunctionCallExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetParameters);
+		if (next) AST_ITERATE_CHILD_MUT(next);
+	}
+
+	void FunctionCallExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetParameters);
+		if (next) AST_ITERATE_CHILD(next);
+	}
+
+	void FunctionCallParameter::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(expression);
+	}
+
+	void FunctionCallParameter::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(expression);
+	}
+
+	void MemberAccessExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		if (next) AST_ITERATE_CHILD_MUT(next);
+	}
+
+	void MemberAccessExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		if (next) AST_ITERATE_CHILD(next);
+	}
+
+	void IndexerAccessExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(indexExpression);
+		if (next) AST_ITERATE_CHILD_MUT(next);
+	}
+
+	void IndexerAccessExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(indexExpression);
+		if (next) AST_ITERATE_CHILD(next);
+	}
+
+	void CastExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(operand);
+	}
+
+	void CastExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(operand);
+	}
+
+	void TernaryExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(condition);
+		AST_ITERATE_CHILD_MUT(trueBranch);
+		AST_ITERATE_CHILD_MUT(falseBranch);
+	}
+
+	void TernaryExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(condition);
+		AST_ITERATE_CHILD(trueBranch);
+		AST_ITERATE_CHILD(falseBranch);
+	}
+
+	void PrefixExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(operand);
+	}
+
+	void PrefixExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(operand);
+	}
+
+	void PostfixExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(operand);
+	}
+
+	void PostfixExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(operand);
+	}
+
+	void AssignmentExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(target);
+		AST_ITERATE_CHILD_MUT(expression);
+	}
+
+	void AssignmentExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(target);
+		AST_ITERATE_CHILD(expression);
+	}
+
+	void CompoundAssignmentExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(target);
+		AST_ITERATE_CHILD_MUT(expression);
+	}
+
+	void CompoundAssignmentExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(target);
+		AST_ITERATE_CHILD(expression);
+	}
+
+	void InitializationExpression::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetParameters);
+	}
+
+	void InitializationExpression::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetParameters);
+	}
 }

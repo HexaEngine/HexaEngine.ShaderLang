@@ -48,6 +48,26 @@ namespace HXSL
 		assemblyReferences = context->AllocCopy<AssemblySymbolRef>(refs);
 	}
 
+	void Namespace::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetUsings);
+		AST_ITERATE_CHILDREN_MUT(GetStructs);
+		AST_ITERATE_CHILDREN_MUT(GetClasses);
+		AST_ITERATE_CHILDREN_MUT(GetFunctions);
+		AST_ITERATE_CHILDREN_MUT(GetFields);
+		AST_ITERATE_CHILDREN_MUT(GetNestedNamespaces);
+	}
+
+	void Namespace::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetUsings);
+		AST_ITERATE_CHILDREN(GetStructs);
+		AST_ITERATE_CHILDREN(GetClasses);
+		AST_ITERATE_CHILDREN(GetFunctions);
+		AST_ITERATE_CHILDREN(GetFields);
+		AST_ITERATE_CHILDREN(GetNestedNamespaces);
+	}
+
 	/*
 	void Namespace::Write(Stream& stream) const
 	{

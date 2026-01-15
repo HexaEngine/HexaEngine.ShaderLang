@@ -12,7 +12,7 @@ namespace HXSL
 		bool fqn;
 		SymbolRef* ptr;
 
-		LazySymbol() : span({}), type(SymbolRefType_Unknown), fqn(false)
+		LazySymbol() : span({}), type(SymbolRefType_Unknown), fqn(false), ptr(nullptr)
 		{
 		}
 
@@ -20,7 +20,7 @@ namespace HXSL
 		{
 		}
 
-		LazySymbol(TextSpan span, SymbolRefType type, bool fqn) : span(span), type(type), fqn(fqn)
+		LazySymbol(TextSpan span, SymbolRefType type, bool fqn) : span(span), type(type), fqn(fqn), ptr(nullptr)
 		{
 		}
 

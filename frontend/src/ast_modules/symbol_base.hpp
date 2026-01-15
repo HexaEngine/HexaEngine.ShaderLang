@@ -200,7 +200,7 @@ namespace HXSL
 
 		void OverwriteType(const SymbolRefType& value) noexcept { type = value; }
 
-		const StringSpan& GetName() const noexcept;
+		StringSpan GetName() const noexcept;
 
 		const TextSpan& GetSpan() const noexcept { return span; }
 

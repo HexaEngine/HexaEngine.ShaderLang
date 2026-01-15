@@ -151,13 +151,12 @@ namespace HXSL
 		}
 
 		auto& handleB = b->GetSymbolHandle();
-		auto lookup = ToLookupChar(Operator_Cast);
 
 		std::string signature;
 		BinaryExpression::PrepareOverloadSignature(signature, op);
 		for (auto& _operator : operators)
 		{
-			if (_operator->GetName()[0] != lookup || (_operator->GetOperatorFlags() & OperatorFlags_Implicit) == 0)
+			if (_operator->GetOperator() != Operator_Cast || (_operator->GetOperatorFlags() & OperatorFlags_Implicit) == 0)
 			{
 				continue;
 			}

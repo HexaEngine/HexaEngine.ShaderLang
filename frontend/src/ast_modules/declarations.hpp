@@ -65,6 +65,19 @@ namespace HXSL
 		SymbolRef* returnSymbol;
 		IdentifierInfo* semantic;
 		BlockStatement* body;
+		union
+		{
+			struct OperatorStorage
+			{
+				OperatorFlags operatorFlags;
+				Operator _operator;
+			} operatorStorage;
+
+			struct ConstructorStorage
+			{
+				SymbolRef* targetTypeSymbol;
+			} constructorStorage;
+		};
 		TrailingObjStorage<FunctionOverload, uint32_t> storage;
 
 		FunctionOverload(const TextSpan& span, NodeType type, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* returnSymbol, IdentifierInfo* semantic, BlockStatement* body)
@@ -136,12 +149,11 @@ namespace HXSL
 	{
 		friend class ASTContext;
 	private:
-		SymbolRef* targetTypeSymbol;
 
 		ConstructorOverload(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, SymbolRef* returnType, BlockStatement* body)
-			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, returnType, nullptr, body),
-			targetTypeSymbol(targetTypeSymbol)
+			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, returnType, nullptr, body)
 		{
+			constructorStorage.targetTypeSymbol = targetTypeSymbol;
 		}
 
 	public:
@@ -150,45 +162,43 @@ namespace HXSL
 
 		SymbolRef* GetTargetTypeSymbolRef()
 		{
-			return targetTypeSymbol;
+			return constructorStorage.targetTypeSymbol;
 		}
 
 		SymbolDef* GetTargetType() const noexcept
 		{
-			return targetTypeSymbol->GetDeclaration();
+			return constructorStorage.targetTypeSymbol->GetDeclaration();
 		}
 
 		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
 
-		DEFINE_GETTER_SETTER_PTR(SymbolRef*, TargetTypeSymbol, targetTypeSymbol)
+		DEFINE_GETTER_SETTER_PTR(SymbolRef*, TargetTypeSymbol, constructorStorage.targetTypeSymbol)
 	};
 
 	class OperatorOverload : public FunctionOverload
 	{
 		friend class ASTContext;
 	private:
-		OperatorFlags operatorFlags;
-		Operator _operator;
 	public:
 		static constexpr NodeType ID = NodeType_OperatorOverload;
 		OperatorOverload(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body)
-			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, returnSymbol, nullptr, body),
-			_operator(_operator),
-			operatorFlags(operatorFlags)
+			: FunctionOverload(span, ID, name, accessModifiers, functionFlags, returnSymbol, nullptr, body)
 		{
+			operatorStorage.operatorFlags = operatorFlags;
+			operatorStorage._operator = _operator;
 		}
 
 		static OperatorOverload* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes);
 
 		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
 
-		const OperatorFlags& GetOperatorFlags() const noexcept { return operatorFlags; }
+		const OperatorFlags& GetOperatorFlags() const noexcept { return operatorStorage.operatorFlags; }
 
-		void SetOperatorFlags(const OperatorFlags& value) noexcept { operatorFlags = value; }
+		void SetOperatorFlags(const OperatorFlags& value) noexcept { operatorStorage.operatorFlags = value; }
 
-		const Operator& GetOperator() const noexcept { return _operator; }
+		const Operator& GetOperator() const noexcept { return operatorStorage._operator; }
 
-		void SetOperator(const Operator& value) noexcept { _operator = value; }
+		void SetOperator(const Operator& value) noexcept { operatorStorage._operator = value; }
 	};
 
 	class Field : public SymbolDef

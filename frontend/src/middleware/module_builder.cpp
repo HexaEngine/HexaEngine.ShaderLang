@@ -103,7 +103,7 @@ namespace HXSL
 		FieldLayoutBuilder builder = FieldLayoutBuilder(*module);
 		builder
 			.Name(field->GetName())
-			.Semantic(field->GetSemantic()->name)
+			.Semantic(field->GetSemantic())
 			.Access(field->GetAccessModifiers())
 			.InterpolationModifier(field->GetInterpolationModifiers())
 			.StorageClass(field->GetStorageClass())
@@ -125,7 +125,7 @@ namespace HXSL
 		ParameterLayoutBuilder builder = ParameterLayoutBuilder(*module);
 		builder
 			.Name(param->GetName())
-			.Semantic(param->GetSemantic()->name)
+			.Semantic(param->GetSemantic())
 			.InterpolationModifier(param->GetInterpolationModifiers())
 			.StorageClass(StorageClass_None)
 			.ParameterFlags(param->GetParameterFlags())

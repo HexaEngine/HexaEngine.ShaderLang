@@ -18,4 +18,14 @@ namespace HXSL
 		ptr->storage.SetCounts(numOperators);
 		return ptr;
 	}
+
+	void Primitive::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetOperators);
+	}
+
+	void Primitive::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetOperators);
+	}
 }

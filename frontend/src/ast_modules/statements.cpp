@@ -8,6 +8,7 @@ namespace HXSL
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<BlockStatement>(TotalSizeToAlloc(statements.size()), span);
 		ptr->storage.InitializeMove(ptr, statements);
+		REGISTER_CHILDREN_PTR(ptr, GetStatements());
 		return ptr;
 	}
 
@@ -183,6 +184,180 @@ namespace HXSL
 		auto ptr = context->Alloc<DoWhileStatement>(TotalSizeToAlloc(numAttributes), span, condition, body);
 		ptr->storage.SetCounts(numAttributes);
 		return ptr;
+	}
+
+	void BlockStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetStatements);
+	}
+
+	void BlockStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetStatements);
+	}
+
+	void DeclarationStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		if (initializer) AST_ITERATE_CHILD_MUT(initializer);
+	}
+
+	void DeclarationStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		if (initializer) AST_ITERATE_CHILD(initializer);
+	}
+
+	void AssignmentStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(expr);
+	}
+
+	void AssignmentStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(expr);
+	}
+
+	void ExpressionStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(expression);
+	}
+
+	void ExpressionStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(expression);
+	}
+
+	void ReturnStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(returnValueExpression);
+	}
+
+	void ReturnStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(returnValueExpression);
+	}
+
+	void ElseStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(body);
+	}
+
+	void ElseStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(body);
+	}
+
+	void ElseIfStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(condition);
+		AST_ITERATE_CHILD_MUT(body);
+	}
+
+	void ElseIfStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(condition);
+		AST_ITERATE_CHILD(body);
+	}
+
+	void IfStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetAttributes);
+		AST_ITERATE_CHILD_MUT(condition);
+		AST_ITERATE_CHILD_MUT(body);
+		AST_ITERATE_CHILDREN_MUT(GetElseIfStatements);
+		if (elseStatement) AST_ITERATE_CHILD_MUT(elseStatement);
+	}
+
+	void IfStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetAttributes);
+		AST_ITERATE_CHILD(condition);
+		AST_ITERATE_CHILD(body);
+		AST_ITERATE_CHILDREN(GetElseIfStatements);
+		if (elseStatement) AST_ITERATE_CHILD(elseStatement);
+	}
+
+	void CaseStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(expression);
+		AST_ITERATE_CHILDREN_MUT(GetStatements);
+	}
+
+	void CaseStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(expression);
+		AST_ITERATE_CHILDREN(GetStatements);
+	}
+
+	void DefaultCaseStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetStatements);
+	}
+
+	void DefaultCaseStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetStatements);
+	}
+
+	void SwitchStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetAttributes);
+		AST_ITERATE_CHILD_MUT(expression);
+		AST_ITERATE_CHILDREN_MUT(GetCases);
+		if (defaultCase) AST_ITERATE_CHILD_MUT(defaultCase);
+	}
+
+	void SwitchStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetAttributes);
+		AST_ITERATE_CHILD(expression);
+		AST_ITERATE_CHILDREN(GetCases);
+		if (defaultCase) AST_ITERATE_CHILD(defaultCase);
+	}
+
+	void ForStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetAttributes);
+		if (init) AST_ITERATE_CHILD_MUT(init);
+		if (condition) AST_ITERATE_CHILD_MUT(condition);
+		if (iteration) AST_ITERATE_CHILD_MUT(iteration);
+		AST_ITERATE_CHILD_MUT(body);
+	}
+
+	void ForStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetAttributes);
+		if (init) AST_ITERATE_CHILD(init);
+		if (condition) AST_ITERATE_CHILD(condition);
+		if (iteration) AST_ITERATE_CHILD(iteration);
+		AST_ITERATE_CHILD(body);
+	}
+
+	void WhileStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetAttributes);
+		AST_ITERATE_CHILD_MUT(condition);
+		AST_ITERATE_CHILD_MUT(body);
+	}
+
+	void WhileStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetAttributes);
+		AST_ITERATE_CHILD(condition);
+		AST_ITERATE_CHILD(body);
+	}
+
+	void DoWhileStatement::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetAttributes);
+		AST_ITERATE_CHILD_MUT(body);
+		AST_ITERATE_CHILD_MUT(condition);
+	}
+
+	void DoWhileStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetAttributes);
+		AST_ITERATE_CHILD(body);
+		AST_ITERATE_CHILD(condition);
 	}
 
 	/*

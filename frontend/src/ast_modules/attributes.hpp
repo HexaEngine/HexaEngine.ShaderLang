@@ -32,7 +32,10 @@ namespace HXSL
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetParameters, 0, storage);
 
-		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol)
+		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class AttributeContainer

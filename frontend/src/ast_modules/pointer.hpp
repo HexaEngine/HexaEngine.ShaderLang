@@ -32,6 +32,9 @@ namespace HXSL
 		{
 			return elementType;
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 }
 

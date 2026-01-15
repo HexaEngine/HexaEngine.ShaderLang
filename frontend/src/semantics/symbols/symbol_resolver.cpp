@@ -12,7 +12,7 @@ namespace HXSL
 
 		auto refType = ref->GetType();
 		auto defType = metadata->GetSymbolType();
-		auto& name = ref->GetName();
+		auto name = ref->GetName();
 		auto& span = ref->GetSpan();
 
 		switch (refType)
@@ -421,7 +421,7 @@ namespace HXSL
 
 	bool SymbolResolver::ResolveSymbol(SymbolRef* ref, std::optional<StringSpan> name, const SymbolTable* table, const SymbolHandle& lookup, bool silent) const
 	{
-		auto& span = ref->GetName();
+		auto span = ref->GetName();
 		auto actualName = name.value_or(span);
 
 		SymbolHandle handle;

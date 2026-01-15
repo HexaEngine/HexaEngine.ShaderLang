@@ -25,6 +25,7 @@ namespace HXSL
 		ptr->storage.InitializeMove(ptr, parameters, attributes);
 		REGISTER_CHILDREN_PTR(ptr, GetParameters());
 		REGISTER_CHILDREN_PTR(ptr, GetAttributes());
+		REGISTER_CHILD_PTR(ptr, body);
 		return ptr;
 	}
 
@@ -151,6 +152,9 @@ namespace HXSL
 		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<OperatorOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, name, accessModifiers, functionFlags, operatorFlags, _operator, returnSymbol, body);
 		ptr->storage.InitializeMove(ptr, parameters, attributes);
+		REGISTER_CHILDREN_PTR(ptr, GetParameters());
+		REGISTER_CHILDREN_PTR(ptr, GetAttributes());
+		REGISTER_CHILD_PTR(ptr, body);
 		return ptr;
 	}
 
@@ -165,10 +169,12 @@ namespace HXSL
 
 		size_t size = 0;
 
-		str.resize(2);
-		str[0] = ToLookupChar(_operator);
+		auto op = operatorStorage._operator;
 
-		if (_operator == Operator_Cast)
+		str.resize(2);
+		str[0] = ToLookupChar(op);
+
+		if (op == Operator_Cast)
 		{
 			str[1] = '#';
 			if (placeholder)
@@ -236,6 +242,13 @@ namespace HXSL
 		auto thisDef = ThisDef::Create(name);
 		auto ptr = context->Alloc<Struct>(TotalSizeToAlloc(fields.size(), structs.size(), classes.size(), constructors.size(), functions.size(), operators.size()), span, name, access, thisDef);
 		ptr->storage.InitializeMove(ptr, fields, structs, classes, constructors, functions, operators);
+		REGISTER_CHILD_PTR(ptr, thisDef);
+		REGISTER_CHILDREN_PTR(ptr, GetFields());
+		REGISTER_CHILDREN_PTR(ptr, GetStructs());
+		REGISTER_CHILDREN_PTR(ptr, GetClasses());
+		REGISTER_CHILDREN_PTR(ptr, GetConstructors());
+		REGISTER_CHILDREN_PTR(ptr, GetFunctions());
+		REGISTER_CHILDREN_PTR(ptr, GetOperators());
 		return ptr;
 	}
 
@@ -254,6 +267,13 @@ namespace HXSL
 		auto thisDef = ThisDef::Create(name);
 		auto ptr = context->Alloc<Class>(TotalSizeToAlloc(fields.size(), structs.size(), classes.size(), constructors.size(), functions.size(), operators.size()), span, name, access, thisDef);
 		ptr->storage.InitializeMove(ptr, fields, structs, classes, constructors, functions, operators);
+		REGISTER_CHILD_PTR(ptr, thisDef);
+		REGISTER_CHILDREN_PTR(ptr, GetFields());
+		REGISTER_CHILDREN_PTR(ptr, GetStructs());
+		REGISTER_CHILDREN_PTR(ptr, GetClasses());
+		REGISTER_CHILDREN_PTR(ptr, GetConstructors());
+		REGISTER_CHILDREN_PTR(ptr, GetFunctions());
+		REGISTER_CHILDREN_PTR(ptr, GetOperators());
 		return ptr;
 	}
 

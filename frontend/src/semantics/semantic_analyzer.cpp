@@ -85,6 +85,10 @@ namespace HXSL
 		AnalyzerVisitor visitor(*this);
 		visitor.Traverse(compilation);
 
+#if HXSL_DEBUG
+		debug.Traverse(compilation);
+#endif
+
 		return true;
 	}
 }

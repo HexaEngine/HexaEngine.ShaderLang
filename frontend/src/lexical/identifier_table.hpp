@@ -34,8 +34,9 @@ namespace HXSL
 
 			auto info = allocator.Alloc<IdentifierInfo>();
 
-			auto p = reinterpret_cast<char*>(allocator.Alloc(name.size() * sizeof(char), alignof(char)));
+			auto p = reinterpret_cast<char*>(allocator.Alloc((name.size() + 1)* sizeof(char), alignof(char)));
 			std::memcpy(p, name.data(), name.size() * sizeof(char));
+			p[name.size()] = '\0';
 			info->name = StringSpan(p, name.size());
 
 			map.insert({ info->name, info });

@@ -2,7 +2,6 @@
 #define AST_VISITOR_HPP
 
 #include "pch/ast.hpp"
-#include <functional>
 
 namespace HXSL
 {
@@ -13,16 +12,37 @@ namespace HXSL
 		TraversalBehavior_Keep,
 		TraversalBehavior_Defer,
 		TraversalBehavior_DeferSubTree,
-		TraversalBehavior_AnalyzerSkip,
+		TraversalBehavior_AnalyzerSkip, // special value for static analyzers
 	};
 
 	struct EmptyDeferralContext
 	{
 	};
 
-	template<typename DeferralContext>
+	template<typename DeferralContext = EmptyDeferralContext>
 	class ASTVisitor
 	{
+	private:
+		struct StackContext
+		{
+			ASTNode* node;
+			size_t depth;
+			DeferralContext context;
+			bool deferred;
+			bool closing;
+		};
+		
+		struct VisitChildContext
+		{
+			std::vector<ASTNode*>& children;
+		};
+
+		static void VisitChild(ASTNode*& child, void* userdata)
+		{
+			VisitChildContext* ctx = reinterpret_cast<VisitChildContext*>(userdata);
+			ctx->children.push_back(child);
+		}
+
 	protected:
 
 		virtual TraversalBehavior Visit(ASTNode*& node, size_t depth, bool deferred, DeferralContext& context) = 0;
@@ -37,13 +57,19 @@ namespace HXSL
 		void Traverse(ASTNode* node, VisitFnType visit, VisitCloseFnType visitClose)
 		{
 			std::deque<std::tuple<ASTNode*, size_t, DeferralContext, bool>> deferredQueue;
-			std::stack<std::tuple<ASTNode*, size_t, DeferralContext, bool, bool>> nodeStack;
-			nodeStack.push(std::make_tuple(node, 0, DeferralContext(), false, false));
+			std::stack<StackContext> nodeStack;
+			std::vector<ASTNode*> children;
+			nodeStack.push(StackContext(node, 0, DeferralContext(), false, false));
 			do
 			{
 				while (!nodeStack.empty())
 				{
-					auto [currentNode, depth, context, deferred, closing] = nodeStack.top();
+					auto ctx = std::move(nodeStack.top());
+					auto currentNode = ctx.node;
+					auto depth = ctx.depth;
+					auto context = std::move(ctx.context);
+					auto deferred = ctx.deferred;
+					auto closing = ctx.closing;
 					nodeStack.pop();
 
 					if (closing)
@@ -76,14 +102,16 @@ namespace HXSL
 						}
 						else
 						{
-							nodeStack.push(std::make_tuple(currentNode, depth, context, deferred, true));
+							nodeStack.push(StackContext(currentNode, depth, context, deferred, true));
 						}
 
-						auto& children = currentNode->GetChildren();
+						VisitChildContext visitCtx = VisitChildContext(children);
+						currentNode->ForEachChild2(VisitChild, &visitCtx);
 						for (size_t i = children.size() - 1; i != static_cast<size_t>(-1); --i)
 						{
-							nodeStack.push(std::make_tuple(children[i], depth + 1, context, deferred, false));
+							nodeStack.push(StackContext(children[i], depth + 1, context, deferred, false));
 						}
+						children.clear();
 					}
 				}
 
@@ -93,7 +121,7 @@ namespace HXSL
 					deferredQueue.pop_front();
 					if (subTree)
 					{
-						nodeStack.push(std::make_tuple(currentNode, depth, std::move(context), true, false));
+						nodeStack.push(StackContext(currentNode, depth, std::move(context), true, false));
 						continue;
 					}
 					TraversalBehavior result = visit(currentNode, depth, true, context);

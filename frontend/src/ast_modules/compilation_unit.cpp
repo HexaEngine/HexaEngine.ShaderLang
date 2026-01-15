@@ -20,4 +20,16 @@ namespace HXSL
 		ptr->storage.SetCounts(numNamespaces, numUsings);
 		return ptr;
 	}
+
+	void CompilationUnit::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetUsings);
+		AST_ITERATE_CHILDREN_MUT(GetNamespaces);
+	}
+
+	void CompilationUnit::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetUsings);
+		AST_ITERATE_CHILDREN(GetNamespaces);
+	}
 }

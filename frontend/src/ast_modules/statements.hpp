@@ -43,6 +43,9 @@ namespace HXSL
 			oss << "[" << ToString(type) << "]";
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class BodyStatement : public ASTNode
@@ -136,9 +139,11 @@ namespace HXSL
 			return storageClass;
 		}
 
-		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol)
+		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
+		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Initializer, initializer);
 
-			DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Initializer, initializer)
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class AssignmentStatement : public ASTNode, public IHasExpressions
@@ -184,6 +189,9 @@ namespace HXSL
 		{
 			expr->SetExpression(value);
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class CompoundAssignmentStatement : public AssignmentStatement
@@ -228,6 +236,9 @@ namespace HXSL
 		static ExpressionStatement* Create(const TextSpan& span, Expression* expression);
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class ReturnStatement : public ASTNode, public IHasExpressions
@@ -248,6 +259,9 @@ namespace HXSL
 		static ReturnStatement* Create(const TextSpan& span, Expression* returnValueExpression);
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, ReturnValueExpression, returnValueExpression)
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class ElseStatement : public BodyStatement
@@ -269,6 +283,9 @@ namespace HXSL
 			oss << "[" << ToString(type) << "]";
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class ElseIfStatement : public ConditionalStatement
@@ -290,6 +307,9 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class IfStatement : public ConditionalStatement, public TrailingObjects<IfStatement, ElseIfStatement*, AttributeDecl*>
@@ -311,6 +331,7 @@ namespace HXSL
 		static IfStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numElseIfStatements, ElseStatement* elseStatement, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetElseIfStatements, 0, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 1, storage);
 
 		DEFINE_GET_SET_MOVE_CHILD(ElseStatement*, ElseStatement, elseStatement);
 
@@ -320,6 +341,9 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class CaseStatement : public StatementContainer, public IHasExpressions
@@ -348,6 +372,9 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Header: " + expression->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class DefaultCaseStatement : public StatementContainer
@@ -363,6 +390,9 @@ namespace HXSL
 		static constexpr NodeType ID = NodeType_DefaultCaseStatement;
 		static DefaultCaseStatement* Create(const TextSpan& span, const ArrayRef<ASTNode*>& statements);
 		static DefaultCaseStatement* Create(const TextSpan& span, uint32_t numStatements);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class SwitchStatement : public ASTNode, public IHasExpressions, public TrailingObjects<SwitchStatement, CaseStatement*, AttributeDecl*>
@@ -388,6 +418,7 @@ namespace HXSL
 		static SwitchStatement* Create(const TextSpan& span, Expression* expression, uint32_t numCases, DefaultCaseStatement* defaultCase, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetCases, 0, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 1, storage);
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
 
@@ -399,6 +430,9 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Header: " + expression->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class ForStatement : public ConditionalStatement, public TrailingObjects<ForStatement, AttributeDecl*>
@@ -424,6 +458,7 @@ namespace HXSL
 		static ForStatement* Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
+		
 		DEFINE_GET_SET_MOVE_CHILD(ASTNode*, Init, init);
 		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Iteration, iteration);
 
@@ -433,6 +468,9 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Header: " + init->GetSpan().merge(condition->GetSpan()).merge(iteration->GetSpan()).str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class BreakStatement : public ASTNode
@@ -447,6 +485,9 @@ namespace HXSL
 	public:
 		static constexpr NodeType ID = NodeType_BreakStatement;
 		static BreakStatement* Create(const TextSpan& span);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
 	class ContinueStatement : public ASTNode
@@ -461,6 +502,9 @@ namespace HXSL
 	public:
 		static constexpr NodeType ID = NodeType_ContinueStatement;
 		static ContinueStatement* Create(const TextSpan& span);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
 	class DiscardStatement : public ASTNode
@@ -475,6 +519,9 @@ namespace HXSL
 	public:
 		static constexpr NodeType ID = NodeType_DiscardStatement;
 		static DiscardStatement* Create(const TextSpan& span);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
 	class WhileStatement : public ConditionalStatement, public TrailingObjects<WhileStatement, AttributeDecl*>
@@ -493,12 +540,17 @@ namespace HXSL
 		static WhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<AttributeDecl*>& attributes);
 		static WhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numAttributes);
 
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
+
 		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class DoWhileStatement : public ConditionalStatement, public TrailingObjects<WhileStatement, AttributeDecl*>
@@ -517,12 +569,17 @@ namespace HXSL
 		static DoWhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<AttributeDecl*>& atttributes);
 		static DoWhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numAttributes);
 
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
+
 		std::string DebugName() const
 		{
 			std::ostringstream oss;
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 }
 

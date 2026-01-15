@@ -210,7 +210,7 @@ namespace HXSL
 		case NodeType_AttributeDeclaration: return "AttributeDeclaration";
 		case NodeType_BinaryExpression: return "BinaryExpression";
 		case NodeType_EmptyExpression: return "EmptyExpression";
-		case NodeType_LiteralExpression: return "ConstantExpression";
+		case NodeType_LiteralExpression: return "LiteralExpression";
 		case NodeType_MemberReferenceExpression: return "MemberReferenceExpression";
 		case NodeType_FunctionCallExpression: return "FunctionCallExpression";
 		case NodeType_FunctionCallParameter: return "FunctionCallParameter";
@@ -241,7 +241,8 @@ namespace HXSL
 		case NodeType_AssignmentExpression: return "AssignmentExpression";
 		case NodeType_CompoundAssignmentExpression: return "CompoundAssignmentExpression";
 		case NodeType_InitializationExpression: return "InitializationExpression";
-		default: return "Unknown NodeType";
+		case NodeType_ThisDef: return "ThisDef";
+		default: HXSL_ASSERT(false, "Unhandled NodeType in ToString."); return "Unhandled";
 		}
 	}
 
@@ -255,19 +256,19 @@ namespace HXSL
 		void AddChild(ASTNode* node)
 		{
 			if (node == nullptr) return;
-			children.push_back(node);
+			//children.push_back(node);
 			node->parent = this;
 		}
 
 		void RemoveChild(ASTNode* node)
 		{
 			if (node == nullptr) return;
-			children.erase(remove(children.begin(), children.end(), node), children.end());
+			//children.erase(remove(children.begin(), children.end(), node), children.end());
 			node->parent = nullptr;
 		}
 
 	protected:
-		std::vector<ASTNode*> children;
+		//std::vector<ASTNode*> children;
 		TextSpan span;
 		ASTNode* parent;
 		NodeType type : 6;
@@ -319,7 +320,7 @@ namespace HXSL
 		using child_iterator = ASTNode**;
 		using child_range = iterator_range<child_iterator>;
 
-		ASTNode(const TextSpan& span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), children({}), isExtern(isExtern)
+		ASTNode(const TextSpan& span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), isExtern(isExtern)
 		{
 		}
 
@@ -351,7 +352,7 @@ namespace HXSL
 			}
 		}
 
-		const std::vector<ASTNode*>& GetChildren() const noexcept { return children; }
+		const std::vector<ASTNode*>& GetChildren() const noexcept { /* return children; */ HXSL_ASSERT_DEPRECATION; }
 		NodeType GetType() const noexcept { return type; }
 		const TextSpan& GetSpan() const noexcept { return span; }
 		void SetSpan(TextSpan newSpan) noexcept { span = newSpan; }
@@ -426,6 +427,9 @@ namespace HXSL
 		virtual ~ASTNode()
 		{
 		}
+
+		void ForEachChild2(ASTChildCallback cb, void* userdata);
+		void ForEachChild2(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	template <class Target, class Injector, class InsertFunc>
@@ -437,12 +441,26 @@ namespace HXSL
 		static_assert(std::is_base_of<TargetType, InjectorType>::value, "Injector must derive from Target");
 
 		auto parent = target->GetParent();
+		auto oldTarget = target;
+
 		inject->SetParent(parent);
 		target->SetParent(inject);
 
 		(inject->*func)(target);
 
 		target = inject;
+
+		if (parent)
+		{
+			auto pair = std::pair<ASTNode*, ASTNode*>{ oldTarget, inject };
+			parent->ForEachChild2([](ASTNode*& child, void* userdata) {
+				auto* data = static_cast<std::pair<ASTNode*, ASTNode*>*>(userdata);
+				if (child == data->first)
+				{
+					child = data->second;
+				}
+				}, & pair);
+		}
 	}
 
 	template<typename T>

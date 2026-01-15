@@ -305,7 +305,7 @@ namespace HXSL
 			{
 				result.insert(0, node->GetName());
 				node = node->GetParent();
-				if (node == nullptr) break;
+				if (node == nullptr || node->name.empty()) break;
 				result.insert(0, ".");
 			}
 

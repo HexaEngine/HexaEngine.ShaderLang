@@ -19,6 +19,9 @@
 #define REGISTER_CHILDREN(name) \
     RegisterChildren(this->name);
 
+#define REGISTER_CHILD_PTR(ptr, name) \
+    ptr->RegisterChild(ptr->name);
+
 #define REGISTER_CHILDREN_PTR(ptr, name) \
     ptr->RegisterChildren(ptr->name);
 

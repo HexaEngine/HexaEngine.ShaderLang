@@ -35,7 +35,10 @@ namespace HXSL
 			return elementType;
 		}
 
-		DEFINE_GETTER_SETTER(size_t, ArraySize, arraySize)
+		DEFINE_GETTER_SETTER(size_t, ArraySize, arraySize);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 }
 

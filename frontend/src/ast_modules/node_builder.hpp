@@ -440,6 +440,7 @@ namespace HXSL
 				for (size_t i = 0; i < operators.size(); i++)
 				{
 					operatorsDst[i] = operators[i].Finish(index);
+					operatorsDst[i]->SetParent(prim);
 				}
 				operators.clear();
 				return true;

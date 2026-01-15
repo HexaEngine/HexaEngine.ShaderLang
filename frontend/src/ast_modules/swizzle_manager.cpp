@@ -7,7 +7,7 @@ namespace HXSL
 	{
 		auto _class = prim->GetClass();
 		if (_class == PrimitiveClass_Matrix) return false;
-		auto& pattern = ref->GetName();
+		auto pattern = ref->GetName();
 		if (pattern.size() < 1 || pattern.size() > 4)
 			return false;
 

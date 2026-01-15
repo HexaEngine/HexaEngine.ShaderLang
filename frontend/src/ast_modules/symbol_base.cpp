@@ -29,12 +29,12 @@ namespace HXSL
 
 	const StringSpan& SymbolDef::GetName() const
 	{
-		return identifer->name.view();
+		return identifer->name;
 	}
 
 	const StringSpan& SymbolDef::GetFullyQualifiedName() const noexcept
 	{
-		return fullyQualifiedName->name.view();
+		return fullyQualifiedName->name;
 	}
 
 	const SymbolMetadata* SymbolDef::GetMetadata() const
@@ -129,8 +129,9 @@ namespace HXSL
 		return context->Alloc<SymbolRef>(sizeof(SymbolRef), span, identifier, type, isFullyQualified);
 	}
 
-	const StringSpan& SymbolRef::GetName() const noexcept
+	StringSpan SymbolRef::GetName() const noexcept
 	{
+		if (!identifier) return {};
 		auto span = identifier->name.view();
 		if (isFullyQualified)
 		{

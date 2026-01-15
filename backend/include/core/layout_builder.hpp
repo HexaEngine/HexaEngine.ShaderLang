@@ -40,9 +40,10 @@ namespace HXSL
 				return *this;
 			}
 
-			ParameterLayoutBuilder& Semantic(const StringSpan& semantic)
+			ParameterLayoutBuilder& Semantic(const IdentifierInfo* semantic)
 			{
-				param->SetSemantic(allocator.CopyString(semantic));
+				StringSpan span = semantic ? semantic->name : StringSpan();
+				param->SetSemantic(allocator.CopyString(span));
 				return *this;
 			}
 
@@ -202,9 +203,10 @@ namespace HXSL
 				return *this;
 			}
 
-			FieldLayoutBuilder& Semantic(const StringSpan& semantic)
+			FieldLayoutBuilder& Semantic(const IdentifierInfo* semantic)
 			{
-				field->SetSemantic(allocator.CopyString(semantic));
+				StringSpan span = semantic ? semantic->name : StringSpan();
+				field->SetSemantic(allocator.CopyString(span));
 				return *this;
 			}
 

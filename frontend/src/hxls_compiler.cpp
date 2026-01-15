@@ -1,6 +1,7 @@
 #include "hxls_compiler.hpp"
 
 #include "ast_modules/ast_context.hpp"
+#include "ast_modules/ast_validator.hpp"
 #include "pch/localization.hpp"
 #include "preprocessing/preprocessor.hpp"
 #include "parsers/parser.hpp"
@@ -65,9 +66,17 @@ namespace HXSL
 
 		CompilationUnit* compilation = builder.Build();
 
+		ASTValidator validator = ASTValidator(logger);
+		validator.Validate(compilation);
+
 		SemanticAnalyzer::InitializeSubSystems();
 		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, compilation, references);
 		analyzer.Analyze();
+
+		if (logger->HasErrors())
+		{
+			return nullptr;
+		}
 
 		ModuleBuilder conv;
 		return conv.Convert(compilation);
@@ -84,6 +93,10 @@ namespace HXSL
 		std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
 
 		auto module = CompileFrontend(logger.get(), files, references);
+		if (!module)
+		{
+			return;
+		}
 
 		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), module.get());
 		cfAnalyzer.Analyze();

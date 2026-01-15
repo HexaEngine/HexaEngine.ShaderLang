@@ -26,6 +26,9 @@ namespace HXSL
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetNamespaces, 0, storage);
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetUsings, 1, storage);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 }
 
