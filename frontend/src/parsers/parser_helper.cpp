@@ -217,7 +217,7 @@ namespace HXSL
 		TextSpan span = current->GetSpan();
 		while (current)
 		{
-			auto& type = current->GetType();
+			auto type = current->GetType();
 			if (type != NodeType_MemberAccessExpression && type != NodeType_MemberReferenceExpression)
 			{
 				return false;

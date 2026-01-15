@@ -32,6 +32,11 @@ namespace HXSL
 		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<Namespace>(TotalSizeToAlloc(structs.size(), classes.size(), functions.size(), fields.size(), nestedNamespaces.size(), usings.size()), span, name);
 		ptr->storage.InitializeMove(ptr, structs, classes, functions, fields, nestedNamespaces, usings);
+		REGISTER_CHILDREN_PTR(ptr, GetStructs());
+		REGISTER_CHILDREN_PTR(ptr, GetClasses());
+		REGISTER_CHILDREN_PTR(ptr, GetFunctions());
+		REGISTER_CHILDREN_PTR(ptr, GetFields());
+		REGISTER_CHILDREN_PTR(ptr, GetUsings());
 		return ptr;
 	}
 

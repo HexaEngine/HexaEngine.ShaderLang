@@ -28,6 +28,14 @@ namespace HXSL
 
 		TextSpan merge(TextSpan other) const
 		{
+			if (other.length == 0)
+			{
+				return *this;
+			}
+			else if (length == 0)
+			{
+				return other;
+			}
 			if (source != other.source)
 			{
 				HXSL_ASSERT(false, "Cannot merge TextSpan based of a different string pointer.");

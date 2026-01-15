@@ -7,6 +7,7 @@
 
 namespace HXSL
 {
+	/*
 	ASTNode::child_range ASTNode::GetChildrenIt()
 	{
 		switch (type)
@@ -67,7 +68,7 @@ namespace HXSL
 		}
 
 		return { nullptr, nullptr };
-	}
+	}*/
 
 	std::string ASTNode::DebugName() const
 	{

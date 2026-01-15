@@ -102,7 +102,7 @@ namespace HXSL
 	struct TakeHandle
 	{
 	private:
-		T* ptr;
+		T* ptr = nullptr;
 
 	public:
 		explicit TakeHandle(T* resource)

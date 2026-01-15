@@ -575,7 +575,7 @@ namespace HXSL
 
 	TraversalBehavior SymbolResolver::VisitExternal(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
 	{
-		auto& type = node->GetType();
+		auto type = node->GetType();
 
 		switch (type)
 		{
@@ -655,7 +655,7 @@ namespace HXSL
 
 	TraversalBehavior SymbolResolver::Visit(ASTNode*& node, size_t depth, bool deferred, ResolverDeferralContext& context)
 	{
-		auto& type = node->GetType();
+		auto type = node->GetType();
 
 		switch (type)
 		{

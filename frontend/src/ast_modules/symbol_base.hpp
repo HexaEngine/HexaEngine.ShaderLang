@@ -212,7 +212,7 @@ namespace HXSL
 
 		void SetNotFound(bool value) noexcept { notFound = value; }
 
-		const bool& IsNotFound() const noexcept { return notFound; }
+		bool IsNotFound() const noexcept { return notFound; }
 
 		void TrimCastType();
 

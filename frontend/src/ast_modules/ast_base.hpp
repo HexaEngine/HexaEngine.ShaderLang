@@ -245,6 +245,9 @@ namespace HXSL
 		}
 	}
 
+	using ASTChildCallback = void(*)(ASTNode*& node, void* userdata);
+	using ASTConstChildCallback = void(*)(ASTNode* const& node, void* userdata);
+
 	class ASTNode
 	{
 		friend class ASTNodeAdapter;
@@ -283,11 +286,11 @@ namespace HXSL
 		}
 
 		template<class T>
-		void RegisterChildren(const std::vector<ast_ptr<T>>& children)
+		void RegisterChildren(const Span<T*>& children)
 		{
-			for (auto& child : children)
+			for (auto child : children)
 			{
-				RegisterChild(child.get());
+				RegisterChild(child);
 			}
 		}
 
@@ -320,8 +323,6 @@ namespace HXSL
 		{
 		}
 
-		child_range GetChildrenIt();
-
 		bool IsExtern() const
 		{
 			return isExtern;
@@ -351,7 +352,7 @@ namespace HXSL
 		}
 
 		const std::vector<ASTNode*>& GetChildren() const noexcept { return children; }
-		const NodeType& GetType() const noexcept { return type; }
+		NodeType GetType() const noexcept { return type; }
 		const TextSpan& GetSpan() const noexcept { return span; }
 		void SetSpan(TextSpan newSpan) noexcept { span = newSpan; }
 		bool IsAnyTypeOf(const std::unordered_set<NodeType>& types) const

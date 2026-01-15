@@ -19,6 +19,9 @@
 #define REGISTER_CHILDREN(name) \
     RegisterChildren(this->name);
 
+#define REGISTER_CHILDREN_PTR(ptr, name) \
+    ptr->RegisterChildren(ptr->name);
+
 #define REGISTER_EXPR(name) \
     RegisterExpression(this, this->name);
 
@@ -27,5 +30,11 @@
 
 #define UNIQUE_PTR_CAST_AST_DYN(ptr, type) \
     std::move(ast_ptr<type>(dynamic_cast<type*>(std::move(ptr).release())))
+
+#define AST_ITERATE_CHILDREN(getter) for (auto c : getter()) cb(c, userdata);
+#define AST_ITERATE_CHILD(getter) cb(getter, userdata);
+
+#define AST_ITERATE_CHILDREN_MUT(getter) for (auto& c : getter()) cb(*reinterpret_cast<ASTNode**>(&c), userdata);
+#define AST_ITERATE_CHILD_MUT(getter) cb(*reinterpret_cast<ASTNode**>(&getter), userdata);
 
 #endif

@@ -435,7 +435,7 @@ namespace HXSL
 			stream.Advance();
 		}
 
-		Expression* expression;
+		Expression* expression = nullptr;
 		if (stream.Current().isDelimiterOf('{'))
 		{
 			InitializationExpression* initExpression;

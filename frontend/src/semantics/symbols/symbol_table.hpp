@@ -288,7 +288,7 @@ namespace HXSL
 				return false;
 			}
 
-			auto& str = stringPool.add(newName);
+			auto str = stringPool.add(newName);
 
 			parent->GetChildren().erase(oldName);
 			node->name = str;

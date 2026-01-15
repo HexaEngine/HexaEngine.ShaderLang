@@ -33,6 +33,10 @@ namespace HXSL
 	{
 		HXSL_ASSERT(metadata.get(), "Metadata cannot be nullptr");
 		SymbolTableNode* current = start;
+		if (current == nullptr)
+		{
+			current = root;
+		}
 		while (true)
 		{
 			size_t idx = span.indexOf('.');

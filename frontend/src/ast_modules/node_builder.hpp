@@ -108,8 +108,7 @@ namespace HXSL
 			auto* context = ASTContext::GetCurrentContext();
 			auto& idTable = context->GetIdentifierTable();
 			auto paramRef = SymbolRef::Create({}, idTable.Get(paramType), SymbolRefType_Type, false);
-			ResolveInternal(paramRef);
-
+	
 			auto param = Parameter::Create({}, idTable.Get(paramName), flags, interpolMod, paramRef, nullptr);
 			parameters.push_back(param);
 			return *this;
@@ -283,13 +282,13 @@ namespace HXSL
 
 	class PrimitiveBuilder : ASTNodeBuilder
 	{
-		IdentifierInfo* name_m;
-		PrimitiveKind kind_m;
-		PrimitiveClass _class_m;
-		uint32_t rows_m;
-		uint32_t columns_m;
+		IdentifierInfo* name_m = nullptr;
+		PrimitiveKind kind_m = PrimitiveKind_Void;
+		PrimitiveClass _class_m = PrimitiveClass_Scalar;
+		uint32_t rows_m = 0;
+		uint32_t columns_m = 0;
 
-		Primitive* prim;
+		Primitive* prim = nullptr;
 		std::vector<OperatorBuilder> operators;
 	public:
 		PrimitiveBuilder(Assembly* assembly) : ASTNodeBuilder(assembly)

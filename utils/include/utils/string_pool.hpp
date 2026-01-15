@@ -79,7 +79,7 @@ namespace HXSL
 		std::unordered_set<StringSpan, StringSpanHash, StringSpanEqual> stringToIndex;
 
 	public:
-		const StringSpan& add(const StringSpan& str)
+		StringSpan add(const StringSpan& str)
 		{
 			StringSpan view = str;
 

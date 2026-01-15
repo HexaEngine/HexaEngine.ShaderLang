@@ -21,8 +21,10 @@ namespace HXSL
 		const ArrayRef<AttributeDecl*>& attributes)
 	{
 		auto* context = ASTContext::GetCurrentContext();
-		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, ID, name, accessModifiers, functionFlags, returnSymbol, body);
+		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, ID, name, accessModifiers, functionFlags, returnSymbol, semantic, body);
 		ptr->storage.InitializeMove(ptr, parameters, attributes);
+		REGISTER_CHILDREN_PTR(ptr, GetParameters());
+		REGISTER_CHILDREN_PTR(ptr, GetAttributes());
 		return ptr;
 	}
 
@@ -80,12 +82,27 @@ namespace HXSL
 		return body;
 	}
 
+	void FunctionOverload::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetAttributes);
+		AST_ITERATE_CHILDREN_MUT(GetParameters);
+		AST_ITERATE_CHILD_MUT(body);
+	}
+
+	void FunctionOverload::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetAttributes);
+		AST_ITERATE_CHILDREN(GetParameters);
+		AST_ITERATE_CHILD(body);
+	}
+
 	ConstructorOverload* ConstructorOverload::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto returnType = SymbolRef::Create(TextSpan(), context->GetIdentifierTable().Get("void"), SymbolRefType_Type, true);
 		auto ptr = context->Alloc<ConstructorOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, name, accessModifiers, functionFlags, targetTypeSymbol, returnType, body);
 		ptr->storage.InitializeMove(ptr, parameters, attributes);
+
 		return ptr;
 	}
 
@@ -247,6 +264,28 @@ namespace HXSL
 		auto ptr = context->Alloc<Class>(TotalSizeToAlloc(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators), span, name, access, thisDef);
 		ptr->storage.SetCounts(numFields, numStructs, numClasses, numConstructors, numFunctions, numOperators);
 		return ptr;
+	}
+
+	void DataTypeBase::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_MUT(thisDef);
+		AST_ITERATE_CHILDREN_MUT(GetFields);
+		AST_ITERATE_CHILDREN_MUT(GetStructs);
+		AST_ITERATE_CHILDREN_MUT(GetClasses);
+		AST_ITERATE_CHILDREN_MUT(GetConstructors);
+		AST_ITERATE_CHILDREN_MUT(GetFunctions);
+		AST_ITERATE_CHILDREN_MUT(GetOperators);
+	}
+
+	void DataTypeBase::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(thisDef);
+		AST_ITERATE_CHILDREN(GetFields);
+		AST_ITERATE_CHILDREN(GetStructs);
+		AST_ITERATE_CHILDREN(GetClasses);
+		AST_ITERATE_CHILDREN(GetConstructors);
+		AST_ITERATE_CHILDREN(GetFunctions);
+		AST_ITERATE_CHILDREN(GetOperators);
 	}
 
 	/*

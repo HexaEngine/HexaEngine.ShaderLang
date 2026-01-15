@@ -14,14 +14,16 @@ namespace HXSL
 	static StringSpan textSpanGetSpan(const TextSpan& span)
 	{
 		if (span.source == INVALID_SOURCE_ID) return {};
-		auto source = reinterpret_cast<SourceFile*>(span.source);
+		auto& manger = ASTContext::GetCurrentContext()->GetSourceManager();
+		auto source = manger.GetSource(span.source);	
 		return source->GetSpan(span.start, span.length);
 	}
 
 	static std::string textSpanGetStr(const TextSpan& span)
 	{
 		if (span.source == INVALID_SOURCE_ID) return {};
-		auto source = reinterpret_cast<SourceFile*>(span.source);
+		auto& manger = ASTContext::GetCurrentContext()->GetSourceManager();
+		auto source = manger.GetSource(span.source);
 		return source->GetString(span.start, span.length);
 	}
 

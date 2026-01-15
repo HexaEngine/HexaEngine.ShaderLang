@@ -7,7 +7,7 @@ namespace HXSL
 {
 	TraversalBehavior TypeChecker::Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context)
 	{
-		auto& type = node->GetType();
+		auto type = node->GetType();
 		if (type == NodeType_Namespace)
 		{
 			auto& current = resolver.CurrentScope();
@@ -476,7 +476,7 @@ namespace HXSL
 			Expression* current = stack.top();
 			stack.pop();
 
-			auto& type = current->GetType();
+			auto type = current->GetType();
 			auto handler = ExpressionCheckerRegistry::GetHandler(type);
 			HXSL_ASSERT(handler, "ExpressionChecker handler was null, forgot to implement more?");
 			if (handler)
@@ -488,7 +488,7 @@ namespace HXSL
 
 	void TypeChecker::TypeCheckStatement(ASTNode*& node)
 	{
-		auto& type = node->GetType();
+		auto type = node->GetType();
 
 		if (auto getter = dynamic_cast<IHasExpressions*>(node))
 		{

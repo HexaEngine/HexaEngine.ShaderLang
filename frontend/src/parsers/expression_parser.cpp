@@ -36,7 +36,7 @@ namespace HXSL
 	{
 		auto start = stream.Current();
 		Expression* expression;
-		IF_ERR_RET_FALSE(ParserHelper::TryParseMemberAccessPath(parser, stream, expressionOut));
+		IF_ERR_RET_FALSE(ParserHelper::TryParseMemberAccessPath(parser, stream, expression));
 		expressionOut = expression;
 		return true;
 	}

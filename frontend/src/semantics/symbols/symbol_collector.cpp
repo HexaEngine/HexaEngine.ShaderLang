@@ -54,7 +54,7 @@ namespace HXSL
 
 	TraversalBehavior SymbolCollector::Visit(ASTNode*& node, size_t depth, bool deferred, EmptyDeferralContext& context)
 	{
-		auto& type = node->GetType();
+		auto type = node->GetType();
 		switch (type)
 		{
 		case NodeType_Namespace:
@@ -153,7 +153,7 @@ namespace HXSL
 		auto table = targetAssembly->GetMutableSymbolTable();
 		for (auto node : lateNodes)
 		{
-			auto& type = node->GetType();
+			auto type = node->GetType();
 			switch (type)
 			{
 			case NodeType_FunctionOverload:

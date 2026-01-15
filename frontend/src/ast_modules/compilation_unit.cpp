@@ -8,6 +8,8 @@ namespace HXSL
 		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(namespaces.size(), usings.size()), isExtern);
 		ptr->storage.InitializeMove(ptr, namespaces, usings);
+		REGISTER_CHILDREN_PTR(ptr, GetNamespaces());
+		REGISTER_CHILDREN_PTR(ptr, GetUsings());
 		return ptr;
 	}
 
