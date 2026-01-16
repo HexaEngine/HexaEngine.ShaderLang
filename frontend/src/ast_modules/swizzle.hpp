@@ -10,21 +10,23 @@ namespace HXSL
 {
 	class SwizzleDefinition : public SymbolDef
 	{
+		friend class ASTContext;
 	private:
-		TextSpan expression;
 		Primitive* basePrim;
 		uint8_t mask;
-		ast_ptr<SymbolRef> symbol;
-	public:
-		static constexpr NodeType ID = NodeType_SwizzleDefinition;
-		SwizzleDefinition(TextSpan expression, uint8_t mask, Primitive* basePrim, ast_ptr<SymbolRef> symbol)
-			: SymbolDef(expression, ID, expression),
-			expression(expression),
+		SymbolRef* symbol;
+
+		SwizzleDefinition(const TextSpan& span, IdentifierInfo* name, uint8_t mask, Primitive* basePrim, SymbolRef* symbol)
+			: SymbolDef(span, ID, name),
 			basePrim(basePrim),
 			mask(mask),
-			symbol(std::move(symbol))
+			symbol(symbol)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_SwizzleDefinition;
+		static SwizzleDefinition* Create(const TextSpan& span, IdentifierInfo* name, uint8_t mask, Primitive* basePrim, SymbolRef* symbol);
 
 		uint8_t GetMask() const noexcept { return mask; }
 
@@ -38,30 +40,13 @@ namespace HXSL
 			return dyn_cast<Primitive>(symbol->GetDeclaration());
 		}
 
-		const ast_ptr<SymbolRef>& GetSymbolRef()
+		SymbolRef* GetSymbolRef()
 		{
 			return symbol;
 		}
 
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Field;
-		}
-
-		void Write(Stream& stream) const override
-		{
-			HXSL_ASSERT(false, "Cannot write swizzle types")
-		}
-
-		void Read(Stream& stream, StringPool& container) override
-		{
-			HXSL_ASSERT(false, "Cannot read swizzle types")
-		}
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override
-		{
-			HXSL_ASSERT(false, "Cannot build swizzle types")
-		}
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 }
 

@@ -2,21 +2,22 @@
 #define TEXT_SPAN_HPP
 
 #include "core/config.h"
+#include "io/source_location.hpp"
 #include "pch/std.hpp"
 
 namespace HXSL
 {
 	struct TextSpan
 	{
-		void* source;
+		SourceFileID source;
 		size_t start;
 		size_t length;
 		uint32_t line;
 		uint32_t column;
 
-		TextSpan() : source(nullptr), start(0), length(0), line(1), column(1) {}
+		TextSpan() : source(INVALID_SOURCE_ID), start(0), length(0), line(1), column(1) {}
 
-		TextSpan(void* source, size_t start, size_t length, uint32_t line, uint32_t column) : source(source), start(start), length(length), line(line), column(column)
+		TextSpan(SourceFileID source, size_t start, size_t length, uint32_t line, uint32_t column) : source(source), start(start), length(length), line(line), column(column)
 		{
 		}
 
@@ -27,6 +28,14 @@ namespace HXSL
 
 		TextSpan merge(TextSpan other) const
 		{
+			if (other.length == 0)
+			{
+				return *this;
+			}
+			else if (length == 0)
+			{
+				return other;
+			}
 			if (source != other.source)
 			{
 				HXSL_ASSERT(false, "Cannot merge TextSpan based of a different string pointer.");

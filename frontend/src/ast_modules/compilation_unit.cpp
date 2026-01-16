@@ -1,26 +1,35 @@
 #include "compilation_unit.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
-	Namespace* CompilationUnit::AddNamespace(const NamespaceDeclaration& declaration)
+	CompilationUnit* CompilationUnit::Create(bool isExtern, const ArrayRef<Namespace*>& namespaces, const ArrayRef<UsingDecl*>& usings)
 	{
-		std::shared_lock<std::shared_mutex> lock(_mutex);
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(namespaces.size(), usings.size()), isExtern);
+		ptr->storage.InitializeMove(ptr, namespaces, usings);
+		REGISTER_CHILDREN_PTR(ptr, GetNamespaces());
+		REGISTER_CHILDREN_PTR(ptr, GetUsings());
+		return ptr;
+	}
 
-		for (auto& ns : namespaces)
-		{
-			if (ns->GetName() == declaration.Name)
-			{
-				return ns.get();
-			}
-		}
+	CompilationUnit* CompilationUnit::Create(bool isExtern, uint32_t numNamespaces, uint32_t numUsings)
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(numNamespaces, numUsings), isExtern);
+		ptr->storage.SetCounts(numNamespaces, numUsings);
+		return ptr;
+	}
 
-		lock.unlock();
-		std::unique_lock<std::shared_mutex> uniqueLock(_mutex);
+	void CompilationUnit::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetUsings);
+		AST_ITERATE_CHILDREN_MUT(GetNamespaces);
+	}
 
-		auto ns = make_ast_ptr<Namespace>(declaration);
-		ns->SetParent(this);
-		auto pNs = ns.get();
-		namespaces.push_back(std::move(ns));
-		return pNs;
+	void CompilationUnit::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetUsings);
+		AST_ITERATE_CHILDREN(GetNamespaces);
 	}
 }

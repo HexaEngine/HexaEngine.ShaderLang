@@ -3,71 +3,32 @@
 
 #include "namespace.hpp"
 
-#include <mutex>
-#include <shared_mutex>
-
 namespace HXSL
 {
-	class CompilationUnit : public ASTNode, TrailingObjects<CompilationUnit, ast_ptr<Namespace>>
+	template<typename T>
+	class ASTBuilder;
+
+	class CompilationUnit : public ASTNode, public TrailingObjects<CompilationUnit, Namespace*, UsingDecl*>
 	{
+		friend class ASTContext;
+		friend class ASTBuilder<CompilationUnit>;
 	private:
-		std::vector<ast_ptr<Namespace>> namespaces;
-		std::vector<UsingDeclaration> usings;
+		TrailingObjStorage<CompilationUnit, uint32_t> storage;
 
-		std::vector<ast_ptr<Primitive>> primitives;
-		std::vector<ast_ptr<Class>> primitiveClasses;
-
-		std::vector<ast_ptr<Array>> arrays;
-
-		std::shared_mutex _mutex;
-
-		friend class PrimitiveManager;
-		friend class PrimitiveBuilder;
-		friend class SymbolResolver;
-
-		void AddArray(ast_ptr<Array> array)
-		{
-			arrays.push_back(std::move(array));
-		}
-
-	public:
-		static constexpr NodeType ID = NodeType_CompilationUnit;
 		CompilationUnit(bool isExtern = false) : ASTNode({ }, ID, isExtern)
 		{
 		}
 
-		template<typename Allocator>
-		static [[nodiscard]] CompilationUnit* Create(Allocator& allocator, size_t numNamespaces, bool isExtern_ = false)
-		{
-			return allocator.template AllocAddit<CompilationUnit>(AdditionalSizeToAlloc(numNamespaces), isExtern_);
-		}
+	public:
+		static constexpr NodeType ID = NodeType_CompilationUnit;
+		static CompilationUnit* Create(bool isExtern, const ArrayRef<Namespace*>& namespaces, const ArrayRef<UsingDecl*>& usings);
+		static CompilationUnit* Create(bool isExtern, uint32_t numNamespaces, uint32_t numUsings);
 
-		Namespace* AddNamespace(const NamespaceDeclaration& declaration);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetNamespaces, 0, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetUsings, 1, storage);
 
-		void AddNamespace(ast_ptr<Namespace> ns)
-		{
-			HXSL_ASSERT(isExtern, "Cannot add namespace HXSL manually on non extern compilations.");
-			ns->SetParent(this);
-			namespaces.push_back(std::move(ns));
-		}
-
-		const std::vector<ast_ptr<Namespace>>& GetNamespaces() const noexcept
-		{
-			return namespaces;
-		}
-
-		void AddUsing(UsingDeclaration _using)
-		{
-			usings.push_back(_using);
-		}
-
-		void Clear()
-		{
-			usings.clear();
-			namespaces.clear();
-		}
-
-		std::vector<UsingDeclaration>& GetUsings() noexcept { return usings; }
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 }
 

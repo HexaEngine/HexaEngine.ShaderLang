@@ -11,52 +11,218 @@
 
 namespace HXSL
 {
-	class SymbolMetadata
+	class SymbolMetadata : public SharedPtrBase
 	{
 	public:
-		SymbolType symbolType;
-		SymbolScopeType scope;
-		AccessModifier accessModifier;
-		size_t size;
+		
 		SymbolDef* declaration;
+		
 
-		SymbolMetadata() : symbolType(SymbolType_Unknown), scope(SymbolScopeType_Global), accessModifier(AccessModifier_Private), size(0), declaration(nullptr)
-		{
-		}
-
-		SymbolMetadata(const SymbolType& symbolType, const SymbolScopeType& scope, const AccessModifier& modifier, const size_t& size) : symbolType(symbolType), scope(scope), accessModifier(modifier), size(size), declaration(nullptr)
-		{
-		}
-
-		SymbolMetadata(const SymbolType& symbolType, const SymbolScopeType& scope, const AccessModifier& modifier, const size_t& size, SymbolDef* declaration) : symbolType(symbolType), scope(scope), accessModifier(modifier), size(size), declaration(declaration)
+		SymbolMetadata(SymbolDef* declaration) : declaration(declaration)
 		{
 		}
 
 		void Write(Stream& stream) const;
 
-		void Read(Stream& stream, ast_ptr<SymbolDef>& node, StringPool& container);
+		void Read(Stream& stream, SymbolDef*& node, StringPool& container);
+
+
+		static SymbolMetadata* Create(SymbolDef* declaration)
+		{
+			return new SymbolMetadata(declaration);
+		}
+
+		SymbolType GetSymbolType() const;
+
+		AccessModifier GetAccessModifiers() const;
 	};
 
-	struct SymbolTableNode
+	class SymbolTable;
+	class SymbolTableNode
 	{
-		std::unique_ptr<std::string> Name;
-		dense_map<StringSpan, size_t> Children;
-		std::shared_ptr<SymbolMetadata> Metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
-		std::shared_ptr<size_t> handle; // Pointer to own index, this is crucial to support stable indices even if the node gets moved see SymbolHandle for more info.
-		size_t Depth;
-		size_t ParentIndex;
+		friend class SymbolTable;
+		StringSpan name;
+		dense_map<StringSpan, SymbolTableNode*> children;
+		SharedPtr<SymbolMetadata> metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
+		SymbolTableNode* parent;
 
-		SymbolTableNode() : Depth(0), Metadata({}), ParentIndex(0)
+	public:
+		SymbolTableNode()
 		{
 		}
 
-		SymbolTableNode(std::unique_ptr<std::string> name, std::shared_ptr<SymbolMetadata> metadata, std::shared_ptr<size_t> handle, size_t depth, size_t parentIndex) : Name(std::move(name)), Metadata(std::move(metadata)), handle(std::move(handle)), Depth(depth), ParentIndex(parentIndex)
+		SymbolTableNode(const StringSpan& name, SharedPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent) 
+			: name(name), metadata(std::move(metadata)), parent(parent)
 		{
 		}
 
-		const std::string& GetName() const
+		auto& GetChildren()
 		{
-			return *Name.get();
+			return children;
+		}
+		 
+		const auto& GetChildren() const
+		{
+			return children;
+		}
+
+		auto& GetMetadata()
+		{
+			return metadata;
+		}
+
+		auto* GetParent()
+		{
+			return parent;
+		}
+
+		const StringSpan& GetName() const
+		{
+			return name;
+		}
+
+		SymbolTableNode* GetChild(const StringSpan& path) const
+		{
+			auto it = children.find(path);
+			if (it != children.end())
+			{
+				return it->second;
+			}
+			return nullptr;
+		}
+	};
+
+	class SymbolTableNodeAllocator
+	{
+		static constexpr size_t PageSize = 4096;
+
+		struct FreeNode
+		{
+			FreeNode* next;
+
+			static FreeNode* CreateFrom(void* ptr, FreeNode* next = nullptr)
+			{
+				return new(ptr) FreeNode(next);
+			}
+		};
+
+		struct Slab;
+		struct SlabFooter
+		{
+			SymbolTableNodeAllocator* allocator;
+			Slab* next;
+			size_t used;
+
+			SlabFooter(SymbolTableNodeAllocator* allocator, Slab* next) : allocator(allocator), next(next), used(0)
+			{
+			}
+		};
+
+		static constexpr size_t NodesPerSlab = (PageSize - sizeof(SlabFooter)) / sizeof(SymbolTableNode);
+		static constexpr size_t BytesPerSlab = sizeof(SymbolTableNode) * NodesPerSlab;
+
+		struct alignas(PageSize) Slab 
+		{
+			uint8_t raw[BytesPerSlab];
+			SlabFooter footer;
+
+			Slab(SymbolTableNodeAllocator* allocator, Slab* next) : footer(allocator, next)
+			{
+			}
+
+			SymbolTableNode* Get(size_t index) 
+			{
+				return reinterpret_cast<SymbolTableNode*>(raw) + index;
+			}
+
+			SymbolTableNode* Alloc()
+			{
+				if (footer.used >= NodesPerSlab)
+				{
+					return nullptr;
+				}
+
+				auto idx = footer.used++;
+				return Get(idx);
+			}
+
+			static Slab* Create(SymbolTableNodeAllocator* allocator, Slab* next)
+			{
+				auto* mem = aligned_alloc(alignof(Slab), sizeof(Slab));
+				auto* slab = new(mem) Slab(allocator, next);
+				return slab;
+			}
+
+			void Destroy()
+			{
+				aligned_free(this);
+			}
+		};
+
+		Slab* head = nullptr;
+		Slab* tail = nullptr;
+		FreeNode* freeList = nullptr;
+		SymbolTable* parent;
+
+		SymbolTableNode* AllocInternal()
+		{
+			if (freeList)
+			{
+				auto p = freeList;
+				freeList = p->next;
+				return reinterpret_cast<SymbolTableNode*>(p);
+			}
+
+			if (auto ptr = tail->Alloc())
+			{
+				return ptr;
+			}
+
+			tail = Slab::Create(this, tail);
+			return tail->Alloc();
+		}
+
+	public:
+		SymbolTableNodeAllocator(SymbolTable* parent) : freeList(nullptr), parent(parent)
+		{
+			head = tail = Slab::Create(this, nullptr);
+		}
+
+		SymbolTable* GetParent()
+		{
+			return parent;
+		}
+
+		static SymbolTable* GetParentFromNode(SymbolTableNode* node)
+		{
+			auto* allocator = reinterpret_cast<SlabFooter*>(
+				reinterpret_cast<uint8_t*>(node) + sizeof(SymbolTableNode) * NodesPerSlab
+			)->allocator;
+			return allocator->GetParent();
+		}
+
+		~SymbolTableNodeAllocator()
+		{
+			auto* cur = tail;
+			while (cur)
+			{
+				auto* next = cur->footer.next;
+				cur->Destroy();
+				cur = next;
+			}
+		}
+
+		template<typename... TArgs>
+		SymbolTableNode* Alloc(TArgs&& ... args)
+		{
+			auto* ptr = AllocInternal();
+			return new(ptr) SymbolTableNode(std::forward<TArgs>(args)...);
+		}
+
+		void Free(SymbolTableNode* node)
+		{
+			node->~SymbolTableNode();
+			freeList = FreeNode::CreateFrom(node, freeList);
 		}
 	};
 
@@ -64,226 +230,108 @@ namespace HXSL
 	class SymbolTable
 	{
 	private:
-		static constexpr size_t rootIndex = 0;
-		std::atomic<size_t> counter{ 0 };
-		size_t capacity = 1024;
-		std::vector<SymbolTableNode> nodes;
 		std::shared_mutex nodeMutex;
-		StringPool stringPool;
-		std::unique_ptr<CompilationUnit> compilation = std::make_unique<CompilationUnit>(true);
+		SymbolTableNodeAllocator allocator;
+		SymbolTableNode* root;
+		StringPool2 stringPool;
 
-		void RemoveRange(const size_t& start, const size_t& end);
-
-		size_t AddNode(StringSpan name, std::shared_ptr<SymbolMetadata> metadata, size_t parentIndex)
+		SymbolTableNode* AddNode(const StringSpan& name, SharedPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent)
 		{
-			size_t index = counter.fetch_add(1, std::memory_order_relaxed);
-
-			if (index >= capacity)
-			{
-				std::unique_lock<std::shared_mutex> writeLock(nodeMutex);
-				if (index >= capacity)
-				{
-					capacity *= 2;
-					nodes.resize(capacity);
-				}
-			}
-
-			std::shared_lock<std::shared_mutex> readLock(nodeMutex);
-
-			std::unique_ptr<std::string> str = std::make_unique<std::string>(name.str());
-			nodes[index] = SymbolTableNode(std::move(str), std::move(metadata), std::make_shared<size_t>(index), nodes[parentIndex].Depth + 1, parentIndex);
-
-			nodes[parentIndex].Children[nodes[index].GetName()] = index;
-
-			return index;
+			std::unique_lock<std::shared_mutex> writeLock(nodeMutex);
+			auto* node = allocator.Alloc(stringPool.add(name), std::move(metadata), parent);
+			parent->GetChildren()[node->GetName()] = node;
+			return node;
 		}
 
-		size_t FindNodeIndexPartInternal(StringSpan path, size_t startingIndex = 0) const
+		void SwapRemoveNode(SymbolTableNode* node)
 		{
-			auto& node = nodes[startingIndex];
-			auto it = node.Children.find(path);
-			if (it != node.Children.end())
-			{
-				return it->second;
-			}
-			return -1;
+			auto* parent = node->GetParent();
+			parent->GetChildren().erase(node->GetName());
+			allocator.Free(node);
 		}
 
-		void SwapRemoveNode(size_t nodeIndex)
-		{
-			if (nodes.empty())
-				return;
-
-			size_t lastIndex = nodes.size() - 1;
-			if (nodeIndex == lastIndex)
-			{
-				auto& removedNode = nodes[lastIndex];
-				auto& parentOfRemovedNode = nodes[removedNode.ParentIndex];
-				parentOfRemovedNode.Children.erase(removedNode.GetName());
-
-				nodes.pop_back();
-			}
-			else
-			{
-				std::swap(nodes[nodeIndex], nodes[lastIndex]);
-
-				auto& movedNode = nodes[nodeIndex];
-				auto& movedParent = nodes[movedNode.ParentIndex];
-
-				for (auto& pair : movedParent.Children)
-				{
-					if (pair.second == lastIndex)
-					{
-						pair.second = nodeIndex;
-						break;
-					}
-				}
-
-				for (auto& pair : movedNode.Children)
-				{
-					nodes[pair.second].ParentIndex = nodeIndex;
-				}
-
-				auto& removedNode = nodes[lastIndex];
-				auto& parentOfRemovedNode = nodes[removedNode.ParentIndex];
-				parentOfRemovedNode.Children.erase(removedNode.GetName());
-
-				nodes.pop_back();
-			}
-		}
+		void RemoveNode(SymbolTableNode* node);
 
 	public:
-		SymbolTable()
+		SymbolTable() : allocator(this)
 		{
-			nodes.resize(capacity);
-			std::unique_ptr<std::string> str = std::make_unique<std::string>("");
-			nodes[0] = (SymbolTableNode(std::move(str), nullptr, std::make_shared<size_t>(0), 0, 0));
-			counter.store(1);
+			root = allocator.Alloc(StringSpan(), SharedPtr<SymbolMetadata>(), nullptr);
 		}
 
-		StringPool& GetStringPool()
+		~SymbolTable()
+		{
+			RemoveNode(root);
+			root = nullptr;
+		}
+
+		StringPool2& GetStringPool()
 		{
 			return stringPool;
 		}
 
 		void Clear();
 
-		void ShrinkToFit()
-		{
-			capacity = counter.load();
-			nodes.resize(capacity);
-		}
-
-		CompilationUnit* GetCompilation() const
-		{
-			return compilation.get();
-		}
-
 		bool RenameNode(const StringSpan& newName, const SymbolHandle& handle)
 		{
-			auto index = handle.GetIndex();
-			if (index == 0 || index >= nodes.size())
+			auto* node = handle.GetNode();
+			if (node == nullptr)
 			{
 				return false;
 			}
 
-			auto& node = nodes[index];
-			StringSpan oldName = *node.Name.get();
-			auto& parent = nodes[node.ParentIndex];
+			StringSpan oldName = node->GetName();
+			auto* parent = node->GetParent();
 
-			auto it = parent.Children.find(newName);
-			if (it != parent.Children.end() && it->second != index)
+			auto* candidate = parent->GetChild(newName);
+			if (candidate != nullptr && candidate != node)
 			{
 				return false;
 			}
 
-			std::unique_ptr<std::string> str = std::make_unique<std::string>(newName.str());
+			auto str = stringPool.add(newName);
 
-			parent.Children.erase(oldName);
-			node.Name = std::move(str);
+			parent->GetChildren().erase(oldName);
+			node->name = str;
 
-			parent.Children[node.GetName()] = index;
+			parent->children[str] = node;
 
 			return true;
 		}
 
-		void RemoveNode(size_t index)
-		{
-			if (index == 0 || index >= nodes.size())
-				return;
-
-			std::stack<size_t> toVisit;
-			std::vector<size_t> toDelete;
-
-			toVisit.push(index);
-
-			while (!toVisit.empty())
-			{
-				size_t current = toVisit.top();
-				toVisit.pop();
-				toDelete.push_back(current);
-
-				for (const auto& child : nodes[current].Children)
-				{
-					toVisit.push(child.second);
-				}
-			}
-
-			std::reverse(toDelete.begin(), toDelete.end());
-
-			for (size_t nodeIndex : toDelete)
-			{
-				SwapRemoveNode(nodeIndex);
-			}
-		}
-
-		std::string GetFullyQualifiedName(size_t nodeIndex) const
+		std::string GetFullyQualifiedName(SymbolTableNode* node) const
 		{
 			std::string result;
-
-			size_t currentNodeIndex = nodeIndex;
 			while (true)
 			{
-				auto& node = nodes[currentNodeIndex];
-				result.insert(0, node.GetName());
-				currentNodeIndex = node.ParentIndex;
-				if (currentNodeIndex == 0) break;
+				result.insert(0, node->GetName());
+				node = node->GetParent();
+				if (node == nullptr || node->name.empty()) break;
 				result.insert(0, ".");
 			}
 
 			return result;
 		}
 
-		const SymbolTableNode& GetNode(size_t index) const
+		SymbolHandle MakeHandle(SymbolTableNode* node) const
 		{
-			return nodes[index];
+			return SymbolHandle(this, node);
 		}
 
-		SymbolHandle MakeHandle(size_t index) const
-		{
-			return SymbolHandle(this, nodes[index].handle);
-		}
+		SymbolHandle Insert(StringSpan span, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* start = nullptr);
 
-		SymbolHandle Insert(StringSpan span, std::shared_ptr<SymbolMetadata>& metadata, size_t start = 0);
-
-		SymbolHandle FindNodeIndexPart(StringSpan path, size_t startingIndex = 0) const
+		SymbolHandle FindNodeIndexPart(StringSpan path, SymbolTableNode* startingNode = nullptr) const
 		{
-			auto index = FindNodeIndexPartInternal(path, startingIndex);
-			if (index != SymbolHandle::Invalid)
+			if (startingNode == nullptr)
 			{
-				return MakeHandle(index);
+				startingNode = root;
 			}
-			return {};
+			auto child = startingNode->GetChild(path);
+			return MakeHandle(child);
 		}
 
-		SymbolHandle FindNodeIndexFullPath(StringSpan span, size_t startingIndex = 0) const;
+		SymbolHandle FindNodeIndexFullPath(StringSpan span, SymbolTableNode* startingNode = nullptr) const;
 
 		void Strip();
-
-		/// <summary>
-		/// Sorts the tree in a DFS fasion, meant for improving cache locality, if you inserted nodes in a random order.
-		/// </summary>
-		void Sort();
 
 		void Write(Stream& stream) const;
 

@@ -5,7 +5,14 @@
 
 namespace HXSL
 {
-	static constexpr size_t alignTo(size_t size, size_t alignment)
+	template<typename T>
+	static constexpr T alignTo(T size, size_t alignment)
+	{
+		return (size + alignment - 1) & ~(alignment - 1);
+	}
+
+	template<typename T>
+	static constexpr T AlignUp(T size, size_t alignment)
 	{
 		return (size + alignment - 1) & ~(alignment - 1);
 	}
@@ -126,6 +133,137 @@ namespace HXSL
 
 	template<std::size_t Alignment, typename T>
 	using aligned_allocator_t = aligned_allocator<T>;
+
+
+	inline static void* aligned_alloc(size_t alignment, size_t size)
+	{
+#if defined(_MSC_VER)
+		return _aligned_malloc(size, alignment);
+#else
+		return std::aligned_alloc(alignment, size);
+#endif
+	}
+
+	inline static void aligned_free(void* ptr)
+	{
+#if defined(_MSC_VER)
+		_aligned_free(ptr);
+#else
+		std::free(ptr);
+#endif
+	}
+
+	class SharedPtrBase
+	{
+		std::atomic<size_t> refCount{ 1 };
+
+	public:
+		size_t AddRef()
+		{
+			return refCount.fetch_add(1, std::memory_order_acq_rel) + 1;
+		}
+
+		void Release()
+		{
+			if (refCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+			{
+				delete this;
+			}
+		}
+	};
+
+	template <typename T>
+	struct SharedPtr
+	{
+		T* ptr;
+
+		SharedPtr() : ptr(nullptr)
+		{
+		}
+
+		SharedPtr(T* p, bool addRef = true) : ptr(p)
+		{
+			if (ptr && addRef)
+			{
+				ptr->AddRef();
+			}
+		}
+
+		SharedPtr(const SharedPtr<T>& other) : ptr(other.ptr)
+		{
+			if (ptr)
+			{
+				ptr->AddRef();
+			}
+		}
+
+		SharedPtr<T>& operator=(const SharedPtr<T>& other)
+		{
+			if (ptr != other.ptr)
+			{
+				if (ptr)
+				{
+					ptr->Release();
+				}
+				ptr = other.ptr;
+				if (ptr)
+				{
+					ptr->AddRef();
+				}
+			}
+			return *this;
+		}
+
+		~SharedPtr()
+		{
+			if (ptr)
+			{
+				ptr->Release();
+			}
+		}
+
+		T* operator->() const
+		{
+			return ptr;
+		}
+
+		T& operator*() const
+		{
+			return *ptr;
+		}
+
+		operator bool() const
+		{
+			return ptr != nullptr;
+		}
+
+		void reset()
+		{
+			if (ptr)
+			{
+				ptr->Release();
+				ptr = nullptr;
+			}
+		}
+
+		T* get() const
+		{
+			return ptr;
+		}
+
+		T* detach()
+		{
+			T* temp = ptr;
+			ptr = nullptr;
+			return temp;
+		}
+
+		template<typename ... TArgs>
+		static SharedPtr<T> Create(TArgs&& ... args)
+		{
+			return SharedPtr<T>(new T(std::forward<TArgs>(args)...), false);
+		}
+	};
 }
 
 #endif

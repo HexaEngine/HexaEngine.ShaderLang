@@ -71,5 +71,38 @@ namespace HXSL
 		{
 		}
 	};
+
+	class StringPool2
+	{
+	private:
+		BumpAllocator allocator;
+		std::unordered_set<StringSpan, StringSpanHash, StringSpanEqual> stringToIndex;
+
+	public:
+		StringSpan add(const StringSpan& str)
+		{
+			StringSpan view = str;
+
+			auto it = stringToIndex.find(view);
+			if (it != stringToIndex.end())
+			{
+				return *it;
+			}
+
+			auto span = allocator.CopyString(str);
+			stringToIndex.insert(span);
+			return span;
+		}
+
+		void clear()
+		{
+			stringToIndex.clear();
+			allocator.Reset();
+		}
+
+		~StringPool2()
+		{
+		}
+	};
 }
 #endif

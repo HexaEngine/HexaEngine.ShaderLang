@@ -34,7 +34,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(Parser& parser, TokenStream& stream) = 0;
+		virtual bool TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut) = 0;
 	};
 
 	class StatementParser
@@ -44,7 +44,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<ASTNode>& statementOut) = 0;
+		virtual bool TryParse(Parser& parser, TokenStream& stream, ASTNode*& statementOut) = 0;
 	};
 
 	class ExpressionParser
@@ -54,7 +54,7 @@ namespace HXSL
 		{
 		}
 	public:
-		virtual bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut) = 0;
+		virtual bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut) = 0;
 	};
 }
 

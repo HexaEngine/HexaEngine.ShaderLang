@@ -6,51 +6,35 @@
 namespace HXSL
 {
 	class SymbolTable;
-	struct SymbolTableNode;
+	class SymbolTableNode;
 	class SymbolMetadata;
 
 	struct SymbolHandle
 	{
 	private:
 		const SymbolTable* table = nullptr;
-		std::weak_ptr<size_t> handle;
+		SymbolTableNode* node = nullptr;
 
 	public:
-		SymbolHandle(const SymbolTable* table, std::shared_ptr<size_t> ptr) : table(table), handle(ptr) {}
+		SymbolHandle(const SymbolTable* table, SymbolTableNode* node) : table(table), node(node) {}
 
 		SymbolHandle() = default;
 
-		static constexpr size_t Invalid = -1;
+		bool invalid() const { return node == nullptr; }
 
-		bool invalid() const
-		{
-			return handle.expired();
-		}
+		bool valid() const { return node != nullptr; }
 
-		bool valid() const
+		constexpr operator SymbolTableNode*() const
 		{
-			return !invalid();
-		}
-
-		size_t GetIndex() const
-		{
-			if (auto locked = handle.lock())
-			{
-				return *locked;
-			}
-			return Invalid;
+			return node;
 		}
 
 		const SymbolTable* GetTable() const
 		{
-			if (handle.expired())
-			{
-				return nullptr;
-			}
 			return table;
 		}
 
-		const SymbolTableNode& GetNode() const;
+		SymbolTableNode* GetNode() const;
 
 		const SymbolMetadata* GetMetadata() const;
 

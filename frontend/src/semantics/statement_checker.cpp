@@ -45,7 +45,7 @@ namespace HXSL
 		auto func = statement->FindAncestor<FunctionOverload>(functionLikeTypes);
 
 		SymbolDef* retType = func->GetReturnType();
-		Expression* retExpression = statement->GetReturnValueExpression().get();
+		Expression* retExpression = statement->GetReturnValueExpression();
 		if (retType == nullptr || retExpression == nullptr)
 		{
 			return;
@@ -58,17 +58,17 @@ namespace HXSL
 			return;
 		}
 
-		ast_ptr<Expression> expr = std::move(statement->DetachReturnValueExpression());
+		Expression* expr = statement->DetachReturnValueExpression();
 		if (!checker.AreTypesCompatible(expr, retType, exprType))
 		{
 			analyzer.Log(RETURN_TYPE_DOES_NOT_MATCH, statement->GetSpan(), exprType->ToString(), retType->ToString());
 		}
-		statement->SetReturnValueExpression(std::move(expr));
+		statement->SetReturnValueExpression(expr);
 	}
 
 	void DeclarationStatementChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, DeclarationStatement* statement)
 	{
-		auto& exprInit = statement->GetInitializer();
+		auto exprInit = statement->GetInitializer();
 		if (!exprInit)
 		{
 			return;
@@ -82,12 +82,12 @@ namespace HXSL
 			return;
 		}
 
-		ast_ptr<Expression> expr = std::move(statement->DetachInitializer());
+		Expression* expr = statement->DetachInitializer();
 		if (!checker.AreTypesCompatible(expr, declType, initType))
 		{
 			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), initType->ToString(), declType->ToString());
 		}
-		statement->SetInitializer(std::move(expr));
+		statement->SetInitializer(expr);
 	}
 
 	void ConditionalStatementChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ConditionalStatement* statement)
@@ -99,12 +99,12 @@ namespace HXSL
 			return;
 		}
 
-		ast_ptr<Expression> expr = std::move(statement->DetachCondition());
+		Expression* expr = statement->DetachCondition();
 		if (!checker.IsBooleanType(expr, conditionType))
 		{
 			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), conditionType->ToString(), "bool");
 		}
-		statement->SetCondition(std::move(expr));
+		statement->SetCondition(expr);
 	}
 
 	void SwitchStatementChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, SwitchStatement* statement)
@@ -116,17 +116,17 @@ namespace HXSL
 			return;
 		}
 
-		ast_ptr<Expression> expr = std::move(statement->DetachExpression());
+		Expression* expr = statement->DetachExpression();
 		if (!checker.IsIndexerType(expr, exprType))
 		{
 			analyzer.Log(EXPR_MUST_BE_INTEGRAL, expr->GetSpan());
 		}
-		statement->SetExpression(std::move(expr));
+		statement->SetExpression(expr);
 	}
 
 	void CaseStatementChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CaseStatement* statement)
 	{
-		auto& expr = statement->GetExpression();
+		auto expr = statement->GetExpression();
 		auto exprType = expr->GetInferredType();
 
 		if (exprType == nullptr)

@@ -9,7 +9,6 @@ namespace HXSL
 	class ArrayManager
 	{
 	private:
-		std::vector<std::unique_ptr<Array>> definitions;
 		std::unique_ptr<Assembly> arrayAssembly = Assembly::Create("");
 	public:
 		ArrayManager()

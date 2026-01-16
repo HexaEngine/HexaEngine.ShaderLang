@@ -2,6 +2,7 @@
 #define TOKEN_H
 
 #include "lexical/text_span.hpp"
+#include "identifier_table.hpp"
 #include "numbers.hpp"
 #include "lang/language.hpp"
 
@@ -29,6 +30,7 @@ namespace HXSL
 		{
 			int Value;
 			Number Numeric;
+			IdentifierInfo* ii;
 		};
 
 		Token() : Span(TextSpan()), Type(TokenType_Unknown), Numeric(Number()) {}
@@ -38,6 +40,8 @@ namespace HXSL
 		Token(TextSpan span, TokenType type, int value) : Span(span), Type(type), Value(value) {}
 
 		Token(TextSpan span, TokenType type, Number number) : Span(span), Type(type), Numeric(number) {}
+
+		Token(TextSpan span, TokenType type, IdentifierInfo* ii) : Span(span), Type(type), ii(ii) {}
 
 		Keyword asKeyword() const noexcept
 		{
@@ -162,11 +166,6 @@ namespace HXSL
 		default: return "Invalid TokenType";
 		}
 	}
-
-	struct TokenOutput
-	{
-		virtual void AddToken(const Token& token) = 0;
-	};
 }
 
 #endif

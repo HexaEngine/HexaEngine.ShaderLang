@@ -1,5 +1,7 @@
 #include "hxls_compiler.hpp"
 
+#include "ast_modules/ast_context.hpp"
+#include "ast_modules/ast_validator.hpp"
 #include "pch/localization.hpp"
 #include "preprocessing/preprocessor.hpp"
 #include "parsers/parser.hpp"
@@ -12,15 +14,17 @@ namespace HXSL
 {
 	static StringSpan textSpanGetSpan(const TextSpan& span)
 	{
-		if (span.source == nullptr) return {};
-		auto source = reinterpret_cast<SourceFile*>(span.source);
+		if (span.source == INVALID_SOURCE_ID) return {};
+		auto& manger = ASTContext::GetCurrentContext()->GetSourceManager();
+		auto source = manger.GetSource(span.source);	
 		return source->GetSpan(span.start, span.length);
 	}
 
 	static std::string textSpanGetStr(const TextSpan& span)
 	{
-		if (span.source == nullptr) return {};
-		auto source = reinterpret_cast<SourceFile*>(span.source);
+		if (span.source == INVALID_SOURCE_ID) return {};
+		auto& manger = ASTContext::GetCurrentContext()->GetSourceManager();
+		auto source = manger.GetSource(span.source);
 		return source->GetString(span.start, span.length);
 	}
 
@@ -28,11 +32,9 @@ namespace HXSL
 	{
 		Parser::InitializeSubSystems();
 
-		GetThreadAllocator()->Reset();
-
-		ast_ptr<CompilationUnit> compilation = make_ast_ptr<CompilationUnit>();
-
-		std::vector<std::unique_ptr<SourceFile>> sources;
+		uptr<ASTContext> context = make_uptr<ASTContext>();
+		ASTContext::SetCurrentContext(context.get());
+		CompilationUnitBuilder builder = CompilationUnitBuilder(logger);
 		for (auto& file : files)
 		{
 			auto fs = FileStream::OpenRead(file.c_str());
@@ -43,8 +45,7 @@ namespace HXSL
 				continue;
 			}
 
-			sources.push_back(std::make_unique<SourceFile>(fs.release(), true));
-			auto& source = sources.back();
+			auto source = context->GetSourceManager().AddSource(fs.release(), true);
 
 			if (!source->PrepareInputStream())
 			{
@@ -53,22 +54,32 @@ namespace HXSL
 			}
 
 			Preprocessor preprocessor = Preprocessor(logger);
-			preprocessor.Process(source.get());
+			preprocessor.Process(source);
 
-			LexerContext context = LexerContext(source.get(), source->GetInputStream().get(), logger, HXSLLexerConfig::Instance());
-			TokenStream tokenStream = TokenStream(&context);
+			LexerContext lexerContext = LexerContext(context->GetIdentifierTable(), source, source->GetInputStream().get(), logger, HXSLLexerConfig::Instance());
+			TokenStream tokenStream = TokenStream(&lexerContext);
 
-			Parser parser = Parser(logger, tokenStream, compilation.get());
+			Parser parser = Parser(logger, tokenStream);
 
-			parser.Parse();
+			parser.Parse(builder);
 		}
 
+		CompilationUnit* compilation = builder.Build();
+
+		ASTValidator validator = ASTValidator(logger);
+		validator.Validate(compilation);
+
 		SemanticAnalyzer::InitializeSubSystems();
-		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, compilation.get(), references);
+		SemanticAnalyzer analyzer = SemanticAnalyzer(logger, compilation, references);
 		analyzer.Analyze();
 
+		if (logger->HasErrors())
+		{
+			return nullptr;
+		}
+
 		ModuleBuilder conv;
-		return conv.Convert(compilation.get());
+		return conv.Convert(compilation);
 	}
 
 	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
@@ -82,7 +93,10 @@ namespace HXSL
 		std::unique_ptr<ILogger> logger = std::make_unique<ILogger>();
 
 		auto module = CompileFrontend(logger.get(), files, references);
-		GetThreadAllocator()->ReleaseAll();
+		if (!module)
+		{
+			return;
+		}
 
 		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), module.get());
 		cfAnalyzer.Analyze();

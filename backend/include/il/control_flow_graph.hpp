@@ -210,7 +210,7 @@ namespace HXSL
 			}
 		};
 
-		class ControlFlowGraph : public GraphBase<BasicBlock>
+		class ControlFlowGraph : public GraphPtrBase<BasicBlock>
 		{
 			friend class LTDominatorTree;
 			ILContext* context;
@@ -234,28 +234,29 @@ namespace HXSL
 				if (!nodes.empty())
 				{
 					auto& last = nodes.back();
-					if (last.successors.empty() && last.instructions.empty())
+					if (last->successors.empty() && last->instructions.empty())
 					{
-						last.type = type;
-						return last.id;
+						last->type = type;
+						return last->id;
 					}
 				}
 
 				auto index = nodes.size();
-				nodes.emplace_back(allocator, index, context, type);
+
+				nodes.emplace_back(make_uptr<BasicBlock>(allocator, index, context, type));
 				return index;
 			}
 
 			void Link(size_t from, size_t to)
 			{
 				auto& fromNode = nodes[from];
-				if (fromNode.type == ControlFlowType_Exit)
+				if (fromNode->type == ControlFlowType_Exit)
 				{
 					return;
 				}
-				fromNode.AddSuccessor(to);
+				fromNode->AddSuccessor(to);
 				auto& toNode = nodes[to];
-				toNode.AddPredecessor(from);
+				toNode->AddPredecessor(from);
 			}
 
 			void Unlink(size_t from, size_t to);
@@ -268,23 +269,23 @@ namespace HXSL
 			{
 				for (const auto& node : nodes)
 				{
-					std::cout << "Node " << node.id << " [" << ToString(node.type) << "]\n";
+					std::cout << "Node " << node->id << " [" << ToString(node->type) << "]\n";
 
 					std::cout << "  Instructions:\n";
-					for (const auto& instr : node.instructions)
+					for (const auto& instr : node->instructions)
 					{
 						std::cout << "    " << ToString(instr, metadata) << "\n";
 					}
 
 					std::cout << "  Predecessors: ";
-					for (size_t pred : node.predecessors)
+					for (size_t pred : node->predecessors)
 					{
 						std::cout << pred << " ";
 					}
 					std::cout << "\n";
 
 					std::cout << "  Successors: ";
-					for (size_t succ : node.successors)
+					for (size_t succ : node->successors)
 					{
 						std::cout << succ << " ";
 					}
@@ -325,7 +326,7 @@ namespace HXSL
 				{
 					auto [currentIdx, closing, context] = std::move(walkStack.top());
 					walkStack.pop();
-					auto& node = cfg.GetNode(currentIdx);
+					auto& node = *cfg.GetNode(currentIdx);
 
 					if (closing)
 					{

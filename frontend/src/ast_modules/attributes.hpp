@@ -6,63 +6,55 @@
 
 namespace HXSL
 {
-	class AttributeDeclaration : public ASTNode, public IHasExpressions
+	class AttributeDecl : public ASTNode, public IHasExpressions, public TrailingObjects<AttributeDecl, Expression*>
 	{
+		friend class ASTContext;
 	private:
-		ast_ptr<SymbolRef> symbol;
-		std::vector<ast_ptr<Expression>> parameters;
+		SymbolRef* symbol;
+		TrailingObjStorage<AttributeDecl, uint32_t> storage;
+
+		AttributeDecl(const TextSpan& span, SymbolRef* symbol)
+			: ASTNode(span, ID),
+			symbol(symbol)
+		{
+		}
+
 	public:
 		static constexpr NodeType ID = NodeType_AttributeDeclaration;
-		AttributeDeclaration(TextSpan span, ast_ptr<SymbolRef> symbol, std::vector<ast_ptr<Expression>> parameters)
-			: ASTNode(span, ID),
-			symbol(std::move(symbol)),
-			parameters(std::move(parameters))
-		{
-			RegisterExpressions(this, this->parameters);
-		}
 
-		AttributeDeclaration(TextSpan span)
-			: ASTNode(span, ID)
-		{
-		}
+		static AttributeDecl* Create(const TextSpan& span, SymbolRef* symbol, const ArrayRef<Expression*>& parameters);
+		static AttributeDecl* Create(const TextSpan& span, SymbolRef* symbol, uint32_t numParameters);
 
-		ast_ptr<SymbolRef>& GetSymbolRef()
+		SymbolRef*& GetSymbolRef()
 		{
 			return symbol;
 		}
 
-		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, Symbol, symbol)
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetParameters, 0, storage);
 
-			const std::vector<ast_ptr<Expression>>& GetParameters() const noexcept
-		{
-			return parameters;
-		}
+		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
 
-		void SetParameters(std::vector<ast_ptr<Expression>> value) noexcept
-		{
-			UnregisterExpression(parameters);
-			parameters = std::move(value);
-			RegisterExpressions(this, parameters);
-		}
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class AttributeContainer
 	{
 	protected:
 		ASTNode* self;
-		std::vector<ast_ptr<AttributeDeclaration>> attributes;
+		std::vector<ast_ptr<AttributeDecl>> attributes;
 	public:
 		AttributeContainer(ASTNode* self) : self(self)
 		{
 		}
 		virtual ~AttributeContainer() {}
-		void AddAttribute(ast_ptr<AttributeDeclaration> attribute)
+		void AddAttribute(ast_ptr<AttributeDecl> attribute)
 		{
 			attribute->SetParent(self);
 			attributes.push_back(std::move(attribute));
 		}
 
-		const std::vector<ast_ptr<AttributeDeclaration>>& GetAttributes() const noexcept
+		const std::vector<ast_ptr<AttributeDecl>>& GetAttributes() const noexcept
 		{
 			return attributes;
 		}

@@ -333,15 +333,14 @@ extern ASTAllocator* GetThreadAllocator();
 template <typename T>
 struct ASTAllocatorDeleter
 {
-
 	ASTAllocatorDeleter() = default;
 
 	template <typename U, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-	ASTAllocatorDeleter(const ASTAllocatorDeleter<U>& other) noexcept 
+	ASTAllocatorDeleter(const ASTAllocatorDeleter<U>& other) noexcept
 	{
 	}
 
-	ASTAllocatorDeleter(void* basePtr) noexcept 
+	ASTAllocatorDeleter(void* basePtr) noexcept
 	{
 	}
 
@@ -353,11 +352,56 @@ struct ASTAllocatorDeleter
 template <typename T>
 using ast_ptr = std::unique_ptr<T, ASTAllocatorDeleter<T>>;
 
+template <typename T>
+using uptr = std::unique_ptr<T>;
+
+template <typename T, typename... Args>
+inline uptr<T> make_uptr(Args&& ... args)
+{
+	return std::make_unique<T>(std::forward<Args>(args)...);
+}
+
+template <typename T>
+struct ptr
+{
+	T* p;
+
+	constexpr ptr() : p(nullptr) {}
+	constexpr ptr(T* p) : p(p) {}
+	template <typename U, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+	constexpr ptr(U* p) : p(p) {}
+
+	constexpr operator T* () const { return p; }
+	constexpr T* operator->() const { return p; }
+	constexpr T& operator*() const { return *p; }
+
+	constexpr T* get() const { return p; }
+	constexpr T* release()
+	{
+		T* temp = p;
+		p = nullptr;
+		return temp;
+	}
+
+	constexpr void reset(T* newP = nullptr)
+	{
+		p = newP;
+	}
+
+	template <typename U>
+	constexpr bool operator==(const ptr<U>& other) const { return p == other.p; }
+	template <typename U>
+	constexpr bool operator!=(const ptr<U>& other) const { return p != other.p; }
+	constexpr operator bool() const { return p != nullptr; }
+
+	
+};
+
 template <typename U>
 inline void destroy(void* p) { static_cast<U*>(p)->~U(); }
 
 template <class _Ty, class... _Types, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
-_NODISCARD_SMART_PTR_ALLOC _CONSTEXPR23 ast_ptr<_Ty> make_ast_ptr(_Types&& ... args)
+_NODISCARD_SMART_PTR_ALLOC _CONSTEXPR23 ast_ptr<_Ty> make_ast_ptr_2(_Types&& ... args)
 {
 	void* rawMem = GetThreadAllocator()->Alloc(sizeof(_Ty), alignof(_Ty), &destroy<_Ty>);
 	_Ty* ptr = new(rawMem) _Ty(std::forward<_Types>(args)...);

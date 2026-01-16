@@ -17,7 +17,33 @@ namespace HXSL
 
 		void ConvertFunction(FunctionOverload* func, Backend::FunctionLayoutBuilder& builder);
 
-		void ConvertType(Type* type, Backend::StructLayoutBuilder& builder);
+		template<typename Type>
+		void ConvertType(Type* type, Backend::StructLayoutBuilder& builder)
+		{
+			builder
+				.Name(type->GetName())
+				.Access(type->GetAccessModifiers());
+
+			for (auto& field : type->GetFields())
+			{
+				builder.AddField(ConvertField(field));
+			}
+
+			for (auto& func : type->GetFunctions())
+			{
+				builder.AddFunction(ConvertFunction(func));
+			}
+
+			for (auto& op : type->GetOperators())
+			{
+				builder.AddOperator(ConvertOperator(op));
+			}
+
+			for (auto& ctor : type->GetConstructors())
+			{
+				builder.AddConstructor(ConvertConstructor(ctor));
+			}
+		}
 
 	public:
 		Backend::PointerLayout* MakePointerType(Backend::TypeLayout* elementType);

@@ -33,21 +33,21 @@ namespace HXSL
 
 	void SemanticAnalyzer::WarmupCache()
 	{
-		for (auto& us : compilation->GetUsings())
+		for (auto us : compilation->GetUsings())
 		{
-			if (!us.Warmup(references))
+			if (!us->Warmup(references))
 			{
-				Log(NAMESPACE_OR_TYPE_NOT_FOUND, us.Span, us.Target);
+				Log(NAMESPACE_OR_TYPE_NOT_FOUND, us->GetSpan(), us->GetTarget());
 			}
 		}
 
-		for (auto& ns : compilation->GetNamespaces())
+		for (auto ns : compilation->GetNamespaces())
 		{
-			for (auto& us : ns->GetUsings())
+			for (auto us : ns->GetUsings())
 			{
-				if (!us.Warmup(references))
+				if (!us->Warmup(references))
 				{
-					Log(NAMESPACE_OR_TYPE_NOT_FOUND, us.Span, us.Target);
+					Log(NAMESPACE_OR_TYPE_NOT_FOUND, us->GetSpan(), us->GetTarget());
 				}
 			}
 			ns->Warmup(references);
@@ -66,7 +66,7 @@ namespace HXSL
 
 		WarmupCache();
 
-		SymbolResolver resolver(*this, references, outputAssembly.get(), arrayManager.get(), swizzleManager.get());
+		SymbolResolver resolver(*this, references, *outputAssembly.get(), *primitiveManager.get(), *arrayManager.get(), *pointerManager.get(), *swizzleManager.get());
 		resolver.Traverse(compilation);
 
 #if HXSL_DEBUG
@@ -84,6 +84,10 @@ namespace HXSL
 
 		AnalyzerVisitor visitor(*this);
 		visitor.Traverse(compilation);
+
+#if HXSL_DEBUG
+		debug.Traverse(compilation);
+#endif
 
 		return true;
 	}

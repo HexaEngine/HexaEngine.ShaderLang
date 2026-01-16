@@ -2,15 +2,73 @@
 #include "declarations.hpp"
 #include "semantics/symbols/symbol_table.hpp"
 #include "il/assembly_collection.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
-	bool UsingDeclaration::Warmup(const AssemblyCollection& references)
+	UsingDecl* UsingDecl::Create(const TextSpan& span, IdentifierInfo* name, IdentifierInfo* alias)
 	{
-		references.FindAssembliesByNamespace(Target, AssemblyReferences);
-		return AssemblyReferences.size() > 0;
+		auto* context = ASTContext::GetCurrentContext();
+		return context->Alloc<UsingDecl>(sizeof(UsingDecl), span, name, alias);
 	}
 
+	bool UsingDecl::Warmup(const AssemblyCollection& references)
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		std::vector<AssemblySymbolRef> refs;
+		references.FindAssembliesByNamespace(target->name, refs);
+		assemblyReferences = context->AllocCopy<AssemblySymbolRef>(refs);
+		return assemblyReferences.size() > 0;
+	}
+
+	Namespace* Namespace::Create(const TextSpan& span, IdentifierInfo* name,
+		const ArrayRef<Struct*>& structs,
+		const ArrayRef<Class*>& classes,
+		const ArrayRef<FunctionOverload*>& functions,
+		const ArrayRef<Field*>& fields,
+		const ArrayRef<Namespace*>& nestedNamespaces,
+		const ArrayRef<UsingDecl*>& usings)
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<Namespace>(TotalSizeToAlloc(structs.size(), classes.size(), functions.size(), fields.size(), nestedNamespaces.size(), usings.size()), span, name);
+		ptr->storage.InitializeMove(ptr, structs, classes, functions, fields, nestedNamespaces, usings);
+		REGISTER_CHILDREN_PTR(ptr, GetStructs());
+		REGISTER_CHILDREN_PTR(ptr, GetClasses());
+		REGISTER_CHILDREN_PTR(ptr, GetFunctions());
+		REGISTER_CHILDREN_PTR(ptr, GetFields());
+		REGISTER_CHILDREN_PTR(ptr, GetUsings());
+		return ptr;
+	}
+
+	void Namespace::Warmup(const AssemblyCollection& references)
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		std::vector<AssemblySymbolRef> refs;
+		references.FindAssembliesByNamespace(GetName(), refs);
+		assemblyReferences = context->AllocCopy<AssemblySymbolRef>(refs);
+	}
+
+	void Namespace::ForEachChild(ASTChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILDREN_MUT(GetUsings);
+		AST_ITERATE_CHILDREN_MUT(GetStructs);
+		AST_ITERATE_CHILDREN_MUT(GetClasses);
+		AST_ITERATE_CHILDREN_MUT(GetFunctions);
+		AST_ITERATE_CHILDREN_MUT(GetFields);
+		AST_ITERATE_CHILDREN_MUT(GetNestedNamespaces);
+	}
+
+	void Namespace::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILDREN(GetUsings);
+		AST_ITERATE_CHILDREN(GetStructs);
+		AST_ITERATE_CHILDREN(GetClasses);
+		AST_ITERATE_CHILDREN(GetFunctions);
+		AST_ITERATE_CHILDREN(GetFields);
+		AST_ITERATE_CHILDREN(GetNestedNamespaces);
+	}
+
+	/*
 	void Namespace::Write(Stream& stream) const
 	{
 	}
@@ -43,9 +101,5 @@ namespace HXSL
 			}
 		}
 	}
-
-	void Namespace::Warmup(const AssemblyCollection& references)
-	{
-		references.FindAssembliesByNamespace(name, this->references);
-	}
+	*/
 }

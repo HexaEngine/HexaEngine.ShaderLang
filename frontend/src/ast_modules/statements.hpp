@@ -9,44 +9,33 @@
 
 namespace HXSL
 {
-	class StatementContainer
+	class StatementContainer : public ASTNode, public TrailingObjects<StatementContainer, ASTNode*>
 	{
-		ASTNode* self;
 	protected:
-		std::vector<ast_ptr<ASTNode>> statements;
+		TrailingObjStorage<StatementContainer, uint32_t> storage;
+
+		StatementContainer(const TextSpan& span, NodeType type, bool isExtern = false) : ASTNode(span, type, isExtern) {}
 
 	public:
-		StatementContainer(ASTNode* self) :self(self) {}
-		virtual ~StatementContainer() = default;
-
-		ASTNode* GetSelf() const noexcept { return self; }
-
-		void AddStatement(ast_ptr<ASTNode> statement)
-		{
-			statement->SetParent(self);
-			statements.push_back(std::move(statement));
-		}
-
-		const std::vector<ast_ptr<ASTNode>>& GetStatements() const
-		{
-			return statements;
-		}
-
-		std::vector<ast_ptr<ASTNode>>& GetStatementsMut()
-		{
-			return statements;
-		}
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetStatements, 0, storage);
 	};
 
-	class BlockStatement : public ASTNode, public StatementContainer
+	class BlockStatement : public ASTNode, public TrailingObjects<StatementContainer, ASTNode*>
 	{
-	public:
-		static constexpr NodeType ID = NodeType_BlockStatement;
-		BlockStatement(TextSpan span)
-			: ASTNode(span, NodeType_BlockStatement),
-			StatementContainer(this)
+		friend class ASTContext;
+	private:
+		TrailingObjStorage<BlockStatement, uint32_t> storage;
+
+		BlockStatement(const TextSpan& span)
+			: ASTNode(span, NodeType_BlockStatement)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_BlockStatement;
+		static BlockStatement* Create(const TextSpan& span, const ArrayRef<ASTNode*>& statements);
+
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetStatements, 0, storage);
 
 		std::string DebugName() const
 		{
@@ -54,37 +43,40 @@ namespace HXSL
 			oss << "[" << ToString(type) << "]";
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class BodyStatement : public ASTNode
 	{
 	protected:
-		ast_ptr<BlockStatement> body;
+		BlockStatement* body;
 
-		BodyStatement(TextSpan span, NodeType type, bool isExtern = false)
-			: ASTNode(span, type, isExtern)
+		BodyStatement(const TextSpan& span, NodeType type, bool isExtern = false)
+			: ASTNode(span, type, isExtern), body(nullptr)
 		{
 		}
 
-		BodyStatement(TextSpan span, NodeType type, ast_ptr<BlockStatement>&& body)
+		BodyStatement(const TextSpan& span, NodeType type, BlockStatement* body)
 			: ASTNode(span, type, false),
-			body(std::move(body))
+			body(body)
 		{
 			REGISTER_CHILD(body);
 		}
 
 	public:
-		const ast_ptr<BlockStatement>& GetBody() const noexcept
+		BlockStatement* GetBody() const noexcept
 		{
 			return body;
 		}
 
-		void SetBody(ast_ptr<BlockStatement>&& value) noexcept
+		void SetBody(BlockStatement* value) noexcept
 		{
-			UnregisterChild(body.get()); body = std::move(value); RegisterChild(body.get());
+			UnregisterChild(body); body = value; RegisterChild(body);
 		}
 
-		ast_ptr<BlockStatement>& GetBodyMut() noexcept
+		BlockStatement*& GetBodyMut() noexcept
 		{
 			return body;
 		};
@@ -93,49 +85,46 @@ namespace HXSL
 	class ConditionalStatement : public BodyStatement, public IHasExpressions
 	{
 	protected:
-		ast_ptr<Expression> condition;
+		Expression* condition;
 
-		ConditionalStatement(TextSpan span, NodeType type, bool isExtern = false)
-			: BodyStatement(span, type, isExtern)
+		ConditionalStatement(const TextSpan& span, NodeType type, bool isExtern = false)
+			: BodyStatement(span, type, isExtern), condition(nullptr)
 		{
 		}
 
-		ConditionalStatement(TextSpan span, NodeType type, ast_ptr<Expression>&& condition, ast_ptr<BlockStatement>&& body)
-			: BodyStatement(span, type, std::move(body)),
-			condition(std::move(condition))
+		ConditionalStatement(const TextSpan& span, NodeType type, Expression* condition, BlockStatement* body)
+			: BodyStatement(span, type, body),
+			condition(condition)
 		{
 			REGISTER_EXPR(condition);
 		}
 
 	public:
-		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Condition, condition);
+		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Condition, condition);
 	};
 
 	class DeclarationStatement : public SymbolDef, public IHasExpressions
 	{
+		friend class ASTContext;
 	private:
 		StorageClass storageClass;
-		ast_ptr<SymbolRef> symbol;
-		ast_ptr<Expression> initializer;
+		SymbolRef* symbol;
+		Expression* initializer;
 
-	public:
-		static constexpr NodeType ID = NodeType_DeclarationStatement;
-		DeclarationStatement()
-			: SymbolDef(TextSpan(), ID, TextSpan(), true),
-			storageClass(StorageClass_None)
-		{
-		}
-
-		DeclarationStatement(TextSpan span, ast_ptr<SymbolRef> symbol, StorageClass storageClass, TextSpan name, ast_ptr<Expression> initializer)
+		DeclarationStatement(const TextSpan& span, IdentifierInfo* name, SymbolRef* symbol, StorageClass storageClass, Expression* initializer)
 			: SymbolDef(span, ID, name),
 			storageClass(storageClass),
-			symbol(std::move(symbol)),
-			initializer(std::move(initializer))
+			symbol(symbol),
+			initializer(initializer)
 		{
 			REGISTER_EXPR(initializer);
 		}
 
-		ast_ptr<SymbolRef>& GetSymbolRef()
+	public:
+		static constexpr NodeType ID = NodeType_DeclarationStatement;
+		static DeclarationStatement* Create(const TextSpan& span, IdentifierInfo* name, SymbolRef* symbol, StorageClass storageClass, Expression* initializer);
+
+		SymbolRef* GetSymbolRef()
 		{
 			return symbol;
 		}
@@ -150,84 +139,73 @@ namespace HXSL
 			return storageClass;
 		}
 
-		bool IsConstant() const override
-		{
-			return (storageClass & StorageClass_Const) != 0;
-		}
+		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
+		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Initializer, initializer);
 
-		SymbolType GetSymbolType() const override
-		{
-			return SymbolType_Variable;
-		}
-
-		void Write(Stream& stream) const override;
-
-		void Read(Stream& stream, StringPool& container) override;
-
-		void Build(SymbolTable& table, size_t index, CompilationUnit* compilation, std::vector<ast_ptr<SymbolDef>>& nodes) override;
-
-		DEFINE_GET_SET_MOVE(ast_ptr<SymbolRef>, Symbol, symbol)
-
-			DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Initializer, initializer)
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class AssignmentStatement : public ASTNode, public IHasExpressions
 	{
+		friend class ASTContext;
 	private:
 
 	protected:
-		ast_ptr<AssignmentExpression> expr;
+		AssignmentExpression* expr;
 
-		AssignmentStatement(TextSpan span, NodeType type, ast_ptr<AssignmentExpression> expr)
+		AssignmentStatement(const TextSpan& span, NodeType type, AssignmentExpression* expr)
 			: ASTNode(span, type),
-			expr(std::move(expr))
+			expr(expr)
 		{
 			REGISTER_EXPR(expr);
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_AssignmentStatement;
-		AssignmentStatement(TextSpan span, ast_ptr<Expression> target, ast_ptr<Expression> expression)
-			: ASTNode(span, ID),
-			expr(make_ast_ptr<AssignmentExpression>(span, std::move(target), std::move(expression)))
-		{
-			REGISTER_EXPR(expr);
-		}
+		static AssignmentStatement* Create(const TextSpan& span, Expression* target, Expression* expression);
 
-		const ast_ptr<AssignmentExpression>& GetAssignmentExpression() const noexcept
+		AssignmentExpression* GetAssignmentExpression() const noexcept
 		{
 			return expr;
 		}
 
-		const ast_ptr<Expression>& GetTarget() const noexcept
+		Expression* GetTarget() const noexcept
 		{
 			return expr->GetTarget();
 		}
 
-		void SetTarget(ast_ptr<Expression>&& value) noexcept
+		void SetTarget(Expression* value) noexcept
 		{
-			expr->SetTarget(std::move(value));
+			expr->SetTarget(value);
 		}
 
-		const ast_ptr<Expression>& GetExpression() const noexcept
+		Expression* GetExpression() const noexcept
 		{
 			return expr->GetExpression();
 		}
 
-		void SetExpression(ast_ptr<Expression>&& value) noexcept
+		void SetExpression(Expression* value) noexcept
 		{
-			expr->SetExpression(std::move(value));
+			expr->SetExpression(value);
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class CompoundAssignmentStatement : public AssignmentStatement
 	{
-	public:
-		static constexpr NodeType ID = NodeType_CompoundAssignmentStatement;
-		CompoundAssignmentStatement(TextSpan span, Operator op, ast_ptr<Expression> target, ast_ptr<Expression> expression)
-			: AssignmentStatement(span, ID, make_ast_ptr<CompoundAssignmentExpression>(span, op, std::move(target), std::move(expression)))
+		friend class ASTContext;
+	private:
+		CompoundAssignmentStatement(const TextSpan& span, Operator op, CompoundAssignmentExpression* expression)
+			: AssignmentStatement(span, ID, expression)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_CompoundAssignmentStatement;
+		static CompoundAssignmentStatement* Create(const TextSpan& span, Operator op, Expression* target, Expression* expression);
 
 		const Operator& GetOperator() const noexcept
 		{
@@ -242,46 +220,62 @@ namespace HXSL
 
 	class ExpressionStatement : public ASTNode, public IHasExpressions
 	{
+		friend class ASTContext;
 	private:
-		ast_ptr<Expression> expression;
+		Expression* expression;
 
-	public:
-		static constexpr NodeType ID = NodeType_ExpressionStatement;
-		ExpressionStatement(TextSpan span, ast_ptr<Expression> expression)
+		ExpressionStatement(const TextSpan& span, Expression* expression)
 			: ASTNode(span, ID),
-			expression(std::move(expression))
+			expression(expression)
 		{
 			REGISTER_EXPR(expression);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Expression, expression);
+	public:
+		static constexpr NodeType ID = NodeType_ExpressionStatement;
+		static ExpressionStatement* Create(const TextSpan& span, Expression* expression);
+
+		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class ReturnStatement : public ASTNode, public IHasExpressions
 	{
+		friend class ASTContext;
 	private:
-		ast_ptr<Expression> returnValueExpression;
+		Expression* returnValueExpression;
 
-	public:
-		static constexpr NodeType ID = NodeType_ReturnStatement;
-		ReturnStatement(TextSpan span, ast_ptr<Expression> returnValueExpression)
+		ReturnStatement(const TextSpan& span, Expression* returnValueExpression)
 			: ASTNode(span, ID),
-			returnValueExpression(std::move(returnValueExpression))
+			returnValueExpression(returnValueExpression)
 		{
 			REGISTER_EXPR(returnValueExpression);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, ReturnValueExpression, returnValueExpression)
+	public:
+		static constexpr NodeType ID = NodeType_ReturnStatement;
+		static ReturnStatement* Create(const TextSpan& span, Expression* returnValueExpression);
+
+		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, ReturnValueExpression, returnValueExpression)
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class ElseStatement : public BodyStatement
 	{
-	public:
-		static constexpr NodeType ID = NodeType_ElseStatement;
-		ElseStatement(TextSpan span, ast_ptr<BlockStatement>&& body)
-			: BodyStatement(span, ID, std::move(body))
+		friend class ASTContext;
+	private:
+		ElseStatement(const TextSpan& span, BlockStatement* body)
+			: BodyStatement(span, ID, body)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_ElseStatement;
+		static ElseStatement* Create(const TextSpan& span, BlockStatement* body);
 
 		std::string DebugName() const
 		{
@@ -289,16 +283,23 @@ namespace HXSL
 			oss << "[" << ToString(type) << "]";
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class ElseIfStatement : public ConditionalStatement
 	{
+		friend class ASTContext;
+	private:
+		ElseIfStatement(const TextSpan& span, Expression* condition, BlockStatement* body)
+			: ConditionalStatement(span, ID, condition, body)
+		{
+		}
+
 	public:
 		static constexpr NodeType ID = NodeType_ElseIfStatement;
-		ElseIfStatement(TextSpan span, ast_ptr<Expression>&& condition, ast_ptr<BlockStatement>&& body)
-			: ConditionalStatement(span, ID, std::move(condition), std::move(body))
-		{
-		}
+		static ElseIfStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body);
 
 		std::string DebugName() const
 		{
@@ -306,33 +307,33 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
-	class IfStatement : public ConditionalStatement, public AttributeContainer
+	class IfStatement : public ConditionalStatement, public TrailingObjects<IfStatement, ElseIfStatement*, AttributeDecl*>
 	{
+		friend class ASTContext;
 	private:
-		std::vector<ast_ptr<ElseIfStatement>> elseIfStatements;
-		ast_ptr<ElseStatement> elseStatement;
+		ElseStatement* elseStatement;
+		TrailingObjStorage<IfStatement, uint32_t> storage;
+
+		IfStatement(const TextSpan& span, Expression* condition, BlockStatement* body, ElseStatement* elseStatement)
+			: ConditionalStatement(span, ID, condition, body),
+			elseStatement(elseStatement)
+		{
+		}
+
 	public:
 		static constexpr NodeType ID = NodeType_IfStatement;
-		IfStatement(TextSpan span, ast_ptr<Expression>&& condition, ast_ptr<BlockStatement>&& body)
-			: ConditionalStatement(span, ID, std::move(condition), std::move(body)),
-			AttributeContainer(this)
-		{
-		}
+		static IfStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<ElseIfStatement*>& elseIfStatements, ElseStatement* elseStatement, const ArrayRef<AttributeDecl*>& attributes);
+		static IfStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numElseIfStatements, ElseStatement* elseStatement, uint32_t numAttributes);
 
-		void AddElseIf(ast_ptr<ElseIfStatement>&& value) noexcept
-		{
-			RegisterChild(value.get());
-			elseIfStatements.push_back(std::move(value));
-		}
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetElseIfStatements, 0, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 1, storage);
 
-		const std::vector<ast_ptr<ElseIfStatement>>& GetElseIfStatements() const noexcept
-		{
-			return elseIfStatements;
-		}
-
-		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<ElseStatement>, ElseStatement, elseStatement);
+		DEFINE_GET_SET_MOVE_CHILD(ElseStatement*, ElseStatement, elseStatement);
 
 		std::string DebugName() const
 		{
@@ -340,23 +341,30 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
-	class CaseStatement : public ASTNode, public StatementContainer, public IHasExpressions
+	class CaseStatement : public StatementContainer, public IHasExpressions
 	{
+		friend class ASTContext;
 	private:
-		ast_ptr<Expression> expression;
-	public:
-		static constexpr NodeType ID = NodeType_CaseStatement;
-		CaseStatement(TextSpan span, ast_ptr<Expression> expression)
-			: ASTNode(span, ID),
-			StatementContainer(this),
-			expression(std::move(expression))
+		Expression* expression;
+
+		CaseStatement(const TextSpan& span, Expression* expression)
+			: StatementContainer(span, ID),
+			expression(expression)
 		{
 			REGISTER_EXPR(expression);
 		}
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Expression, expression);
+	public:
+		static constexpr NodeType ID = NodeType_CaseStatement;
+		static CaseStatement* Create(const TextSpan& span, Expression* expression, const ArrayRef<ASTNode*>& statements);
+		static CaseStatement* Create(const TextSpan& span, Expression* expression, uint32_t numStatements);
+
+		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
 
 		std::string DebugName() const
 		{
@@ -364,52 +372,57 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Header: " + expression->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
-	class DefaultCaseStatement : public ASTNode, public StatementContainer
+	class DefaultCaseStatement : public StatementContainer
 	{
+		friend class ASTContext;
 	private:
+		DefaultCaseStatement(const TextSpan& span)
+			: StatementContainer(span, ID)
+		{
+		}
 
 	public:
 		static constexpr NodeType ID = NodeType_DefaultCaseStatement;
-		DefaultCaseStatement(TextSpan span)
-			: ASTNode(span, ID),
-			StatementContainer(this)
-		{
-		}
+		static DefaultCaseStatement* Create(const TextSpan& span, const ArrayRef<ASTNode*>& statements);
+		static DefaultCaseStatement* Create(const TextSpan& span, uint32_t numStatements);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
-	class SwitchStatement : public ASTNode, public AttributeContainer, public IHasExpressions
+	class SwitchStatement : public ASTNode, public IHasExpressions, public TrailingObjects<SwitchStatement, CaseStatement*, AttributeDecl*>
 	{
+		friend class ASTContext;
 	private:
-		ast_ptr<Expression> expression;
-		std::vector<ast_ptr<CaseStatement>> cases;
-		ast_ptr<DefaultCaseStatement> defaultCase;
-	public:
-		static constexpr NodeType ID = NodeType_SwitchStatement;
-		SwitchStatement(TextSpan span, ast_ptr<Expression> expression, std::vector<ast_ptr<CaseStatement>> cases, ast_ptr<DefaultCaseStatement> defaultCase)
+		Expression* expression;
+		DefaultCaseStatement* defaultCase;
+		TrailingObjStorage<SwitchStatement, uint32_t> storage;
+
+		SwitchStatement(const TextSpan& span, Expression* expression, DefaultCaseStatement* defaultCase)
 			: ASTNode(span, ID),
-			AttributeContainer(this),
-			expression(std::move(expression)),
-			cases(std::move(cases)),
-			defaultCase(std::move(defaultCase))
+			expression(expression),
+			defaultCase(defaultCase)
 		{
 			REGISTER_EXPR(expression);
-			REGISTER_CHILDREN(cases);
 			REGISTER_CHILD(defaultCase);
 		}
 
-		SwitchStatement(TextSpan span)
-			: ASTNode(span, ID),
-			AttributeContainer(this)
-		{
-		}
+	public:
+		static constexpr NodeType ID = NodeType_SwitchStatement;
+		static SwitchStatement* Create(const TextSpan& span, Expression* expression, const ArrayRef<CaseStatement*>& cases, DefaultCaseStatement* defaultCase, const ArrayRef<AttributeDecl*>& attributes);
+		static SwitchStatement* Create(const TextSpan& span, Expression* expression, uint32_t numCases, DefaultCaseStatement* defaultCase, uint32_t numAttributes);
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Expression, expression);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetCases, 0, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 1, storage);
 
-		void AddCase(ast_ptr<CaseStatement> _case) { RegisterChild(_case); cases.push_back(std::move(_case)); }
+		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
 
-		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<DefaultCaseStatement>, DefaultCase, defaultCase);
+		DEFINE_GET_SET_MOVE_CHILD(DefaultCaseStatement*, DefaultCase, defaultCase);
 
 		std::string DebugName() const
 		{
@@ -417,33 +430,37 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Header: " + expression->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
-	class ForStatement : public ConditionalStatement, public AttributeContainer
+	class ForStatement : public ConditionalStatement, public TrailingObjects<ForStatement, AttributeDecl*>
 	{
+		friend class ASTContext;
 	private:
-		ast_ptr<ASTNode> init;
-		ast_ptr<Expression> iteration;
-	public:
-		static constexpr NodeType ID = NodeType_ForStatement;
-		ForStatement(TextSpan span, ast_ptr<ASTNode> init, ast_ptr<Expression> condition, ast_ptr<Expression> iteration, ast_ptr<BlockStatement> body)
-			: ConditionalStatement(span, ID, std::move(condition), std::move(body)),
-			AttributeContainer(this),
-			init(std::move(init)),
-			iteration(std::move(iteration))
+		ASTNode* init;
+		Expression* iteration;
+		TrailingObjStorage<ForStatement, uint32_t> storage;
+
+		ForStatement(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body)
+			: ConditionalStatement(span, ID, condition, body),
+			init(init),
+			iteration(iteration)
 		{
 			REGISTER_CHILD(init);
 			REGISTER_EXPR(iteration);
 		}
 
-		ForStatement(TextSpan span)
-			: ConditionalStatement(span, ID),
-			AttributeContainer(this)
-		{
-		}
+	public:
+		static constexpr NodeType ID = NodeType_ForStatement;
+		static ForStatement* Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, const ArrayRef<AttributeDecl*>& attributes);
+		static ForStatement* Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, uint32_t numAttributes);
 
-		DEFINE_GET_SET_MOVE_CHILD(ast_ptr<ASTNode>, Init, init);
-		DEFINE_GET_SET_MOVE_REG_EXPR(ast_ptr<Expression>, Iteration, iteration);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
+		
+		DEFINE_GET_SET_MOVE_CHILD(ASTNode*, Init, init);
+		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Iteration, iteration);
 
 		std::string DebugName() const
 		{
@@ -451,53 +468,79 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Header: " + init->GetSpan().merge(condition->GetSpan()).merge(iteration->GetSpan()).str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	class BreakStatement : public ASTNode
 	{
-	public:
-		static constexpr NodeType ID = NodeType_BreakStatement;
-		BreakStatement(TextSpan span)
+		friend class ASTContext;
+	private:
+		BreakStatement(const TextSpan& span)
 			: ASTNode(span, ID)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_BreakStatement;
+		static BreakStatement* Create(const TextSpan& span);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
 	class ContinueStatement : public ASTNode
 	{
-	public:
-		static constexpr NodeType ID = NodeType_ContinueStatement;
-		ContinueStatement(TextSpan span)
+		friend class ASTContext;
+	private:
+		ContinueStatement(const TextSpan& span)
 			: ASTNode(span, ID)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_ContinueStatement;
+		static ContinueStatement* Create(const TextSpan& span);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
 	class DiscardStatement : public ASTNode
 	{
-	public:
-		static constexpr NodeType ID = NodeType_DiscardStatement;
-		DiscardStatement(TextSpan span)
+		friend class ASTContext;
+	private:
+		DiscardStatement(const TextSpan& span)
 			: ASTNode(span, ID)
 		{
 		}
+
+	public:
+		static constexpr NodeType ID = NodeType_DiscardStatement;
+		static DiscardStatement* Create(const TextSpan& span);
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
-	class WhileStatement : public ConditionalStatement, public AttributeContainer
+	class WhileStatement : public ConditionalStatement, public TrailingObjects<WhileStatement, AttributeDecl*>
 	{
+		friend class ASTContext;
+	private:
+		TrailingObjStorage<WhileStatement, uint32_t> storage;
+
+		WhileStatement(const TextSpan& span, Expression* condition, BlockStatement* body)
+			: ConditionalStatement(span, ID, condition, body)
+		{
+		}
+
 	public:
 		static constexpr NodeType ID = NodeType_WhileStatement;
-		WhileStatement(TextSpan span, ast_ptr<Expression> condition, ast_ptr<BlockStatement> body)
-			: ConditionalStatement(span, ID, std::move(condition), std::move(body)),
-			AttributeContainer(this)
-		{
-		}
+		static WhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<AttributeDecl*>& attributes);
+		static WhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numAttributes);
 
-		WhileStatement(TextSpan span)
-			: ConditionalStatement(span, ID),
-			AttributeContainer(this)
-		{
-		}
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
 
 		std::string DebugName() const
 		{
@@ -505,23 +548,28 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
-	class DoWhileStatement : public ConditionalStatement, public AttributeContainer
+	class DoWhileStatement : public ConditionalStatement, public TrailingObjects<WhileStatement, AttributeDecl*>
 	{
-	public:
-		static constexpr NodeType ID = NodeType_DoWhileStatement;
-		DoWhileStatement(TextSpan span, ast_ptr<Expression> condition, ast_ptr<BlockStatement> body)
-			: ConditionalStatement(span, ID, std::move(condition), std::move(body)),
-			AttributeContainer(this)
+		friend class ASTContext;
+	private:
+		TrailingObjStorage<DoWhileStatement, uint32_t> storage;
+
+		DoWhileStatement(const TextSpan& span, Expression* condition, BlockStatement* body)
+			: ConditionalStatement(span, ID, condition, body)
 		{
 		}
 
-		DoWhileStatement(TextSpan span)
-			: ConditionalStatement(span, ID),
-			AttributeContainer(this)
-		{
-		}
+	public:
+		static constexpr NodeType ID = NodeType_DoWhileStatement;
+		static DoWhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<AttributeDecl*>& atttributes);
+		static DoWhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numAttributes);
+
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
 
 		std::string DebugName() const
 		{
@@ -529,6 +577,9 @@ namespace HXSL
 			oss << "[" << ToString(type) << "] Condition: " + condition->GetSpan().str();
 			return oss.str();
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata);
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 }
 

@@ -98,6 +98,12 @@ namespace HXSL
 			constexpr bool id() const { return var.id; }
 			constexpr bool version() const { return var.version; }
 			constexpr bool temp() const { return var.temp; }
+			constexpr ILVarId StripVersion() const
+			{
+				ILVarId_T v = var;
+				v.version = 0;
+				return ILVarId(v);
+			}
 
 			constexpr operator uint64_t() const { return raw; }
 			constexpr operator ILVarId_T() const { return var; }

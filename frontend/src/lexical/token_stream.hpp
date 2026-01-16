@@ -288,6 +288,20 @@ namespace HXSL
 			return false;
 		}
 
+		bool TryGetIdentifier(IdentifierInfo*& ii)
+		{
+			Token current;
+			if (TryGetToken(TokenType_Identifier, current))
+			{
+				TryAdvance();
+				ii = current.ii;
+				return true;
+			}
+
+			ii = nullptr;
+			return false;
+		}
+
 		bool TryGetLiteral(TextSpan& span)
 		{
 			Token current;
@@ -382,6 +396,21 @@ namespace HXSL
 				return false;
 			}
 			identifier = token.Span;
+			return true;
+		}
+
+		template <typename... Args>
+		bool ExpectIdentifier(IdentifierInfo*& identifier, DiagnosticCode code = EXPECTED_IDENTIFIER, Args&&... args)
+		{
+			Token token;
+			auto result = Expect(TokenType_Identifier, token);
+			if (!result)
+			{
+				identifier = nullptr;
+				LogFormatted(code, std::forward<Args>(args)...);
+				return false;
+			}
+			identifier = token.ii;
 			return true;
 		}
 

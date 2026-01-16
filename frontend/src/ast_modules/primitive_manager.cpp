@@ -1,10 +1,9 @@
 #include "primitive_manager.hpp"
 #include "node_builder.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
-	std::once_flag PrimitiveManager::initFlag;
-
 	SymbolHandle PrimitiveManager::Resolve(const StringSpan& span) const
 	{
 		auto table = assembly->GetSymbolTable();
@@ -120,46 +119,16 @@ namespace HXSL
 
 		auto table = GetMutableSymbolTable();
 
-		Class* _class;
-
-		AddPrimClass("string");
-
-		AddPrimClass("SamplerState");
-
-		AddPrimClass("Texture2D", &_class);
-
-		FunctionBuilder(assembly.get())
+		ClassBuilder classBuilder = ClassBuilder(assembly.get());
+		classBuilder.WithName("string").Finish();
+		classBuilder.WithName("SamplerState").Finish();
+		classBuilder.WithName("Texture2D")
+			.WithFunction()
 			.WithName("Sample")
 			.WithParam("state", "SamplerState")
 			.WithParam("uv", "float2")
-			.Returns("float4")
-			.AttachToClass(_class);
-	}
-
-	void PrimitiveManager::AddPrimClass(const std::string& name, Class** outClass, SymbolHandle* handleOut)
-	{
-		auto table = GetMutableSymbolTable();
-		auto compilation = table->GetCompilation();
-		auto _class = make_ast_ptr<Class>();
-
-		auto classPtr = _class.get();
-		compilation->primitiveClasses.push_back(std::move(_class));
-
-		classPtr->SetAccessModifiers(AccessModifier_Public);
-		classPtr->SetName(name);
-
-		auto meta = std::make_shared<SymbolMetadata>(SymbolType_Class, SymbolScopeType_Global, AccessModifier_Public, 0, classPtr);
-		auto handle = table->Insert(classPtr->GetName(), meta);
-		if (outClass)
-		{
-			*outClass = classPtr;
-		}
-		if (handleOut)
-		{
-			*handleOut = handle;
-		}
-
-		classPtr->SetAssembly(assembly.get(), handle);
+			.Returns("float4");
+		classBuilder.Finish();
 	}
 
 	void PrimitiveManager::ResolveInternal(SymbolRef* ref)

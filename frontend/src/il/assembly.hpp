@@ -27,11 +27,14 @@ namespace HXSL
 
 		std::unique_ptr<std::string> name;
 		std::unique_ptr<SymbolTable> table;
+		std::unique_ptr<CompilationUnit> compilation;
 		bool sealed;
 	public:
 		const std::string& GetName() const noexcept { return *name.get(); }
 
 		const SymbolTable* GetSymbolTable() const noexcept { return table.get(); }
+
+		CompilationUnit* GetCompilation() const noexcept { return compilation.get(); }
 
 		SymbolTable* GetMutableSymbolTable() const { if (sealed) { throw std::logic_error("Cannot modify symbol table: Assembly is sealed."); } return table.get(); }
 
@@ -39,9 +42,9 @@ namespace HXSL
 
 		bool IsSealed() const noexcept { return sealed; }
 
-		SymbolHandle AddSymbol(const StringSpan& name, SymbolDef* def, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
+		SymbolHandle AddSymbol(const StringSpan& name, SymbolDef* def, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex = nullptr);
 
-		SymbolHandle AddSymbolScope(const StringSpan& name, std::shared_ptr<SymbolMetadata>& metadata, const size_t& lookupIndex = 0);
+		SymbolHandle AddSymbolScope(const StringSpan& name, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex = nullptr);
 
 		static std::unique_ptr<Assembly> Create(const std::string& path);
 

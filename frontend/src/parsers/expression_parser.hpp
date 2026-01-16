@@ -7,22 +7,22 @@ namespace HXSL
 {
 	class SymbolExpressionParser : public ExpressionParser
 	{
-		bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut) override;
 	};
 
 	class LiteralExpressionParser : public ExpressionParser
 	{
-		bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut) override;
 	};
 
 	class FuncCallExpressionParser : public ExpressionParser
 	{
-		bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut) override;
 	};
 
 	class MemberAccessExpressionParser : public ExpressionParser
 	{
-		bool TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut) override;
+		bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut) override;
 	};
 }
 

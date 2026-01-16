@@ -9,12 +9,11 @@
 #include "lang/language.hpp"
 #include "lexical/token.hpp"
 #include "lexical/text_span.hpp"
-#include "lexical/input_stream.hpp"
+#include "lexical/identifier_table.hpp"
 #include "utils/iterator_range.hpp"
 #include "utils/string_pool.hpp"
 #include "utils/rtti_helper.hpp"
 #include "utils/trailing_objects.hpp"
-#include "io/source_file.hpp"
 #include "io/stream.hpp"
 #include "macros.hpp"
 
@@ -28,7 +27,7 @@ namespace HXSL
 	class Struct;
 	class Class;
 	class Field;
-	class Array;
+	class ArrayDecl;
 	class Primitive;
 	class Expression;
 	class ASTNode;
@@ -37,20 +36,22 @@ namespace HXSL
 
 	class ChainExpression;
 
-	struct SymbolRef;
 	class SymbolTable;
 	class SymbolDef;
+	class SymbolRef;
 
 	class TypeContainer;
 
 	class Assembly;
 	class AssemblyCollection;
+	class ASTContext;
 
 	/// <summary>
 	/// Parsing: All Done.
 	/// Symbol Collection: All Done.
 	/// Symbol Resolve: All Done.
-	/// Type Check: WIP.
+	/// Type Check: All Done.
+	/// Code Gen: Partially.
 	/// </summary>
 	enum NodeType : uint8_t
 	{
@@ -60,6 +61,7 @@ namespace HXSL
 		NodeType_Unknown,
 		NodeType_CompilationUnit,
 		NodeType_Namespace,
+		NodeType_UsingDecl,
 		NodeType_Enum, // Placeholder (Will be added in the future.)
 		NodeType_Primitive,
 		NodeType_Struct,
@@ -208,7 +210,7 @@ namespace HXSL
 		case NodeType_AttributeDeclaration: return "AttributeDeclaration";
 		case NodeType_BinaryExpression: return "BinaryExpression";
 		case NodeType_EmptyExpression: return "EmptyExpression";
-		case NodeType_LiteralExpression: return "ConstantExpression";
+		case NodeType_LiteralExpression: return "LiteralExpression";
 		case NodeType_MemberReferenceExpression: return "MemberReferenceExpression";
 		case NodeType_FunctionCallExpression: return "FunctionCallExpression";
 		case NodeType_FunctionCallParameter: return "FunctionCallParameter";
@@ -239,9 +241,13 @@ namespace HXSL
 		case NodeType_AssignmentExpression: return "AssignmentExpression";
 		case NodeType_CompoundAssignmentExpression: return "CompoundAssignmentExpression";
 		case NodeType_InitializationExpression: return "InitializationExpression";
-		default: return "Unknown NodeType";
+		case NodeType_ThisDef: return "ThisDef";
+		default: HXSL_ASSERT(false, "Unhandled NodeType in ToString."); return "Unhandled";
 		}
 	}
+
+	using ASTChildCallback = void(*)(ASTNode*& node, void* userdata);
+	using ASTConstChildCallback = void(*)(ASTNode* const& node, void* userdata);
 
 	class ASTNode
 	{
@@ -250,23 +256,23 @@ namespace HXSL
 		void AddChild(ASTNode* node)
 		{
 			if (node == nullptr) return;
-			children.push_back(node);
+			//children.push_back(node);
 			node->parent = this;
 		}
 
 		void RemoveChild(ASTNode* node)
 		{
 			if (node == nullptr) return;
-			children.erase(remove(children.begin(), children.end(), node), children.end());
+			//children.erase(remove(children.begin(), children.end(), node), children.end());
 			node->parent = nullptr;
 		}
 
 	protected:
-		std::vector<ASTNode*> children;
+		//std::vector<ASTNode*> children;
 		TextSpan span;
 		ASTNode* parent;
-		NodeType type;
-		bool isExtern;
+		NodeType type : 6;
+		bool isExtern : 1;
 
 		void RegisterChild(ASTNode* child)
 		{
@@ -281,11 +287,11 @@ namespace HXSL
 		}
 
 		template<class T>
-		void RegisterChildren(const std::vector<ast_ptr<T>>& children)
+		void RegisterChildren(const Span<T*>& children)
 		{
-			for (auto& child : children)
+			for (auto child : children)
 			{
-				RegisterChild(child.get());
+				RegisterChild(child);
 			}
 		}
 
@@ -314,11 +320,9 @@ namespace HXSL
 		using child_iterator = ASTNode**;
 		using child_range = iterator_range<child_iterator>;
 
-		ASTNode(TextSpan span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), children({}), isExtern(isExtern)
+		ASTNode(const TextSpan& span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), isExtern(isExtern)
 		{
 		}
-
-		child_range GetChildrenIt();
 
 		bool IsExtern() const
 		{
@@ -348,8 +352,8 @@ namespace HXSL
 			}
 		}
 
-		const std::vector<ASTNode*>& GetChildren() const noexcept { return children; }
-		const NodeType& GetType() const noexcept { return type; }
+		const std::vector<ASTNode*>& GetChildren() const noexcept { /* return children; */ HXSL_ASSERT_DEPRECATION; }
+		NodeType GetType() const noexcept { return type; }
 		const TextSpan& GetSpan() const noexcept { return span; }
 		void SetSpan(TextSpan newSpan) noexcept { span = newSpan; }
 		bool IsAnyTypeOf(const std::unordered_set<NodeType>& types) const
@@ -423,21 +427,40 @@ namespace HXSL
 		virtual ~ASTNode()
 		{
 		}
+
+		void ForEachChild2(ASTChildCallback cb, void* userdata);
+		void ForEachChild2(ASTConstChildCallback cb, void* userdata) const;
 	};
 
 	template <class Target, class Injector, class InsertFunc>
-	static void	InjectNode(ast_ptr<Target>& target, ast_ptr<Injector> inject, InsertFunc func)
+	static void	InjectNode(Target& target, Injector inject, InsertFunc func)
 	{
-		static_assert(std::is_base_of<ASTNode, Target>::value, "Target must derive from ASTNode");
-		static_assert(std::is_base_of<Target, Injector>::value, "Injector must derive from Target");
+		using TargetType = std::remove_pointer_t<Target>;
+		using InjectorType = std::remove_pointer_t<Injector>;
+		static_assert(std::is_base_of<ASTNode, TargetType>::value, "Target must derive from ASTNode");
+		static_assert(std::is_base_of<TargetType, InjectorType>::value, "Injector must derive from Target");
 
 		auto parent = target->GetParent();
+		auto oldTarget = target;
+
 		inject->SetParent(parent);
-		target->SetParent(inject.get());
+		target->SetParent(inject);
 
-		(inject.get()->*func)(std::move(target));
+		(inject->*func)(target);
 
-		target = std::move(inject);
+		target = inject;
+
+		if (parent)
+		{
+			auto pair = std::pair<ASTNode*, ASTNode*>{ oldTarget, inject };
+			parent->ForEachChild2([](ASTNode*& child, void* userdata) {
+				auto* data = static_cast<std::pair<ASTNode*, ASTNode*>*>(userdata);
+				if (child == data->first)
+				{
+					child = data->second;
+				}
+				}, & pair);
+		}
 	}
 
 	template<typename T>

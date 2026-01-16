@@ -7,7 +7,7 @@ namespace HXSL
 	{
 		auto _class = prim->GetClass();
 		if (_class == PrimitiveClass_Matrix) return false;
-		auto& pattern = ref->GetName();
+		auto pattern = ref->GetName();
 		if (pattern.size() < 1 || pattern.size() > 4)
 			return false;
 
@@ -43,25 +43,27 @@ namespace HXSL
 			typeName += std::to_string(pattern.size());
 		}
 
+		auto context = ASTContext::GetCurrentContext();
+		auto& idTable = context->GetIdentifierTable();
+
+		auto typeN = primitives.GetSymbolTable();
 		auto primitivesTable = primitives.GetSymbolTable();
 		auto primitiveHandle = primitivesTable->FindNodeIndexPart(typeName);
 		auto& resultingType = primitiveHandle.GetMetadata()->declaration;
 
-		auto symbolRef = make_ast_ptr<SymbolRef>(TextSpan(), SymbolRefType_Member, false);
+		auto symbolRef = SymbolRef::Create(TextSpan(), idTable.Get(typeName), SymbolRefType_Member, false);
 		symbolRef->SetTable(primitiveHandle);
-		auto swizzleDef = make_ast_ptr<SwizzleDefinition>(resultingType->GetSpan(), mask, prim, std::move(symbolRef));
-		auto metaField = std::make_shared<SymbolMetadata>(SymbolType_Field, SymbolScopeType_Struct, AccessModifier_Public, 0, swizzleDef.get());
+		auto swizzleDef = SwizzleDefinition::Create(TextSpan(), idTable.Get(pattern), mask, prim, symbolRef);
+		auto metaField = SharedPtr<SymbolMetadata>::Create(swizzleDef);
 
 		if (primHandle.invalid())
 		{
-			std::shared_ptr<SymbolMetadata> meta = std::make_shared<SymbolMetadata>();
+			auto meta = SharedPtr<SymbolMetadata>();
 			primHandle = swizzleTable->Insert(prim->GetName(), meta, 0);
 		}
 
-		handle = swizzleTable->Insert(pattern, metaField, primHandle.GetIndex());
+		handle = swizzleTable->Insert(pattern, metaField, primHandle);
 		ref->SetTable(handle);
-
-		definitions.push_back(std::move(swizzleDef));
 
 		return true;
 	}

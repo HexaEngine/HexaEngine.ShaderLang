@@ -9,9 +9,9 @@
 namespace HXSL
 {
 #define DEFINE_GET_SET_MOVE_REG_EXPR(type, name, field)    \
-    const type& Get##name() const noexcept { return field; } \
-    void Set##name(type&& value) noexcept { UnregisterExpression(field.get()); field = std::move(value); RegisterExpression(this, field.get()); } \
-	type Detach##name() noexcept { UnregisterExpression(field.get()); return std::move(field); }
+    type Get##name() const noexcept { return field; } \
+    void Set##name(type value) noexcept { UnregisterExpression(field); field = value; RegisterExpression(this, field); } \
+	type Detach##name() noexcept { UnregisterExpression(field); return std::move(field); }
 
 	class IHasExpressions
 	{

@@ -1,149 +1,272 @@
-#ifndef TRAILING_OBJECTS_HPP
-#define TRAILING_OBJECTS_HPP
+#ifndef HEXA_UTILS_TRAILING_OBJECTS_HPP
+#define HEXA_UTILS_TRAILING_OBJECTS_HPP
 
-#include "pch/std.hpp"
+#include "common.hpp"
 #include "memory.hpp"
+#include "array.hpp"
 
-namespace HXSL
+namespace HEXA_UTILS_NAMESPACE
 {
 	namespace TrailingObjectsInternal
 	{
-		template <int Align, typename BaseT, typename TopTrailingObj, typename... TrailingTs>
+		template <size_t Index, typename... Ts>
+		struct trailing_type_at;
+
+		template <typename T, typename... Ts>
+		struct trailing_type_at<0, T, Ts...>
+		{
+			using type = T;
+		};
+
+		template <size_t Index, typename T, typename... Ts>
+		struct trailing_type_at<Index, T, Ts...>
+		{
+			static_assert(Index < sizeof...(Ts) + 1, "Index out of bounds");
+			using type = typename trailing_type_at<Index - 1, Ts...>::type;
+		};
+
+		template <typename BaseT, typename TopTrailingObj, typename... TrailingTs>
 		struct TrailingObjectsImpl;
 
-		template <int Align, typename BaseT, typename TopTrailingObj>
-		struct TrailingObjectsImpl<Align, BaseT, TopTrailingObj>
+		template <typename BaseT, typename TopTrailingObj>
+		struct TrailingObjectsImpl<BaseT, TopTrailingObj>
 		{
 			static constexpr size_t AdditionalSizeToAllocImpl(size_t sizeSoFar)
 			{
 				return sizeSoFar;
 			}
 
-			template <typename T>
-			const T* GetTrailingObjectsImpl(const BaseT*, T*) const
+			static constexpr size_t GetTrailingObjectsImpl(size_t offset, size_t index)
 			{
-				static_assert(sizeof(T) == 0, "Type not in trailing list");
-				return nullptr;
-			}
-
-			template <typename T>
-			T* GetTrailingObjectsImpl(BaseT*, T*)
-			{
-				static_assert(sizeof(T) == 0, "Type not in trailing list");
-				return nullptr;
+				return offset;
 			}
 		};
 
-		template <int Align, typename BaseT, typename TopTrailingObj, typename PrevT>
-		struct TrailingObjectsImpl<Align, BaseT, TopTrailingObj, PrevT>
+		template <typename BaseT, typename TopTrailingObj, typename PrevT>
+		struct TrailingObjectsImpl<BaseT, TopTrailingObj, PrevT>
 		{
 			static constexpr size_t AdditionalSizeToAllocImpl(size_t sizeSoFar, size_t count)
 			{
-				return sizeSoFar + (count * sizeof(PrevT));
+				return AlignUp(sizeSoFar, alignof(PrevT)) + (count * sizeof(PrevT));
 			}
 
-			template <typename T>
-			const T* GetTrailingObjectsImpl(const BaseT*, T*) const
+			static constexpr size_t GetTrailingObjectsImpl(size_t offset, size_t index, size_t count)
 			{
-				static_assert(sizeof(T) == 0, "Type not in trailing list");
-				return nullptr;
-			}
-
-			template <typename T>
-			T* GetTrailingObjectsImpl(BaseT*, T*)
-			{
-				static_assert(sizeof(T) == 0, "Type not in trailing list");
-				return nullptr;
-			}
-
-			const PrevT* GetTrailingObjectsImpl(const BaseT* Obj, PrevT*) const
-			{
-				auto* Ptr = reinterpret_cast<const char*>(Obj) + sizeof(BaseT);
-				Ptr = reinterpret_cast<const char*>(alignTo(reinterpret_cast<uintptr_t>(Ptr), alignof(PrevT)));
-				return reinterpret_cast<const PrevT*>(Ptr);
-			}
-
-			PrevT* GetTrailingObjectsImpl(BaseT* Obj, PrevT*)
-			{
-				auto* Ptr = reinterpret_cast<char*>(Obj) + sizeof(BaseT);
-				Ptr = reinterpret_cast<char*>(alignTo(reinterpret_cast<uintptr_t>(Ptr), alignof(PrevT)));
-				return reinterpret_cast<PrevT*>(Ptr);
+				offset = AlignUp(offset, alignof(PrevT));
+				if (index == 0)
+					return offset;
+				return offset + (count * sizeof(PrevT));
 			}
 		};
 
-		// Recursive case: two or more trailing types (PrevT, NextT, RestT...)
-		template <int Align, typename BaseT, typename TopTrailingObj, typename PrevT, typename NextT, typename... RestT>
-		struct TrailingObjectsImpl<Align, BaseT, TopTrailingObj, PrevT, NextT, RestT...>
-			: public TrailingObjectsImpl<Align, BaseT, TopTrailingObj, NextT, RestT...>
+		template <typename BaseT, typename TopTrailingObj, typename PrevT, typename NextT, typename... RestT>
+		struct TrailingObjectsImpl<BaseT, TopTrailingObj, PrevT, NextT, RestT...> : public TrailingObjectsImpl<BaseT, TopTrailingObj, NextT, RestT...>
 		{
-			using ParentType = TrailingObjectsImpl<Align, BaseT, TopTrailingObj, NextT, RestT...>;
+			using ParentType = TrailingObjectsImpl<BaseT, TopTrailingObj, NextT, RestT...>;
 
-			static constexpr bool RequiresRealignment()
+			static constexpr size_t Offset(size_t offset, size_t count)
 			{
-				return alignof(PrevT) < alignof(NextT);
+				return offset + (count * sizeof(PrevT));
 			}
 
-			template<typename... Counts>
+			template <typename... Counts>
 			static constexpr size_t AdditionalSizeToAllocImpl(size_t sizeSoFar, size_t count, Counts... moreCounts)
 			{
-				size_t currentSize = sizeSoFar + (count * sizeof(PrevT));
-				if (RequiresRealignment())
-				{
-					currentSize = alignTo(currentSize, alignof(NextT));
-				}
-				return ParentType::AdditionalSizeToAllocImpl(currentSize, moreCounts...);
+				sizeSoFar = AlignUp(sizeSoFar, alignof(PrevT));
+				return ParentType::AdditionalSizeToAllocImpl(Offset(sizeSoFar, count), moreCounts...);
 			}
 
-			const PrevT* GetTrailingObjectsImpl(const BaseT* Obj, PrevT*) const
+			template <typename... Counts>
+			static constexpr size_t GetTrailingObjectsImpl(size_t offset, size_t index, size_t count, Counts... moreCounts)
 			{
-				auto* Ptr = reinterpret_cast<const char*>(Obj) + sizeof(BaseT);
-				Ptr = reinterpret_cast<const char*>(alignTo(reinterpret_cast<uintptr_t>(Ptr), alignof(PrevT)));
-				return reinterpret_cast<const PrevT*>(Ptr);
-			}
-
-			PrevT* GetTrailingObjectsImpl(BaseT* Obj, PrevT*)
-			{
-				auto* Ptr = reinterpret_cast<char*>(Obj) + sizeof(BaseT);
-				Ptr = reinterpret_cast<char*>(alignTo(reinterpret_cast<uintptr_t>(Ptr), alignof(PrevT)));
-				return reinterpret_cast<PrevT*>(Ptr);
+				offset = AlignUp(offset, alignof(PrevT));
+				if (index == 0)
+					return offset;
+				auto next = Offset(offset, count);
+				return ParentType::GetTrailingObjectsImpl(next, index - 1, moreCounts...);
 			}
 		};
-	}
+	} // namespace TrailingObjectsInternal
 
 	template <typename BaseT, typename... TrailingTs>
-	class TrailingObjects
-		: private TrailingObjectsInternal::TrailingObjectsImpl<1, BaseT, TrailingObjects<BaseT, TrailingTs...>, TrailingTs...>
+	class TrailingObjects : private TrailingObjectsInternal::TrailingObjectsImpl<BaseT, TrailingObjects<BaseT, TrailingTs...>, TrailingTs...>
 	{
-		using TrailingObjectsImpl = TrailingObjectsInternal::TrailingObjectsImpl<1, BaseT, TrailingObjects<BaseT, TrailingTs...>, TrailingTs...>;
-		using TrailingObjectsImpl::GetTrailingObjectsImpl;
-		template <typename T> using OverloadToken = T*;
+		using TrailingObjectsImpl = TrailingObjectsInternal::TrailingObjectsImpl<BaseT, TrailingObjects<BaseT, TrailingTs...>, TrailingTs...>;
+
+		BaseT* GetSelf()
+		{
+			return static_cast<BaseT*>(this);
+		}
+
+		const BaseT* GetSelf() const
+		{
+			return static_cast<const BaseT*>(this);
+		}
 
 	public:
-		template <typename T>
-		const T* GetTrailingObjects() const
+		static constexpr size_t ObjectTrailLength = sizeof...(TrailingTs);
+
+		template <size_t Index>
+		using trailing_type_at = typename TrailingObjectsInternal::trailing_type_at<Index, TrailingTs...>;
+
+		template <size_t Index>
+		using trailing_type_at_t = typename trailing_type_at<Index>::type;
+
+		template <size_t Index, typename... Counts>
+		inline const auto GetTrailingObjects(Counts... counts) const
 		{
-			return GetTrailingObjectsImpl(static_cast<const BaseT*>(this), OverloadToken<T>());
+			static_assert(sizeof...(Counts) == ObjectTrailLength, "Counts arguments must match TrailingTs");
+			using ElementType = trailing_type_at_t<Index>;
+			auto offset = TrailingObjectsImpl::GetTrailingObjectsImpl(sizeof(BaseT), Index, counts...);
+			auto ptr = reinterpret_cast<const ElementType*>(reinterpret_cast<const char*>(GetSelf()) + offset);
+			return ptr;
 		}
 
-		template <typename T>
-		T* GetTrailingObjects()
+		template <size_t Index, typename... Counts>
+		inline auto GetTrailingObjects(Counts... counts)
 		{
-			return GetTrailingObjectsImpl(static_cast<BaseT*>(this), OverloadToken<T>());
+			static_assert(sizeof...(Counts) == ObjectTrailLength, "Counts arguments must match TrailingTs");
+			using ElementType = trailing_type_at_t<Index>;
+			auto offset = TrailingObjectsImpl::GetTrailingObjectsImpl(sizeof(BaseT), Index, counts...);
+			auto ptr = reinterpret_cast<ElementType*>(reinterpret_cast<char*>(GetSelf()) + offset);
+			return ptr;
 		}
 
-		template<typename... Counts>
+		template <size_t Index, typename TCount, size_t... Is>
+		inline auto GetTrailingObjectsPtrImpl(const TCount* counts, std::index_sequence<Is...>) const
+		{
+			return GetTrailingObjects<Index>(counts[Is]...);
+		}
+
+		template <size_t Index, typename TCount, size_t... Is>
+		inline auto GetTrailingObjectsPtrImpl(const TCount* counts, std::index_sequence<Is...>)
+		{
+			return GetTrailingObjects<Index>(counts[Is]...);
+		}
+
+		template <size_t Index, typename TCount>
+		inline const auto GetTrailingObjectsPtr(const TCount* counts) const
+		{
+			return GetTrailingObjectsPtrImpl<Index>(counts, std::make_index_sequence<sizeof...(TrailingTs)>{});
+		}
+
+		template <size_t Index, typename TCount>
+		inline auto GetTrailingObjectsPtr(const TCount* counts)
+		{
+			return GetTrailingObjectsPtrImpl<Index>(counts, std::make_index_sequence<sizeof...(TrailingTs)>{});
+		}
+
+		template <typename... Counts>
+		static constexpr size_t TotalSizeToAlloc(Counts... counts)
+		{
+			static_assert(sizeof...(Counts) == sizeof...(TrailingTs), "Counts arguments must match TrailingTs");
+			return TrailingObjectsImpl::AdditionalSizeToAllocImpl(sizeof(BaseT), counts...);
+		}
+
+		template <typename... Counts>
 		static constexpr size_t AdditionalSizeToAlloc(Counts... counts)
 		{
 			static_assert(sizeof...(Counts) == sizeof...(TrailingTs), "Counts arguments must match TrailingTs");
-			return TrailingObjectsImpl::AdditionalSizeToAllocImpl(0, counts...);
-		}
-
-		template<typename... Counts>
-		static constexpr size_t TotalSizeToAlloc(Counts... counts)
-		{
-			return sizeof(BaseT) + AdditionalSizeToAlloc(counts...);
+			return TotalSizeToAlloc(counts...) - sizeof(BaseT);
 		}
 	};
-}
+
+	template <typename Trail, typename T>
+	struct TrailingObjStorage
+	{
+		constexpr TrailingObjStorage() = default;
+
+		template <typename... Counts>
+			requires(sizeof...(Counts) == Trail::ObjectTrailLength)
+		constexpr TrailingObjStorage(Counts... counts) : counts{ static_cast<T>(counts)... }
+		{
+		}
+
+		template <size_t Index>
+		using trailing_type_at = Trail::template trailing_type_at<Index>;
+
+		template <size_t Index>
+		using trailing_type_at_t = typename trailing_type_at<Index>::type;
+
+		HEXA_UTILS_NAMESPACE::Array<T, Trail::ObjectTrailLength> counts;
+
+		template <size_t Index>
+		inline T GetCount() const
+		{
+			return counts[Index];
+		}
+
+		template <size_t Index>
+		inline auto GetTrailingObjects(Trail* self)
+		{
+			return self->template GetTrailingObjectsPtr<Index>(counts.data());
+		}
+
+		template <size_t Index>
+		inline auto GetTrailingObjects(const Trail* self) const
+		{
+			return self->template GetTrailingObjectsPtr<Index>(counts.data());
+		}
+
+		template <size_t Index>
+		inline auto GetTrailingSpan(Trail* self)
+		{
+			using T = trailing_type_at_t<Index>;
+			return Span<T>{GetTrailingObjects<Index>(self), counts[Index]};
+		}
+
+		template <size_t Index>
+		inline auto GetTrailingSpan(const Trail* self) const
+		{
+			using T = trailing_type_at_t<Index>;
+			return Span<const T>{GetTrailingObjects<Index>(self), counts[Index]};
+		}
+
+		template <typename... Counts>
+		inline void SetCounts(Counts... counts)
+		{
+			static_assert(sizeof...(Counts) == Trail::ObjectTrailLength, "Counts arguments must match TrailingTs");
+			this->counts = Array<T, Trail::ObjectTrailLength>{ static_cast<T>(counts)... };
+		}
+
+		template <size_t Index>
+		inline void SetCount(T count)
+		{
+			static_assert(Index < Trail::ObjectTrailLength, "Index out of range");
+			this->counts[Index] = count;
+		}
+
+		template<size_t Index, typename Span>
+		inline void Init(Trail* self, const Span& input)
+		{
+			SetCount<Index>(static_cast<T>(input.size()));
+			auto span = GetTrailingSpan<Index>(self);
+			std::uninitialized_move(input.begin(), input.end(), span.data());
+		}
+
+		template <typename... Spans>
+		inline void InitializeMove(Trail* self, Spans&&... spans)
+		{
+			static_assert(sizeof...(Spans) == Trail::ObjectTrailLength, "Spans arguments must match TrailingTs");
+			InitializeMoveImpl(self, std::make_index_sequence<Trail::ObjectTrailLength>{}, std::forward<Spans>(spans)...);
+		}
+
+		template <size_t... Is, typename... Spans>
+		inline void InitializeMoveImpl(Trail* self, std::index_sequence<Is...>, Spans&&... spans)
+		{
+			(Init<Is>(self, spans), ...);
+		}
+	};
+
+#define DEFINE_TRAILING_OBJ_SPAN_GETTER(name, idx, storage)                                                                                                                                            \
+    inline auto name()                                                                                                                                                                                 \
+    {                                                                                                                                                                                                  \
+        return storage.GetTrailingSpan<idx>(this);                                                                                                                                                     \
+    }                                                                                                                                                                                                  \
+    inline auto name() const                                                                                                                                                                           \
+    {                                                                                                                                                                                                  \
+        return storage.GetTrailingSpan<idx>(this);                                                                                                                                                     \
+    }
+} // namespace HEXA_UTILS_NAMESPACE
 
 #endif

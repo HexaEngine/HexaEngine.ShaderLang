@@ -15,10 +15,10 @@ if (!expr) { \
 	{
 	private:
 		CompilationUnit* compilation;
-		PrimitiveManager& primitives;
 
 		const AssemblyCollection& references;
 		std::unique_ptr<Assembly> outputAssembly;
+		std::unique_ptr<PrimitiveManager> primitiveManager;
 		std::unique_ptr<PointerManager> pointerManager;
 		std::unique_ptr<ArrayManager> arrayManager;
 		std::unique_ptr<SwizzleManager> swizzleManager;
@@ -44,10 +44,10 @@ if (!expr) { \
 			compilation(compilation),
 			references(references),
 			outputAssembly(Assembly::Create("")),
+			primitiveManager(std::make_unique<PrimitiveManager>()),
 			pointerManager(std::make_unique<PointerManager>()),
 			arrayManager(std::make_unique<ArrayManager>()),
-			swizzleManager(std::make_unique<SwizzleManager>()),
-			primitives(PrimitiveManager::GetInstance())
+			swizzleManager(std::make_unique<SwizzleManager>(*primitiveManager.get()))
 		{
 		}
 

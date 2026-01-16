@@ -3,57 +3,48 @@
 
 namespace HXSL
 {
-	const SymbolTableNode& SymbolHandle::GetNode() const
+	SymbolTableNode* SymbolHandle::GetNode() const
 	{
-		size_t index = GetIndex();
-		if (index == Invalid)
-		{
-			static const SymbolTableNode emptyNode = {};
-			return emptyNode;
-		}
-		return table->GetNode(index);
+		return node;
 	}
 
 	const SymbolMetadata* SymbolHandle::GetMetadata() const
 	{
-		return GetNode().Metadata.get();
+		return GetNode()->GetMetadata().get();
 	}
 
 	std::string SymbolHandle::GetFullyQualifiedName() const
 	{
-		size_t index = GetIndex();
-		if (index == Invalid)
+		if (invalid())
 		{
 			return {};
 		}
-		return table->GetFullyQualifiedName(index);
+		return table->GetFullyQualifiedName(node);
 	}
 
 	SymbolHandle SymbolHandle::FindFullPath(const StringSpan& span, const SymbolTable* alt) const
 	{
-		size_t index = GetIndex();
-		if (index == Invalid)
+		if (invalid())
 		{
 			if (alt)
 			{
-				return alt->FindNodeIndexFullPath(span, 0);
+				return alt->FindNodeIndexFullPath(span, nullptr);
 			}
 			return {};
 		}
 
-		SymbolHandle handle = table->FindNodeIndexFullPath(span, index);
+		SymbolHandle handle = table->FindNodeIndexFullPath(span, node);
 		return handle;
 	}
 
 	SymbolHandle SymbolHandle::FindPart(const StringSpan& span) const
 	{
-		size_t index = GetIndex();
-		if (index == Invalid)
+		if (invalid())
 		{
 			return {};
 		}
 
-		SymbolHandle handle = table->FindNodeIndexPart(span, index);
+		SymbolHandle handle = table->FindNodeIndexPart(span, node);
 		return handle;
 	}
 }

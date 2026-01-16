@@ -8,36 +8,36 @@
 #include "hybrid_expr_parser.hpp"
 namespace HXSL
 {
-	bool SymbolExpressionParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
+	bool SymbolExpressionParser::TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut)
 	{
 		return ParserHelper::TryParseSymbol(parser, stream, expressionOut);
 	}
 
-	bool LiteralExpressionParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
+	bool LiteralExpressionParser::TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut)
 	{
-		ast_ptr<LiteralExpression> expr;
+		LiteralExpression* expr;
 		IF_ERR_RET_FALSE(ParserHelper::TryParseLiteralExpression(parser, stream, expr));
-		expressionOut = std::move(expr);
+		expressionOut = expr;
 		return true;
 	}
 
-	bool FuncCallExpressionParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
+	bool FuncCallExpressionParser::TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut)
 	{
 		auto current = stream.Current();
 
-		ast_ptr<FunctionCallExpression> expression;
+		FunctionCallExpression* expression;
 		IF_ERR_RET_FALSE(ParserHelper::TryParseFunctionCall(parser, stream, expression));
-		expressionOut = std::move(expression);
+		expressionOut = expression;
 
 		return true;
 	}
 
-	bool MemberAccessExpressionParser::TryParse(Parser& parser, TokenStream& stream, ast_ptr<Expression>& expressionOut)
+	bool MemberAccessExpressionParser::TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut)
 	{
 		auto start = stream.Current();
-		ast_ptr<Expression> expression;
+		Expression* expression;
 		IF_ERR_RET_FALSE(ParserHelper::TryParseMemberAccessPath(parser, stream, expression));
-		expressionOut = std::move(expression);
+		expressionOut = expression;
 		return true;
 	}
 }

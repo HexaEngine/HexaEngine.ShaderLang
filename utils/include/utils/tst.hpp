@@ -117,7 +117,7 @@ namespace HXSL
 			matchedLength = 0;
 
 			size_t i = 0;
-			while (i < key.length)
+			while (i < key.size())
 			{
 				Node node = nodes[index];
 				char c = key[i];
@@ -200,7 +200,7 @@ namespace HXSL
 
 			size_t index;
 			size_t matchedLength;
-			if (!LookupNode(key, index, matchedLength) || matchedLength != key.length)
+			if (!LookupNode(key, index, matchedLength) || matchedLength != key.size())
 			{
 				return false;
 			}
@@ -282,7 +282,7 @@ namespace HXSL
 		{
 			size_t index;
 			size_t len;
-			if (!LookupNode(key, index, len) || key.length != len)
+			if (!LookupNode(key, index, len) || key.size() != len)
 			{
 				throw std::runtime_error("Key not found.");
 			}

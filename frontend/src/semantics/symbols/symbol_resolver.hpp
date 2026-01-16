@@ -46,18 +46,18 @@ namespace HXSL
 		PrimitiveManager& primitives;
 		const AssemblyCollection& references;
 		const Assembly* targetAssembly;
-		ArrayManager* arrayManager;
-		SwizzleManager* swizzleManager;
+		ArrayManager& arrayManager;
+		SwizzleManager& swizzleManager;
 		ResolverScopeContext current;
 		IterStack<ResolverScopeContext> stack;
 		CompilationUnit* compilation;
 
 	public:
-		SymbolResolver(SemanticAnalyzer& analyzer, const AssemblyCollection& references, const Assembly* targetAssembly, ArrayManager* arrayManager, SwizzleManager* swizzleManager)
+		SymbolResolver(SemanticAnalyzer& analyzer, const AssemblyCollection& references, const Assembly& targetAssembly, PrimitiveManager& primitiveManager, ArrayManager& arrayManager, PointerManager& pointerManager, SwizzleManager& swizzleManager)
 			: analyzer(analyzer),
-			primitives(PrimitiveManager::GetInstance()),
+			primitives(primitiveManager),
 			references(references),
-			targetAssembly(targetAssembly),
+			targetAssembly(&targetAssembly),
 			arrayManager(arrayManager),
 			swizzleManager(swizzleManager),
 			compilation(analyzer.Compilation())
@@ -74,7 +74,7 @@ namespace HXSL
 
 		bool TryResolveFromRoot(const SymbolTable* table, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
-		bool TryResolveInAssemblies(const std::vector<AssemblySymbolRef>& references, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
+		bool TryResolveInAssemblies(const Span<AssemblySymbolRef>& references, const StringSpan& name, SymbolHandle& outHandle, SymbolDef*& outDefinition) const;
 
 		SymbolDef* ResolveSymbol(const TextSpan& span, const StringSpan& name, bool isFullyQualified, SymbolHandle& outHandle, bool silent = false) const;
 
@@ -141,8 +141,7 @@ namespace HXSL
 			for (auto& reference : references.GetAssemblies())
 			{
 				targetAssembly = reference.get();
-				auto table = reference->GetSymbolTable();
-				ASTVisitor::Traverse(table->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
+				ASTVisitor::Traverse(reference->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 			}
 
 			targetAssembly = assemblyBackup;

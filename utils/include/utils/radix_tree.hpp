@@ -254,7 +254,7 @@ namespace HXSL
 			IndexType currentNode = RADIX_TREE_ROOT;
 			IndexType lastMatchedIndex = RADIX_TREE_INVALID_INDEX;
 			size_t idx = 0;
-			const size_t keySize = key.length;
+			const size_t keySize = key.size();
 			while (idx < keySize)
 			{
 				const auto& node = nodes[currentNode];
@@ -330,7 +330,7 @@ namespace HXSL
 			size_t commonLength = 0;
 			size_t matchedLength = 0;
 
-			if (!LookupNode(key, nodeIndex, commonLength, matchedLength) || matchedLength != key.length)
+			if (!LookupNode(key, nodeIndex, commonLength, matchedLength) || matchedLength != key.size())
 			{
 				return false;
 			}
@@ -369,7 +369,7 @@ namespace HXSL
 				currentNode = RADIX_TREE_ROOT;
 			}
 
-			if (matchedLength == key.length && commonLength == 0)
+			if (matchedLength == key.size() && commonLength == 0)
 			{
 				nodes[currentNode].value = value;
 				return;
@@ -379,7 +379,7 @@ namespace HXSL
 				currentNode = SplitNode(currentNode, commonLength);
 			}
 
-			if (matchedLength == key.length)
+			if (matchedLength == key.size())
 			{
 				nodes[currentNode].value = value;
 				return;
@@ -441,7 +441,7 @@ namespace HXSL
 			IndexType index;
 			size_t commonLength;
 			size_t matchedLength;
-			if (!LookupNode(key, index, commonLength, matchedLength) || key.length != matchedLength)
+			if (!LookupNode(key, index, commonLength, matchedLength) || key.size() != matchedLength)
 			{
 				throw std::runtime_error("Key not found.");
 			}

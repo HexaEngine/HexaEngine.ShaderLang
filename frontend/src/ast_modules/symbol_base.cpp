@@ -2,29 +2,11 @@
 #include "interfaces.hpp"
 #include "semantics/symbols/symbol_table.hpp"
 #include "helpers.hpp"
+#include "ast_context.hpp"
 
 namespace HXSL
 {
-	void SymbolDef::UpdateName()
-	{
-		std::string_view fqnView = *fullyQualifiedName.get();
-		auto end = fqnView.find('(');
-		if (end != std::string::npos)
-		{
-			fqnView = fqnView.substr(0, end);
-		}
-
-		auto pos = fqnView.find_last_of(QUALIFIER_SEP);
-		if (pos != std::string::npos)
-		{
-			pos++;
-			name = fqnView.substr(pos);
-		}
-		else
-		{
-			name = fqnView;
-		}
-	}
+#pragma region SymbolDef
 
 	void SymbolDef::SetAssembly(const Assembly* assembly, const SymbolHandle& handle)
 	{
@@ -37,60 +19,135 @@ namespace HXSL
 	{
 		if (symbolHandle.invalid())
 		{
-			fullyQualifiedName.reset();
+			fullyQualifiedName = nullptr;
 			return;
 		}
 
-		if (fullyQualifiedName.get())
-		{
-			*fullyQualifiedName.get() = symbolHandle.GetFullyQualifiedName();
-		}
-		else
-		{
-			fullyQualifiedName = make_ast_ptr<std::string>(symbolHandle.GetFullyQualifiedName());
-		}
+		auto* context = ASTContext::GetCurrentContext();
+		fullyQualifiedName = context->GetIdentifierTable().Get(symbolHandle.GetFullyQualifiedName());
+	}
 
-		UpdateName();
+	const StringSpan& SymbolDef::GetName() const
+	{
+		return identifer->name;
+	}
+
+	const StringSpan& SymbolDef::GetFullyQualifiedName() const noexcept
+	{
+		return fullyQualifiedName->name;
 	}
 
 	const SymbolMetadata* SymbolDef::GetMetadata() const
 	{
-		auto& node = symbolHandle.GetNode();
-		return node.Metadata.get();
+		return symbolHandle.GetMetadata();
 	}
 
-	ast_ptr<SymbolRef> SymbolDef::MakeSymbolRef() const
+	bool SymbolDef::IsConstant() const
 	{
-		auto ref = make_ast_ptr<SymbolRef>(std::string(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
+		switch (type)
+		{
+		case NodeType_Field: return (cast<Field>(this)->GetStorageClass() & StorageClass_Const) != 0;
+		case NodeType_DeclarationStatement: return (cast<DeclarationStatement>(this)->GetStorageClass() & StorageClass_Const) != 0;
+		}
+		return false;
+	}
+
+	AccessModifier SymbolDef::GetAccessModifiers() const
+	{
+		switch (type)
+		{
+		case NodeType_Namespace: return AccessModifier_Public;
+		case NodeType_Enum: HXSL_ASSERT(false, "Enums not implemented."); return AccessModifier_None; // TODO: Enums.
+		case NodeType_Primitive: return AccessModifier_Public;
+		case NodeType_Struct: return cast<Struct>(this)->GetAccessModifiers();
+		case NodeType_Class: return cast<Class>(this)->GetAccessModifiers();
+		case NodeType_Array: return AccessModifier_Public;
+		case NodeType_Pointer: return AccessModifier_Public;
+		case NodeType_Field: return cast<Field>(this)->GetAccessModifiers();;
+		case NodeType_IntrinsicFunction: return AccessModifier_Public;
+		case NodeType_FunctionOverload: return cast<FunctionOverload>(this)->GetAccessModifiers();
+		case NodeType_OperatorOverload: return cast<OperatorOverload>(this)->GetAccessModifiers();
+		case NodeType_ConstructorOverload: return cast<ConstructorOverload>(this)->GetAccessModifiers();;
+		case NodeType_ThisDef: return AccessModifier_Public;
+		case NodeType_SwizzleDefinition: return AccessModifier_Public;
+		case NodeType_DeclarationStatement: return AccessModifier_Public;
+		case NodeType_Parameter: return AccessModifier_Public;
+		default:
+			break;
+		}
+		HXSL_ASSERT(false, "Unhandled SymbolDef type.");
+		return AccessModifier_None;
+	}
+
+	SymbolType SymbolDef::GetSymbolType() const
+	{
+		switch (type)
+		{
+		case NodeType_Namespace: return SymbolType_Namespace;
+		case NodeType_Enum: return SymbolType_Enum;
+		case NodeType_Primitive: return SymbolType_Struct;
+		case NodeType_Struct: return SymbolType_Struct;
+		case NodeType_Class: return SymbolType_Class;
+		case NodeType_Array: return SymbolType_Array;
+		case NodeType_Pointer: return SymbolType_Pointer;
+		case NodeType_Field: return SymbolType_Field;
+		case NodeType_IntrinsicFunction: return SymbolType_IntrinsicFunction;
+		case NodeType_FunctionOverload: return SymbolType_Function;
+		case NodeType_OperatorOverload: return SymbolType_Operator;
+		case NodeType_ConstructorOverload: return SymbolType_Constructor;
+		case NodeType_ThisDef: return SymbolType_Variable;
+		case NodeType_SwizzleDefinition: return SymbolType_Field;
+		case NodeType_DeclarationStatement: return SymbolType_Variable;
+		case NodeType_Parameter: return SymbolType_Variable;
+		default:
+			break;
+		}
+		HXSL_ASSERT(false, "Unhandled SymbolDef type.");
+		return SymbolType_Unknown;
+	}
+
+	SymbolRef* SymbolDef::MakeSymbolRef() const
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		auto ref = SymbolRef::Create({}, context->GetIdentifierTable().Get(GetName()), ConvertSymbolTypeToSymbolRefType(GetSymbolType()), false);
 		ref->SetTable(GetSymbolHandle());
 		return ref;
 	}
 
-	void SymbolRef::TrimCastType()
+	const StringSpan& SymbolDef::ToString() const noexcept
 	{
-		std::string& result = *fullyQualifiedName.get();
-		result.erase(std::remove(result.begin(), result.end(), '('), result.end());
-		result.erase(std::remove(result.begin(), result.end(), ')'), result.end());
-		UpdateName();
+		return GetFullyQualifiedName();
 	}
 
-	void SymbolRef::UpdateName()
+#pragma endregion
+
+#pragma region SymbolRef
+
+	SymbolRef* SymbolRef::Create(const TextSpan& span, IdentifierInfo* identifier, SymbolRefType type, bool isFullyQualified)
 	{
-		name = *fullyQualifiedName.get();
-		auto pos = name.find_last_of(QUALIFIER_SEP);
-		if (pos != std::string::npos)
+		auto* context = ASTContext::GetCurrentContext();
+		return context->Alloc<SymbolRef>(sizeof(SymbolRef), span, identifier, type, isFullyQualified);
+	}
+
+	StringSpan SymbolRef::GetName() const noexcept
+	{
+		if (!identifier) return {};
+		auto span = identifier->name.view();
+		if (isFullyQualified)
 		{
-			pos++;
-			name = name.substr(pos);
+			auto pos = span.find_last_of(QUALIFIER_SEP);
+			if (pos != std::string::npos)
+			{
+				pos++;
+				span = span.substr(pos);
+			}
 		}
+		return span;
 	}
 
 	void SymbolRef::SetTable(const SymbolHandle& handle)
 	{
-		this->symbolHandle = handle;
-		auto meta = GetMetadata();
-		GetDeclaration()->AddRef(this);
-		fullyQualifiedName = make_ast_ptr<std::string>(handle.GetFullyQualifiedName().c_str());
+		def = handle.GetMetadata()->declaration;
 	}
 
 	void SymbolRef::SetDeclaration(const SymbolDef* node)
@@ -98,33 +155,35 @@ namespace HXSL
 		SetTable(node->GetSymbolHandle());
 	}
 
-	const std::string& SymbolRef::GetFullyQualifiedName() const
+	void SymbolRef::TrimCastType()
 	{
-		return *fullyQualifiedName.get();
+		StringSpan result = identifier->name;
+		result = result.trim_start('(');
+		result = result.trim_end(')');
+		identifier = ASTContext::GetCurrentContext()->GetIdentifier(result);
 	}
 
-	const SymbolMetadata* SymbolRef::GetMetadata() const
+	const SymbolHandle& SymbolRef::GetSymbolHandle() const
 	{
-		return symbolHandle.GetMetadata();
+		return def->GetSymbolHandle();
+	}
+
+	const StringSpan& SymbolRef::GetFullyQualifiedName() const
+	{
+		return def->GetFullyQualifiedName();
 	}
 
 	SymbolDef* SymbolRef::GetDeclaration() const
 	{
-		auto metadata = GetMetadata();
-		if (metadata)
-		{
-			return metadata->declaration;
-		}
-		return nullptr;
+		return def;
 	}
 
 	SymbolDef* SymbolRef::GetBaseDeclaration() const
 	{
 		std::unordered_set<const SymbolDef*> visited;
 		auto decl = GetDeclaration();
-		while (auto refPtr = SymbolRefHelper::TryGetSymbolRef(decl))
+		while (auto ref = SymbolRefHelper::TryGetSymbolRef(decl))
 		{
-			auto& ref = *refPtr;
 			if (!visited.insert(decl).second)
 			{
 				return nullptr;
@@ -138,9 +197,8 @@ namespace HXSL
 	{
 		std::unordered_set<const SymbolDef*> visited;
 		auto decl = GetDeclaration();
-		while (auto refPtr = SymbolRefHelper::TryGetSymbolRef(decl))
+		while (auto ref = SymbolRefHelper::TryGetSymbolRef(decl))
 		{
-			auto& ref = *refPtr;
 			if (!visited.insert(decl).second)
 			{
 				return nullptr;
@@ -154,16 +212,38 @@ namespace HXSL
 		return decl;
 	}
 
-	void SymbolRef::Write(Stream& stream) const
+	SymbolRef* SymbolRef::Clone() const
 	{
-		stream.WriteUInt(type);
-		stream.WriteString(GetFullyQualifiedName());
+		auto cloned = Create(span, identifier, type, isFullyQualified);
+		cloned->identifier = identifier;
+		cloned->span = span;
+		cloned->type = type;
+		cloned->def = def;
+		cloned->isDeferred = isDeferred;
+		cloned->notFound = notFound;
+		return cloned;
 	}
 
-	void SymbolRef::Read(Stream& stream)
+	const StringSpan& SymbolRef::ToString() const noexcept
 	{
-		type = static_cast<SymbolRefType>(stream.ReadUInt());
-		fullyQualifiedName = make_ast_ptr<std::string>(stream.ReadString().c_str());
-		UpdateName();
+		return GetFullyQualifiedName();
+	}
+
+#pragma endregion
+
+	SymbolRefArray* SymbolRefArray::Create(const TextSpan& span, IdentifierInfo* name, const Span<size_t>& arrayDims)
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<SymbolRefArray>(TotalSizeToAlloc(arrayDims.size()), span, name);
+		ptr->storage.InitializeMove(ptr, arrayDims);
+		return ptr;
+	}
+
+	SymbolRefArray* SymbolRefArray::Create(const TextSpan& span, IdentifierInfo* name, uint32_t numArrayDims)
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<SymbolRefArray>(TotalSizeToAlloc(numArrayDims), span, name);
+		ptr->storage.SetCounts(numArrayDims);
+		return ptr;
 	}
 }
