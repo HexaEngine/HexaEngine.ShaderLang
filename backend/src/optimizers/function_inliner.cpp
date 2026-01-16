@@ -1,134 +1,166 @@
 #include "optimizers/function_inliner.hpp"
+#include "il/func_call_graph.hpp"
+#include "il/dag_graph.hpp"
 
 namespace HXSL
 {
-	/*
-	bool FunctionInliner::TryMapOperand(ILOperand& operand)
+	namespace Backend
 	{
-		if (operand.kind == ILOperandKind_Register)
+		ILVarId FunctionInliner::RemapVarId(const ILVarId& varId)
 		{
-			auto it = registerMap.find(operand.reg);
-			if (it != registerMap.end())
+			auto* caller = callerLayout->GetContext();
+			auto* callee = calleeLayout->GetContext();
+			auto& callerMetadata = caller->metadata;
+			auto& calleeMetadata = callee->metadata;
+
+			ILVarId newVarId;
+			auto strippedVarId = varId.StripVersion();
+			auto it = baseVarMap.find(strippedVarId);
+
+			if (it != baseVarMap.end())
 			{
-				operand.reg = it->second;
-				return true;
+				newVarId = it->second;
 			}
-			return false;
-		}
-		else if (operand.kind == ILOperandKind_Variable)
-		{
-			auto it = variableMap.find(operand.varId);
-			if (it != variableMap.end())
+			else
 			{
-				operand.varId = it->second;
-				return true;
+				auto& var = calleeMetadata.GetVar(varId);
+				auto& newVar = callerMetadata.CloneVar(varId, var);
+				baseVarMap[strippedVarId] = newVar.id;
+				newVarId = newVar.id;
 			}
-			return false;
-		}
-		return true;
-	}
 
-	ILOperand FunctionInliner::MapOperand(const ILOperand& operand)
-	{
-		ILOperand copy = operand;
-		TryMapOperand(copy);
-		return copy;
-	}
-
-	ILInstruction FunctionInliner::MapInstr(const ILInstruction& instr)
-	{
-		ILInstruction copy = instr;
-		if (!TryMapOperand(copy.operandLeft))
-		{
-			copy.operandLeft = AddMapping(instr.operandLeft);
-		}
-		if (!TryMapOperand(copy.operandRight))
-		{
-			copy.operandRight = AddMapping(instr.operandRight);
-		}
-		if (!TryMapOperand(copy.operandResult))
-		{
-			copy.operandResult = AddMapping(instr.operandResult);
+			newVarId = newVarId.WithVersion(varId.version());
+			varIdMap[varId] = newVarId;
+			return newVarId;
 		}
 
-		return copy;
-	}
+		void FunctionInliner::InlineAt(CallInstr* site)
+		{
+			params.clear();
+			baseVarMap.clear();
+			varIdMap.clear();
 
-	ILOperand FunctionInliner::AddMapping(const ILOperand& op)
-	{
-		if (op.kind == ILOperandKind_Register)
-		{
-			auto newReg = builder.GetTempAllocator().Alloc();
-			registerMap.insert({ op.reg, newReg });
-			return newReg;
-		}
-		else if (op.kind == ILOperandKind_Variable)
-		{
-		}
-		return op;
-	}
+			auto* caller = callerLayout->GetContext();
+			auto* callee = calleeLayout->GetContext();
+			auto& callerCFG = caller->cfg;
+			auto& calleeCFG = callee->cfg;
+			auto& callerMetadata = caller->metadata;
+			auto& calleeMetadata = callee->metadata;
 
-	void FunctionInliner::Inline(ILContext& ctx, uint64_t funcSlot)
-	{
-		auto& container = builder.GetContainer();
-		ILContainer outContainer;
-		std::vector<size_t> params;
-		std::vector<ILDiff> diffs;
-		for (size_t i = 0; i < container.size(); i++)
-		{
-			auto& instr = container[i];
-			if (instr.opcode == OpCode_StoreParam)
+			auto paramCount = calleeLayout->GetParameters().size();
+			params.resize(paramCount);
+
+			auto prev = site->GetPrev();
+			auto block = site->GetParent();
+			Instruction* lastArg = site;
+	
+
+			auto insertTarget = BasicBlock::instr_iterator(site);
+
+			while (prev)
 			{
-				params.push_back(i);
-				continue;
-			}
-			if (instr.opcode == OpCode_Call)
-			{
-				if (instr.operandLeft.kind == ILOperandKind_Func && instr.operandLeft.varId == funcSlot)
+				auto arg = dyn_cast<StoreParamInstr>(prev);
+				if (!arg)
 				{
-					ILOperand returnDest = instr.operandResult;
-					size_t paramIndex = 0;
-					auto& otherContainer = ctx.builder.GetContainer();
-					for (auto& otherInstr : otherContainer.instructions)
-					{
-						if (otherInstr.IsOp(OpCode_LoadParam))
-						{
-							auto& param = container[params[paramIndex]];
-							outContainer.AddInstr(OpCode_Move, param.operandLeft, AddMapping(otherInstr.operandLeft));
-							continue;
-						}
-						else if (otherInstr.IsOp(OpCode_Return))
-						{
-							outContainer.AddInstr(OpCode_Move, MapOperand(otherInstr.operandLeft), returnDest);
-							continue;
-						}
-
-						outContainer.AddInstr(MapInstr(otherInstr));
-					}
-
-					size_t start = params.size() > 0 ? params[0] : i;
-					int64_t len = static_cast<int64_t>((i + 1) - start);
-					int64_t diff = otherContainer.size() - len;
-					if (diff != 0)
-					{
-						diffs.push_back(ILDiff(start, diff));
-					}
-					params.clear();
-					continue;
+					break;
 				}
-				for (auto param : params) { outContainer.AddInstr(container[param]); }
-				params.clear();
+
+				auto src = arg->GetSource();
+				auto idx = arg->GetParamIdx();
+				auto& info = params[idx];
+				if (auto constant = dyn_cast<Constant>(src))
+				{
+					auto imm = constant->imm();
+					info.type = ParamInfoType::Imm;
+					info.imm = imm;
+				}
+				else if (auto var = dyn_cast<Variable>(src))
+				{
+					info.type = ParamInfoType::VarId;
+					info.varId = var->varId;
+				}
+				else
+				{
+					HXSL_ASSERT(false, "Unhandled param type in function inliner.")
+				}
+
+				auto next = prev->GetPrev();
+				block->RemoveInstr(prev);
+				prev = next;
 			}
 
-			outContainer.AddInstr(instr);
-		}
 
-		// we could do a heuristic here.
-		container.instructions = std::move(outContainer.instructions);
-		auto& jumpTable = builder.GetJumpTable();
-		jumpTable.Relocate(diffs);
-		auto& metadata = builder.GetMetadata();
-		metadata.RemoveFunc(funcSlot);
-	}
-	*/
+			for (auto& calleeBlock : calleeCFG.GetNodes())
+			{
+				for (auto& instr : *calleeBlock)
+				{
+					if (auto loadParam = dyn_cast<LoadParamInstr>(&instr))
+					{
+						auto idx = loadParam->GetParamIdx();
+						auto& info = params[idx];
+						auto dst = loadParam->GetResult();
+						if (info.type == ParamInfoType::Imm)
+						{
+							auto newVarId = RemapVarId(dst);
+							block->InsertInstrO<MoveInstr>(insertTarget, newVarId, info.imm);
+						}
+						else if (info.type == ParamInfoType::VarId)
+						{
+							varIdMap[dst] = info.varId;
+						}
+						else 
+						{
+							HXSL_ASSERT(false, "Unknown parameter info type in inliner.");
+						}
+
+						continue;
+					}
+					else if (auto retInstr = dyn_cast<ReturnInstr>(&instr))
+					{
+						auto src = retInstr->GetReturnValue();
+						if (auto var = dyn_cast<Variable>(src))
+						{
+							auto itt = varIdMap.find(var->varId);
+							HXSL_ASSERT(itt != varIdMap.end(), "Variable has no mapping, this should never happen while inlining.");
+							auto varId = itt->second;
+
+							block->InsertInstrO<MoveInstr>(insertTarget, site->GetResult(), varId);
+						}
+						else if (auto constant = dyn_cast<Constant>(src))
+						{
+							block->InsertInstrO<MoveInstr>(insertTarget, site->GetResult(), constant->imm());
+						}
+						else
+						{
+							HXSL_ASSERT(false, "Unhandled return value type in inliner.");
+						}
+
+						continue;
+					}
+
+					auto clonedInstr = instr.Clone(callerCFG.allocator);
+					if (auto resInstr = dyn_cast<ResultInstr>(clonedInstr))
+					{
+						auto varId = resInstr->GetResult();
+						ILVarId newVarId = RemapVarId(varId);
+						resInstr->SetResult(newVarId);
+					}
+
+					for (auto& op : clonedInstr->GetOperands())
+					{
+						if (auto var = dyn_cast<Variable>(op))
+						{
+							auto it = varIdMap.find(var->varId);
+							HXSL_ASSERT(it != varIdMap.end(), "Variable has no mapping, this should never happen while inlining.");
+							var->varId = it->second;
+						}
+					}
+
+					block->InsertInstr(insertTarget, clonedInstr);
+				}
+			}
+
+			block->RemoveInstr(site);
+		}
+	}	
 }

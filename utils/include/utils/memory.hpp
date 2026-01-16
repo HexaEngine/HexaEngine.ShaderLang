@@ -134,25 +134,6 @@ namespace HXSL
 	template<std::size_t Alignment, typename T>
 	using aligned_allocator_t = aligned_allocator<T>;
 
-
-	inline static void* aligned_alloc(size_t alignment, size_t size)
-	{
-#if defined(_MSC_VER)
-		return _aligned_malloc(size, alignment);
-#else
-		return std::aligned_alloc(alignment, size);
-#endif
-	}
-
-	inline static void aligned_free(void* ptr)
-	{
-#if defined(_MSC_VER)
-		_aligned_free(ptr);
-#else
-		std::free(ptr);
-#endif
-	}
-
 	class SharedPtrBase
 	{
 		std::atomic<size_t> refCount{ 1 };

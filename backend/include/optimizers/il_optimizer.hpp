@@ -20,6 +20,8 @@ namespace HXSL
 			void Optimize();
 
 			void Optimize(ILContext* function);
+
+			void OptimizeFunctions(const Span<FunctionLayout*>& functions);
 		};
 	}
 }

@@ -109,6 +109,7 @@ namespace HXSL
 		{
 		public:
 			FunctionLayout* func;
+			std::vector<CallInstr*> callSites;
 
 			ILFuncCallMetadata(FunctionLayout* func) : func(func)
 			{
@@ -167,6 +168,21 @@ namespace HXSL
 				if (it != funcMap.end())
 				{
 					RemoveFunc(it->second);
+				}
+			}
+
+			ILVariable& CloneVar(ILVarId varId, const ILVariable& var)
+			{
+				auto type = var.typeId;
+				auto newType = RegType(type->def);
+
+				if (varId.temp())
+				{
+					return RegTempVar(type);
+				}
+				else
+				{
+					return RegVar(type);
 				}
 			}
 

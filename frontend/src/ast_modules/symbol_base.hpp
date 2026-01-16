@@ -196,7 +196,7 @@ namespace HXSL
 		
 		bool HasFullyQualifiedName() const noexcept { return isFullyQualified; }
 
-		const SymbolRefType& GetType() const noexcept { return type; }
+		SymbolRefType GetType() const noexcept { return type; }
 
 		void OverwriteType(const SymbolRefType& value) noexcept { type = value; }
 

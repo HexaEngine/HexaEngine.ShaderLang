@@ -10,15 +10,14 @@ namespace HXSL
 {
 	namespace Backend
 	{
-		template <typename T>
-		struct FCGNode : public GraphNode<FCGNode<T>>
+		struct FCGNode : public GraphNode<FCGNode>
 		{
-			T value;
+			FunctionLayout* function;
 			size_t index;
 			std::vector<size_t> dependencies;
 			std::vector<size_t> dependants;
 
-			FCGNode(const T& value, const size_t& index) : value(value), index(index)
+			FCGNode(FunctionLayout* function, const size_t& index) : function(function), index(index)
 			{
 			}
 
@@ -33,22 +32,47 @@ namespace HXSL
 			}
 		};
 
-		template <typename T>
-		class FuncCallGraph
+		class FuncCallGraph : public GraphPtrBase<FCGNode>
 		{
-			std::vector<FCGNode<T>> nodes;
-			std::unordered_map<T, size_t> valueToNode;
+			dense_map<FunctionLayout*, size_t> valueToNode;
+			std::vector<std::vector<size_t>> sccs;
 
 		public:
-			void AddFunction(const T& func)
+			void Clear()
 			{
-				auto index = nodes.size();
-				FCGNode node = FCGNode(func, index);
-				nodes.push_back(node);
-				valueToNode.insert({ func, index });
+				nodes.clear();
+				valueToNode.clear();
+				sccs.clear();
 			}
 
-			void AddCall(const T& caller, const T& callee)
+			size_t GetIndex(FunctionLayout* func) const
+			{
+				auto it = valueToNode.find(func);
+				if (it == valueToNode.end())
+				{
+					return std::string::npos;
+				}
+				return it->second;
+			}
+
+			FCGNode* GetNode(FunctionLayout* func) const
+			{
+				auto it = valueToNode.find(func);
+				if (it == valueToNode.end())
+				{
+					return nullptr;
+				}
+				return nodes[it->second].get();
+			}
+
+			void AddFunction(FunctionLayout* func)
+			{
+				auto index = nodes.size();
+				nodes.emplace_back(make_uptr<FCGNode>(func, index));
+				valueToNode[func] = index;
+			}
+
+			void AddCall(FunctionLayout* caller, FunctionLayout* callee)
 			{
 				auto itCallee = valueToNode.find(callee);
 				if (itCallee == valueToNode.end())
@@ -62,13 +86,18 @@ namespace HXSL
 				}
 				auto& nodeCallee = nodes[itCallee->second];
 				auto& nodeCaller = nodes[itCaller->second];
-				nodeCallee.dependants.push_back(itCaller->second);
-				nodeCaller.dependencies.push_back(itCallee->second);
+				nodeCallee->dependants.push_back(itCaller->second);
+				nodeCaller->dependencies.push_back(itCallee->second);
 			}
 
-			std::vector<std::vector<size_t>> ComputeSCCs() const
+			void UpdateSCCs()
 			{
-				return SCCGraph<FCGNode<T>>::ComputeSCCs(nodes);
+				sccs = SCCGraph<FCGNode>::ComputeSCCs(nodes);
+			}
+
+			const std::vector<std::vector<size_t>>& GetSCCs() const
+			{
+				return sccs;
 			}
 		};
 	}

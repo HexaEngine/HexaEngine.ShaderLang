@@ -369,14 +369,17 @@ namespace HXSL
 							AddInstrONO<StoreParamInstr>(currentFrame.rightRegister, Number(paramOffset + currentFrame.state - 1));
 						}
 
+						auto* callMetadata = RegFunc(overload);
+						CallInstr* callInstr;
 						if (returnType != nullptr && !expression->IsVoidType())
 						{
-							AddInstrO<CallInstr>(currentFrame.outRegister, RegFunc(overload));
+							callInstr = AddInstrO<CallInstr>(currentFrame.outRegister, callMetadata);
 						}
 						else
 						{
-							AddInstrONO<CallInstr>(RegFunc(overload));
+							callInstr = AddInstrONO<CallInstr>(callMetadata);
 						}
+						callMetadata->callSites.push_back(callInstr);
 						break;
 					}
 				}

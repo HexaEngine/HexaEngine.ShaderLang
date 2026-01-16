@@ -104,6 +104,12 @@ namespace HXSL
 				v.version = 0;
 				return ILVarId(v);
 			}
+			constexpr ILVarId WithVersion(uint32_t version) const
+			{
+				ILVarId_T v = var;
+				v.version = version;
+				return ILVarId(v);
+			}
 
 			constexpr operator uint64_t() const { return raw; }
 			constexpr operator ILVarId_T() const { return var; }

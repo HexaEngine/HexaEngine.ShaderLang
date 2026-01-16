@@ -39,40 +39,50 @@ namespace HXSL
 			ILContainerAdapter(ILContainer& container) : allocator(container.get_allocator()), container(container) {}
 
 			template<typename T, typename... Operands>
-			void AddInstr(ILOpCode opcode, ILVarId result, Operands&&... operands)
+			T* AddInstr(ILOpCode opcode, ILVarId result, Operands&&... operands)
 			{
 				static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 				OperandFactory factory{ allocator };
-				container.append_move(allocator.Alloc<T>(allocator, opcode, result, factory(std::forward<Operands>(operands))...));
+				auto* instr = allocator.Alloc<T>(allocator, opcode, result, factory(std::forward<Operands>(operands))...);
+				container.append_move(instr);
+				return instr;
 			}
 
 			template<typename T, typename... Operands>
-			void AddInstrO(const ILVarId& result, Operands&&... operands)
+			T* AddInstrO(const ILVarId& result, Operands&&... operands)
 			{
 				static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 				OperandFactory factory{ allocator };
-				container.append_move(allocator.Alloc<T>(allocator, result, factory(std::forward<Operands>(operands))...));
+				auto* instr = allocator.Alloc<T>(allocator, result, factory(std::forward<Operands>(operands))...);
+				container.append_move(instr);
+				return instr;
 			}
 
 			template<typename T, typename... Operands>
-			void AddInstrNO(ILOpCode opcode, Operands&&... operands)
+			T* AddInstrNO(ILOpCode opcode, Operands&&... operands)
 			{
 				static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 				OperandFactory factory{ allocator };
-				container.append_move(allocator.Alloc<T>(allocator, opcode, factory(std::forward<Operands>(operands))...));
+				auto* instr = allocator.Alloc<T>(allocator, opcode, factory(std::forward<Operands>(operands))...);
+				container.append_move(instr);
+				return instr;
 			}
 
 			template<typename T, typename... Operands>
-			void AddInstrONO(Operands&&... operands)
+			T* AddInstrONO(Operands&&... operands)
 			{
 				static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
 				OperandFactory factory{ allocator };
-				container.append_move(allocator.Alloc<T>(allocator, factory(std::forward<Operands>(operands))...));
+				auto* instr = allocator.Alloc<T>(allocator, factory(std::forward<Operands>(operands))...);
+				container.append_move(instr);
+				return instr;
 			}
 
-			void AddBasicInstr(ILOpCode opcode)
+			BasicInstr* AddBasicInstr(ILOpCode opcode)
 			{
-				container.append_move(allocator.Alloc<BasicInstr>(allocator, opcode));
+				auto* instr = allocator.Alloc<BasicInstr>(allocator, opcode);
+				container.append_move(instr);
+				return instr;
 			}
 
 			template<typename U>

@@ -269,6 +269,8 @@ namespace HXSL
 			uint64_t hash() const;
 			bool operator==(const Instruction& other) const;
 			bool operator!=(const Instruction& other) const { return !(*this == other); }
+
+			Instruction* Clone(BumpAllocator& alloc) const;
 		};
 
 		class BasicInstr : public Instruction
@@ -325,6 +327,8 @@ namespace HXSL
 			{
 				operands.assign(nullptr);
 			}
+
+			Operand* GetReturnValue() const { return operands[0]; }
 		};
 
 		class CallInstr : public ResultInstr
@@ -417,6 +421,10 @@ namespace HXSL
 			{
 				operands.assign(dst, src);
 			}
+
+			Operand* GetSource() { return operands[0]; }
+			Operand* GetDestination() { return operands[1]; }
+			size_t GetParamIdx() const { return cast<Constant>(operands[1])->imm().ToSizeT(); }
 		};
 
 		class LoadParamInstr : public ResultInstr
@@ -427,6 +435,9 @@ namespace HXSL
 			{
 				operands.assign(src);
 			}
+
+			Operand* GetSource() { return operands[0]; }
+			size_t GetParamIdx() const { return cast<Constant>(operands[0])->imm().ToSizeT(); }
 		};
 
 		class MoveInstr : public ResultInstr

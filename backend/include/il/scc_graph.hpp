@@ -11,7 +11,7 @@ namespace HXSL
 		class SCCGraph
 		{
 		public:
-			static std::vector<std::vector<size_t>> ComputeSCCs(const std::vector<T>& nodes)
+			static std::vector<std::vector<size_t>> ComputeSCCs(const std::vector<uptr<T>>& nodes)
 			{
 				std::vector<std::vector<size_t>> sccs;
 
@@ -50,9 +50,9 @@ namespace HXSL
 							frame.returning = true;
 						}
 
-						while (frame.i < nodes[current].dependencies.size())
+						while (frame.i < nodes[current]->dependencies.size())
 						{
-							size_t w = nodes[current].dependencies[frame.i++];
+							size_t w = nodes[current]->dependencies[frame.i++];
 
 							if (index[w] == -1)
 							{
@@ -65,9 +65,9 @@ namespace HXSL
 							}
 						}
 
-						if (frame.i == nodes[current].dependencies.size())
+						if (frame.i == nodes[current]->dependencies.size())
 						{
-							for (size_t w : nodes[current].dependencies)
+							for (size_t w : nodes[current]->dependencies)
 							{
 								if (onStack[w])
 								{

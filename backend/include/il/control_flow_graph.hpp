@@ -115,6 +115,23 @@ namespace HXSL
 				return static_cast<U*>(res);
 			}
 
+			template<typename T, typename... Operands>
+			Instruction* InsertInstrO(const instr_iterator& it, ILVarId result, Operands&&... operands)
+			{
+				static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+				auto& allocator = instructions.get_allocator();
+				OperandFactory factory{ allocator };
+				auto res = instructions.insert(it, allocator.Alloc<T>(allocator, result, factory(std::forward<Operands>(operands))...));
+				res->SetParent(this);
+				return res;
+			}
+
+			void InsertInstr(const instr_iterator& it, Instruction* instr)
+			{
+				instr->SetParent(this);
+				instructions.insert(it, instr);
+			}
+
 			void RemoveInstr(Instruction* instr)
 			{
 				instr->SetParent(nullptr);
