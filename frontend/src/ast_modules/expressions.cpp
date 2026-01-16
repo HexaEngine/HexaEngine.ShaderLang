@@ -82,6 +82,7 @@ namespace HXSL
 		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<FunctionCallExpression>(TotalSizeToAlloc(parameters.size()), span, symbol);
 		ptr->storage.InitializeMove(ptr, parameters);
+		REGISTER_CHILDREN_PTR(ptr, GetParameters());
 		return ptr;
 	}
 

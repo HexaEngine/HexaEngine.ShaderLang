@@ -192,7 +192,7 @@ namespace HXSL
 											cfg.Unlink(index, succs);
 											i--;
 
-											auto& succsNode = cfg.GetNode(succs);
+											auto& succsNode = *cfg.GetNode(succs);
 											if (succsNode.IsPredecessorsEmpty())
 											{
 												cfg.RemoveNode(succs);
@@ -203,7 +203,7 @@ namespace HXSL
 									node.SetType(ControlFlowType_Normal);
 									node.InstructionsTrimEnd(&instr);
 
-									auto& targetNode = cfg.GetNode(target);
+									auto& targetNode = *cfg.GetNode(target);
 									if (targetNode.NumPredecessors() == 1 && targetNode.GetPredecessors()[0] == index)
 									{
 										cfg.MergeNodes(index, target);
@@ -212,7 +212,7 @@ namespace HXSL
 								else
 								{
 									cfg.Unlink(index, target);
-									auto& succsNode = cfg.GetNode(target);
+									auto& succsNode = *cfg.GetNode(target);
 									if (succsNode.IsPredecessorsEmpty())
 									{
 										cfg.RemoveNode(target);

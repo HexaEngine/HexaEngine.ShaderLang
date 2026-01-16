@@ -39,6 +39,21 @@ namespace HXSL
 			TNode& GetNode(size_t index) { return nodes[index]; }
 			const TNode& GetNode(size_t index) const { return nodes[index]; }
 		};
+
+		template <IsGraphNode TNode>
+		class GraphPtrBase
+		{
+		protected:
+			std::vector<uptr<TNode>> nodes;
+
+		public:
+			size_t size() const noexcept { return nodes.size(); }
+			bool empty() const noexcept { return nodes.empty(); }
+
+			const std::vector<uptr<TNode>>& GetNodes() const noexcept { return nodes; }
+			uptr<TNode>& GetNode(size_t index) { return nodes[index]; }
+			const uptr<TNode>*& GetNode(size_t index) const { return nodes[index]; }
+		};
 	}
 }
 

@@ -32,7 +32,7 @@ namespace HXSL
 				}
 
 				auto next = instr->GetNext();
-				auto& node = GetNode(currentIdx);
+				auto& node = *GetNode(currentIdx);
 				node.AddInstr(instr);
 				instrToNode.insert({ instr, currentIdx });
 
@@ -62,8 +62,9 @@ namespace HXSL
 				}
 			}
 
-			for (auto& node : nodes)
+			for (auto& pnode : nodes)
 			{
+				auto& node = *pnode;
 				if (node.instructions.empty())
 					continue;
 
@@ -130,7 +131,7 @@ namespace HXSL
 
 		void ControlFlowGraph::UpdatePhiInputs(size_t removedPred, size_t targetBlock)
 		{
-			auto& block = nodes[targetBlock];
+			auto& block = *nodes[targetBlock];
 
 			for (auto& instr : block)
 			{
@@ -151,22 +152,22 @@ namespace HXSL
 
 		void ControlFlowGraph::Unlink(size_t from, size_t to)
 		{
-			nodes[from].RemoveSuccessor(to);
-			nodes[to].RemovePredecessor(from);
+			nodes[from]->RemoveSuccessor(to);
+			nodes[to]->RemovePredecessor(from);
 			UpdatePhiInputs(to, from);
 		}
 
 		void ControlFlowGraph::RemoveNode(size_t index)
 		{
-			auto& node = nodes[index];
+			auto& node = *nodes[index];
 			for (auto& pred : node.predecessors)
 			{
-				nodes[pred].RemoveSuccessor(index);
+				nodes[pred]->RemoveSuccessor(index);
 			}
 			for (auto& succs : node.successors)
 			{
 				UpdatePhiInputs(index, succs);
-				nodes[succs].RemovePredecessor(index);
+				nodes[succs]->RemovePredecessor(index);
 			}
 
 			auto last = nodes.size() - 1;
@@ -178,17 +179,17 @@ namespace HXSL
 
 			std::swap(nodes[index], nodes[last]);
 
-			auto& swapped = nodes[index];
+			auto& swapped = *nodes[index];
 			swapped.id = index;
 
 			for (auto pred : swapped.predecessors)
 			{
-				for (auto& s : nodes[pred].successors)
+				for (auto& s : nodes[pred]->successors)
 				{
 					if (s == last)
 					{
 						s = index;
-						for (auto& instr : nodes[pred].instructions)
+						for (auto& instr : nodes[pred]->instructions)
 						{
 							if (auto jump = dyn_cast<JumpInstr>(&instr))
 							{
@@ -205,7 +206,7 @@ namespace HXSL
 
 			for (auto succs : swapped.successors)
 			{
-				for (auto& p : nodes[succs].predecessors)
+				for (auto& p : nodes[succs]->predecessors)
 				{
 					if (p == last) p = index;
 				}
@@ -219,21 +220,21 @@ namespace HXSL
 			auto& src = nodes[from];
 			auto& dst = nodes[to];
 
-			for (auto& pred : src.predecessors)
+			for (auto& pred : src->predecessors)
 			{
-				nodes[pred].RemoveSuccessor(from);
+				nodes[pred]->RemoveSuccessor(from);
 				Link(pred, to);
 			}
-			src.predecessors.clear();
+			src->predecessors.clear();
 
-			for (auto& succs : src.successors)
+			for (auto& succs : src->successors)
 			{
-				nodes[succs].RemovePredecessor(from);
+				nodes[succs]->RemovePredecessor(from);
 				Link(to, succs);
 			}
-			src.successors.clear();
+			src->successors.clear();
 
-			dst.instructions.prepend_move(src.instructions);
+			dst->instructions.prepend_move(src->instructions);
 
 			RemoveNode(from);
 		}

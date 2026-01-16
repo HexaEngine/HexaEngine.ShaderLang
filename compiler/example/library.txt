@@ -7,9 +7,23 @@ struct MyStruct
 	float value2;
 }
 
+float pow2(float x)
+{
+	return x * x;
+}
+
 float test(float x, float y)
 {
-	MyStruct a;
-	a.value1 = 10;
-	return x * 80 + x * 80 + x * 80 * a.value1;
+	float a;
+	a = 10;
+	if (x > y)
+	{
+		a = x + y;
+	}
+	else
+	{
+		a = x - y;
+	}
+	a = pow2(a);
+	return x * 80 + x * 80 + x * 80 * a;
 }

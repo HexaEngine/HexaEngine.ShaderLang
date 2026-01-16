@@ -37,7 +37,7 @@ namespace HXSL
 
 			for (auto succ : node.GetDependants())
 			{
-				auto& succNode = cfg.GetNode(succ);
+				auto& succNode = *cfg.GetNode(succ);
 				size_t slot = succNode.GetPredecessorIndex(index);
 
 				for (auto& instr : succNode)
@@ -45,7 +45,7 @@ namespace HXSL
 					auto phi = dyn_cast<PhiInstr>(&instr);
 					if (!phi) break;
 					ILVarId varId = phi->GetResult();
-					ILVarId version = TopVersion(varId);
+					ILVarId version = TopVersion(varId.StripVersion());
 					phi->GetOperand(slot) = this->context->MakeVariable(version);
 				}
 			}
@@ -75,7 +75,7 @@ namespace HXSL
 			std::unordered_map<ILVarId, std::unordered_set<size_t>> defSites;
 			for (size_t i = 0; i < n; ++i)
 			{
-				for (auto& instr : cfg.GetNode(i))
+				for (auto& instr : *cfg.GetNode(i))
 				{
 					auto res = dyn_cast<ResultInstr>(&instr);
 					if (!res) continue;
@@ -102,7 +102,7 @@ namespace HXSL
 					{
 						if (hasPhi[varId].insert(df).second)
 						{
-							InsertPhiMeta(cfg.GetNode(df), varId);
+							InsertPhiMeta(*cfg.GetNode(df), varId);
 							if (!p.second.count(df)) wl.push(df);
 						}
 					}

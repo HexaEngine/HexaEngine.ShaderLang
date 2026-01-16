@@ -13,7 +13,7 @@ namespace HXSL
 			auto& nodes = cfg.GetNodes();
 			for (size_t i = 1; i < nodes.size(); i++)
 			{
-				auto& node = nodes[i];
+				auto& node = *nodes[i];
 				if (node.IsPredecessorsEmpty())
 				{
 					TextSpan span;

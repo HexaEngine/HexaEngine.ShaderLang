@@ -54,7 +54,8 @@ namespace HXSL
 			Value::UnaryInstrVal,
 			Value::LoadInstrVal,
 			Value::LoadParamInstrVal,
-			Value::MoveInstrVal>;
+			Value::MoveInstrVal,
+			Value::PhiInstrVal>;
 
 		class ResultInstr;
 

@@ -47,13 +47,15 @@ namespace HXSL
 	ElseStatement* ElseStatement::Create(const TextSpan& span, BlockStatement* body)
 	{
 		auto context = ASTContext::GetCurrentContext();
-		return context->Alloc<ElseStatement>(sizeof(ElseStatement), span, body);
+		auto ptr = context->Alloc<ElseStatement>(sizeof(ElseStatement), span, body);
+		return ptr;
 	}
 
 	ElseIfStatement* ElseIfStatement::Create(const TextSpan& span, Expression* condition, BlockStatement* body)
 	{
 		auto context = ASTContext::GetCurrentContext();
-		return context->Alloc<ElseIfStatement>(sizeof(ElseIfStatement), span, condition, body);
+		auto ptr = context->Alloc<ElseIfStatement>(sizeof(ElseIfStatement), span, condition, body);
+		return ptr;
 	}
 
 	IfStatement* IfStatement::Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<ElseIfStatement*>& elseIfStatements, ElseStatement* elseStatement, const ArrayRef<AttributeDecl*>& attributes)
@@ -61,6 +63,9 @@ namespace HXSL
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<IfStatement>(TotalSizeToAlloc(elseIfStatements.size(), attributes.size()), span, condition, body, elseStatement);
 		ptr->storage.InitializeMove(ptr, elseIfStatements, attributes);
+		REGISTER_CHILDREN_PTR(ptr, GetElseIfStatements());
+		REGISTER_CHILD_PTR(ptr, GetElseStatement());
+
 		return ptr;
 	}
 
