@@ -15,7 +15,14 @@ float pow2(float x)
 float test(float x, float y)
 {
 	float a;
-	a = 10;
+	if (x > y)
+	{
+		a = x + y;
+	}
+	else
+	{
+		a = x - y;
+	}
 	a = pow2(a);
 	return x * 80 + x * 80 + x * 80 * a;
 }
