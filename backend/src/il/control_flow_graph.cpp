@@ -127,6 +127,30 @@ namespace HXSL
 			}
 
 			domFront = tree.ComputeDominanceFrontiers(idom, domTreeChildren);
+
+			domIn.resize(n);
+			domOut.resize(n);
+			size_t time = 0;
+			std::stack<std::pair<size_t, bool>> walkStack;
+			walkStack.push({ 0, false });
+			while (!walkStack.empty())
+			{
+				auto [v, visited] = walkStack.top();
+				walkStack.pop();
+				if (visited)
+				{
+					domOut[v] = time++;
+				}
+				else
+				{
+					domIn[v] = time++;
+					walkStack.push({ v, true });
+					for (auto child : domTreeChildren[v])
+					{
+						walkStack.push({ child, false });
+					}
+				}
+			}
 		}
 
 		void ControlFlowGraph::UpdatePhiInputs(size_t removedPred, size_t targetBlock)

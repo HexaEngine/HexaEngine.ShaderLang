@@ -62,7 +62,8 @@ namespace HXSL
 				auto arg = dyn_cast<StoreParamInstr>(prev);
 				if (!arg)
 				{
-					break;
+					prev = prev->GetPrev();
+					continue;
 				}
 
 				auto src = arg->GetSource();

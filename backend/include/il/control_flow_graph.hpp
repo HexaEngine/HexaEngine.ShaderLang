@@ -61,6 +61,8 @@ namespace HXSL
 		public:
 			BasicBlock(BumpAllocator& allocator, size_t id, ILContext* parent, ControlFlowType type) : id(id), parent(parent), type(type), instructions({ allocator }) {}
 
+			size_t GetId() const noexcept { return id; }
+
 			ILContext* GetParent() const { return parent; }
 
 			void SetType(ControlFlowType value) noexcept { type = value; }
@@ -76,6 +78,7 @@ namespace HXSL
 			bool IsSuccessorsEmpty() const noexcept { return successors.empty(); }
 
 			const ilist<Instruction>& GetInstructions() const { return instructions; }
+			ilist<Instruction>& GetInstructions() { return instructions; }
 
 			instr_iterator begin() { return instructions.begin(); }
 			instr_iterator end() { return instructions.end(); }
@@ -237,6 +240,8 @@ namespace HXSL
 			std::vector<size_t> idom;
 			std::vector<std::vector<size_t>> domTreeChildren;
 			std::vector<std::unordered_set<size_t>> domFront;
+			std::vector<size_t> domIn;
+			std::vector<size_t> domOut;
 
 			ControlFlowGraph(ILContext* context);
 
@@ -244,7 +249,22 @@ namespace HXSL
 
 			void RebuildDomTree();
 
+			inline bool Dominates(size_t a, size_t b) const
+			{
+				return domIn[a] <= domIn[b] && domOut[b] <= domOut[a];
+			}
+
 			void UpdatePhiInputs(size_t removedPred, size_t targetBlock);
+
+			size_t CountInstructions() const
+			{
+				size_t count = 0;
+				for (const auto& node : nodes)
+				{
+					count += node->instructions.size();
+				}
+				return count;
+			}
 
 			size_t AddNode(ControlFlowType type)
 			{
@@ -363,6 +383,51 @@ namespace HXSL
 						}
 					}
 				}
+			}
+
+			void TraverseDFS()
+			{
+				if (cfg.empty()) return;
+				struct Frame
+				{
+					size_t index;
+					bool closing;
+					TContext context;
+				};
+
+				std::vector<bool> visited(cfg.size(), false);
+				std::stack<Frame> walkStack;
+				walkStack.push(Frame(0, false, {}));
+				while (!walkStack.empty())
+				{
+					auto frame = walkStack.top();
+					walkStack.pop();
+					auto currentIdx = frame.index;
+					auto closing = frame.closing;
+
+					auto& node = *cfg.GetNode(currentIdx);
+					if (closing)
+					{
+						VisitClose(currentIdx, node, frame.context);
+						continue;
+					}
+					if (visited[currentIdx])
+					{
+						continue;
+					}
+					visited[currentIdx] = true;
+					Visit(currentIdx, node, frame.context);
+					walkStack.push({ currentIdx, true, std::move(frame.context) });
+					auto& successors = node.GetSuccessors();
+					if (!successors.empty())
+					{
+						for (auto it = successors.rbegin(); it != successors.rend(); ++it)
+						{
+							walkStack.push({ *it, false, {} });
+						}
+					}
+				}
+
 			}
 		};
 	}

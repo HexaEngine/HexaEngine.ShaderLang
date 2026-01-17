@@ -1,5 +1,5 @@
-#ifndef COMMON_SUB_EXPRESSION_HPP
-#define COMMON_SUB_EXPRESSION_HPP
+#ifndef GLOBAL_VALUE_NUMBERING_HPP
+#define GLOBAL_VALUE_NUMBERING_HPP
 
 #include "il_optimizer_pass.hpp"
 #include "utils/dense_map.hpp"
@@ -8,7 +8,7 @@ namespace HXSL
 {
 	namespace Backend
 	{
-		class CommonSubExpression : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
+		class GlobalValueNumbering : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 		{
 			std::unordered_set<ResultInstr*, InstructionPtrHash, InstructionPtrEquals> subExpressions;
 			dense_map<ILVarId, ILVarId> map;
@@ -18,11 +18,11 @@ namespace HXSL
 			void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 		public:
-			CommonSubExpression(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
+			GlobalValueNumbering(ILContext* context) : ILOptimizerPass(context), CFGVisitor(context->GetCFG())
 			{
 			}
 
-			std::string GetName() override { return "CommonSubExpression"; }
+			std::string GetName() override { return "GlobalValueNumbering"; }
 
 			OptimizerPassResult Run() override
 			{

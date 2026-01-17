@@ -28,6 +28,7 @@ namespace HXSL
 	struct NumberUnion
 	{
 		constexpr NumberUnion() : u64(0) {}
+		constexpr explicit NumberUnion(uint64_t value) : u64(value) {}
 		union
 		{
 			int8_t i8;
@@ -50,61 +51,61 @@ namespace HXSL
 		{
 		}
 
-		Number(uint8_t value) : Kind(NumberType_UInt8), u8(value)
+		explicit constexpr Number(uint8_t value) : Kind(NumberType_UInt8), u8(value)
 		{
 		}
 
-		Number(int8_t value) : Kind(NumberType_Int8), i8(value)
+		explicit constexpr Number(int8_t value) : Kind(NumberType_Int8), i8(value)
 		{
 		}
 
-		Number(uint16_t value) : Kind(NumberType_UInt16), u16(value)
+		explicit constexpr Number(uint16_t value) : Kind(NumberType_UInt16), u16(value)
 		{
 		}
 
-		Number(int16_t value) : Kind(NumberType_Int16), i16(value)
+		explicit constexpr Number(int16_t value) : Kind(NumberType_Int16), i16(value)
 		{
 		}
 
-		Number(uint32_t value) : Kind(NumberType_UInt32), u32(value)
+		explicit constexpr Number(uint32_t value) : Kind(NumberType_UInt32), u32(value)
 		{
 		}
 
-		Number(int32_t value) : Kind(NumberType_Int32), i32(value)
+		explicit constexpr Number(int32_t value) : Kind(NumberType_Int32), i32(value)
 		{
 		}
 
-		Number(uint64_t value) : Kind(NumberType_UInt64), u64(value)
+		explicit constexpr Number(uint64_t value) : Kind(NumberType_UInt64), u64(value)
 		{
 		}
 
-		Number(int64_t value) : Kind(NumberType_Int64), i64(value)
+		explicit constexpr Number(int64_t value) : Kind(NumberType_Int64), i64(value)
 		{
 		}
 
-		Number(half value) : Kind(NumberType_Half), half_(value)
+		explicit constexpr Number(half value) : Kind(NumberType_Half), half_(value)
 		{
 		}
 
-		Number(float value) : Kind(NumberType_Float), float_(value)
+		explicit constexpr Number(float value) : Kind(NumberType_Float), float_(value)
 		{
 		}
 
-		Number(double value) : Kind(NumberType_Double), double_(value)
+		explicit constexpr Number(double value) : Kind(NumberType_Double), double_(value)
 		{
 		}
 
-		Number(bool value) : Kind(NumberType_UInt8), u8(value)
+		explicit constexpr Number(bool value) : Kind(NumberType_UInt8), u8(value)
 		{
 		}
 
-		Number(const NumberUnion& value, NumberType kind)
+		explicit constexpr Number(const NumberUnion& value, NumberType kind)
 		{
 			u64 = value.u64;
 			Kind = kind;
 		}
 
-		operator NumberUnion() const { return *reinterpret_cast<const NumberUnion*>(this); }
+		constexpr operator NumberUnion() const { return NumberUnion(u64); }
 
 		union
 		{
@@ -123,7 +124,7 @@ namespace HXSL
 
 		NumberType Kind;
 
-		static Number implicitCast(const Number& n, NumberType targetType)
+		static constexpr Number implicitCast(const Number& n, NumberType targetType)
 		{
 			if (n.Kind == targetType)
 			{
@@ -213,7 +214,7 @@ namespace HXSL
 		}
 
 #define MAKE_IMPL(name,op) \
-		static Number name##Impl(Number rhl, Number lhl) { \
+		static constexpr Number name##Impl(Number rhl, Number lhl) { \
 			if (rhl.Kind != lhl.Kind) { if (rhl.Kind > lhl.Kind) lhl = implicitCast(lhl, rhl.Kind); else rhl = implicitCast(rhl, lhl.Kind); } \
 			Number num; num.Kind = rhl.Kind; \
 			switch (num.Kind) { \
@@ -231,10 +232,10 @@ namespace HXSL
 			case NumberType_Double: num.double_ = rhl.double_ op lhl.double_; return num; \
 			} \
 			num = {}; return num;  \
-		} Number operator op(const Number& other) const { return name##Impl(*this, other); }
+		} Number constexpr operator op(const Number& other) const { return name##Impl(*this, other); }
 
 #define MAKE_IMPL_UNARY(name,op) \
-		static Number name##Impl(Number rhl) { \
+		static constexpr Number name##Impl(Number rhl) { \
 			Number num; num.Kind = rhl.Kind; \
 			switch (num.Kind) { \
 			case NumberType_Unknown: return {}; \
@@ -247,10 +248,10 @@ namespace HXSL
 			case NumberType_Double: num.double_ = op##rhl.double_; return num; \
 			} \
 			num = {}; return num;  \
-		} Number operator op() const { return name##Impl(*this); }
+		} Number constexpr operator op() const { return name##Impl(*this); }
 
 #define MAKE_IMPL_INT(name,op) \
-		static Number name##Impl(Number rhl, Number lhl) { \
+		static constexpr Number name##Impl(Number rhl, Number lhl) { \
 			if (rhl.Kind != lhl.Kind) { if (rhl.Kind > lhl.Kind) lhl = implicitCast(lhl, rhl.Kind); else rhl = implicitCast(rhl, lhl.Kind); } \
 			Number num; num.Kind = rhl.Kind; \
 			switch (num.Kind) { \
@@ -265,10 +266,10 @@ namespace HXSL
 			case NumberType_UInt64: num.u64 = rhl.u64 op lhl.u64; return num; \
 			} \
 			num = {}; return num;  \
-		} Number operator op(const Number& other) const { return name##Impl(*this, other); }
+		} Number constexpr operator op(const Number& other) const { return name##Impl(*this, other); }
 
 #define MAKE_IMPL_INT_UNARY(name,op) \
-		static Number name##Impl(Number rhl) { \
+		static constexpr Number name##Impl(Number rhl) { \
 			Number num; num.Kind = rhl.Kind; \
 			switch (num.Kind) { \
 			case NumberType_Unknown: return {}; \
@@ -282,10 +283,10 @@ namespace HXSL
 			case NumberType_UInt64: num.u64 = op##rhl.u64; return num; \
 			} \
 			num = {}; return num; \
-		} Number operator op() const { return name##Impl(*this); }
+		} Number constexpr operator op() const { return name##Impl(*this); }
 
 #define MAKE_IMPL_CMP(name,op) \
-		static int name##Impl(Number rhl, Number lhl) { \
+		static constexpr int name##Impl(Number rhl, Number lhl) { \
 			if (rhl.Kind != lhl.Kind) { if (rhl.Kind > lhl.Kind) lhl = implicitCast(lhl, rhl.Kind); else rhl = implicitCast(rhl, lhl.Kind); } \
 			switch (rhl.Kind) { \
 			case NumberType_Unknown: return -1; \
@@ -302,7 +303,7 @@ namespace HXSL
 			case NumberType_Double: return rhl.double_ op lhl.double_; \
 			} \
 			return -1; \
-		} int operator op(const Number& other) const { return name##Impl(*this, other); }
+		} int constexpr operator op(const Number& other) const { return name##Impl(*this, other); }
 
 		MAKE_IMPL(ADD, +);
 
@@ -340,7 +341,7 @@ namespace HXSL
 
 		MAKE_IMPL_UNARY(NEG, -);
 
-		bool ToBool() const
+		constexpr bool ToBool() const
 		{
 			switch (Kind)
 			{
@@ -359,7 +360,7 @@ namespace HXSL
 			}
 		}
 
-		bool IsZero() const
+		constexpr bool IsZero() const
 		{
 			switch (Kind)
 			{
@@ -378,7 +379,7 @@ namespace HXSL
 			}
 		}
 
-		bool IsSigned() const noexcept
+		constexpr bool IsSigned() const noexcept
 		{
 			switch (Kind)
 			{
@@ -395,7 +396,7 @@ namespace HXSL
 			}
 		}
 
-		bool IsNegative() const noexcept
+		constexpr bool IsNegative() const noexcept
 		{
 			switch (Kind)
 			{
@@ -418,7 +419,7 @@ namespace HXSL
 			}
 		}
 
-		bool IsIntegral() const noexcept
+		constexpr bool IsIntegral() const noexcept
 		{
 			switch (Kind)
 			{
@@ -436,7 +437,7 @@ namespace HXSL
 			}
 		}
 
-		size_t ToSizeT() const noexcept
+		constexpr size_t ToSizeT() const noexcept
 		{
 			switch (Kind)
 			{

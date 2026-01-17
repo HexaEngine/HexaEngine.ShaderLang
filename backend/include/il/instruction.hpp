@@ -46,8 +46,6 @@ namespace HXSL
 
 			OpCode_Discard,			// discard
 
-			OpCode_Phi,				// <dst> phi <phi_id> not a real instruction
-
 			OpCode_Add,					// <dst> add  <src/imm> <src/imm>
 			OpCode_Subtract,			// <dst> sub  <src/imm> <src/imm>
 			OpCode_Multiply,			// <dst> mul  <src/imm> <src/imm>
@@ -96,7 +94,9 @@ namespace HXSL
 			OpCode_VecSaturate,			// <dst> vec_sat <src>
 
 			OpCode_VecClamp,			// <dst> vec_clamp <src> <src> <src>
-			OpCode_VecLerp				// <dst> vec_lerp  <src> <src> <src/imm>
+			OpCode_VecLerp,				// <dst> vec_lerp  <src> <src> <src/imm>
+
+			OpCode_Phi,				// <dst> phi <phi_id> not a real instruction
 		};
 
 		inline static bool IsBasic(ILOpCode opcode)

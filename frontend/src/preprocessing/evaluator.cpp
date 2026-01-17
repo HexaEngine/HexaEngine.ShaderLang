@@ -171,12 +171,12 @@ namespace HXSL
 		case Operator_BitwiseAnd: return a & b;
 		case Operator_BitwiseOr: return a | b;
 		case Operator_BitwiseXor: return a ^ b;
-		case Operator_LessThan: return a < b;
-		case Operator_LessThanOrEqual: return a <= b;
-		case Operator_GreaterThan: return a > b;
-		case Operator_GreaterThanOrEqual: return a >= b;
-		case Operator_Equal: return a == b;
-		case Operator_NotEqual: return a != b;
+		case Operator_LessThan: return Number(a < b);
+		case Operator_LessThanOrEqual: return Number(a <= b);
+		case Operator_GreaterThan: return Number(a > b);
+		case Operator_GreaterThanOrEqual: return Number(a >= b);
+		case Operator_Equal: return Number(a == b);
+		case Operator_NotEqual: return Number(a != b);
 		default: HXSL_ASSERT(false, "Unsupported binary operator in preprocessor expression"); return {};
 		}
 	}

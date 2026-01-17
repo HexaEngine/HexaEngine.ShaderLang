@@ -1,10 +1,10 @@
-#include "optimizers/common_sub_expression.hpp"
+#include "optimizers/global_value_numbering.hpp"
 
 namespace HXSL
 {
 	namespace Backend
 	{
-		void CommonSubExpression::TryMapOperand(Operand*& op)
+		void GlobalValueNumbering::TryMapOperand(Operand*& op)
 		{
 			if (auto var = dyn_cast<Variable>(op))
 			{
@@ -16,7 +16,7 @@ namespace HXSL
 			}
 		}
 
-		void CommonSubExpression::Visit(size_t index, BasicBlock& node, EmptyCFGContext& context)
+		void GlobalValueNumbering::Visit(size_t index, BasicBlock& node, EmptyCFGContext& context)
 		{
 			for (auto& instr : node)
 			{
@@ -26,7 +26,7 @@ namespace HXSL
 				}
 
 				auto opcode = instr.GetOpCode();
-				if (opcode == OpCode_Load || opcode == OpCode_Move || opcode == OpCode_Store || opcode == OpCode_StoreParam || opcode == OpCode_LoadParam) continue;
+				if (opcode == OpCode_Load || opcode == OpCode_Move || opcode == OpCode_Store || opcode == OpCode_StoreParam || opcode == OpCode_LoadParam || opcode == OpCode_Call) continue;
 
 				if (auto res = dyn_cast<ResultInstr>(&instr))
 				{

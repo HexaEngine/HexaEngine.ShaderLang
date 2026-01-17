@@ -7,11 +7,13 @@
 #include "optimizers/constant_folder.hpp"
 #include "optimizers/algebraic_simplifier.hpp"
 #include "optimizers/strength_reduction.hpp"
-#include "optimizers/common_sub_expression.hpp"
+#include "optimizers/global_value_numbering.hpp"
 #include "optimizers/dead_code_eliminator.hpp"
 #include "optimizers/function_inliner.hpp"
 #include "il/func_call_graph.hpp"
+#include "il/loop_tree.hpp"
 #include "il/dag_graph.hpp"
+#include "il/rpo_merger.hpp"
 
 #include "utils/scoped_timer.hpp"
 
@@ -26,6 +28,35 @@ namespace HXSL
 				Optimize(functionLayout->GetContext());
 			}
 		}
+
+		struct ILModule
+		{
+			ILContext* context;
+			ILContainer& container;
+			JumpTable& jumpTable;
+
+			void Print()
+			{
+				std::cout << "{" << std::endl;
+				for (auto& instr : container)
+				{
+					size_t offset = 0;
+					while (true)
+					{
+						auto it = std::find(jumpTable.locations.begin() + offset, jumpTable.locations.end(), &instr);
+						if (it == jumpTable.locations.end())
+						{
+							break;
+						}
+						auto index = std::distance(jumpTable.locations.begin(), it);
+						std::cout << "loc_" << index << ":" << std::endl;
+						offset = index + 1;
+					}
+					std::cout << "    " << ToString(instr, context->GetMetadata()) << std::endl;
+				}
+				std::cout << "}" << std::endl;
+			}
+		};
 
 		void ILOptimizer::Optimize()
 		{
@@ -123,7 +154,12 @@ namespace HXSL
 						}
 
 						auto* callee = calleeLayout->GetContext();
-				
+						auto instructionCount = callee->cfg.CountInstructions();
+						if (instructionCount > 20)
+						{
+							continue;
+						}
+
 						FunctionInliner inliner = FunctionInliner(callerLayout, calleeLayout);
 						inliner.InlineAll(call->callSites);
 
@@ -141,6 +177,21 @@ namespace HXSL
 				auto& metadata = function->metadata;
 				if (function->empty()) continue;
 
+				LoopTree loopTree = LoopTree(cfg);
+				loopTree.Build();
+#if HXSL_DEBUG
+				std::cout << "Loop Tree:" << std::endl;
+				loopTree.Print();
+#endif
+			}
+
+			for (auto& functionLayout : functions)
+			{
+				auto function = functionLayout->GetContext();
+				auto& cfg = function->cfg;
+				auto& metadata = function->metadata;
+				if (function->empty()) continue;
+
 				SSAReducer reducer = SSAReducer(metadata, cfg);
 				reducer.Reduce();
 
@@ -148,6 +199,16 @@ namespace HXSL
 				std::cout << "Lowered SSA to IL:" << std::endl;
 				cfg.Print();
 #endif
+				RPOMerger rpoMerger = RPOMerger(cfg);
+				ILContainer newContainer = ILContainer(function->allocator);
+				JumpTable newJumpTable = JumpTable();
+				newJumpTable.Resize(cfg.size());
+				rpoMerger.Merge(newContainer, newJumpTable);
+
+				ILModule module = ILModule{ function, newContainer, newJumpTable };
+				std::cout << "Final IL:" << std::endl;
+				module.Print();
+				
 			}
 		}
 
@@ -156,7 +217,7 @@ namespace HXSL
 			std::vector<std::unique_ptr<ILOptimizerPass>> passes;
 			passes.push_back(std::make_unique<ConstantFolder>(function));
 			passes.push_back(std::make_unique<AlgebraicSimplifier>(function));
-			passes.push_back(std::make_unique<CommonSubExpression>(function)); // CSE is technically a GVN but that's just semantics...
+			passes.push_back(std::make_unique<GlobalValueNumbering>(function));
 			passes.push_back(std::make_unique<DeadCodeEliminator>(function));
 			return std::move(passes);
 		}

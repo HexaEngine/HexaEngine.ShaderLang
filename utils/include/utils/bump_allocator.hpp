@@ -17,7 +17,7 @@ namespace HXSL
 			uint32_t blockSize;
 			uint32_t used;
 
-			Block(Block* prev, size_t blockSize) : prev(prev), blockSize(blockSize), used(0)
+			Block(Block* prev, uint32_t blockSize) : prev(prev), blockSize(blockSize), used(0)
 			{	
 			}
 

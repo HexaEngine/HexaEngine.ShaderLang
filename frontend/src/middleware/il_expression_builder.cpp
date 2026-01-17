@@ -434,7 +434,7 @@ namespace HXSL
 				{
 					if (isImm)
 					{
-						WriteVar(target, context->MakeConstant(imm));
+						WriteVar(target, imm);
 					}
 					else
 					{

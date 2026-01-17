@@ -278,7 +278,7 @@ namespace HXSL
 			TypeLayout* elementType;
 		public:
 			static constexpr LayoutType ID = PointerLayoutType;
-			PointerLayout() : TypeLayout(ID) {}
+			PointerLayout() : TypeLayout(ID), elementType(nullptr) {}
 
 			TypeLayout* GetElementType() const { return elementType; }
 			void SetElementType(TypeLayout* value) { elementType = value; }

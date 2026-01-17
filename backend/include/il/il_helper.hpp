@@ -247,18 +247,18 @@ namespace HXSL
 			case OpCode_Modulus: if (!immR) return false; outImm = immL->imm() % immR->imm(); return true;
 			case OpCode_BitwiseShiftLeft: if (!immR) return false; outImm = immL->imm() << immR->imm(); return true;
 			case OpCode_BitwiseShiftRight: if (!immR) return false; outImm = immL->imm() >> immR->imm(); return true;
-			case OpCode_AndAnd: if (!immR) return false; outImm = immL->imm().ToBool() && immR->imm().ToBool(); return true;
-			case OpCode_OrOr: if (!immR) return false; outImm = immL->imm().ToBool() || immR->imm().ToBool(); return true;
+			case OpCode_AndAnd: if (!immR) return false; outImm = Number(immL->imm().ToBool() && immR->imm().ToBool()); return true;
+			case OpCode_OrOr: if (!immR) return false; outImm = Number(immL->imm().ToBool() || immR->imm().ToBool()); return true;
 			case OpCode_BitwiseAnd: if (!immR) return false; outImm = immL->imm() & immR->imm(); return true;
 			case OpCode_BitwiseOr: if (!immR) return false; outImm = immL->imm() | immR->imm(); return true;
 			case OpCode_BitwiseXor: if (!immR) return false; outImm = immL->imm() ^ immR->imm(); return true;
-			case OpCode_LessThan: if (!immR) return false; outImm = immL->imm() < immR->imm(); return true;
-			case OpCode_LessThanOrEqual: if (!immR) return false; outImm = immL->imm() <= immR->imm(); return true;
-			case OpCode_GreaterThan: if (!immR) return false; outImm = immL->imm() > immR->imm(); return true;
-			case OpCode_GreaterThanOrEqual: if (!immR) return false; outImm = immL->imm() >= immR->imm(); return true;
-			case OpCode_Equal: if (!immR) return false; outImm = immL->imm() == immR->imm(); return true;
-			case OpCode_NotEqual: if (!immR) return false; outImm = immL->imm() != immR->imm(); return true;
-			case OpCode_LogicalNot: outImm = !immL->imm().ToBool(); return true;
+			case OpCode_LessThan: if (!immR) return false; outImm = Number(immL->imm() < immR->imm()); return true;
+			case OpCode_LessThanOrEqual: if (!immR) return false; outImm = Number(immL->imm() <= immR->imm()); return true;
+			case OpCode_GreaterThan: if (!immR) return false; outImm = Number(immL->imm() > immR->imm()); return true;
+			case OpCode_GreaterThanOrEqual: if (!immR) return false; outImm = Number(immL->imm() >= immR->imm()); return true;
+			case OpCode_Equal: if (!immR) return false; outImm = Number(immL->imm() == immR->imm()); return true;
+			case OpCode_NotEqual: if (!immR) return false; outImm = Number(immL->imm() != immR->imm()); return true;
+			case OpCode_LogicalNot: outImm = Number(!immL->imm().ToBool()); return true;
 			case OpCode_BitwiseNot: outImm = ~immL->imm(); return true;
 			case OpCode_Negate: outImm = -immL->imm(); return true;
 			}

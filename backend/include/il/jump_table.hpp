@@ -21,6 +21,11 @@ namespace HXSL
 				return ILLabel(idx);
 			}
 
+			void Resize(size_t newSize)
+			{
+				locations.resize(newSize, INVALID_JUMP_LOCATION_PTR);
+			}
+
 			void SetLocation(ILLabel id, Instruction* location)
 			{
 				locations[id.value] = location;

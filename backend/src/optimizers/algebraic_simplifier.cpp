@@ -9,7 +9,7 @@ namespace HXSL
 
         DEFINE_IMM_COMP(IsOne, 1);
 
-        static void ConvertToMove(ResultInstr& instr, Value* left)
+        static void ConvertToMove(ResultInstr& instr, Operand* left)
         {
             auto block = instr.GetParent();
             block->ReplaceInstrO<MoveInstr>(&instr, instr.GetResult(), left);
