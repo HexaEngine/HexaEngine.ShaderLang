@@ -14,6 +14,7 @@
 
 #include "il/control_flow_graph.hpp"
 #include "il/func_call_graph.hpp"
+#include "il/loop_tree.hpp"
 
 #include "il/il_mutator_base.hpp"
 

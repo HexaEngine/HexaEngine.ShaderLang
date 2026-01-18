@@ -178,7 +178,7 @@ namespace HXSL
 		{
 			nodes[from]->RemoveSuccessor(to);
 			nodes[to]->RemovePredecessor(from);
-			UpdatePhiInputs(to, from);
+			UpdatePhiInputs(from, to);
 		}
 
 		void ControlFlowGraph::RemoveNode(size_t index)
@@ -257,6 +257,11 @@ namespace HXSL
 				Link(to, succs);
 			}
 			src->successors.clear();
+
+			for (auto& instr : src->instructions)
+			{
+				instr.SetParent(dst.get());
+			}
 
 			dst->instructions.prepend_move(src->instructions);
 

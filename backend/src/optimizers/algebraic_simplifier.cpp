@@ -35,77 +35,11 @@ namespace HXSL
             ConvertMoveImm(context, instr, Number(0));
         }
 
-    static ResultInstr* FindDef(const dense_map<ILVarId, ResultInstr*>& defs, Operand* op)
-    {
-        auto* var = dyn_cast<Variable>(op);
-        if (!var) return nullptr;
-        auto it = defs.find(var->varId);
-        return it != defs.end() ? it->second : nullptr;
-    }
-
-    static bool TryReassociateMulAddSub(ILContext* context, BinaryInstr& instr, const dense_map<ILVarId, ResultInstr*>& defs)
-    {
-        /*
-            Expression Reassociation Optimization
-
-            Pattern: (x * c1) + (x * c2) => x * (c1 + c2)
-
-            Example:
-                %tmp1_7: float = mul %var1_0: float, 80
-                %tmp1_5: float = add %tmp1_7: float, %tmp1_7: float
-                %tmp1_6: float = mul %var1_0: float, 8000
-                %tmp1_4: float = add %tmp1_5: float, %tmp1_6: float
-
-            Transforms to:
-                %tmp1_4: float = mul %var1_0: float, 8160
-        */
-
-        bool isSubtract = instr.GetOpCode() == OpCode_Subtract;
-
-        auto* lhsDef = FindDef(defs, instr.GetLHS());
-        auto* rhsDef = FindDef(defs, instr.GetRHS());
-
-        auto* lhsMul = lhsDef && lhsDef->GetOpCode() == OpCode_Multiply ? cast<BinaryInstr>(lhsDef) : nullptr;
-        auto* rhsMul = rhsDef && rhsDef->GetOpCode() == OpCode_Multiply ? cast<BinaryInstr>(rhsDef) : nullptr;
-
-        if (!lhsMul || !rhsMul) return false;
-
-        auto* lhsBase = lhsMul->GetLHS();
-        auto* rhsBase = rhsMul->GetLHS();
-        auto* lhsConst = dyn_cast<Constant>(lhsMul->GetRHS());
-        auto* rhsConst = dyn_cast<Constant>(rhsMul->GetRHS());
-
-        if (!lhsConst || !rhsConst) return false;
-
-        if (auto* lhsVar = dyn_cast<Variable>(lhsBase))
-        {
-            if (auto* rhsVar = dyn_cast<Variable>(rhsBase))
-            {
-                if (lhsVar->varId == rhsVar->varId)
-                {
-                    Number combinedConst = FoldImm(lhsConst->imm(), rhsConst->imm(), isSubtract ? OpCode_Subtract : OpCode_Add);
-                    auto* newConst = context->MakeConstant(Cast(instr, instr.GetResult(), combinedConst));
-                    
-                    instr.OverwriteOpCode(OpCode_Multiply);
-                    instr.GetLHS() = lhsBase;
-                    instr.GetRHS() = newConst;
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
 
     void AlgebraicSimplifier::Visit(size_t index, BasicBlock& node, EmptyCFGContext& ctx)
     {
         for (auto& instr : node)
         {
-            if (auto* resInstr = dyn_cast<ResultInstr>(&instr))
-            {
-                definitions[resInstr->GetResult()] = resInstr;
-            }
-
             switch (instr.GetOpCode())
             {
             case OpCode_Multiply:
@@ -168,10 +102,6 @@ namespace HXSL
                 {
                     ConvertMoveZero(context, in); changed = true;
                 }
-                else
-                {
-                    changed |= TryReassociateMulAddSub(context, in, definitions);
-                }
             }
             break;
             case OpCode_Add:
@@ -190,10 +120,6 @@ namespace HXSL
 					in.OverwriteOpCode(OpCode_Multiply);
 					in.GetRHS() = context->MakeConstant(Cast(in, in.GetResult(), Number(2)));
 					changed = true;
-                }
-                else
-                {
-                    changed |= TryReassociateMulAddSub(context, in, definitions);
                 }
             }
             break;

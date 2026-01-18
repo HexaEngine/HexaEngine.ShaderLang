@@ -84,7 +84,9 @@ namespace HXSL
 		public:
 			LoopTree(ControlFlowGraph& cfg) : cfg(cfg) {}
 			void Build();
-			void Clear() { nodes.clear(); }
+			void Clear() { nodes.clear(); headerToNode.clear(); blockToNode.clear(); }
+
+			const std::vector<uptr<LoopNode>>& GetNodes() const { return nodes; }
 
 			void Print() const;
 		};

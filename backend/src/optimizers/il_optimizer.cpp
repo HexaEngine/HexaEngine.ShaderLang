@@ -6,14 +6,17 @@
 
 #include "optimizers/constant_folder.hpp"
 #include "optimizers/algebraic_simplifier.hpp"
+#include "optimizers/reassociation_pass.hpp"
 #include "optimizers/strength_reduction.hpp"
 #include "optimizers/global_value_numbering.hpp"
 #include "optimizers/dead_code_eliminator.hpp"
 #include "optimizers/function_inliner.hpp"
+#include "optimizers/loop_unroller.hpp"
 #include "il/func_call_graph.hpp"
 #include "il/loop_tree.hpp"
 #include "il/dag_graph.hpp"
 #include "il/rpo_merger.hpp"
+
 
 #include "utils/scoped_timer.hpp"
 
@@ -177,12 +180,22 @@ namespace HXSL
 				auto& metadata = function->metadata;
 				if (function->empty()) continue;
 
-				LoopTree loopTree = LoopTree(cfg);
+				auto& loopTree = function->loopTree;
 				loopTree.Build();
 #if HXSL_DEBUG
 				std::cout << "Loop Tree:" << std::endl;
 				loopTree.Print();
 #endif
+				LoopUnroller unroller = LoopUnroller(function);
+				auto result = unroller.Run();
+				if (result == OptimizerPassResult_Changed)
+				{
+#if HXSL_DEBUG
+					std::cout << "After Loop Unrolling:" << std::endl;
+					cfg.Print();
+#endif
+					Optimize(function);
+				}
 			}
 
 			for (auto& functionLayout : functions)
@@ -212,14 +225,16 @@ namespace HXSL
 			}
 		}
 
-		static std::vector<std::unique_ptr<ILOptimizerPass>> MakeScope(ILContext* function)
+		static std::vector<uptr<ILOptimizerPass>> MakeScope(ILContext* function)
 		{
-			std::vector<std::unique_ptr<ILOptimizerPass>> passes;
-			passes.push_back(std::make_unique<ConstantFolder>(function));
-			passes.push_back(std::make_unique<AlgebraicSimplifier>(function));
-			passes.push_back(std::make_unique<GlobalValueNumbering>(function));
-			passes.push_back(std::make_unique<DeadCodeEliminator>(function));
-			return std::move(passes);
+			std::vector<uptr<ILOptimizerPass>> passes;
+			passes.push_back(make_uptr<ConstantFolder>(function));
+			passes.push_back(make_uptr<AlgebraicSimplifier>(function));
+			//passes.push_back(make_uptr<StrengthReduction>(function));
+			passes.push_back(make_uptr<ReassociationPass>(function));
+			passes.push_back(make_uptr<GlobalValueNumbering>(function));
+			passes.push_back(make_uptr<DeadCodeEliminator>(function));
+			return passes;
 		}
 
 		void ILOptimizer::Optimize(ILContext* function)

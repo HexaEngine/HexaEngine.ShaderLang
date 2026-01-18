@@ -3,6 +3,7 @@
 
 #include "il_metadata.hpp"
 #include "control_flow_graph.hpp"
+#include "loop_tree.hpp"
 #include "utils/bump_allocator.hpp"
 #include "core/module.hpp"
 
@@ -18,8 +19,9 @@ namespace HXSL
 			FunctionLayout* function;
 			ILMetadata metadata;
 			ControlFlowGraph cfg;
+			LoopTree loopTree;
 
-			ILContext(Module* module, FunctionLayout* function) : module(module), function(function), metadata(allocator), cfg(this)
+			ILContext(Module* module, FunctionLayout* function) : module(module), function(function), metadata(allocator), cfg(this), loopTree(cfg)
 			{
 			}
 
@@ -34,6 +36,8 @@ namespace HXSL
 			const ILMetadata& GetMetadata() const { return metadata; }
 
 			ControlFlowGraph& GetCFG() { return cfg; }
+
+			LoopTree& GetLoopTree() { return loopTree; }
 
 			template <typename T, class... Args>
 			T* Alloc(Args&&... args)

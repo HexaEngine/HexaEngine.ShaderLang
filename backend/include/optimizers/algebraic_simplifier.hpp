@@ -9,8 +9,6 @@ namespace HXSL
 	{
 	class AlgebraicSimplifier : public ILOptimizerPass, CFGVisitor<EmptyCFGContext>
 	{
-		dense_map<ILVarId, ResultInstr*> definitions;
-
 		void Visit(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 
 	public:
@@ -23,7 +21,6 @@ namespace HXSL
 		OptimizerPassResult Run() override
 		{
 			changed = false;
-			definitions.clear();
 			Traverse();
 			return changed ? OptimizerPassResult_Rerun : OptimizerPassResult_None;
 		}

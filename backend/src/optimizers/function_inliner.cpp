@@ -93,6 +93,7 @@ namespace HXSL
 
 			for (auto& calleeBlock : calleeCFG.GetNodes())
 			{
+				// TODO: Handle multiple blocks / control flow
 				for (auto& instr : *calleeBlock)
 				{
 					if (auto loadParam = dyn_cast<LoadParamInstr>(&instr))
