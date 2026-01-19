@@ -104,6 +104,16 @@ namespace HXSL
 		Backend::ILOptimizer optimizer = Backend::ILOptimizer(logger.get(), module.get());
 		optimizer.Optimize();
 
+		auto outputStream = FileStream::OpenCreate(output.c_str());
+		Backend::ModuleWriter writer(outputStream.get());
+		writer.Write(module.get());
+
+		outputStream.reset();
+
+		auto readerStream = FileStream::OpenRead(output.c_str());
+		Backend::ModuleReader reader(readerStream.get());
+		auto readModule = reader.Read();
+
 		if (!logger->HasErrors())
 		{
 			//auto assembly = analyzer.GetOutputAssembly().get();

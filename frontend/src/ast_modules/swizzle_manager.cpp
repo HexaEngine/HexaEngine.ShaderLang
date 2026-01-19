@@ -54,11 +54,11 @@ namespace HXSL
 		auto symbolRef = SymbolRef::Create(TextSpan(), idTable.Get(typeName), SymbolRefType_Member, false);
 		symbolRef->SetTable(primitiveHandle);
 		auto swizzleDef = SwizzleDefinition::Create(TextSpan(), idTable.Get(pattern), mask, prim, symbolRef);
-		auto metaField = SharedPtr<SymbolMetadata>::Create(swizzleDef);
+		auto metaField = SymbolMetadata::Create(swizzleDef);
 
 		if (primHandle.invalid())
 		{
-			auto meta = SharedPtr<SymbolMetadata>();
+			auto meta = ObjPtr<SymbolMetadata>();
 			primHandle = swizzleTable->Insert(prim->GetName(), meta, 0);
 		}
 

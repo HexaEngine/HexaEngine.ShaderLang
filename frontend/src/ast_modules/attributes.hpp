@@ -22,7 +22,7 @@ namespace HXSL
 	public:
 		static constexpr NodeType ID = NodeType_AttributeDeclaration;
 
-		static AttributeDecl* Create(const TextSpan& span, SymbolRef* symbol, const ArrayRef<Expression*>& parameters);
+		static AttributeDecl* Create(const TextSpan& span, SymbolRef* symbol, const Span<Expression*>& parameters);
 		static AttributeDecl* Create(const TextSpan& span, SymbolRef* symbol, uint32_t numParameters);
 
 		SymbolRef*& GetSymbolRef()

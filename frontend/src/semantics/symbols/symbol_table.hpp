@@ -8,10 +8,11 @@
 #include "utils/string_pool.hpp"
 #include "utils/span.hpp"
 #include "utils/dense_map.hpp"
+#include "utils/memory.hpp"
 
 namespace HXSL
 {
-	class SymbolMetadata : public SharedPtrBase
+	class SymbolMetadata : public SharedObjectBase<SymbolMetadata>
 	{
 	public:
 		
@@ -26,12 +27,6 @@ namespace HXSL
 
 		void Read(Stream& stream, SymbolDef*& node, StringPool& container);
 
-
-		static SymbolMetadata* Create(SymbolDef* declaration)
-		{
-			return new SymbolMetadata(declaration);
-		}
-
 		SymbolType GetSymbolType() const;
 
 		AccessModifier GetAccessModifiers() const;
@@ -43,7 +38,7 @@ namespace HXSL
 		friend class SymbolTable;
 		StringSpan name;
 		dense_map<StringSpan, SymbolTableNode*> children;
-		SharedPtr<SymbolMetadata> metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
+		ObjPtr<SymbolMetadata> metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
 		SymbolTableNode* parent;
 
 	public:
@@ -51,7 +46,7 @@ namespace HXSL
 		{
 		}
 
-		SymbolTableNode(const StringSpan& name, SharedPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent) 
+		SymbolTableNode(const StringSpan& name, ObjPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent)
 			: name(name), metadata(std::move(metadata)), parent(parent)
 		{
 		}
@@ -235,7 +230,7 @@ namespace HXSL
 		SymbolTableNode* root;
 		StringPool2 stringPool;
 
-		SymbolTableNode* AddNode(const StringSpan& name, SharedPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent)
+		SymbolTableNode* AddNode(const StringSpan& name, ObjPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent)
 		{
 			std::unique_lock<std::shared_mutex> writeLock(nodeMutex);
 			auto* node = allocator.Alloc(stringPool.add(name), std::move(metadata), parent);
@@ -255,7 +250,7 @@ namespace HXSL
 	public:
 		SymbolTable() : allocator(this)
 		{
-			root = allocator.Alloc(StringSpan(), SharedPtr<SymbolMetadata>(), nullptr);
+			root = allocator.Alloc(StringSpan(), ObjPtr<SymbolMetadata>(), nullptr);
 		}
 
 		~SymbolTable()
@@ -303,7 +298,7 @@ namespace HXSL
 			std::string result;
 			while (true)
 			{
-				result.insert(0, node->GetName());
+				result.insert(0, node->GetName().view());
 				node = node->GetParent();
 				if (node == nullptr || node->name.empty()) break;
 				result.insert(0, ".");
@@ -317,7 +312,7 @@ namespace HXSL
 			return SymbolHandle(this, node);
 		}
 
-		SymbolHandle Insert(StringSpan span, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* start = nullptr);
+		SymbolHandle Insert(StringSpan span, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* start = nullptr);
 
 		SymbolHandle FindNodeIndexPart(StringSpan path, SymbolTableNode* startingNode = nullptr) const
 		{

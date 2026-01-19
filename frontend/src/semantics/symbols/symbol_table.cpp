@@ -29,9 +29,9 @@ namespace HXSL
 		}
 	}
 
-	SymbolHandle SymbolTable::Insert(StringSpan span, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* start)
+	SymbolHandle SymbolTable::Insert(StringSpan span, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* start)
 	{
-		HXSL_ASSERT(metadata.get(), "Metadata cannot be nullptr");
+		HXSL_ASSERT(metadata.Get(), "Metadata cannot be nullptr");
 		SymbolTableNode* current = start;
 		if (current == nullptr)
 		{
@@ -39,7 +39,7 @@ namespace HXSL
 		}
 		while (true)
 		{
-			size_t idx = span.indexOf('.');
+			size_t idx = span.IndexOf('.');
 			if (idx == -1) idx = span.size();
 			StringSpan part = span.slice(0, idx);
 
@@ -50,7 +50,7 @@ namespace HXSL
 			}
 			else
 			{
-				current = AddNode(part, nullptr, current);
+				current = AddNode(part, {}, current);
 			}
 
 			if (idx == span.size())
@@ -126,7 +126,7 @@ namespace HXSL
 	{
 		stringPool.clear();
 		RemoveNode(root);
-		root = allocator.Alloc(StringSpan(), SharedPtr<SymbolMetadata>(), nullptr);
+		root = allocator.Alloc(StringSpan(), ObjPtr<SymbolMetadata>(), nullptr);
 	}
 
 	void SymbolTable::Strip()

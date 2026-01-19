@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	CompilationUnit* CompilationUnit::Create(bool isExtern, const ArrayRef<Namespace*>& namespaces, const ArrayRef<UsingDecl*>& usings)
+	CompilationUnit* CompilationUnit::Create(bool isExtern, const Span<Namespace*>& namespaces, const Span<UsingDecl*>& usings)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<CompilationUnit>(TotalSizeToAlloc(namespaces.size(), usings.size()), isExtern);

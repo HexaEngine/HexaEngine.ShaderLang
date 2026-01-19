@@ -158,8 +158,8 @@ namespace HXSL
 	void SymbolRef::TrimCastType()
 	{
 		StringSpan result = identifier->name;
-		result = result.trim_start('(');
-		result = result.trim_end(')');
+		result = result.TrimStart('(');
+		result = result.TrimEnd(')');
 		identifier = ASTContext::GetCurrentContext()->GetIdentifier(result);
 	}
 

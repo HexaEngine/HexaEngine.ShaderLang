@@ -517,7 +517,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_FunctionCallExpression;
-		static FunctionCallExpression* Create(const TextSpan& span, SymbolRef* symbol, const ArrayRef<FunctionCallParameter*>& parameters);
+		static FunctionCallExpression* Create(const TextSpan& span, SymbolRef* symbol, const Span<FunctionCallParameter*>& parameters);
 		static FunctionCallExpression* Create(const TextSpan& span, SymbolRef* symbol, uint32_t numParameters);
 
 		DEFINE_FLAGS_MEMBERS(FunctionCallExpressionFlags, FunctionCall, flags);
@@ -741,7 +741,7 @@ namespace HXSL
 		{
 		}
 
-		static InitializationExpression* Create(const TextSpan& span, const ArrayRef<Expression*>& parameters);
+		static InitializationExpression* Create(const TextSpan& span, const Span<Expression*>& parameters);
 		static InitializationExpression* Create(const TextSpan& span, uint32_t numParameters);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetParameters, 0, storage);

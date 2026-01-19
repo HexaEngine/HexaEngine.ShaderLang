@@ -344,6 +344,8 @@ namespace HXSL
 			{
 				operands.assign(function);
 			}
+
+			Function* GetFunction() const { return cast<Function>(operands[0]); }
 		};
 
 		class JumpInstr : public Instruction
@@ -401,6 +403,9 @@ namespace HXSL
 			{
 				operands.assign(dst, src);
 			}
+
+			Operand* GetSource() const { return operands[1]; }
+			Operand* GetDestination() const { return operands[0]; }
 		};
 
 		class LoadInstr : public ResultInstr
@@ -422,8 +427,8 @@ namespace HXSL
 				operands.assign(dst, src);
 			}
 
-			Operand* GetSource() { return operands[0]; }
-			Operand* GetDestination() { return operands[1]; }
+			Operand* GetSource() const { return operands[0]; }
+			Operand* GetDestination() const { return operands[1]; }
 			size_t GetParamIdx() const { return cast<Constant>(operands[1])->imm().ToSizeT(); }
 		};
 
@@ -436,7 +441,7 @@ namespace HXSL
 				operands.assign(src);
 			}
 
-			Operand* GetSource() { return operands[0]; }
+			Operand* GetSource() const { return operands[0]; }
 			size_t GetParamIdx() const { return cast<Constant>(operands[0])->imm().ToSizeT(); }
 		};
 
@@ -449,7 +454,7 @@ namespace HXSL
 				operands.assign(src);
 			}
 
-			Operand* GetSource() { return operands[0]; }
+			Operand* GetSource() const { return operands[0]; }
 		};
 
 		class PhiInstr : public ResultInstr

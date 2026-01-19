@@ -331,7 +331,7 @@ namespace HXSL
 		}
 		else if (parser.TryParseArraySizes(arraySizes))
 		{
-			auto hSymbol = symbol.MakeArrayRef(arraySizes);
+			auto hSymbol = symbol.MakeSpan(arraySizes);
 			stream.ExpectDelimiter(';', EXPECTED_SEMICOLON);
 			Field* field;
 			ParseField(parser, stream, startingToken, name, hSymbol, {}, field);

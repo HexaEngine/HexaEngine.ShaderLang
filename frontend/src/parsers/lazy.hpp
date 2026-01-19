@@ -47,7 +47,7 @@ namespace HXSL
 			return make(type, force);
 		};
 
-		SymbolRefArray* MakeArrayRef(const Span<size_t>& arrayDims, bool force = false)
+		SymbolRefArray* MakeSpan(const Span<size_t>& arrayDims, bool force = false)
 		{
 			if (span.source == INVALID_SOURCE_ID)
 			{

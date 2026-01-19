@@ -141,6 +141,8 @@ namespace HXSL
 			inline static bool IsType(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::TypeVal; }
 
 			inline static bool IsFunc(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::FuncVal; }
+
+			inline static bool IsField(const Value* op) noexcept { return op != nullptr && op->GetTypeId() == Value::FieldVal; }
 		};
 
 		class Constant : public Operand

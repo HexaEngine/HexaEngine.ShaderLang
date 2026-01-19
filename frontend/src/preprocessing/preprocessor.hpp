@@ -27,7 +27,7 @@ namespace HXSL
 	{
 		std::unique_ptr<std::string> name;
 		std::vector<std::unique_ptr<std::string>> parameters;
-		std::unordered_map<StringSpan, size_t, StringSpanHash, StringSpanEqual> parametersLookup;
+		std::unordered_map<StringSpan, size_t> parametersLookup;
 
 		MacroSymbol(TextSpan span) : name(std::make_unique<std::string>(span.str()))
 		{
@@ -165,7 +165,7 @@ namespace HXSL
 	class Preprocessor
 	{
 		ILogger* logger;
-		std::unordered_map<StringSpan, MacroSymbol, StringSpanHash, StringSpanEqual> symbolTable;
+		std::unordered_map<StringSpan, MacroSymbol> symbolTable;
 		std::vector<TextMapping> mappings;
 		OffsetMappingStorage lineOffsets;
 		std::stack<PreprocessorState> stack;

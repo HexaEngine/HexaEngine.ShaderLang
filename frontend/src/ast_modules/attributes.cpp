@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	AttributeDecl* AttributeDecl::Create(const TextSpan& span, SymbolRef* symbol, const ArrayRef<Expression*>& parameters)
+	AttributeDecl* AttributeDecl::Create(const TextSpan& span, SymbolRef* symbol, const Span<Expression*>& parameters)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto* ptr = context->Alloc<AttributeDecl>(TotalSizeToAlloc(parameters.size()), span, symbol);

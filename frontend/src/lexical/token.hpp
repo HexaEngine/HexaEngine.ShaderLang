@@ -2,7 +2,7 @@
 #define TOKEN_H
 
 #include "lexical/text_span.hpp"
-#include "identifier_table.hpp"
+#include "lexical/identifier_table.hpp"
 #include "numbers.hpp"
 #include "lang/language.hpp"
 

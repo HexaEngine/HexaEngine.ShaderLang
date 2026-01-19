@@ -7,7 +7,7 @@ namespace HXSL
 	{
 	}
 
-	SymbolHandle Assembly::AddSymbol(const StringSpan& name, SymbolDef* def, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex)
+	SymbolHandle Assembly::AddSymbol(const StringSpan& name, SymbolDef* def, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex)
 	{
 		if (sealed)
 		{
@@ -21,7 +21,7 @@ namespace HXSL
 		return handle;
 	}
 
-	SymbolHandle Assembly::AddSymbolScope(const StringSpan& span, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex)
+	SymbolHandle Assembly::AddSymbolScope(const StringSpan& span, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex)
 	{
 		if (sealed)
 		{

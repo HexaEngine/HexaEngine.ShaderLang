@@ -9,7 +9,7 @@ namespace HXSL
 	{
 	private:
 		std::vector<std::unique_ptr<std::string>> strings;
-		std::unordered_map<StringSpan, size_t, StringSpanHash, StringSpanEqual> stringToIndex;
+		std::unordered_map<StringSpan, size_t> stringToIndex;
 
 	public:
 		const std::string& add(const std::string& str)
@@ -76,7 +76,7 @@ namespace HXSL
 	{
 	private:
 		BumpAllocator allocator;
-		std::unordered_set<StringSpan, StringSpanHash, StringSpanEqual> stringToIndex;
+		std::unordered_set<StringSpan> stringToIndex;
 
 	public:
 		StringSpan add(const StringSpan& str)

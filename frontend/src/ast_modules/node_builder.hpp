@@ -67,7 +67,7 @@ namespace HXSL
 
 		FunctionOverload* Finish(SymbolHandle root)
 		{
-			auto params = ArrayRef<Parameter*>(parameters);
+			auto params = Span<Parameter*>(parameters);
 			auto ptr = FunctionOverload::Create({}, name_m, AccessModifier_Public, FunctionFlags_None, returnType_m, nullptr, nullptr, params, {});
 
 			for (auto& param : ptr->GetParameters())
@@ -76,7 +76,7 @@ namespace HXSL
 			}
 			ResolveInternal(returnType_m);
 
-			auto meta = SharedPtr<SymbolMetadata>::Create(ptr);
+			auto meta = SymbolMetadata::Create(ptr);
 			auto signature = ptr->BuildOverloadSignature();
 			auto funcIndex = table->Insert(signature, meta, root);
 			ptr->SetAssembly(assembly, funcIndex);
@@ -125,7 +125,7 @@ namespace HXSL
 		{
 			auto* context = ASTContext::GetCurrentContext();
 			auto name = context->GetIdentifierTable().Get(op_m == Operator_Cast ? "operator" : "operator" + ToString(op_m));
-			auto params = ArrayRef<Parameter*>(parameters);
+			auto params = Span<Parameter*>(parameters);
 			auto ptr = OperatorOverload::Create({}, name, AccessModifier_Public, FunctionFlags_None, flags_m, op_m, returnType_m, nullptr, params, {});
 
 			for (auto& param : ptr->GetParameters())
@@ -134,7 +134,7 @@ namespace HXSL
 			}
 			ResolveInternal(returnType_m);
 
-			auto meta = SharedPtr<SymbolMetadata>::Create(ptr);
+			auto meta = SymbolMetadata::Create(ptr);
 			auto signature = ptr->BuildOverloadSignature(false);
 			auto funcIndex = table->Insert(signature, meta, root);
 			ptr->SetAssembly(assembly, funcIndex);
@@ -200,7 +200,7 @@ namespace HXSL
 			auto field = Field::Create({}, name_m, access_m, storageClass_m, interpolMod_m, type_m, semantic_m);
 			ResolveInternal(type_m);
 
-			auto meta = SharedPtr<SymbolMetadata>::Create(field);
+			auto meta = SymbolMetadata::Create(field);
 			auto fieldIndex = table->Insert(field->GetName(), meta, root);
 			field->SetAssembly(assembly, fieldIndex);
 			return field;
@@ -249,7 +249,7 @@ namespace HXSL
 		Class* Finish()
 		{
 			auto pClass = Class::Create({}, name_m, AccessModifier_Public, static_cast<uint32_t>(fields.size()), 0, 0, 0, static_cast<uint32_t>(functions.size()), static_cast<uint32_t>(operators.size()));
-			auto meta = SharedPtr<SymbolMetadata>::Create(pClass);
+			auto meta = SymbolMetadata::Create(pClass);
 			auto index = table->Insert(pClass->GetName(), meta);
 			pClass->SetAssembly(assembly, index);
 
@@ -408,7 +408,7 @@ namespace HXSL
 		{
 			prim = Primitive::Create({}, name_m, kind_m, _class_m, rows_m, columns_m, static_cast<uint32_t>(operators.size()));
 
-			auto meta = SharedPtr<SymbolMetadata>::Create(prim);
+			auto meta = SymbolMetadata::Create(prim);
 			auto index = table->Insert(prim->GetName(), meta);
 			prim->SetAssembly(assembly, index);
 		}

@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	BlockStatement* BlockStatement::Create(const TextSpan& span, const ArrayRef<ASTNode*>& statements)
+	BlockStatement* BlockStatement::Create(const TextSpan& span, const Span<ASTNode*>& statements)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<BlockStatement>(TotalSizeToAlloc(statements.size()), span);
@@ -58,7 +58,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	IfStatement* IfStatement::Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<ElseIfStatement*>& elseIfStatements, ElseStatement* elseStatement, const ArrayRef<AttributeDecl*>& attributes)
+	IfStatement* IfStatement::Create(const TextSpan& span, Expression* condition, BlockStatement* body, const Span<ElseIfStatement*>& elseIfStatements, ElseStatement* elseStatement, const Span<AttributeDecl*>& attributes)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<IfStatement>(TotalSizeToAlloc(elseIfStatements.size(), attributes.size()), span, condition, body, elseStatement);
@@ -77,7 +77,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	CaseStatement* CaseStatement::Create(const TextSpan& span, Expression* expression, const ArrayRef<ASTNode*>& statements)
+	CaseStatement* CaseStatement::Create(const TextSpan& span, Expression* expression, const Span<ASTNode*>& statements)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<CaseStatement>(TotalSizeToAlloc(statements.size()), span, expression);
@@ -93,7 +93,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	DefaultCaseStatement* DefaultCaseStatement::Create(const TextSpan& span, const ArrayRef<ASTNode*>& statements)
+	DefaultCaseStatement* DefaultCaseStatement::Create(const TextSpan& span, const Span<ASTNode*>& statements)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<DefaultCaseStatement>(TotalSizeToAlloc(statements.size()), span);
@@ -109,7 +109,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	SwitchStatement* SwitchStatement::Create(const TextSpan& span, Expression* expression, const ArrayRef<CaseStatement*>& cases, DefaultCaseStatement* defaultCase, const ArrayRef<AttributeDecl*>& attributes)
+	SwitchStatement* SwitchStatement::Create(const TextSpan& span, Expression* expression, const Span<CaseStatement*>& cases, DefaultCaseStatement* defaultCase, const Span<AttributeDecl*>& attributes)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<SwitchStatement>(TotalSizeToAlloc(cases.size(), attributes.size()), span, expression, defaultCase);
@@ -125,7 +125,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	ForStatement* ForStatement::Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, const ArrayRef<AttributeDecl*>& attributes)
+	ForStatement* ForStatement::Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, const Span<AttributeDecl*>& attributes)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<ForStatement>(TotalSizeToAlloc(attributes.size()), span, init, condition, iteration, body);
@@ -159,7 +159,7 @@ namespace HXSL
 		return context->Alloc<DiscardStatement>(sizeof(DiscardStatement), span);
 	}
 
-	WhileStatement* WhileStatement::Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<AttributeDecl*>& attributes)
+	WhileStatement* WhileStatement::Create(const TextSpan& span, Expression* condition, BlockStatement* body, const Span<AttributeDecl*>& attributes)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<WhileStatement>(TotalSizeToAlloc(attributes.size()), span, condition, body);
@@ -175,7 +175,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	DoWhileStatement* DoWhileStatement::Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<AttributeDecl*>& attributes)
+	DoWhileStatement* DoWhileStatement::Create(const TextSpan& span, Expression* condition, BlockStatement* body, const Span<AttributeDecl*>& attributes)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<DoWhileStatement>(TotalSizeToAlloc(attributes.size()), span, condition, body);

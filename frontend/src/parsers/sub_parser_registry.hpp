@@ -146,7 +146,7 @@ namespace HXSL
 		}
 
 		auto span = first.Span.merge(stream.LastToken().Span);
-		ArrayRef<ASTNode*> statementsRef = statements;
+		Span<ASTNode*> statementsRef = statements;
 		statement = BlockStatement::Create(span, statementsRef);
 		return true;
 	}

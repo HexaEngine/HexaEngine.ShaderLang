@@ -100,8 +100,8 @@ namespace HXSL
 			SymbolRef* returnSymbol,
 			BlockStatement* body,
 			IdentifierInfo* semantic,
-			const ArrayRef<Parameter*>& parameters = {},
-			const ArrayRef<AttributeDecl*>& attributes = {});
+			const Span<Parameter*>& parameters = {},
+			const Span<AttributeDecl*>& attributes = {});
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetParameters, 0, storage);
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 1, storage);
@@ -158,7 +158,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_ConstructorOverload;
-		static ConstructorOverload* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes);
+		static ConstructorOverload* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, BlockStatement* body, const Span<Parameter*>& parameters, const Span<AttributeDecl*>& attributes);
 
 		SymbolRef* GetTargetTypeSymbolRef()
 		{
@@ -188,7 +188,7 @@ namespace HXSL
 			operatorStorage._operator = _operator;
 		}
 
-		static OperatorOverload* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes);
+		static OperatorOverload* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body, const Span<Parameter*>& parameters, const Span<AttributeDecl*>& attributes);
 
 		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
 
@@ -331,7 +331,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_Struct;
-		static Struct* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const ArrayRef<Field*>& fields, const ArrayRef<Struct*>& structs, const ArrayRef<Class*>& classes, const ArrayRef<ConstructorOverload*>& constructors, const ArrayRef<FunctionOverload*>& functions, const ArrayRef<OperatorOverload*>& operators);
+		static Struct* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const Span<Field*>& fields, const Span<Struct*>& structs, const Span<Class*>& classes, const Span<ConstructorOverload*>& constructors, const Span<FunctionOverload*>& functions, const Span<OperatorOverload*>& operators);
 		static Struct* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators);
 	};
 
@@ -347,7 +347,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_Class;
-		static Class* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const ArrayRef<Field*>& fields, const ArrayRef<Struct*>& structs, const ArrayRef<Class*>& classes, const ArrayRef<ConstructorOverload*>& constructors, const ArrayRef<FunctionOverload*>& functions, const ArrayRef<OperatorOverload*>& operators);
+		static Class* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const Span<Field*>& fields, const Span<Struct*>& structs, const Span<Class*>& classes, const Span<ConstructorOverload*>& constructors, const Span<FunctionOverload*>& functions, const Span<OperatorOverload*>& operators);
 		static Class* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, uint32_t numFields, uint32_t numStructs, uint32_t numClasses, uint32_t numConstructors, uint32_t numFunctions, uint32_t numOperators);
 	};
 }

@@ -10,7 +10,7 @@ namespace HXSL
 	{
 	private:
 		std::vector<std::unique_ptr<Assembly>> assemblies;
-		std::unordered_map<StringSpan, Assembly*, StringSpanHash, StringSpanEqual> nameToAssemblies;
+		std::unordered_map<StringSpan, Assembly*> nameToAssemblies;
 	public:
 		void AddAssembly(std::unique_ptr<Assembly> assembly)
 		{

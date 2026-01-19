@@ -16,6 +16,8 @@
 #include "il/loop_tree.hpp"
 #include "il/dag_graph.hpp"
 #include "il/rpo_merger.hpp"
+#include "il/il_code_blob.hpp"
+
 
 
 #include "utils/scoped_timer.hpp"
@@ -34,9 +36,14 @@ namespace HXSL
 
 		struct ILModule
 		{
-			ILContext* context;
-			ILContainer& container;
-			JumpTable& jumpTable;
+			BumpAllocator allocator;
+			ILMetadata metadata;
+			JumpTable jumpTable;
+			ILContainer container;
+
+			ILModule() : metadata(allocator), container(allocator)
+			{
+			}
 
 			void Print()
 			{
@@ -55,7 +62,7 @@ namespace HXSL
 						std::cout << "loc_" << index << ":" << std::endl;
 						offset = index + 1;
 					}
-					std::cout << "    " << ToString(instr, context->GetMetadata()) << std::endl;
+					std::cout << "    " << ToString(instr, metadata) << std::endl;
 				}
 				std::cout << "}" << std::endl;
 			}
@@ -212,16 +219,16 @@ namespace HXSL
 				std::cout << "Lowered SSA to IL:" << std::endl;
 				cfg.Print();
 #endif
-				RPOMerger rpoMerger = RPOMerger(cfg);
-				ILContainer newContainer = ILContainer(function->allocator);
-				JumpTable newJumpTable = JumpTable();
-				newJumpTable.Resize(cfg.size());
-				rpoMerger.Merge(newContainer, newJumpTable);
+				auto& alloc = module->GetAllocator();
+				ILCodeBlob* ilBlob = alloc.Alloc<ILCodeBlob>();
+		
+				ilBlob->FromContext(function);
 
-				ILModule module = ILModule{ function, newContainer, newJumpTable };
+#if HXSL_DEBUG
 				std::cout << "Final IL:" << std::endl;
-				module.Print();
-				
+				ilBlob->Print();
+#endif
+				functionLayout->SetCodeBlob(ilBlob);
 			}
 		}
 

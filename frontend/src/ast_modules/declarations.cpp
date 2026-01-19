@@ -17,8 +17,8 @@ namespace HXSL
 		SymbolRef* returnSymbol,
 		BlockStatement* body,
 		IdentifierInfo* semantic,
-		const ArrayRef<Parameter*>& parameters,
-		const ArrayRef<AttributeDecl*>& attributes)
+		const Span<Parameter*>& parameters,
+		const Span<AttributeDecl*>& attributes)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		FunctionOverload* ptr = context->Alloc<FunctionOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, ID, name, accessModifiers, functionFlags, returnSymbol, semantic, body);
@@ -97,7 +97,7 @@ namespace HXSL
 		AST_ITERATE_CHILD(body);
 	}
 
-	ConstructorOverload* ConstructorOverload::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes)
+	ConstructorOverload* ConstructorOverload::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, SymbolRef* targetTypeSymbol, BlockStatement* body, const Span<Parameter*>& parameters, const Span<AttributeDecl*>& attributes)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto returnType = SymbolRef::Create(TextSpan(), context->GetIdentifierTable().Get("void"), SymbolRefType_Type, true);
@@ -147,7 +147,7 @@ namespace HXSL
 		}
 	}
 
-	OperatorOverload* OperatorOverload::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body, const ArrayRef<Parameter*>& parameters, const ArrayRef<AttributeDecl*>& attributes)
+	OperatorOverload* OperatorOverload::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body, const Span<Parameter*>& parameters, const Span<AttributeDecl*>& attributes)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<OperatorOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, name, accessModifiers, functionFlags, operatorFlags, _operator, returnSymbol, body);
@@ -236,7 +236,7 @@ namespace HXSL
 		return context->Alloc<ThisDef>(sizeof(ThisDef), context->GetIdentifierTable().Get("this"), parentType);
 	}
 
-	Struct* Struct::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const ArrayRef<Field*>& fields, const ArrayRef<Struct*>& structs, const ArrayRef<Class*>& classes, const ArrayRef<ConstructorOverload*>& constructors, const ArrayRef<FunctionOverload*>& functions, const ArrayRef<OperatorOverload*>& operators)
+	Struct* Struct::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const Span<Field*>& fields, const Span<Struct*>& structs, const Span<Class*>& classes, const Span<ConstructorOverload*>& constructors, const Span<FunctionOverload*>& functions, const Span<OperatorOverload*>& operators)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto thisDef = ThisDef::Create(name);
@@ -261,7 +261,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	Class* Class::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const ArrayRef<Field*>& fields, const ArrayRef<Struct*>& structs, const ArrayRef<Class*>& classes, const ArrayRef<ConstructorOverload*>& constructors, const ArrayRef<FunctionOverload*>& functions, const ArrayRef<OperatorOverload*>& operators)
+	Class* Class::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier access, const Span<Field*>& fields, const Span<Struct*>& structs, const Span<Class*>& classes, const Span<ConstructorOverload*>& constructors, const Span<FunctionOverload*>& functions, const Span<OperatorOverload*>& operators)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto thisDef = ThisDef::Create(name);

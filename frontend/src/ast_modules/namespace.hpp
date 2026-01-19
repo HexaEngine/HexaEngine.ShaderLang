@@ -77,12 +77,12 @@ namespace HXSL
 		static constexpr NodeType ID = NodeType_Namespace;
 
 		static Namespace* Create(const TextSpan& span, IdentifierInfo* name,
-			const ArrayRef<Struct*>& structs,
-			const ArrayRef<Class*>& classes,
-			const ArrayRef<FunctionOverload*>& functions,
-			const ArrayRef<Field*>& fields,
-			const ArrayRef<Namespace*>& nestedNamespaces,
-			const ArrayRef<UsingDecl*>& usings);
+			const Span<Struct*>& structs,
+			const Span<Class*>& classes,
+			const Span<FunctionOverload*>& functions,
+			const Span<Field*>& fields,
+			const Span<Namespace*>& nestedNamespaces,
+			const Span<UsingDecl*>& usings);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetStructs, 0, storage);
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetClasses, 1, storage);

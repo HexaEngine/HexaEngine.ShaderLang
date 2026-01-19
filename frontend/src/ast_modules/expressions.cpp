@@ -77,7 +77,7 @@ namespace HXSL
 		return context->Alloc<FunctionCallParameter>(sizeof(FunctionCallParameter), span, expression);
 	}
 
-	FunctionCallExpression* FunctionCallExpression::Create(const TextSpan& span, SymbolRef* symbol, const ArrayRef<FunctionCallParameter*>& parameters)
+	FunctionCallExpression* FunctionCallExpression::Create(const TextSpan& span, SymbolRef* symbol, const Span<FunctionCallParameter*>& parameters)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<FunctionCallExpression>(TotalSizeToAlloc(parameters.size()), span, symbol);
@@ -118,7 +118,7 @@ namespace HXSL
 		return context->Alloc<CompoundAssignmentExpression>(sizeof(CompoundAssignmentExpression), span, _operator, target, expression, MakeOperatorSymbol());
 	}
 
-	InitializationExpression* InitializationExpression::Create(const TextSpan& span, const ArrayRef<Expression*>& parameters)
+	InitializationExpression* InitializationExpression::Create(const TextSpan& span, const Span<Expression*>& parameters)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<InitializationExpression>(TotalSizeToAlloc(parameters.size()), span);

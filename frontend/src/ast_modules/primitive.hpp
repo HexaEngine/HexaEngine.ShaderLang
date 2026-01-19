@@ -29,7 +29,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_Primitive;
-		static Primitive* Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, ArrayRef<OperatorOverload*>& operators);
+		static Primitive* Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, Span<OperatorOverload*>& operators);
 		static Primitive* Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, uint32_t numOperators);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetOperators, 0, storage)

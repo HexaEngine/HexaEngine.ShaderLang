@@ -2,7 +2,7 @@
 
 namespace HXSL
 {
-	inline bool SymbolCollector::Push(const StringSpan& span, SymbolDef* def, const SharedPtr<SymbolMetadata>& metadata, SymbolScopeType type)
+	inline bool SymbolCollector::Push(const StringSpan& span, SymbolDef* def, const ObjPtr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		stack.push(current);
 		SymbolHandle handle = targetAssembly->AddSymbol(span, def, metadata, current.Node);
@@ -18,7 +18,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool SymbolCollector::PushScope(const ASTNode* parent, const StringSpan& span, const SharedPtr<SymbolMetadata>& metadata, SymbolScopeType type)
+	bool SymbolCollector::PushScope(const ASTNode* parent, const StringSpan& span, const ObjPtr<SymbolMetadata>& metadata, SymbolScopeType type)
 	{
 		stack.push(current);
 		SymbolHandle handle = targetAssembly->AddSymbolScope(span, metadata, current.Node);
@@ -33,7 +33,7 @@ namespace HXSL
 		return true;
 	}
 
-	inline bool SymbolCollector::PushLeaf(SymbolDef* def, const SharedPtr<SymbolMetadata>& metadata)
+	inline bool SymbolCollector::PushLeaf(SymbolDef* def, const ObjPtr<SymbolMetadata>& metadata)
 	{
 		auto& span = def->GetName();
 		SymbolHandle handle = targetAssembly->AddSymbol(span, def, metadata, current.Node);
@@ -60,7 +60,7 @@ namespace HXSL
 		case NodeType_Namespace:
 		{
 			Namespace* s = cast<Namespace>(node);
-			auto metadata = SharedPtr<SymbolMetadata>::Create(s);
+			auto metadata = SymbolMetadata::Create(s);
 			Push(s->GetName(), s, metadata, SymbolScopeType_Namespace);
 		}
 		break;
@@ -78,7 +78,7 @@ namespace HXSL
 		{
 			Field* s = cast<Field>(node);
 			auto symType = s->GetSymbolType();
-			auto metadata = SharedPtr<SymbolMetadata>::Create(s);
+			auto metadata = SymbolMetadata::Create(s);
 			PushLeaf(s, metadata);
 		}
 		break;
@@ -87,7 +87,7 @@ namespace HXSL
 		{
 			FunctionOverload* s = cast<FunctionOverload>(node);
 			auto symType = s->GetSymbolType();
-			auto metadata = SharedPtr<SymbolMetadata>::Create(s);
+			auto metadata = SymbolMetadata::Create(s);
 			auto signature = s->BuildTemporaryOverloadSignature();
 			Push(signature, s, metadata, SymbolScopeType_Function);
 			RegisterForLatePass(node);
@@ -98,7 +98,7 @@ namespace HXSL
 		{
 			ConstructorOverload* s = cast<ConstructorOverload>(node);
 			auto symType = s->GetSymbolType();
-			auto metadata = SharedPtr<SymbolMetadata>::Create(s);
+			auto metadata = SymbolMetadata::Create(s);
 			auto signature = s->BuildTemporaryOverloadSignature();
 			Push(signature, s, metadata, SymbolScopeType_Constructor);
 			RegisterForLatePass(node);
@@ -109,7 +109,7 @@ namespace HXSL
 		{
 			OperatorOverload* s = cast<OperatorOverload>(node);
 			auto symType = s->GetSymbolType();
-			auto metadata = SharedPtr<SymbolMetadata>::Create(s);
+			auto metadata = SymbolMetadata::Create(s);
 			auto signature = s->BuildTemporaryOverloadSignature();
 			Push(signature, s, metadata, SymbolScopeType_Operator);
 			RegisterForLatePass(node);
@@ -120,7 +120,7 @@ namespace HXSL
 		{
 			Parameter* s = cast<Parameter>(node);
 			auto symType = s->GetSymbolType();
-			auto metadata = SharedPtr<SymbolMetadata>::Create(s);
+			auto metadata = SymbolMetadata::Create(s);
 			PushLeaf(s, metadata);
 		}
 		break;
@@ -128,7 +128,7 @@ namespace HXSL
 		case NodeType_BlockStatement:
 		{
 			BlockStatement* s = cast<BlockStatement>(node);
-			auto metadata = SharedPtr<SymbolMetadata>::Create(nullptr);
+			auto metadata = SymbolMetadata::Create(nullptr);
 			std::string temp = MakeScopeId(current.ScopeCounter++);
 			PushScope(node, temp, metadata, SymbolScopeType_Block);
 		}
@@ -139,7 +139,7 @@ namespace HXSL
 			DeclarationStatement* s = cast<DeclarationStatement>(node);
 			auto& span = s->GetName();
 			auto symType = s->GetSymbolType();
-			auto metadata = SharedPtr<SymbolMetadata>::Create(s);
+			auto metadata = SymbolMetadata::Create(s);
 			PushLeaf(s, metadata);
 		}
 		break;

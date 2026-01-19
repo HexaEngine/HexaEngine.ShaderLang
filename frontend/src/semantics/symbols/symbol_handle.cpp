@@ -10,7 +10,7 @@ namespace HXSL
 
 	const SymbolMetadata* SymbolHandle::GetMetadata() const
 	{
-		return GetNode()->GetMetadata().get();
+		return GetNode()->GetMetadata().Get();
 	}
 
 	std::string SymbolHandle::GetFullyQualifiedName() const

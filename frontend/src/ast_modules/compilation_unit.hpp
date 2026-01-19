@@ -21,7 +21,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_CompilationUnit;
-		static CompilationUnit* Create(bool isExtern, const ArrayRef<Namespace*>& namespaces, const ArrayRef<UsingDecl*>& usings);
+		static CompilationUnit* Create(bool isExtern, const Span<Namespace*>& namespaces, const Span<UsingDecl*>& usings);
 		static CompilationUnit* Create(bool isExtern, uint32_t numNamespaces, uint32_t numUsings);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetNamespaces, 0, storage);

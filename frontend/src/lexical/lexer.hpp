@@ -6,7 +6,7 @@
 #include "logging/logger.hpp"
 #include "logging/diagnostic_code.hpp"
 #include "lang/language.hpp"
-#include "identifier_table.hpp"
+#include "lexical/identifier_table.hpp"
 #include "token.hpp"
 #include "lexer_config.hpp"
 #include "io/text_stream.hpp"

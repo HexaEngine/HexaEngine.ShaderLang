@@ -33,7 +33,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_BlockStatement;
-		static BlockStatement* Create(const TextSpan& span, const ArrayRef<ASTNode*>& statements);
+		static BlockStatement* Create(const TextSpan& span, const Span<ASTNode*>& statements);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetStatements, 0, storage);
 
@@ -327,7 +327,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_IfStatement;
-		static IfStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<ElseIfStatement*>& elseIfStatements, ElseStatement* elseStatement, const ArrayRef<AttributeDecl*>& attributes);
+		static IfStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const Span<ElseIfStatement*>& elseIfStatements, ElseStatement* elseStatement, const Span<AttributeDecl*>& attributes);
 		static IfStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numElseIfStatements, ElseStatement* elseStatement, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetElseIfStatements, 0, storage);
@@ -361,7 +361,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_CaseStatement;
-		static CaseStatement* Create(const TextSpan& span, Expression* expression, const ArrayRef<ASTNode*>& statements);
+		static CaseStatement* Create(const TextSpan& span, Expression* expression, const Span<ASTNode*>& statements);
 		static CaseStatement* Create(const TextSpan& span, Expression* expression, uint32_t numStatements);
 
 		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
@@ -388,7 +388,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_DefaultCaseStatement;
-		static DefaultCaseStatement* Create(const TextSpan& span, const ArrayRef<ASTNode*>& statements);
+		static DefaultCaseStatement* Create(const TextSpan& span, const Span<ASTNode*>& statements);
 		static DefaultCaseStatement* Create(const TextSpan& span, uint32_t numStatements);
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
@@ -414,7 +414,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_SwitchStatement;
-		static SwitchStatement* Create(const TextSpan& span, Expression* expression, const ArrayRef<CaseStatement*>& cases, DefaultCaseStatement* defaultCase, const ArrayRef<AttributeDecl*>& attributes);
+		static SwitchStatement* Create(const TextSpan& span, Expression* expression, const Span<CaseStatement*>& cases, DefaultCaseStatement* defaultCase, const Span<AttributeDecl*>& attributes);
 		static SwitchStatement* Create(const TextSpan& span, Expression* expression, uint32_t numCases, DefaultCaseStatement* defaultCase, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetCases, 0, storage);
@@ -454,7 +454,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_ForStatement;
-		static ForStatement* Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, const ArrayRef<AttributeDecl*>& attributes);
+		static ForStatement* Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, const Span<AttributeDecl*>& attributes);
 		static ForStatement* Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
@@ -537,7 +537,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_WhileStatement;
-		static WhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<AttributeDecl*>& attributes);
+		static WhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const Span<AttributeDecl*>& attributes);
 		static WhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
@@ -566,7 +566,7 @@ namespace HXSL
 
 	public:
 		static constexpr NodeType ID = NodeType_DoWhileStatement;
-		static DoWhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const ArrayRef<AttributeDecl*>& atttributes);
+		static DoWhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, const Span<AttributeDecl*>& atttributes);
 		static DoWhileStatement* Create(const TextSpan& span, Expression* condition, BlockStatement* body, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);

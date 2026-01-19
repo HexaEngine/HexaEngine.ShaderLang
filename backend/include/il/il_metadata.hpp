@@ -8,6 +8,8 @@
 
 namespace HXSL
 {
+	struct Stream;
+
 	namespace Backend
 	{
 		enum ILVariableFlags : int
@@ -45,9 +47,11 @@ namespace HXSL
 		class ILTypeMetadata
 		{
 		public:
+			using ILTypeId = uint32_t;
+			ILTypeId id;
 			TypeLayout* def;
 
-			ILTypeMetadata(TypeLayout* def) : def(def)
+			ILTypeMetadata(ILTypeId id, TypeLayout* def) : id(id), def(def)
 			{
 			}
 
@@ -108,10 +112,12 @@ namespace HXSL
 		class ILFuncCallMetadata
 		{
 		public:
+			using ILFuncCallId = uint32_t;
+			ILFuncCallId id;
 			FunctionLayout* func;
 			std::vector<CallInstr*> callSites;
 
-			ILFuncCallMetadata(FunctionLayout* func) : func(func)
+			ILFuncCallMetadata(ILFuncCallId id, FunctionLayout* func) : id(id), func(func)
 			{
 			}
 		};
@@ -138,22 +144,58 @@ namespace HXSL
 
 		struct ILMetadata
 		{
+			using TypeMap = dense_map<TypeLayout*, ILType>;
 			BumpAllocator& allocator;
 			std::string unknownString = "Unknown";
 			ILVariable invalid = INVALID_VARIABLE_METADATA;
 			std::vector<ILType> typeMetadata;
-			std::unordered_map<TypeLayout*, ILType> typeMap;
+			TypeMap typeMap;
 
 			std::vector<ILVariable> variables;
 			std::vector<ILVariable> tempVariables;
 
 			std::vector<ILFuncCall> functions;
-			std::unordered_map<FunctionLayout*, ILFuncCall> funcMap;
+			dense_map<FunctionLayout*, ILFuncCall> funcMap;
 
 			std::vector<PhiInstr*> phiNodes;
 
 			ILMetadata(BumpAllocator& allocator) : allocator(allocator)
 			{
+			}
+
+			void CopyFrom(const ILMetadata& other)
+			{
+				for (auto& typeMeta : other.typeMetadata)
+				{
+					RegType(typeMeta->def);
+				}
+				for (auto& var : other.variables)
+				{
+					CloneVar(var.id, var);
+				}
+				for (auto& tempVar : other.tempVariables)
+				{
+					RegTempVar(tempVar.typeId);
+				}
+				for (auto& funcCall : other.functions)
+				{
+					RegFunc(funcCall->func);
+				}
+				for (auto& phi : other.phiNodes)
+				{
+					phiNodes.push_back(phi);
+				}
+			}
+
+			void Clear()
+			{
+				typeMetadata.clear();
+				typeMap.clear();
+				variables.clear();
+				tempVariables.clear();
+				functions.clear();
+				funcMap.clear();
+				phiNodes.clear();
 			}
 
 			void RemoveFunc(ILFuncCall funcCall)
@@ -193,8 +235,8 @@ namespace HXSL
 				{
 					return it->second;
 				}
-
-				auto meta = allocator.Alloc<ILTypeMetadata>(def);
+				auto id = static_cast<ILTypeMetadata::ILTypeId>(typeMetadata.size());
+				auto meta = allocator.Alloc<ILTypeMetadata>(id, def);
 				typeMetadata.push_back(meta);
 				typeMap.insert({ def, meta });
 				return meta;
@@ -245,7 +287,8 @@ namespace HXSL
 					return ILFuncCall(it->second);
 				}
 
-				auto meta = allocator.Alloc<ILFuncCallMetadata>(def);
+				auto id = static_cast<ILFuncCallMetadata::ILFuncCallId>(functions.size());
+				auto meta = allocator.Alloc<ILFuncCallMetadata>(id, def);
 				functions.push_back(meta);
 				funcMap.insert({ def, meta });
 				return meta;
@@ -369,6 +412,27 @@ namespace HXSL
 					return GetTypeName(var.typeId);
 				}
 			}
+
+			ILType GetTypeById(ILTypeMetadata::ILTypeId typeId) const
+			{
+				if (typeId >= typeMetadata.size())
+				{
+					return nullptr;
+				}
+				return typeMetadata[typeId];
+			}
+
+			ILFuncCall GetFuncById(ILFuncCallMetadata::ILFuncCallId funcId) const
+			{
+				if (funcId >= functions.size())
+				{
+					return nullptr;
+				}
+				return functions[funcId];
+			}
+
+			void Write(Stream* stream, ModuleWriterContext& context);
+			void Read(Stream* stream, ModuleReaderContext& context);
 		};
 	}
 }

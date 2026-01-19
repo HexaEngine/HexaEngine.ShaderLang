@@ -23,7 +23,6 @@ namespace HXSL
             {
                 if (var->varId == analysis.inductionVar)
                 {
-                    // Calculate: start + (step * i)
                     Number iterationIndex = Number((int32_t)iteration);
                     Number offset = analysis.stepValue * iterationIndex;
                     Number iterValue = analysis.startValue + offset;
@@ -88,7 +87,6 @@ namespace HXSL
 
                     if (auto initVar = dyn_cast<Variable>(initOperand))
                     {
-                        // Find the instruction in preheader that defines this variable
                         Instruction* defInstr = nullptr;
                         for (auto& preHeaderInstr : *preHeader)
                         {
@@ -102,7 +100,6 @@ namespace HXSL
                             }
                         }
 
-                        // Check if it's a mov instruction with a constant value
                         if (auto moveInstr = dyn_cast<MoveInstr>(defInstr))
                         {
                             if (auto constOp = dyn_cast<Constant>(moveInstr->GetSource()))
@@ -173,8 +170,6 @@ namespace HXSL
                         {
                             analysis.stepValue = rhsConst->imm();
 
-                            // Calculate trip count: (end - start) / step
-                            // Do all arithmetic in Number space, then convert final result
                             Number range = analysis.endValue - analysis.startValue;
                             Number iterCount = range / analysis.stepValue;
 
@@ -187,7 +182,6 @@ namespace HXSL
                                 analysis.tripCount = iterCount.ToSizeT() + 1;
                             }
 
-                            // Only unroll if trip count is reasonable and positive
                             if (analysis.tripCount > 0 && analysis.tripCount <= 16)
                             {
                                 analysis.isValidForUnroll = true;
@@ -250,8 +244,6 @@ namespace HXSL
                     preHeader->AddInstr(clonedInstr);
                 }
 
-
-                // Copy latch instructions EXCEPT the induction variable increment
                 if (i < analysis.tripCount - 1)
                 {
                     for (auto& instr : *latch)
@@ -261,7 +253,6 @@ namespace HXSL
                             continue;
                         }
 
-                        // Skip the instruction that defines the induction variable
                         if (auto resultInstr = dyn_cast<ResultInstr>(&instr))
                         {
                             if (resultInstr->GetResult().StripVersion() == analysis.inductionVar.StripVersion())

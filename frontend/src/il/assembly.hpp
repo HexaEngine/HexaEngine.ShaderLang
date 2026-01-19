@@ -6,6 +6,7 @@
 #include "io/stream.hpp"
 
 #include "pch/std.hpp"
+#include "utils/memory.hpp"
 
 namespace HXSL
 {
@@ -42,9 +43,9 @@ namespace HXSL
 
 		bool IsSealed() const noexcept { return sealed; }
 
-		SymbolHandle AddSymbol(const StringSpan& name, SymbolDef* def, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex = nullptr);
+		SymbolHandle AddSymbol(const StringSpan& name, SymbolDef* def, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex = nullptr);
 
-		SymbolHandle AddSymbolScope(const StringSpan& name, const SharedPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex = nullptr);
+		SymbolHandle AddSymbolScope(const StringSpan& name, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex = nullptr);
 
 		static std::unique_ptr<Assembly> Create(const std::string& path);
 

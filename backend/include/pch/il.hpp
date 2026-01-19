@@ -17,5 +17,6 @@
 #include "il/loop_tree.hpp"
 
 #include "il/il_mutator_base.hpp"
+#include "il/il_code_blob.hpp"
 
 #endif

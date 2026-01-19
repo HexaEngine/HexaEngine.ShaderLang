@@ -1,226 +1,126 @@
 #ifndef IL_ENCODING_HPP
 #define IL_ENCODING_HPP
 
-#include "il.hpp"
-#include "utils/endianness.hpp"
+#include "instruction.hpp"
+#include "il_metadata.hpp"
 #include "io/stream.hpp"
 
 namespace HXSL
 {
-	class ILEncoder
-	{
-		Stream* stream;
+    namespace Backend
+    {
+        enum class OpKind : uint8_t
+        {
+            Disabled = 0,
+            Variable = 1,
+            ImmU8 = 2,
+            ImmU16 = 3,
+            ImmU32 = 4,
+            ImmU64 = 5,
+            ImmI8 = 6,
+            ImmI16 = 7,
+            ImmI32 = 8,
+            ImmI64 = 9,
+            ImmF16 = 10,
+            ImmF32 = 11,
+            ImmF64 = 12,
+            Label = 13,
+            Type = 14,
+            Function = 15,
+            Field = 16,
+        };
 
-		void Write(const void* src, size_t s)
-		{
-			auto result = stream->Write(src, s);
-			if (result == EOF)
-			{
-				throw std::runtime_error("Unexpected error encountered while writing to a stream.");
-			}
-		}
+        constexpr size_t OpKindBits = 4;
+        constexpr size_t OpKindMask = (1 << OpKindBits) - 1;
 
-		void WriteByte(uint8_t value)
-		{
-			Write(&value, 1);
-		}
+        struct ILWriterOptions
+        {
+            bool writeDebugInfo = false;
+            ILMetadata& metadata;
+        };
 
-		template <typename T>
-		void Write(const T& value)
-		{
-			Write(&value, sizeof(T));
-		}
+        class ILWriter
+        {
+            Stream* stream;
+            ILWriterOptions options;
 
-		void EncodeOpCode(ILOpCode code)
-		{
-			uint64_t value = static_cast<uint64_t>(code);
-			do
-			{
-				uint8_t b = value & 0x7F;
-				value >>= 7;
-				b |= (value != 0) << 7;
-				WriteByte(b);
-			} while (value);
-		}
+            void Write(const void* src, size_t s)
+            {
+                auto result = stream->Write(src, s);
+                if (result == EOF)
+                {
+                    throw std::runtime_error("Unexpected error encountered while writing to a stream.");
+                }
+            }
 
-		void EncodeOperand(const ILOperand& op)
-		{
-			ILOperandKind_T kind = op.kind;
-			switch (kind)
-			{
-			case ILOperandKind_Variable:
-			case ILOperandKind_Label:
-			case ILOperandKind_Type:
-			case ILOperandKind_Func:
-			{
-				Write(EndianUtils::ToLittleEndian(static_cast<uint32_t>(op.varId & SSA_VARIABLE_MASK)));
-			}
-			break;
-			case ILOperandKind_Field:
-			{
-				auto v0 = EndianUtils::ToLittleEndian(op.field.typeId);
-				auto v1 = EndianUtils::ToLittleEndian(op.field.fieldId);
-				uint64_t v = static_cast<uint64_t>(v0) | static_cast<uint64_t>(v1 << 32);
-				Write(v);
-			}
-			break;
-			case ILOperandKind_Imm_i8:
-			case ILOperandKind_Imm_u8:
-			{
-				WriteByte(op.imm_m.u8);
-			}
-			break;
-			case ILOperandKind_Imm_i16:
-			case ILOperandKind_Imm_u16:
-			case ILOperandKind_Imm_f16:
-			{
-				Write(EndianUtils::ToLittleEndian(op.imm_m.u16));
-			}
-			break;
-			case ILOperandKind_Imm_i32:
-			case ILOperandKind_Imm_u32:
-			case ILOperandKind_Imm_f32:
-			{
-				Write(EndianUtils::ToLittleEndian(op.imm_m.u32));
-			}
-			break;
-			case ILOperandKind_Imm_i64:
-			case ILOperandKind_Imm_u64:
-			case ILOperandKind_Imm_f64:
-			{
-				Write(EndianUtils::ToLittleEndian(op.imm_m.u64));
-			}
-			break;
-			}
-		}
+            void WriteByte(uint8_t value)
+            {
+                Write(&value, 1);
+            }
 
-	public:
-		ILEncoder(Stream* stream) : stream(stream) {}
+            template <typename T>
+            void Write(const T& value)
+            {
+                Write(&value, sizeof(T));
+            }
 
-		void Encode(const ILInstruction& instr)
-		{
-			EncodeOpCode(instr.opcode);
-			WriteByte(instr.opKind);
-			uint16_t operandKind = 0;
-			operandKind |= (instr.operandLeft.kind.value & 0x1F);
-			operandKind |= (instr.operandRight.kind.value & 0x1F) << 5;
-			operandKind |= (instr.operandResult.kind.value & 0x1F) << 10;
-			Write(EndianUtils::ToLittleEndian(operandKind));
-			EncodeOperand(instr.operandLeft);
-			EncodeOperand(instr.operandRight);
-			EncodeOperand(instr.operandResult);
-		}
-	};
+            void EncodeOpCode(ILOpCode code);
+            void EncodeVarId(ILVarId varId);
+            void EncodeOperand(const Operand* op);
+            void EncodeImmediate(const Number& imm);
 
-	class ILDecoder
-	{
-		Stream* stream;
+        public:
+            ILWriter(Stream* stream, const ILWriterOptions& options) : stream(stream), options(options) {}
 
-		void Read(void* dst, size_t s)
-		{
-			auto read = stream->Read(dst, s);
-			if (read != s)
-			{
-				throw std::runtime_error("Unexpected end of stream.");
-			}
-		}
+            void Write(const Instruction& instr);
+        };
 
-		uint8_t ReadByte()
-		{
-			uint8_t val;
-			Read(&val, 1);
-			return val;
-		}
+        struct ILReaderOptions
+        {
+            BumpAllocator& allocator;
+            ILMetadata& metadata;
+            bool readDebugInfo = false;
+        };
 
-		template <typename T>
-		T Read()
-		{
-			T dst{};
-			Read(&dst, sizeof(T));
-			return dst;
-		}
+        class ILReader
+        {
+            Stream* stream;
+            ILReaderOptions options;
 
-		ILOpCode DecodeOpCode()
-		{
-			uint64_t value = 0;
-			size_t shift = 0;
-			uint8_t b;
-			do
-			{
-				b = ReadByte();
-				value |= static_cast<uint64_t>(b & 0x7F) << shift;
-				shift += 7;
-			} while (b & 0x80);
+            void Read(void* dst, size_t s)
+            {
+                auto read = stream->Read(dst, s);
+                if (read != s)
+                {
+                    throw std::runtime_error("Unexpected end of stream.");
+                }
+            }
 
-			return static_cast<ILOpCode>(value);
-		}
+            uint8_t ReadByte()
+            {
+                uint8_t val;
+                Read(&val, 1);
+                return val;
+            }
 
-		void DecodeOperand(ILOperand& op)
-		{
-			ILOperandKind_T kind = op.kind;
-			switch (kind)
-			{
-			case ILOperandKind_Variable:
-			case ILOperandKind_Label:
-			case ILOperandKind_Type:
-			case ILOperandKind_Func:
-			{
-				op.varId = static_cast<uint64_t>(EndianUtils::FromLittleEndian(Read<uint32_t>()));
-			}
-			break;
-			case ILOperandKind_Field:
-			{
-				uint64_t v = Read<uint64_t>();
-				op.field.typeId = EndianUtils::FromLittleEndian(static_cast<uint32_t>(v & 0xFFFFFFFF));
-				op.field.fieldId = EndianUtils::FromLittleEndian(static_cast<uint32_t>((v >> 32) & 0xFFFFFFFF));
-			}
-			break;
-			case ILOperandKind_Imm_i8:
-			case ILOperandKind_Imm_u8:
-			{
-				op.imm_m.u8 = ReadByte();
-			}
-			break;
-			case ILOperandKind_Imm_i16:
-			case ILOperandKind_Imm_u16:
-			case ILOperandKind_Imm_f16:
-			{
-				op.imm_m.u16 = EndianUtils::FromLittleEndian(Read<uint16_t>());
-			}
-			break;
-			case ILOperandKind_Imm_i32:
-			case ILOperandKind_Imm_u32:
-			case ILOperandKind_Imm_f32:
-			{
-				op.imm_m.u32 = EndianUtils::FromLittleEndian(Read<uint32_t>());
-			}
-			break;
-			case ILOperandKind_Imm_i64:
-			case ILOperandKind_Imm_u64:
-			case ILOperandKind_Imm_f64:
-			{
-				op.imm_m.u64 = EndianUtils::FromLittleEndian(Read<uint64_t>());
-			}
-			break;
-			}
-		}
+            template <typename T>
+            T Read()
+            {
+                T dst{};
+                Read(&dst, sizeof(T));
+                return dst;
+            }
 
-	public:
-		ILDecoder(Stream* stream) : stream(stream) {}
+        ILOpCode DecodeOpCode();
+        ILVarId DecodeVarId();
+        Operand* DecodeOperand(OpKind kind);
 
-		bool Decode(ILInstruction& instr)
-		{
-			instr.opcode = DecodeOpCode();
-			instr.opKind = ReadByte();
-			uint16_t v = EndianUtils::FromLittleEndian(Read<uint16_t>());
-			instr.operandLeft.kind = static_cast<ILOperandKind_T>(v & 0x1F);
-			instr.operandRight.kind = static_cast<ILOperandKind_T>((v >> 5) & 0x1F);
-			instr.operandResult.kind = static_cast<ILOperandKind_T>((v >> 10) & 0x1F);
-			DecodeOperand(instr.operandLeft);
-			DecodeOperand(instr.operandRight);
-			DecodeOperand(instr.operandResult);
-		}
-	};
+    public:
+        ILReader(Stream* stream, const ILReaderOptions& options) : stream(stream), options(options) {}
+
+            Instruction* Read();
+        };
+    }
 }
 
 #endif

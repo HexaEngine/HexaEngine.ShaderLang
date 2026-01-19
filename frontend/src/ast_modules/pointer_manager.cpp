@@ -35,7 +35,7 @@ namespace HXSL
 
 		auto pointer = Pointer::Create(TextSpan(), pointerKey, symbolRef);
 
-		auto meta = SharedPtr<SymbolMetadata>::Create(pointer);
+		auto meta = SymbolMetadata::Create(pointer);
 		handle = table->Insert(pointer->GetName(), meta);
 		pointer->SetAssembly(pointerAssembly.get(), handle);
 

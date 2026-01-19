@@ -9,12 +9,14 @@
 #include "utils/bump_allocator.hpp"
 
 #include "utils/rtti_helper.hpp"
+#include "io/stream.hpp"
 
 namespace HXSL
 {
 	namespace Backend
 	{
 		class ILContext;
+		class ILCodeBlob;
 		class TypeLayout;
 		class FunctionLayout;
 		class OperatorLayout;
@@ -115,6 +117,8 @@ namespace HXSL
 			StorageClass storageClass = StorageClass_None;
 			FunctionFlags functionFlags = FunctionFlags_None;
 			ILContext* context = nullptr;
+			ILCodeBlob* codeBlob = nullptr;
+
 		protected:
 			FunctionLayout(LayoutType typeId) : Layout(typeId) {}
 		public:
@@ -144,6 +148,9 @@ namespace HXSL
 
 			ILContext* GetContext() const { return context; }
 			void SetContext(ILContext* value) { context = value; }
+
+			ILCodeBlob* GetCodeBlob() const { return codeBlob; }
+			void SetCodeBlob(ILCodeBlob* blob) { codeBlob = blob; }
 		};
 
 		class OperatorLayout : public FunctionLayout
@@ -318,11 +325,13 @@ namespace HXSL
 
 		class Module : public Layout
 		{
+		
 			BumpAllocator allocator;
 			std::vector<NamespaceLayout*> namespaces;
 			Span<FunctionLayout*> functions;
 
-		public:
+		public:	
+			using RecordId = uint64_t;
 			static constexpr LayoutType ID = ModuleLayoutType;
 			Module() : Layout(ID) {}
 
@@ -363,6 +372,110 @@ namespace HXSL
 
 		template <typename T>
 		inline static const T* dyn_cast(const Layout* N) { return isa<T>(N) ? static_cast<const T*>(N) : nullptr; }
+
+		class ModuleWriter;
+		class ModuleReader;
+
+		struct ModuleWriterContext
+		{
+			using RecordId = Module::RecordId;
+			ModuleWriter& writer;
+			const dense_map<const Layout*, RecordId>& recordMap;
+		};
+
+		struct ModuleReaderContext
+		{
+			using RecordId = Module::RecordId;
+			ModuleReader& reader;
+			const dense_map<RecordId, Layout*>& recordMap;
+		};
+
+		class ModuleWriter
+		{
+			using RecordId = Module::RecordId;
+			Stream* stream = nullptr;
+			dense_map<const Layout*, RecordId> recordMap;
+			dense_set<const Layout*> writtenRecords;
+			RecordId recordCounter = 1;
+			
+			ModuleWriterContext context{ *this, recordMap };
+
+		public:
+			template<typename T>
+			inline void WriteLittleEndian(T value)
+			{
+				stream->WriteValue(EndianUtils::ToLittleEndian(value));
+			}
+
+			inline void WriteString(const StringSpan& str)
+			{
+				uint32_t len = static_cast<uint32_t>(str.size());
+				WriteLittleEndian(len);
+				if (len == 0) return;
+				stream->Write(str.data(), len);
+			}
+
+			RecordId GetRecordId(const Layout* layout);
+			bool WriteRecordHeader(const Layout* layout);
+			void WriteRecordRef(const Layout* layout);
+			void WriteNamespace(const NamespaceLayout* ns);
+			void WriteStruct(const StructLayout* strct);
+			void WriteFunction(const FunctionLayout* func);
+			void WriteOperator(const OperatorLayout* op);
+			void WriteConstructor(const ConstructorLayout* ctor);
+			void WriteParameter(const ParameterLayout* param);
+			void WriteField(const FieldLayout* field);
+			void WritePointerType(const PointerLayout* ptr);
+			void WritePrimitiveType(const PrimitiveLayout* prim);
+			void WriteType(const TypeLayout* type);
+			void WriteModule(const Module* module);
+
+			ModuleWriter(Stream* s) : stream(s) {}
+
+			void Write(const Module* module);
+		};
+
+		class ModuleReader
+		{
+			using RecordId = Module::RecordId;
+			Stream* stream = nullptr;
+			Module* module = nullptr;
+			dense_map<RecordId, Layout*> recordMap;
+			ModuleReaderContext context{ *this, recordMap };
+
+
+		public:
+			template<typename T>
+			inline T ReadLittleEndian()
+			{
+				return EndianUtils::FromLittleEndian(stream->ReadValue<T>());
+			}
+
+			RecordId ReadRecordRef();
+
+			template<typename T>
+			T* ReadRecordRef()
+			{
+				return cast<T>(recordMap[ReadRecordRef()]);
+			}
+
+			void ReadModule();
+			NamespaceLayout* ReadNamespace();
+			StructLayout* ReadStruct();
+			FunctionLayout* ReadFunction();
+			OperatorLayout* ReadOperator();
+			ConstructorLayout* ReadConstructor();
+			ParameterLayout* ReadParameter();
+			FieldLayout* ReadField();
+			PointerLayout* ReadPointerType();
+			PrimitiveLayout* ReadPrimitiveType();
+			StringSpan ReadStringSpan();
+			ILCodeBlob* ReadILCodeBlob();
+
+			ModuleReader(Stream* s) : stream(s) {}
+
+			uptr<Module> Read();
+		};
 	}
 }
 

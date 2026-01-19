@@ -2,6 +2,7 @@
 #define LAYOUT_BUILDER_HPP
 
 #include "module.hpp"
+#include "lexical/identifier_table.hpp"
 
 namespace HXSL
 {
@@ -44,6 +45,12 @@ namespace HXSL
 			{
 				StringSpan span = semantic ? semantic->name : StringSpan();
 				param->SetSemantic(allocator.CopyString(span));
+				return *this;
+			}
+
+			ParameterLayoutBuilder& Semantic(const StringSpan& semantic)
+			{
+				param->SetSemantic(allocator.CopyString(semantic));
 				return *this;
 			}
 
@@ -134,6 +141,12 @@ namespace HXSL
 				return *this;
 			}
 
+			FunctionLayoutBuilder& CodeBlob(ILCodeBlob* blob)
+			{
+				func->SetCodeBlob(blob);
+				return *this;
+			}
+
 			[[nodiscard]] FunctionLayout* Build()
 			{
 				func->SetParameters(allocator.CopySpan(parameters));
@@ -207,6 +220,12 @@ namespace HXSL
 			{
 				StringSpan span = semantic ? semantic->name : StringSpan();
 				field->SetSemantic(allocator.CopyString(span));
+				return *this;
+			}
+
+			FieldLayoutBuilder& Semantic(const StringSpan& semantic)
+			{
+				field->SetSemantic(allocator.CopyString(semantic));
 				return *this;
 			}
 

@@ -51,6 +51,12 @@ namespace HXSL
 			return EOF;
 		}
 
+		template<typename T>
+		size_t Write(const T& val)
+		{
+			return Write(&val, sizeof(T));
+		}
+
 		int64_t Seek(int64_t offset, SeekOrigin origin) const
 		{
 			if (seekFunc)
@@ -433,6 +439,7 @@ namespace HXSL
 
 		BufferedStream(Stream* inner, bool closeInner = true, size_t bufferSize = 4096)
 			: Stream(sizeof(BufferedStream), this, BufferedStreamRead, BufferedStreamWrite, BufferedStreamSeek, BufferedStreamPosition, BufferedStreamLength, BufferedStreamFlush, BufferedStreamClose),
+			inner(inner),
 			closeInner(closeInner),
 			bufferSize(bufferSize),
 			bufferPosition(0),

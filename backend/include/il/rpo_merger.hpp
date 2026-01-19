@@ -16,7 +16,7 @@ namespace HXSL
 			void VisitClose(size_t index, BasicBlock& node, EmptyCFGContext& context) override;
 		public:
 			RPOMerger(ControlFlowGraph& cfg) : CFGVisitor(cfg) {}
-			void Merge(ILContainer& container, JumpTable& jumpTable);
+			void Merge(BumpAllocator& allocator, ILMetadata& srcMetadata, ILMetadata& dstMetadata, ILContainer& container, JumpTable& jumpTable);
 		};
 	}
 }
