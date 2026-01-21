@@ -71,7 +71,7 @@ namespace HXSL
 		void ILOptimizer::Optimize()
 		{
 			auto& functions = module->GetAllFunctions();
-			FuncCallGraph callGraph = FuncCallGraph();
+
 			for (auto& functionLayout : functions)
 			{
 				auto function = functionLayout->GetContext();
@@ -89,95 +89,13 @@ namespace HXSL
 #endif
 
 				Optimize(function);
-
-				if (!function->empty())
-				{
-					callGraph.AddFunction(functionLayout);
-				}
 			}
 
-			for (auto& functionLayout : functions)
+			FunctionInliner inliner = FunctionInliner();
+			auto inlined = inliner.Inline(functions);
+			for (auto& funcLayout : inlined)
 			{
-				auto function = functionLayout->GetContext();
-				auto& cfg = function->cfg;
-				auto& metadata = function->metadata;
-				if (function->empty()) continue;
-				for (auto& call : metadata.functions)
-				{
-					callGraph.AddCall(functionLayout, call->func);
-				}
-			}
-
-			callGraph.UpdateSCCs();
-		
-			auto& nodes = callGraph.GetNodes();
-			auto& sccs = callGraph.GetSCCs();
-
-			std::vector<size_t> nodeToScc(nodes.size());
-			for (size_t scc = 0; scc < sccs.size(); ++scc)
-			{
-				for (size_t n : sccs[scc])
-				{
-					nodeToScc[n] = scc;
-				}
-			}
-
-			DAGGraph<size_t> sccGraph = DAGGraph<size_t>();
-			for (size_t scc = 0; scc < sccs.size(); ++scc)
-			{
-				sccGraph.AddNode(scc);
-			}
-
-			for (size_t u = 0; u < nodes.size(); ++u)
-			{
-				size_t su = nodeToScc[u];
-				for (size_t v : nodes[u]->dependencies)
-				{
-					size_t sv = nodeToScc[v];
-					if (su != sv)
-					{
-						sccGraph.AddEdge(su, sv);
-					}
-				}
-			}
-
-			std::vector<size_t> sccOrder = sccGraph.TopologicalSort();
-
-			for (auto callerScc : sccOrder)
-			{
-				for (size_t callerNode : sccs[callerScc])
-				{
-					auto* callerLayout = nodes[callerNode]->function;
-					auto* caller = callerLayout->GetContext();
-					auto& metadata = caller->metadata;
-					if (caller->empty()) continue;
-
-					for (auto& call : metadata.functions)
-					{
-						auto* calleeLayout = call->func;
-						size_t calleeNode = callGraph.GetIndex(calleeLayout);
-						size_t calleeScc = nodeToScc[calleeNode];
-					
-						if (callerScc == calleeScc)
-						{
-							continue;
-						}
-
-						auto* callee = calleeLayout->GetContext();
-						auto instructionCount = callee->cfg.CountInstructions();
-						if (instructionCount > 20)
-						{
-							continue;
-						}
-
-						FunctionInliner inliner = FunctionInliner(callerLayout, calleeLayout);
-						inliner.InlineAll(call->callSites);
-
-						std::cout << "Inliner:" << std::endl;
-						caller->cfg.Print();
-						Optimize(caller);
-					}
-				}
+				Optimize(funcLayout->GetContext());
 			}
 
 			for (auto& functionLayout : functions)

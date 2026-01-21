@@ -282,6 +282,16 @@ namespace HXSL
 
 				hadBrackets = false;
 			}
+			else if (current.isKeywordOf(Keyword_New))
+			{
+				auto op = ParseOperandIter(context);
+				if (op == -1)
+				{
+					return false;
+				}
+				wasOperator = false;
+				hadBrackets = false;
+			}
 			else if (current.isDelimiterOf('(') || current.isLiteral() || current.isNumeric() || current.isIdentifier() || current.isKeywordOf(BuiltInTypes) || current.isKeywordOf(KeywordLiterals))
 			{
 				if (hadBrackets && context.HasOperand())

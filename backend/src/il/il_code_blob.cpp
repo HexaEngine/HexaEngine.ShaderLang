@@ -39,13 +39,10 @@ namespace HXSL
 
 		void ILCodeBlob::Write(Stream* stream, ModuleWriterContext& context)
 		{
-			auto p = stream->Position();
 			metadata.Write(stream, context);
-			auto p2 = stream->Position();
 			stream->WriteValue(EndianUtils::ToLittleEndian(static_cast<uint32_t>(instructions.size())));
 			ILWriterOptions options = { false, metadata };
 			ILWriter writer(stream, options);
-			auto p3 = stream->Position();
 			for (auto& instr : instructions)
 			{
 				writer.Write(instr);

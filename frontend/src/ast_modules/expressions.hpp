@@ -504,13 +504,19 @@ namespace HXSL
 	{
 		friend class ASTContext;
 		friend class TrailingObjects;
-	private:
+	protected:
 		FunctionCallExpressionFlags flags = FunctionCallExpressionFlags::None;
 		SymbolRef* symbol;
 		TrailingObjStorage<FunctionCallExpression, uint32_t> storage;
 
 		FunctionCallExpression(const TextSpan& span, SymbolRef* symbol)
 			: ChainExpression(span, ID),
+			symbol(symbol)
+		{
+		}
+
+		FunctionCallExpression(const TextSpan& span, NodeType type, SymbolRef* symbol)
+			: ChainExpression(span, type),
 			symbol(symbol)
 		{
 		}
@@ -583,6 +589,21 @@ namespace HXSL
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+	};
+
+	class ConstructorCallExpression : public FunctionCallExpression
+	{
+		friend class ASTContext;
+	private:
+		ConstructorCallExpression(const TextSpan& span, SymbolRef* symbol)
+			: FunctionCallExpression(span, ID, symbol)
+		{
+			SetFunctionCallFlag(FunctionCallExpressionFlags::ConstructorCall, true);
+		}
+	public:
+		static constexpr NodeType ID = NodeType_ConstructorCallExpression;
+		static ConstructorCallExpression* Create(const TextSpan& span, SymbolRef* symbol, const Span<FunctionCallParameter*>& parameters);
+		static ConstructorCallExpression* Create(const TextSpan& span, SymbolRef* symbol, uint32_t numParameters);
 	};
 
 	class MemberAccessExpression : public ChainExpression

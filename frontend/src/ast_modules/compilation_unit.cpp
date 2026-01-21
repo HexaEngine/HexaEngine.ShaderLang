@@ -32,4 +32,11 @@ namespace HXSL
 		AST_ITERATE_CHILDREN(GetUsings);
 		AST_ITERATE_CHILDREN(GetNamespaces);
 	}
+
+	std::string CompilationUnit::DebugName() const
+	{
+		std::ostringstream oss;
+		oss << "[" << HXSL::ToString(type) << "]";
+		return oss.str();
+	}
 }

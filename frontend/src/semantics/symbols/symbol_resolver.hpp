@@ -98,11 +98,9 @@ namespace HXSL
 		 * @return true if the expression represents a constructor call (regardless of resolution success).
 		 * @return false if the expression does not represent a constructor call.
 		 */
-		bool TryResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool* success = nullptr, bool silent = false) const;
+		bool ResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
 
 		bool ResolveFunction(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
-
-		bool ResolveCallable(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
 
 		/**
 		 * @brief Attempts to resolve a member within a chain expression.

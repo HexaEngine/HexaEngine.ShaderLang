@@ -45,6 +45,7 @@ namespace HXSL
 		std::call_once(initFlag, []()
 			{
 				Register<LiteralExpressionParser>();
+				Register<CtorCallExpressionParser>();
 				Register<MemberAccessExpressionParser>();
 				Register<SymbolExpressionParser>();
 			});

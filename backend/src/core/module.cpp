@@ -434,6 +434,7 @@ namespace HXSL
             std::vector<Layout*> records;
             records.reserve(recordCount);
 
+			std::vector<FunctionLayout*> functions;
             for (uint64_t i = 0; i < recordCount; ++i)
             {
                 Layout::LayoutType typeId = ReadLittleEndian<Layout::LayoutType>();
@@ -459,13 +460,25 @@ namespace HXSL
                     layout = ReadStruct();
                     break;
                 case Layout::FunctionLayoutType:
-                    layout = ReadFunction();
+                {
+                    auto function = ReadFunction();
+                    functions.push_back(function);
+                    layout = function;
+                }
                     break;
                 case Layout::OperatorLayoutType:
-                    layout = ReadOperator();
+                {
+                    auto op = ReadOperator();
+                    functions.push_back(op);
+                    layout = op;
+                }
                     break;
                 case Layout::ConstructorLayoutType:
-                    layout = ReadConstructor();
+                {
+                    auto ctor = ReadConstructor();
+                    functions.push_back(ctor);
+                    layout = ctor;
+                }
                     break;
                 case Layout::ParameterLayoutType:
                     layout = ReadParameter();
@@ -481,6 +494,9 @@ namespace HXSL
                 recordMap.insert({ id, layout });
                 records.push_back(layout);
             }
+
+			auto& alloc = mod->GetAllocator();
+            mod->SetAllFunctions(alloc.CopySpan(functions));
 
             return mod;
         }

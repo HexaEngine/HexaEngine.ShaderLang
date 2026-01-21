@@ -84,6 +84,11 @@ namespace HXSL
 		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, FunctionCallExpression* expression, std::stack<Expression*>& stack);
 	};
 
+	class ConstructorCallExpressionChecker : public ExpressionChecker<ConstructorCallExpression>
+	{
+		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ConstructorCallExpression* expression, std::stack<Expression*>& stack);
+	};
+
 	class TernaryExpressionChecker : public ExpressionChecker<TernaryExpression>
 	{
 		void HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, TernaryExpression* expression, std::stack<Expression*>& stack);

@@ -104,6 +104,7 @@ namespace HXSL
 		NodeType_LiteralExpression, // type-check: yes
 		NodeType_MemberReferenceExpression, // type-check: yes
 		NodeType_FunctionCallExpression, // type-check: yes
+		NodeType_ConstructorCallExpression, 
 		NodeType_FunctionCallParameter, // type-check: yes
 		NodeType_MemberAccessExpression, // type-check: yes
 		NodeType_IndexerAccessExpression, // type-check: yes
@@ -215,6 +216,7 @@ namespace HXSL
 		case NodeType_LiteralExpression: return "LiteralExpression";
 		case NodeType_MemberReferenceExpression: return "MemberReferenceExpression";
 		case NodeType_FunctionCallExpression: return "FunctionCallExpression";
+		case NodeType_ConstructorCallExpression: return "ConstructorCallExpression";
 		case NodeType_FunctionCallParameter: return "FunctionCallParameter";
 		case NodeType_MemberAccessExpression: return "MemberAccessExpression";
 		case NodeType_IndexerAccessExpression: return "IndexerAccessExpression";

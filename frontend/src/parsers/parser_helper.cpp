@@ -86,15 +86,43 @@ namespace HXSL
 		return true;
 	}
 
+	bool ParserHelper::ParseConstructorCallInner(const Token& start, LazySymbol& lazy, Parser& parser, TokenStream& stream, ConstructorCallExpression*& expression)
+	{
+		std::vector<FunctionCallParameter*> parameters;
+		IF_ERR_RET_FALSE(ParseFunctionCallInner(parser, stream, parameters));
+
+		auto span = start.Span.merge(stream.LastToken().Span);
+
+		SymbolRef* symbol = lazy.make();
+		expression = ConstructorCallExpression::Create(span, symbol, parameters);
+		return true;
+	}
+
 	bool ParserHelper::TryParseFunctionCall(Parser& parser, TokenStream& stream, FunctionCallExpression*& expression)
 	{
 		auto start = stream.Current();
-		SymbolRef* symbol;
 		LazySymbol lazy;
 
-		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_FunctionOrConstructor, lazy));
+		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_FunctionOverload, lazy));
 		IF_ERR_RET_FALSE(stream.TryGetDelimiter('('));
 		IF_ERR_RET_FALSE(ParseFunctionCallInner(start, lazy, parser, stream, expression));
+
+		return true;
+	}
+
+	bool ParserHelper::TryParseConstructorCall(Parser& parser, TokenStream& stream, ConstructorCallExpression*& expression)
+	{
+		auto start = stream.Current();
+
+		if (!stream.TryGetKeyword(Keyword_New))
+		{
+			return false;
+		}
+
+		LazySymbol lazy;
+		IF_ERR_RET_FALSE(parser.TryParseSymbol(SymbolRefType_Constructor, lazy));
+		IF_ERR_RET_FALSE(stream.TryGetDelimiter('('));
+		IF_ERR_RET_FALSE(ParseConstructorCallInner(start, lazy, parser, stream, expression));
 
 		return true;
 	}

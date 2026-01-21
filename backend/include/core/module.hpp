@@ -435,6 +435,21 @@ namespace HXSL
 			void Write(const Module* module);
 		};
 
+		struct ModuleReference
+		{
+			StringSpan name;
+			uint32_t majorVersion;
+			uint32_t minorVersion;
+			uint32_t patchVersion;
+			uint32_t buildVersion;
+		};
+
+		struct ExternalSymbol
+		{
+			uint32_t moduleRefId;
+			StringSpan name;
+		};
+
 		class ModuleReader
 		{
 			using RecordId = Module::RecordId;

@@ -23,12 +23,17 @@ namespace HXSL
 
 	bool FuncCallExpressionParser::TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut)
 	{
-		auto current = stream.Current();
-
 		FunctionCallExpression* expression;
 		IF_ERR_RET_FALSE(ParserHelper::TryParseFunctionCall(parser, stream, expression));
 		expressionOut = expression;
+		return true;
+	}
 
+	bool CtorCallExpressionParser::TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut)
+	{
+		ConstructorCallExpression* expression;
+		IF_ERR_RET_FALSE(ParserHelper::TryParseConstructorCall(parser, stream, expression));
+		expressionOut = expression;
 		return true;
 	}
 

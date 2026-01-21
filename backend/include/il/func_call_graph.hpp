@@ -12,24 +12,37 @@ namespace HXSL
 	{
 		struct FCGNode : public GraphNode<FCGNode>
 		{
+		public:
+			static constexpr size_t InvalidIndex = static_cast<size_t>(-1);
+		private:
 			FunctionLayout* function;
 			size_t index;
+			size_t sccIndex = InvalidIndex;
+			float inlineCost = 0;
 			std::vector<size_t> dependencies;
 			std::vector<size_t> dependants;
 
-			FCGNode(FunctionLayout* function, const size_t& index) : function(function), index(index)
+		public:
+			FCGNode(FunctionLayout* function, size_t index) : function(function), index(index)
 			{
 			}
 
-			const std::vector<size_t>& GetDependencies() const
-			{
-				return dependencies;
-			}
+			void SetFunction(FunctionLayout* func) { function = func; }
+			void SetIndex(size_t idx) { index = idx; }
+			void SetSCCIndex(size_t sccIdx) { sccIndex = sccIdx; }
+			void SetInlineCost(float cost) { inlineCost = cost; }
 
-			const std::vector<size_t>& GetDependants() const
-			{
-				return dependants;
-			}
+			FunctionLayout* GetFunction() const { return function; }
+
+			const size_t GetIndex() const { return index; }
+			const size_t GetSCCIndex() const { return sccIndex; }
+			float GetInlineCost() const { return inlineCost; }
+
+			const std::vector<size_t>& GetDependencies() const { return dependencies; }
+			const std::vector<size_t>& GetDependants() const { return dependants; }
+
+			void AddDependency(size_t depIdx) { dependencies.push_back(depIdx); }
+			void AddDependant(size_t depIdx) { dependants.push_back(depIdx); }
 		};
 
 		class FuncCallGraph : public GraphPtrBase<FCGNode>
@@ -38,6 +51,8 @@ namespace HXSL
 			std::vector<std::vector<size_t>> sccs;
 
 		public:
+			static constexpr auto InvalidIndex = FCGNode::InvalidIndex;
+
 			void Clear()
 			{
 				nodes.clear();
@@ -50,7 +65,7 @@ namespace HXSL
 				auto it = valueToNode.find(func);
 				if (it == valueToNode.end())
 				{
-					return std::string::npos;
+					return InvalidIndex;
 				}
 				return it->second;
 			}
@@ -65,11 +80,12 @@ namespace HXSL
 				return nodes[it->second].get();
 			}
 
-			void AddFunction(FunctionLayout* func)
+			FCGNode* AddFunction(FunctionLayout* func)
 			{
 				auto index = nodes.size();
 				nodes.emplace_back(make_uptr<FCGNode>(func, index));
 				valueToNode[func] = index;
+				return nodes.back().get();
 			}
 
 			void AddCall(FunctionLayout* caller, FunctionLayout* callee)
@@ -86,13 +102,20 @@ namespace HXSL
 				}
 				auto& nodeCallee = nodes[itCallee->second];
 				auto& nodeCaller = nodes[itCaller->second];
-				nodeCallee->dependants.push_back(itCaller->second);
-				nodeCaller->dependencies.push_back(itCallee->second);
+				nodeCallee->AddDependant(itCaller->second);
+				nodeCaller->AddDependency(itCallee->second);
 			}
 
 			void UpdateSCCs()
 			{
 				sccs = SCCGraph<FCGNode>::ComputeSCCs(nodes);
+				for (size_t i = 0; i < sccs.size(); ++i)
+				{
+					for (size_t nodeIdx : sccs[i])
+					{
+						nodes[nodeIdx]->SetSCCIndex(i);
+					}
+				}
 			}
 
 			const std::vector<std::vector<size_t>>& GetSCCs() const

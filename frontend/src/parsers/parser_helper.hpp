@@ -14,7 +14,11 @@ namespace HXSL
 
 		static bool ParseFunctionCallInner(const Token& start, LazySymbol& lazy, Parser& parser, TokenStream& stream, FunctionCallExpression*& expression);
 
+		static bool ParseConstructorCallInner(const Token& start, LazySymbol& lazy, Parser& parser, TokenStream& stream, ConstructorCallExpression*& expression);
+
 		static bool TryParseFunctionCall(Parser& parser, TokenStream& stream, FunctionCallExpression*& expression);
+
+		static bool TryParseConstructorCall(Parser& parser, TokenStream& stream, ConstructorCallExpression*& expression);
 
 		static bool TryParseSymbol(Parser& parser, TokenStream& stream, Expression*& expressionOut);
 

@@ -100,6 +100,13 @@ namespace HXSL
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+
+		std::string DebugName() const
+		{
+			std::ostringstream oss;
+			oss << "[" << HXSL::ToString(type) << "] Name: " << GetName();
+			return oss.str();
+		}
 	};
 }
 

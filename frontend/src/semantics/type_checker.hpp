@@ -53,6 +53,10 @@ namespace HXSL
 		void TypeCheckExpression(Expression* node);
 
 		void TypeCheckStatement(ASTNode*& node);
+
+		bool ResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
+
+		bool ResolveFunction(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
 	};
 }
 

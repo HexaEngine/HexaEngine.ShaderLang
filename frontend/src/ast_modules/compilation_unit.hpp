@@ -29,6 +29,8 @@ namespace HXSL
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+
+		std::string DebugName() const;
 	};
 }
 

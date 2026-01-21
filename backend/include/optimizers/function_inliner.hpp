@@ -28,27 +28,39 @@ namespace HXSL
 				ParamInfo() : type(ParamInfoType::Unknown), varId(ILVarId()) {}
 			};
 
-			FunctionLayout* callerLayout;
-			FunctionLayout* calleeLayout;
-			std::vector<ParamInfo> params;
-			dense_map<ILVarId, ILVarId> varIdMap;
-			dense_map<ILVarId, ILVarId> baseVarMap;
+			struct InlineContext
+			{
+				FunctionLayout* caller;
+				FunctionLayout* callee;
+				CallInstr* callSite;
 
-			ILVarId RemapVarId(const ILVarId& varId);
+				std::vector<ParamInfo> params;
+				dense_map<ILVarId, ILVarId> varIdMap;
+				dense_map<ILVarId, ILVarId> baseVarMap;
+
+				InlineContext(FunctionLayout* caller, FunctionLayout* callee, CallInstr* callSite) : caller(caller), callee(callee), callSite(callSite)
+				{
+				}
+
+				ILVarId RemapVarId(const ILVarId& varId);
+			};
+
+			float ComputeInlineCost(FunctionLayout* funcLayout);
 
 		public:
-			FunctionInliner(FunctionLayout* caller, FunctionLayout* callee)
-				: callerLayout(caller), calleeLayout(callee)
+			FunctionInliner()
 			{
 			}
-			void InlineAt(CallInstr* site);
-			void InlineAll(const Span<CallInstr*>& sites)
+			void InlineAtSite(FunctionLayout* caller, FunctionLayout* callee, CallInstr* site);
+			void InlineAtAllSites(FunctionLayout* caller, FunctionLayout* callee, const Span<CallInstr*>& sites)
 			{
 				for (auto& site : sites)
 				{
-					InlineAt(site);
+					InlineAtSite(caller, callee, site);
 				}
 			}
+			
+			dense_set<FunctionLayout*> Inline(const Span<FunctionLayout*> functions);
 		};
 	}
 }

@@ -16,6 +16,7 @@ namespace HXSL
 				Register<MemberAccessExpressionChecker, NodeType_MemberAccessExpression>();
 				Register<MemberReferenceExpressionChecker, NodeType_MemberReferenceExpression>();
 				Register<FunctionCallExpressionChecker, NodeType_FunctionCallExpression>();
+				Register<ConstructorCallExpressionChecker, NodeType_ConstructorCallExpression>();
 				Register<TernaryExpressionChecker, NodeType_TernaryExpression>();
 				Register<LiteralExpressionChecker, NodeType_LiteralExpression>();
 				Register<PrefixPostfixExpressionChecker, NodeType_PrefixExpression>();
@@ -134,7 +135,7 @@ namespace HXSL
 			}
 
 			SymbolDef* overload;
-			if (!resolver.ResolveCallable(expression, overload))
+			if (!resolver.ResolveFunction(expression, overload))
 			{
 				return;
 			}
@@ -155,6 +156,63 @@ namespace HXSL
 				}
 				type = function->GetReturnSymbolRef()->GetDeclaration();
 			}
+
+			auto next = expression->GetNextExpression();
+			if (next)
+			{
+				SymbolRefHelper::GetSymbolRef(next)->SetDeclaration(type);
+				resolver.ResolveMember(next);
+
+				expression->IncrementLazyEvalState();
+				stack.push(expression);
+				stack.push(next);
+			}
+			else
+			{
+				expression->SetInferredType(type);
+				expression->SetTraits(ExpressionTraits(ExpressionTraitFlags_None));
+			}
+		}
+		else if (state == 2)
+		{
+			auto next = expression->GetNextExpression();
+			expression->SetInferredType(next->GetInferredType());
+			expression->SetTraits(next->GetTraits());
+		}
+		else
+		{
+			expression->IncrementLazyEvalState();
+			stack.push(expression);
+			auto parameters = expression->GetParameters();
+			for (auto it = parameters.rbegin(); it != parameters.rend(); ++it)
+			{
+				auto param = *it;
+				stack.push(param->GetExpression());
+			}
+		}
+	}
+
+	void ConstructorCallExpressionChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ConstructorCallExpression* expression, std::stack<Expression*>& stack)
+	{
+		auto state = expression->GetLazyEvalState();
+		if (state == 1)
+		{
+			if (!expression->CanBuildOverloadSignature())
+			{
+				return;
+			}
+
+			SymbolDef* overload;
+			
+			if (!checker.ResolveConstructor(expression, overload))
+			{
+				return;
+			}
+
+			SymbolDef* type;
+			auto constructor = dyn_cast<ConstructorOverload>(overload);
+			type = constructor->GetTargetType();
+			expression->SetFunctionCallFlag(FunctionCallExpressionFlags::ConstructorCall, true);
 
 			auto next = expression->GetNextExpression();
 			if (next)

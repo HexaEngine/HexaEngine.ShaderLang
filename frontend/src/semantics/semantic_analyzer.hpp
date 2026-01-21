@@ -17,11 +17,11 @@ if (!expr) { \
 		CompilationUnit* compilation;
 
 		const AssemblyCollection& references;
-		std::unique_ptr<Assembly> outputAssembly;
-		std::unique_ptr<PrimitiveManager> primitiveManager;
-		std::unique_ptr<PointerManager> pointerManager;
-		std::unique_ptr<ArrayManager> arrayManager;
-		std::unique_ptr<SwizzleManager> swizzleManager;
+		uptr<Assembly> outputAssembly;
+		uptr<PrimitiveManager> primitiveManager;
+		uptr<PointerManager> pointerManager;
+		uptr<ArrayManager> arrayManager;
+		uptr<SwizzleManager> swizzleManager;
 
 		class AnalyzerVisitor : public ASTVisitor<EmptyDeferralContext>
 		{
@@ -53,13 +53,13 @@ if (!expr) { \
 
 		static void InitializeSubSystems();
 
-		DEFINE_GET_SET_MOVE(std::unique_ptr<ArrayManager>, ArrayManager, arrayManager)
+		DEFINE_GET_SET_MOVE(uptr<ArrayManager>, ArrayManager, arrayManager)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<PointerManager>, PointerManager, pointerManager)
+			DEFINE_GET_SET_MOVE(uptr<PointerManager>, PointerManager, pointerManager)
 
-			DEFINE_GET_SET_MOVE(std::unique_ptr<SwizzleManager>, SwizzleManager, swizzleManager)
+			DEFINE_GET_SET_MOVE(uptr<SwizzleManager>, SwizzleManager, swizzleManager)
 
-			std::unique_ptr<Assembly>& GetOutputAssembly() noexcept { return outputAssembly; }
+			uptr<Assembly>& GetOutputAssembly() noexcept { return outputAssembly; }
 
 		CompilationUnit* Compilation() const noexcept { return compilation; }
 

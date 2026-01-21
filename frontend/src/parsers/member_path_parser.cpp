@@ -52,8 +52,16 @@ namespace HXSL
 				std::vector<FunctionCallParameter*> parameters;
 				IF_ERR_RET_FALSE(ParserHelper::ParseFunctionCallInner(parser, stream, parameters));
 				auto span = stream.MakeFromLast(start);
-				auto functionExpression = FunctionCallExpression::Create(span, baseSymbol.make(root ? SymbolRefType_FunctionOverload : SymbolRefType_FunctionOrConstructor), parameters);
+				auto functionExpression = FunctionCallExpression::Create(span, baseSymbol.make(SymbolRefType_FunctionOverload), parameters);
 				ChainOrEnd(functionExpression);
+			}
+			else if (stream.TryGetKeyword(Keyword_New))
+			{
+				std::vector<FunctionCallParameter*> parameters;
+				IF_ERR_RET_FALSE(ParserHelper::ParseFunctionCallInner(parser, stream, parameters));
+				auto span = stream.MakeFromLast(start);
+				auto constructorExpression = ConstructorCallExpression::Create(span, baseSymbol.make(SymbolRefType_Constructor), parameters);
+				ChainOrEnd(constructorExpression);
 			}
 			else
 			{

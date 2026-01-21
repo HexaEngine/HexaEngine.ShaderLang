@@ -1,11 +1,20 @@
 namespace Core;
 
+float pow2(float x)
+{
+	return x * x;
+}
+
+struct A
+{
+	float val;
+	public A(float v)
+	{
+		val = v;
+	}
+};
+
 float test(float x)
 {
-	float a = 0;
-	for (int i = 1; i < 10; i++)
-	{
-		a += x * i;
-	}
-	return a;
+	A b = new A(5);
 }

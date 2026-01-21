@@ -507,4 +507,72 @@ namespace HXSL
 			}
 		}
 	}
+	
+	bool TypeChecker::ResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
+	{
+		outDefinition = nullptr;
+
+		SymbolRef* ref = funcCallExpr->GetSymbolRef();
+
+		SymbolHandle handle;
+		SymbolDef* typeDef = resolver.ResolveSymbol({}, ref->GetName(), ref->HasFullyQualifiedName(), handle, true);
+
+		if (handle.invalid() || typeDef == nullptr || !IsDataType(typeDef->GetType()))
+		{
+			return false;
+		}
+
+		auto signature = funcCallExpr->BuildConstructorOverloadSignature();
+		auto ctorHandle = handle.FindPart(signature);
+		if (ctorHandle.valid())
+		{
+			auto ctorMetadata = ctorHandle.GetMetadata();
+			if (resolver.SymbolTypeSanityCheck(ctorMetadata, ref, silent))
+			{
+				ref->SetTable(ctorHandle);
+				outDefinition = ctorMetadata->declaration;
+				return true;
+			}
+		}
+
+		if (!silent)
+		{
+			analyzer.Log(CTOR_OVERLOAD_NOT_FOUND, ref->GetSpan(), signature, typeDef->GetName());
+		}
+		return false;
+	}
+
+
+	bool TypeChecker::ResolveFunction(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
+	{
+		SymbolRef* ref = funcCallExpr->GetSymbolRef();
+
+		auto signature = funcCallExpr->BuildOverloadSignature();
+
+		bool success = false;
+		if (auto expr = funcCallExpr->FindAncestor<MemberAccessExpression>(NodeType_MemberAccessExpression, 1))
+		{
+			auto memberRef = expr->GetSymbolRef()->GetBaseDeclaration();
+			if (memberRef)
+			{
+				success = resolver.ResolveSymbol(ref, signature, memberRef->GetTable(), memberRef->GetSymbolHandle(), true);
+			}
+		}
+		else
+		{
+			success = resolver.ResolveSymbol(ref, signature, true);
+		}
+
+		if (!success && !silent)
+		{
+			analyzer.Log(FUNC_OVERLOAD_NOT_FOUND, funcCallExpr->GetSpan(), signature);
+		}
+
+		if (success)
+		{
+			outDefinition = ref->GetDeclaration();
+		}
+
+		return success;
+	}
 }

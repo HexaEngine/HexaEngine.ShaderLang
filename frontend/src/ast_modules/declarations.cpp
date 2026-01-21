@@ -103,7 +103,9 @@ namespace HXSL
 		auto returnType = SymbolRef::Create(TextSpan(), context->GetIdentifierTable().Get("void"), SymbolRefType_Type, true);
 		auto ptr = context->Alloc<ConstructorOverload>(TotalSizeToAlloc(parameters.size(), attributes.size()), span, name, accessModifiers, functionFlags, targetTypeSymbol, returnType, body);
 		ptr->storage.InitializeMove(ptr, parameters, attributes);
-
+		REGISTER_CHILDREN_PTR(ptr, GetParameters());
+		REGISTER_CHILDREN_PTR(ptr, GetAttributes());
+		REGISTER_CHILD_PTR(ptr, body);
 		return ptr;
 	}
 

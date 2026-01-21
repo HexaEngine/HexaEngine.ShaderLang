@@ -73,6 +73,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/backend)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/frontend)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/compiler)
+add_subdirectory(${PROJECT_SOURCE_DIR}/interpreter)
 add_subdirectory(${PROJECT_SOURCE_DIR}/gui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/benchmark)
 

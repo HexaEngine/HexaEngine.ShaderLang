@@ -447,9 +447,8 @@ namespace HXSL
 		return true;
 	}
 
-	bool SymbolResolver::TryResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool* success, bool silent) const
+	bool SymbolResolver::ResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
 	{
-		if (success) *success = false;
 		outDefinition = nullptr;
 
 		SymbolRef* ref = funcCallExpr->GetSymbolRef();
@@ -471,7 +470,6 @@ namespace HXSL
 			{
 				ref->SetTable(ctorHandle);
 				outDefinition = ctorMetadata->declaration;
-				if (success) *success = true;
 				return true;
 			}
 		}
@@ -480,7 +478,7 @@ namespace HXSL
 		{
 			analyzer.Log(CTOR_OVERLOAD_NOT_FOUND, ref->GetSpan(), signature, typeDef->GetName());
 		}
-		return true;
+		return false;
 	}
 
 	bool SymbolResolver::ResolveFunction(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
@@ -514,22 +512,6 @@ namespace HXSL
 		}
 
 		return success;
-	}
-
-	bool SymbolResolver::ResolveCallable(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
-	{
-		bool success = false;
-		if (TryResolveConstructor(funcCallExpr, outDefinition, &success, silent))
-		{
-			return success;
-		}
-
-		if (ResolveFunction(funcCallExpr, outDefinition, silent))
-		{
-			return true;
-		}
-
-		return false;
 	}
 
 	void SymbolResolver::PushScope(ASTNode* parent, const StringSpan& span, bool external)

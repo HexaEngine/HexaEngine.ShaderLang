@@ -26,6 +26,13 @@ namespace HXSL
 			void Print();
 			void Write(Stream* stream, ModuleWriterContext& context);
 			void Read(Stream* stream, ModuleReaderContext& context);
+
+			ILContainer& GetInstructions() { return instructions; }
+			const ILContainer& GetInstructions() const { return instructions; }
+			ILMetadata& GetMetadata() { return metadata; }
+			const ILMetadata& GetMetadata() const { return metadata; }
+			JumpTable& GetJumpTable() { return jumpTable; }
+			const JumpTable& GetJumpTable() const { return jumpTable; }
 		};
 	}
 }

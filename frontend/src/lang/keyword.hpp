@@ -142,6 +142,9 @@ namespace HXSL
 		Keyword_Internal,
 		Keyword_Public,
 		Keyword_This,
+		Keyword_New,
+		Keyword_MNew,
+		keyword_MFree,
 		Keyword_PrepDefine,
 		Keyword_PrepIf,
 		Keyword_PrepElif,
@@ -293,6 +296,9 @@ namespace HXSL
 		case Keyword_Internal: return "internal";
 		case Keyword_Public: return "public";
 		case Keyword_This: return "this";
+		case Keyword_New: return "new";
+		case Keyword_MNew: return "mnew";
+		case keyword_MFree: return "mfree";
 		case Keyword_PrepDefine: return "#define";
 		case Keyword_PrepIf: return "#if";
 		case Keyword_PrepElif: return "#elif";
@@ -443,6 +449,9 @@ namespace HXSL
 		t.Insert("internal", Keyword_Internal);
 		t.Insert("public", Keyword_Public);
 		//t.Insert("this", Keyword_This);
+		t.Insert("new", Keyword_New);
+		t.Insert("mnew", Keyword_MNew);
+		t.Insert("mfree", keyword_MFree);
 		t.Insert("#define", Keyword_PrepDefine);
 		t.Insert("#if", Keyword_PrepIf);
 		t.Insert("#elif", Keyword_PrepElif);

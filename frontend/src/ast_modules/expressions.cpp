@@ -94,6 +94,23 @@ namespace HXSL
 		return ptr;
 	}
 
+	ConstructorCallExpression* ConstructorCallExpression::Create(const TextSpan& span, SymbolRef* symbol, const Span<FunctionCallParameter*>& parameters)
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<ConstructorCallExpression>(TotalSizeToAlloc(parameters.size()), span, symbol);
+		ptr->storage.InitializeMove(ptr, parameters);
+		REGISTER_CHILDREN_PTR(ptr, GetParameters());
+		return ptr;
+	}
+
+	ConstructorCallExpression* ConstructorCallExpression::Create(const TextSpan& span, SymbolRef* symbol, uint32_t numParameters)
+	{
+		auto* context = ASTContext::GetCurrentContext();
+		auto ptr = context->Alloc<ConstructorCallExpression>(TotalSizeToAlloc(numParameters), span, symbol);
+		ptr->storage.SetCounts(numParameters);
+		return ptr;
+	}
+
 	MemberAccessExpression* MemberAccessExpression::Create(const TextSpan& span, SymbolRef* symbol, ChainExpression* expression)
 	{
 		auto* context = ASTContext::GetCurrentContext();

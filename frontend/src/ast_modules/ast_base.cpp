@@ -51,6 +51,7 @@ namespace HXSL
 		case NodeType_LiteralExpression: cast<LiteralExpression>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_MemberReferenceExpression: cast<MemberReferenceExpression>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_FunctionCallExpression: cast<FunctionCallExpression>(this)->ForEachChild(cb, userdata); break;
+		case NodeType_ConstructorCallExpression: cast<ConstructorCallExpression>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_FunctionCallParameter: cast<FunctionCallParameter>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_MemberAccessExpression: cast<MemberAccessExpression>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_IndexerAccessExpression: cast<IndexerAccessExpression>(this)->ForEachChild(cb, userdata); break;
@@ -111,6 +112,7 @@ namespace HXSL
 		case NodeType_LiteralExpression: cast<LiteralExpression>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_MemberReferenceExpression: cast<MemberReferenceExpression>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_FunctionCallExpression: cast<FunctionCallExpression>(this)->ForEachChild(cb, userdata); break;
+		case NodeType_ConstructorCallExpression: cast<ConstructorCallExpression>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_FunctionCallParameter: cast<FunctionCallParameter>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_MemberAccessExpression: cast<MemberAccessExpression>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_IndexerAccessExpression: cast<IndexerAccessExpression>(this)->ForEachChild(cb, userdata); break;
@@ -136,7 +138,10 @@ namespace HXSL
 		}
 		switch (type)
 		{
+		case NodeType_CompilationUnit: return cast<CompilationUnit>(this)->DebugName();
+		case NodeType_Namespace: return cast<Namespace>(this)->DebugName();
 		case NodeType_FunctionOverload: return cast<FunctionOverload>(this)->DebugName();
+		case NodeType_ConstructorOverload: return cast<ConstructorOverload>(this)->DebugName();
 		case NodeType_Struct: return cast<Struct>(this)->DebugName();
 		case NodeType_Class: return cast<Class>(this)->DebugName();
 		case NodeType_BlockStatement: return cast<BlockStatement>(this)->DebugName();

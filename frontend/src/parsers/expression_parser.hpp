@@ -20,6 +20,11 @@ namespace HXSL
 		bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut) override;
 	};
 
+	class CtorCallExpressionParser : public ExpressionParser
+	{
+		bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut) override;
+	};
+
 	class MemberAccessExpressionParser : public ExpressionParser
 	{
 		bool TryParse(Parser& parser, TokenStream& stream, Expression*& expressionOut) override;
