@@ -239,7 +239,6 @@ namespace HXSL
 		stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER);
 
 		DeclContainerBuilder builder = DeclContainerBuilder(parser.GetLogger(), DeclContainerFlags::AllowPresetNamespace);
-		std::vector<UsingDecl*> usings;
 		if (stream.TryGetDelimiter(';'))
 		{
 			while (stream.CanAdvance())

@@ -13,6 +13,7 @@ namespace HXSL
 		{
 		case NodeType_CompilationUnit: cast<CompilationUnit>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Namespace: cast<Namespace>(this)->ForEachChild(cb, userdata); break;
+		case NodeType_UsingDecl: cast<UsingDecl>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Enum: break; //cast<Enum>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Primitive: cast<Primitive>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Struct: cast<Struct>(this)->ForEachChild(cb, userdata); break;
@@ -74,6 +75,7 @@ namespace HXSL
 		{
 		case NodeType_CompilationUnit: cast<CompilationUnit>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Namespace: cast<Namespace>(this)->ForEachChild(cb, userdata); break;
+		case NodeType_UsingDecl: cast<UsingDecl>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Enum: break; //cast<Enum>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Primitive: cast<Primitive>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Struct: cast<Struct>(this)->ForEachChild(cb, userdata); break;

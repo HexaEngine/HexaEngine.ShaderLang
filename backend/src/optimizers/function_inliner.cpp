@@ -289,10 +289,10 @@ namespace HXSL
 				}
 			}
 
-			std::vector<size_t> sccOrder = sccGraph.TopologicalSort();
+			std::vector<size_t> sccOrder = sccGraph.TopologicalSort(true); // true == bottom-up order
 
 			dense_set<FunctionLayout*> dirtyFunctions;
-			static constexpr size_t MaxInlineInstructionCount = 32;
+			static constexpr float MaxCost = 2.0f;
 			for (auto callerScc : sccOrder)
 			{
 				for (size_t callerNode : sccs[callerScc])
@@ -314,13 +314,14 @@ namespace HXSL
 						}
 
 						auto* callee = calleeLayout->GetContext();
-						auto instructionCount = callee->cfg.CountInstructions();
-						if (instructionCount > MaxInlineInstructionCount)
+						float inlineCost = callGraph.GetNode(calleeLayout)->GetInlineCost();
+						if (inlineCost > MaxCost)
 						{
 							continue;
 						}
 
 						InlineAtAllSites(callerLayout, calleeLayout, call->callSites);
+						caller->metadata.RemoveFunc(call);
 
 #if HXSL_DEBUG
 						std::cout << "Inliner:" << std::endl;

@@ -151,6 +151,8 @@ namespace HXSL
 
 			ILCodeBlob* GetCodeBlob() const { return codeBlob; }
 			void SetCodeBlob(ILCodeBlob* blob) { codeBlob = blob; }
+
+			std::string ToString() const;
 		};
 
 		class OperatorLayout : public FunctionLayout

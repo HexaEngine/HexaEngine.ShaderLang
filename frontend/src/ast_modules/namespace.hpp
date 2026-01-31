@@ -54,12 +54,15 @@ namespace HXSL
 		
 		bool IsAlias() const noexcept { return alias != nullptr; }
 
-		bool Warmup(const AssemblyCollection& references);
-
+		bool Warmup(Assembly* self, const AssemblyCollection& references);
+		
 		Span<AssemblySymbolRef> GetAssemblyReferences() const noexcept
 		{
 			return assemblyReferences;
 		}
+
+		void ForEachChild(ASTChildCallback cb, void* userdata) {}
+		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
 	class Namespace : public SymbolDef, public TrailingObjects<Namespace, Struct*, Class*, FunctionOverload*, Field*, Namespace*, UsingDecl*>

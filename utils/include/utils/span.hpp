@@ -600,6 +600,31 @@ namespace HEXA_UTILS_NAMESPACE
             return EndsWith(0, c, equals);
         }
 
+        template <typename Equals = std::equal_to<T>>
+        bool StartsWith(const StringSpanBase& other, const Equals& equals = {}) const
+        {
+            if (other.size() > this->size_m) return false;
+            for (size_t i = 0; i < other.size(); i++)
+            {
+                if (!equals(this->data_m[i], other.data_m[i]))
+                    return false;
+            }
+            return true;
+		}
+
+		template <typename Equals = std::equal_to<T>>
+        bool EndsWith(const StringSpanBase& other, const Equals& equals = {}) const
+        {
+            if (other.size() > this->size_m) return false;
+            size_t offset = this->size_m - other.size();
+            for (size_t i = 0; i < other.size(); i++)
+            {
+                if (!equals(this->data_m[offset + i], other.data_m[i]))
+                    return false;
+            }
+            return true;
+		}
+
         bool operator==(const StringSpanBase& other) const
         {
             if (this->size_m != other.size())

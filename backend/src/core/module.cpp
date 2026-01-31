@@ -8,6 +8,24 @@ namespace HXSL
 {
     namespace Backend
     {
+        std::string FunctionLayout::ToString() const
+        {
+            std::ostringstream ss;
+			ss << returnType->GetName() << " " << name << "(";
+			for (size_t i = 0; i < parameters.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    ss << ", ";
+                }
+				auto& param = parameters[i];
+				ss << param->GetType()->GetName() << " " << param->GetName();
+            }
+			ss << ")";
+            
+            return ss.str();
+        }
+
         ModuleWriter::RecordId ModuleWriter::GetRecordId(const Layout* layout)
         {
             auto it = recordMap.find(layout);

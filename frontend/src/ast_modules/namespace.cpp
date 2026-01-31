@@ -12,10 +12,15 @@ namespace HXSL
 		return context->Alloc<UsingDecl>(sizeof(UsingDecl), span, name, alias);
 	}
 
-	bool UsingDecl::Warmup(const AssemblyCollection& references)
+	bool UsingDecl::Warmup(Assembly* self, const AssemblyCollection& references)
 	{
 		auto* context = ASTContext::GetCurrentContext();
 		std::vector<AssemblySymbolRef> refs;
+		auto index = self->GetSymbolTable()->FindNodeIndexFullPath(target->name, nullptr);
+		if (index.valid())
+		{
+			refs.push_back(AssemblySymbolRef(self, index));
+		}
 		references.FindAssembliesByNamespace(target->name, refs);
 		assemblyReferences = context->AllocCopy<AssemblySymbolRef>(refs);
 		return assemblyReferences.size() > 0;

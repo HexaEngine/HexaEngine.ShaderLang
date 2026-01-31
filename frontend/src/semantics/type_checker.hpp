@@ -38,9 +38,9 @@ namespace HXSL
 
 		bool UnaryOperatorCheck(UnaryExpression* binary, const Expression* operand, SymbolDef*& result);
 
-		bool CastOperatorCheck(CastExpression* cast, const SymbolDef* type, const Expression* operand, SymbolDef*& result, bool explicitCast);
+		bool CastOperatorCheck(CastExpression* cast, const SymbolDef* type, const Expression* operand, SymbolDef*& result, bool explicitCast) const;
 
-		bool CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, SymbolRef*& result);
+		bool CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, SymbolRef*& result) const;
 
 		bool AreTypesCompatible(Expression*& insertPoint, SymbolDef* target, SymbolDef* source);
 
@@ -57,6 +57,13 @@ namespace HXSL
 		bool ResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
 
 		bool ResolveFunction(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent = false) const;
+
+	private:
+		bool TryResolveFunctionWithImplicitCasts(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const;
+
+		void CollectFunctionOverloads(FunctionCallExpression* expression, const SymbolTableNode* handle, std::vector<FunctionOverload*>& overloads) const;
+
+		bool TryMatchOverloadWithImplicitCasts(FunctionCallExpression* funcCallExpr, FunctionOverload* overload, std::vector<SymbolRef*>& outCasts) const;
 	};
 }
 

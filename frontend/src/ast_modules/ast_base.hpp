@@ -199,6 +199,7 @@ namespace HXSL
 		case NodeType_Unknown: return "Unknown";
 		case NodeType_CompilationUnit: return "Compilation";
 		case NodeType_Namespace: return "Namespace";
+		case NodeType_UsingDecl: return "Using";
 		case NodeType_Enum: return "Enum";
 		case NodeType_Primitive: return "Primitive";
 		case NodeType_Struct: return "Struct";

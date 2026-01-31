@@ -10,88 +10,109 @@ namespace HXSL
 		template <class T>
 		class SCCGraph
 		{
+			static constexpr size_t InvalidIndex = static_cast<size_t>(-1);
+
+			struct State
+			{
+				size_t index = InvalidIndex;
+				size_t lowlink = 0;
+				bool onStack = false;
+
+				constexpr bool HasIndex() const noexcept { return index != InvalidIndex; }
+			};
+
+			struct Frame
+			{
+				size_t parent;
+				size_t v;
+				size_t i = 0;
+				bool returning = false;
+
+				Frame(size_t parent, size_t v) : parent(parent), v(v) {}
+			};
+
 		public:
 			static std::vector<std::vector<size_t>> ComputeSCCs(const std::vector<uptr<T>>& nodes)
 			{
 				std::vector<std::vector<size_t>> sccs;
 
 				size_t N = nodes.size();
-				std::vector<size_t> index(N, -1);
-				std::vector<size_t> lowlink(N, 0);
-				std::vector<bool> onStack(N, false);
+		
+				std::vector<State> state(N, State{});
 				std::stack<size_t> S;
 
 				size_t currentIndex = 0;
-
-				struct Frame
-				{
-					size_t v;
-					size_t i;
-					bool returning;
-				};
-
 				std::stack<Frame> stack;
 
-				for (size_t v = 0; v < N; ++v) {
-					if (index[v] != -1) continue;
+				for (size_t v = 0; v < N; ++v) 
+				{
+					if (state[v].HasIndex()) continue;
 
-					stack.emplace(v);
+					stack.emplace(InvalidIndex, v);
 
 					while (!stack.empty())
 					{
 						Frame& frame = stack.top();
 						size_t current = frame.v;
+						auto& currentState = state[current];
 
 						if (!frame.returning)
 						{
-							index[current] = lowlink[current] = currentIndex++;
+							currentState.index = currentState.lowlink = currentIndex++;
 							S.push(current);
-							onStack[current] = true;
+							currentState.onStack = true;
 							frame.returning = true;
 						}
 
 						auto& node = nodes[current];
 						auto& dependencies = node->GetDependencies();
 
+						bool recursed = false;
+
 						while (frame.i < dependencies.size())
 						{
 							size_t w = dependencies[frame.i++];
+							auto& wState = state[w];
 
-							if (index[w] == -1)
+							if (!wState.HasIndex())
 							{
-								stack.emplace(w);
+								stack.emplace(current, w);
+								recursed = true;
 								break;
 							}
-							else if (onStack[w])
+							else if (wState.onStack)
 							{
-								lowlink[current] = std::min(lowlink[current], index[w]);
+								currentState.lowlink = std::min(currentState.lowlink, wState.index);
 							}
 						}
 
+						if (recursed) continue;
+
 						if (frame.i == dependencies.size())
 						{
-							for (size_t w : dependencies)
+							Frame finished = stack.top();
+							auto& finishedState = state[finished.v];
+							stack.pop();
+
+							if (finished.parent != InvalidIndex)
 							{
-								if (onStack[w])
-								{
-									lowlink[current] = std::min(lowlink[current], lowlink[w]);
-								}
+								auto& parentState = state[finished.parent];
+								parentState.lowlink = std::min(parentState.lowlink, finishedState.lowlink);
 							}
 
-							if (lowlink[current] == index[current])
+							if (finishedState.lowlink == finishedState.index)
 							{
 								std::vector<size_t> scc;
 								size_t w;
 								do
 								{
 									w = S.top(); S.pop();
-									onStack[w] = false;
+									auto& wState = state[w];
+									wState.onStack = false;
 									scc.push_back(w);
-								} while (w != current);
+								} while (w != finished.v);
 								sccs.push_back(std::move(scc));
 							}
-
-							stack.pop();
 						}
 					}
 				}

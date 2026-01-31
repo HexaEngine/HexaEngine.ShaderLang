@@ -63,7 +63,7 @@ namespace HXSL
 				this->nodes.clear();
 			}
 
-			std::vector<size_t> TopologicalSort() const
+			std::vector<size_t> TopologicalSort(bool reverseOrder = false) const
 			{
 				struct Frame
 				{
@@ -123,7 +123,10 @@ namespace HXSL
 					}
 				}
 
-				std::reverse(sortedNodes.begin(), sortedNodes.end());
+				if (!reverseOrder)
+				{
+					std::reverse(sortedNodes.begin(), sortedNodes.end());
+				}
 
 				return sortedNodes;
 			}

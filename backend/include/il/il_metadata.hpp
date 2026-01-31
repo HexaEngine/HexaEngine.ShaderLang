@@ -200,8 +200,15 @@ namespace HXSL
 
 			void RemoveFunc(ILFuncCall funcCall)
 			{
+				auto id = funcCall->id;
+				auto idx = static_cast<size_t>(id);
+				funcCall->callSites.clear();
+				for (size_t i = idx + 1; i < functions.size(); ++i)
+				{
+					functions[i]->id--;
+				}
 				funcMap.erase(funcCall->func);
-				funcCall->func = nullptr;
+				functions.erase(functions.begin() + idx);
 			}
 
 			void RemoveFunc(FunctionLayout* def)

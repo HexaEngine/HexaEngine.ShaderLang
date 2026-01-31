@@ -34,40 +34,6 @@ namespace HXSL
 			}
 		}
 
-		struct ILModule
-		{
-			BumpAllocator allocator;
-			ILMetadata metadata;
-			JumpTable jumpTable;
-			ILContainer container;
-
-			ILModule() : metadata(allocator), container(allocator)
-			{
-			}
-
-			void Print()
-			{
-				std::cout << "{" << std::endl;
-				for (auto& instr : container)
-				{
-					size_t offset = 0;
-					while (true)
-					{
-						auto it = std::find(jumpTable.locations.begin() + offset, jumpTable.locations.end(), &instr);
-						if (it == jumpTable.locations.end())
-						{
-							break;
-						}
-						auto index = std::distance(jumpTable.locations.begin(), it);
-						std::cout << "loc_" << index << ":" << std::endl;
-						offset = index + 1;
-					}
-					std::cout << "    " << ToString(instr, metadata) << std::endl;
-				}
-				std::cout << "}" << std::endl;
-			}
-		};
-
 		void ILOptimizer::Optimize()
 		{
 			auto& functions = module->GetAllFunctions();
@@ -92,10 +58,17 @@ namespace HXSL
 			}
 
 			FunctionInliner inliner = FunctionInliner();
-			auto inlined = inliner.Inline(functions);
-			for (auto& funcLayout : inlined)
-			{
-				Optimize(funcLayout->GetContext());
+			for (size_t i = 0; i < 10; ++i)
+			{	
+				auto inlined = inliner.Inline(functions);
+				if (inlined.empty())
+				{
+					break;
+				}
+				for (auto& funcLayout : inlined)
+				{
+					Optimize(funcLayout->GetContext());
+				}
 			}
 
 			for (auto& functionLayout : functions)
@@ -144,6 +117,7 @@ namespace HXSL
 
 #if HXSL_DEBUG
 				std::cout << "Final IL:" << std::endl;
+				std::cout << functionLayout->ToString() << std::endl;
 				ilBlob->Print();
 #endif
 				functionLayout->SetCodeBlob(ilBlob);
@@ -155,10 +129,10 @@ namespace HXSL
 			std::vector<uptr<ILOptimizerPass>> passes;
 			passes.push_back(make_uptr<ConstantFolder>(function));
 			passes.push_back(make_uptr<AlgebraicSimplifier>(function));
-			//passes.push_back(make_uptr<StrengthReduction>(function));
 			passes.push_back(make_uptr<ReassociationPass>(function));
 			passes.push_back(make_uptr<GlobalValueNumbering>(function));
 			passes.push_back(make_uptr<DeadCodeEliminator>(function));
+			//passes.push_back(make_uptr<StrengthReduction>(function));
 			return passes;
 		}
 
@@ -184,6 +158,7 @@ namespace HXSL
 						std::cout << "Pass: " << pass->GetName() << std::endl;
 						cfg.Print();
 #endif
+						changed = true;
 						break;
 					}
 					else if (result == OptimizerPassResult_Changed)

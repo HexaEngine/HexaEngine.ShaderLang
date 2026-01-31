@@ -119,7 +119,7 @@ namespace HXSL
 			return ResolveMember(chainExprRoot, next, true);
 		}
 
-		void PushScope(ASTNode* parent, const StringSpan& span, bool external = false);
+		void PushScope(ASTNode* parent, const StringSpan& span, bool external = false, SymbolHandle* searchHandle = nullptr);
 
 		void PopScope();
 

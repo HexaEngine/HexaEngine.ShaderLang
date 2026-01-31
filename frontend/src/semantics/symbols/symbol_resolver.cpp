@@ -220,7 +220,11 @@ namespace HXSL
 		if (handle.valid())
 		{
 			outHandle = handle;
-			outDefinition = handle.GetMetadata()->declaration;
+			auto metadata = handle.GetMetadata();
+			if (metadata != nullptr)
+			{
+				outDefinition = metadata->declaration;
+			}
 			return true;
 		}
 		outDefinition = nullptr;
@@ -233,7 +237,11 @@ namespace HXSL
 		if (handle.valid())
 		{
 			outHandle = handle;
-			outDefinition = handle.GetMetadata()->declaration;
+			auto metadata = handle.GetMetadata();
+			if (metadata != nullptr)
+			{
+				outDefinition = metadata->declaration;
+			}
 			return true;
 		}
 		outDefinition = nullptr;
@@ -514,7 +522,7 @@ namespace HXSL
 		return success;
 	}
 
-	void SymbolResolver::PushScope(ASTNode* parent, const StringSpan& span, bool external)
+	void SymbolResolver::PushScope(ASTNode* parent, const StringSpan& span, bool external, SymbolHandle* searchHandle)
 	{
 		stack.push(current);
 		current.Parent = parent;
@@ -537,8 +545,12 @@ namespace HXSL
 		}
 		else
 		{
+			if (!searchHandle)
+			{
+				searchHandle = &current.SymbolHandle;
+			}
 			auto local = targetAssembly->GetSymbolTable();
-			current.SymbolHandle = current.SymbolHandle.FindFullPath(span, local);
+			current.SymbolHandle = searchHandle->FindFullPath(span, local);
 		}
 		HXSL_ASSERT(current.SymbolHandle.valid(), "Invalid index");
 	}
@@ -662,8 +674,12 @@ namespace HXSL
 			auto function = cast<FunctionOverload>(node);
 			auto ref = function->GetReturnSymbolRef();
 			ResolveSymbol(ref);
+
+			auto name = function->GetName();
+			auto nodeChild = current.SymbolHandle.FindPart(name);
+			HXSL_ASSERT(nodeChild.valid(), "Couldn't find function root in parent scope.");
 			auto signature = function->BuildTemporaryOverloadSignature();
-			PushScope(node, signature);
+			PushScope(node, signature, false, &nodeChild);
 		}
 		break;
 		case NodeType_ConstructorOverload:

@@ -20,6 +20,7 @@ namespace HXSL
 				Register<StructParser>();
 				Register<OperatorParser>();
 				Register<DeclarationParser>();
+				Register<UsingParser>();
 				Register<NamespaceParser>();
 			});
 	}

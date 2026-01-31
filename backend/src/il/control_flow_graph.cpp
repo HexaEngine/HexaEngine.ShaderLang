@@ -267,5 +267,36 @@ namespace HXSL
 
 			RemoveNode(from);
 		}
+
+		void ControlFlowGraph::Print() const
+		{
+			auto fn = context->GetFunction();
+			std::cout << fn->ToString() << "\n";
+
+			for (const auto& node : nodes)
+			{
+				std::cout << "Node " << node->id << " [" << ToString(node->type) << "]\n";
+
+				std::cout << "  Instructions:\n";
+				for (const auto& instr : node->instructions)
+				{
+					std::cout << "    " << ToString(instr, metadata) << "\n";
+				}
+
+				std::cout << "  Predecessors: ";
+				for (size_t pred : node->predecessors)
+				{
+					std::cout << pred << " ";
+				}
+				std::cout << "\n";
+
+				std::cout << "  Successors: ";
+				for (size_t succ : node->successors)
+				{
+					std::cout << succ << " ";
+				}
+				std::cout << "\n";
+			}
+		}
 	}
 }

@@ -366,7 +366,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool TypeChecker::CastOperatorCheck(CastExpression* cast, const SymbolDef* type, const Expression* operand, SymbolDef*& result, bool explicitCast)
+	bool TypeChecker::CastOperatorCheck(CastExpression* cast, const SymbolDef* type, const Expression* operand, SymbolDef*& result, bool explicitCast) const
 	{
 		auto operandType = operand->GetInferredType();
 		auto signature = cast->BuildOverloadSignature();
@@ -391,7 +391,7 @@ namespace HXSL
 		return true;
 	}
 
-	bool TypeChecker::CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, SymbolRef*& result)
+	bool TypeChecker::CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, SymbolRef*& result) const
 	{
 		auto signature = CastExpression::BuildOverloadSignature(target, source);
 
@@ -563,16 +563,195 @@ namespace HXSL
 			success = resolver.ResolveSymbol(ref, signature, true);
 		}
 
+		// If exact match not found, try implicit cast matching
+		if (!success)
+		{
+			success = TryResolveFunctionWithImplicitCasts(funcCallExpr, outDefinition, silent);
+		}
+
 		if (!success && !silent)
 		{
 			analyzer.Log(FUNC_OVERLOAD_NOT_FOUND, funcCallExpr->GetSpan(), signature);
 		}
 
-		if (success)
+		if (success && !outDefinition)
 		{
 			outDefinition = ref->GetDeclaration();
 		}
 
 		return success;
+	}
+
+	void TypeChecker::CollectFunctionOverloads(FunctionCallExpression* expression, const SymbolTableNode* node, std::vector<FunctionOverload*>& overloads) const
+	{
+		// namespace Foo { void Baa(float a) void Baa(int a) }
+		// Foo |-> Baa |-> (float)
+		//             \-> (int)
+
+		auto symbolRef = expression->GetSymbolRef();
+		auto functionName = symbolRef->GetName();
+		SymbolTableNode* funcNode = nullptr;
+		if (node == nullptr)
+		{
+			auto& span = symbolRef->GetSpan();
+			SymbolHandle rootHandle;
+			resolver.ResolveSymbol(span, functionName, false, rootHandle, true);
+			funcNode = rootHandle;
+		}
+		else
+		{
+			funcNode = node->GetChild(functionName);
+		}
+
+		if (!funcNode)
+		{
+			return;
+		}
+
+		for (auto& [childName, childNode] : funcNode->GetChildren())
+		{
+			if (childNode && childNode->GetMetadata())
+			{
+				auto decl = childNode->GetMetadata()->declaration;
+				if (auto funcOverload = dyn_cast<FunctionOverload>(decl))
+				{
+					overloads.push_back(funcOverload);
+				}
+			}
+		}
+	}
+
+	bool TypeChecker::TryMatchOverloadWithImplicitCasts(FunctionCallExpression* funcCallExpr, FunctionOverload* overload, std::vector<SymbolRef*>& outCasts) const
+	{
+		auto callParams = funcCallExpr->GetParameters();
+		auto funcParams = overload->GetParameters();
+
+		// Parameter count must match
+		if (callParams.size() != funcParams.size())
+		{
+			return false;
+		}
+
+		outCasts.clear();
+		outCasts.resize(callParams.size(), nullptr);
+
+		for (size_t i = 0; i < callParams.size(); ++i)
+		{
+			auto callParamExpr = callParams[i]->GetExpression();
+			auto callParamType = callParamExpr->GetInferredType();
+			auto funcParamType = funcParams[i]->GetDeclaredType();
+
+			if (!callParamType || !funcParamType)
+			{
+				return false;
+			}
+
+			if (callParamType->IsEquivalentTo(funcParamType))
+			{
+				continue;
+			}
+
+			if (callParamExpr->IsTypeOf(NodeType_LiteralExpression))
+			{
+				auto literalExpr = cast<LiteralExpression>(callParamExpr);
+				auto& literal = literalExpr->GetLiteral();
+				if (literal.isNumeric() && funcParamType->IsTypeOf(NodeType_Primitive))
+				{
+					continue;
+				}
+			}
+
+			SymbolRef* castRef = nullptr;
+			if (!CastOperatorCheck(funcParamType, callParamType, castRef))
+			{
+				return false;
+			}
+
+			outCasts[i] = castRef;
+		}
+
+		return true;
+	}
+
+	bool TypeChecker::TryResolveFunctionWithImplicitCasts(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
+	{
+		SymbolRef* ref = funcCallExpr->GetSymbolRef();
+
+		const SymbolTableNode* searchHandle;
+
+		if (auto expr = funcCallExpr->FindAncestor<MemberAccessExpression>(NodeType_MemberAccessExpression, 1))
+		{
+			auto memberRef = expr->GetSymbolRef()->GetBaseDeclaration();
+			if (memberRef)
+			{
+				searchHandle = memberRef->GetSymbolHandle();
+			}
+		}
+		else
+		{
+			searchHandle = nullptr;
+		}
+
+		std::vector<FunctionOverload*> candidateOverloads;
+		CollectFunctionOverloads(funcCallExpr, searchHandle, candidateOverloads);
+
+		if (candidateOverloads.empty())
+		{
+			return false;
+		}
+
+		FunctionOverload* bestMatch = nullptr;
+		std::vector<SymbolRef*> bestCasts;
+
+		for (auto* overload : candidateOverloads)
+		{
+			std::vector<SymbolRef*> casts;
+			if (TryMatchOverloadWithImplicitCasts(funcCallExpr, overload, casts))
+			{
+				if (bestMatch != nullptr)
+				{
+					if (!silent)
+					{
+						analyzer.Log(AMBIGUOUS_OP_OVERLOAD, funcCallExpr->GetSpan(), overload->BuildOverloadSignature());
+					}
+					return false;
+				}
+
+				bestMatch = overload;
+				bestCasts = std::move(casts);
+			}
+		}
+
+		if (!bestMatch)
+		{
+			return false;
+		}
+
+		auto callParams = funcCallExpr->GetParameters();
+		for (size_t i = 0; i < bestCasts.size(); ++i)
+		{
+			if (bestCasts[i] != nullptr)
+			{
+				auto& paramExpr = callParams[i]->GetExpressionMut();
+				auto targetType = bestMatch->GetParameters()[i]->GetDeclaredType();
+
+				if (!TryLiteralReinterpret(paramExpr, targetType))
+				{
+					auto castExpr = CastExpression::Create(TextSpan(), bestCasts[i], targetType->MakeSymbolRef(), nullptr);
+					castExpr->SetInferredType(targetType);
+					InjectNode(paramExpr, castExpr, &CastExpression::SetOperand);
+				}
+			}
+		}
+		
+		auto overloadHandle = bestMatch->GetSymbolHandle();
+		if (!overloadHandle.valid())
+		{
+			return false;
+		}
+
+		ref->SetTable(overloadHandle);
+		outDefinition = bestMatch;
+		return true;
 	}
 }

@@ -86,10 +86,30 @@ namespace HXSL
 		case NodeType_FunctionOverload:
 		{
 			FunctionOverload* s = cast<FunctionOverload>(node);
+			auto name = s->GetName();
+			auto nodeChild = current.Node->GetChild(name);
+			if (!nodeChild)
+			{
+				auto table = targetAssembly->GetMutableSymbolTable();
+				nodeChild = table->Insert(name, {}, current.Node);
+			}
+
+			stack.push(current);
 			auto symType = s->GetSymbolType();
 			auto metadata = SymbolMetadata::Create(s);
 			auto signature = s->BuildTemporaryOverloadSignature();
-			Push(signature, s, metadata, SymbolScopeType_Function);
+			SymbolHandle handle = targetAssembly->AddSymbol(signature, s, metadata, nodeChild);
+			if (handle.invalid())
+			{
+				analyzer.Log(SYMBOL_REDEFINITION, s->GetSpan(), signature);
+			}
+			else
+			{
+				current.Node = handle.GetNode();
+				current.Type = SymbolScopeType_Function;
+				current.Parent = s;
+			}
+		
 			RegisterForLatePass(node);
 		}
 		break;

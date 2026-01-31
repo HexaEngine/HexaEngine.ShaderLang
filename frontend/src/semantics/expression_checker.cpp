@@ -134,8 +134,8 @@ namespace HXSL
 				return;
 			}
 
-			SymbolDef* overload;
-			if (!resolver.ResolveFunction(expression, overload))
+			SymbolDef* overload = nullptr;
+			if (!checker.ResolveFunction(expression, overload))
 			{
 				return;
 			}

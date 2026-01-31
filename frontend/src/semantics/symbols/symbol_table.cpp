@@ -31,7 +31,6 @@ namespace HXSL
 
 	SymbolHandle SymbolTable::Insert(StringSpan span, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* start)
 	{
-		HXSL_ASSERT(metadata.Get(), "Metadata cannot be nullptr");
 		SymbolTableNode* current = start;
 		if (current == nullptr)
 		{

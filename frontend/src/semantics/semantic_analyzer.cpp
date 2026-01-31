@@ -35,7 +35,7 @@ namespace HXSL
 	{
 		for (auto us : compilation->GetUsings())
 		{
-			if (!us->Warmup(references))
+			if (!us->Warmup(outputAssembly.get(), references))
 			{
 				Log(NAMESPACE_OR_TYPE_NOT_FOUND, us->GetSpan(), us->GetTarget());
 			}
@@ -45,7 +45,7 @@ namespace HXSL
 		{
 			for (auto us : ns->GetUsings())
 			{
-				if (!us->Warmup(references))
+				if (!us->Warmup(outputAssembly.get(), references))
 				{
 					Log(NAMESPACE_OR_TYPE_NOT_FOUND, us->GetSpan(), us->GetTarget());
 				}

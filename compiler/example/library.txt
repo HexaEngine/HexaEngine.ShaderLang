@@ -1,20 +1,29 @@
-namespace Core;
 
-float pow2(float x)
+
+namespace Math
 {
-	return x * x;
+	float pow2(float x)
+	{
+		return x * x;
+	}
+
+	float pow3(float x)
+	{
+		return pow2(x) * x;
+	}
 }
 
-struct A
+namespace Core
 {
-	float val;
-	public A(float v)
-	{
-		val = v;
-	}
-};
+	using Math;
 
-float test(float x)
-{
-	A b = new A(5);
+	float test(float x)
+	{
+		int a = 5;
+		for (int i = 0; i < 3; i++)
+		{
+			a += i;
+		}
+		return pow3(a) * x;
+	}
 }

@@ -25,6 +25,8 @@ namespace HXSL
 			{
 			}
 
+			FunctionLayout* GetFunction() const { return function; }
+
 			BumpAllocator& GetAllocator() { return allocator; }
 
 			Module* GetModule() const { return module; }
