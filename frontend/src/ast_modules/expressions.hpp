@@ -21,7 +21,7 @@ namespace HXSL
 
 		bool HasFlag(ExpressionTraitFlags wanted) const noexcept
 		{
-			return (flags & wanted) != 0;
+			return (flags & wanted) == wanted;
 		}
 
 		bool IsConstant() const noexcept
@@ -59,22 +59,14 @@ namespace HXSL
 
 	public:
 
-		const ExpressionTraits& GetTraits() const noexcept
-		{
-			return traits;
-		}
+		DEFINE_GETTER_SETTER(ExpressionTraits, Traits, traits);
 
-		void SetTraits(const ExpressionTraits& traits) noexcept
-		{
-			this->traits = traits;
-		}
+		bool IsVoidType() const noexcept;
 
 		SymbolDef* GetInferredType() const noexcept
 		{
 			return inferredType;
 		}
-
-		bool IsVoidType() const noexcept;
 
 		void SetInferredType(SymbolDef* def) noexcept
 		{
@@ -94,14 +86,16 @@ namespace HXSL
 	class OperatorExpression : public Expression
 	{
 	protected:
-		OperatorExpression(const TextSpan& span, NodeType type)
-			: Expression(span, type)
+		Operator _operator;
+
+		OperatorExpression(const TextSpan& span, NodeType type, Operator op)
+			: Expression(span, type),
+			_operator(op)
 		{
 		}
 
 	public:
-		virtual const Operator& GetOperator() const noexcept = 0;
-		virtual ~OperatorExpression() = default;
+		const Operator& GetOperator() const noexcept { return _operator; }
 	};
 
 	class ChainExpression : public Expression
@@ -136,13 +130,11 @@ namespace HXSL
 	{
 	protected:
 		SymbolRef* operatorSymbol;
-		Operator _operator;
 		Expression* operand;
 	protected:
 		UnaryExpression(const TextSpan& span, NodeType type, Operator op, Expression* operand, SymbolRef* operatorSymbol)
-			: OperatorExpression(span, type),
+			: OperatorExpression(span, type, op),
 			operatorSymbol(operatorSymbol),
-			_operator(op),
 			operand(operand)
 		{
 			REGISTER_CHILD(operand);
@@ -169,11 +161,6 @@ namespace HXSL
 		SymbolRef*& GetOperatorSymbolRef()
 		{
 			return operatorSymbol;
-		}
-
-		const Operator& GetOperator() const noexcept override
-		{
-			return _operator;
 		}
 
 		void SetOperator(const Operator& value) noexcept
@@ -222,14 +209,12 @@ namespace HXSL
 	{
 		friend class ASTContext;
 	private:
-		Operator _operator;
 		SymbolRef* operatorSymbol;
 		Expression* left;
 		Expression* right;
 
 		BinaryExpression(const TextSpan& span, Operator op, Expression* left, Expression* right, SymbolRef* operatorSymbol)
-			: OperatorExpression(span, NodeType_BinaryExpression),
-			_operator(op),
+			: OperatorExpression(span, NodeType_BinaryExpression, op),
 			left(left),
 			right(right),
 			operatorSymbol(operatorSymbol)
@@ -282,11 +267,6 @@ namespace HXSL
 			return operatorSymbol->GetDeclaration();
 		}
 
-		const Operator& GetOperator() const noexcept override
-		{
-			return _operator;
-		}
-
 		void SetOperator(const Operator& value) noexcept
 		{
 			_operator = value;
@@ -320,29 +300,8 @@ namespace HXSL
 		static constexpr NodeType ID = NodeType_CastExpression;
 		static CastExpression* Create(const TextSpan& span, SymbolRef* operatorSymbol, SymbolRef* typeSymbol, Expression* operand);
 
-		static std::string BuildOverloadSignature(const SymbolDef* targetType, const SymbolDef* sourceType)
-		{
-			auto& retFqn = targetType->GetFullyQualifiedName();
-			auto& fqn = sourceType->GetFullyQualifiedName();
-
-			std::string str;
-			str.reserve(2 + retFqn.size() + 1 + fqn.size() + 1);
-			str.resize(2);
-			auto data = str.data();
-			data[0] = ToLookupChar(Operator_Cast);
-			data[1] = '#';
-			str.append(retFqn.view());
-			str.push_back('(');
-			str.append(fqn.view());
-			str.push_back(')');
-
-			return str;
-		}
-
-		std::string BuildOverloadSignature() const
-		{
-			return BuildOverloadSignature(typeSymbol->GetDeclaration(), operand->GetInferredType());
-		}
+		static StringSpan BuildOverloadSignatureCast(const SymbolDef* targetType, const SymbolDef* sourceType);
+		StringSpan BuildOverloadSignature() const;
 
 		SymbolRef*& GetOperatorSymbolRef()
 		{
@@ -365,7 +324,7 @@ namespace HXSL
 		Expression* falseBranch;
 
 		TernaryExpression(const TextSpan& span, Expression* condition, Expression* trueBranch, Expression* falseBranch)
-			: OperatorExpression(span, ID),
+			: OperatorExpression(span, ID, Operator_Ternary),
 			condition(condition),
 			trueBranch(trueBranch),
 			falseBranch(falseBranch)
@@ -379,19 +338,13 @@ namespace HXSL
 		static constexpr NodeType ID = NodeType_TernaryExpression;
 		static TernaryExpression* Create(const TextSpan& span, Expression* condition, Expression* trueBranch, Expression* falseBranch);
 
-		const Operator& GetOperator() const noexcept override
-		{
-			static const Operator _operator = Operator_Ternary;
-			return _operator;
-		}
-
 		DEFINE_GET_SET_MOVE_CHILD(Expression*, Condition, condition)
 
 			DEFINE_GET_SET_MOVE_CHILD(Expression*, TrueBranch, trueBranch)
 
 			DEFINE_GET_SET_MOVE_CHILD(Expression*, FalseBranch, falseBranch)
 
-		void ForEachChild(ASTChildCallback cb, void* userdata);
+			void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 	};
 
@@ -668,14 +621,21 @@ namespace HXSL
 	class AssignmentExpression : public OperatorExpression
 	{
 		friend class ASTContext;
-	private:
-		const Operator op = Operator_Assign;
 	protected:
 		Expression* target;
 		Expression* expression;
 
 		AssignmentExpression(const TextSpan& span, NodeType type, Expression* target, Expression* expression)
-			: OperatorExpression(span, type),
+			: OperatorExpression(span, type, Operator_Assign),
+			target(target),
+			expression(expression)
+		{
+			REGISTER_CHILD(target);
+			REGISTER_CHILD(expression);
+		}
+
+		AssignmentExpression(const TextSpan& span, NodeType type, Expression* target, Expression* expression, Operator op)
+			: OperatorExpression(span, type, op),
 			target(target),
 			expression(expression)
 		{
@@ -687,12 +647,7 @@ namespace HXSL
 		static constexpr NodeType ID = NodeType_AssignmentExpression;
 		static AssignmentExpression* Create(const TextSpan& span, Expression* target, Expression* expression);
 
-		const Operator& GetOperator() const noexcept override
-		{
-			return op;
-		}
-
-		virtual void SetOperator(const Operator& value)
+		void SetOperator(const Operator& value)
 		{
 			throw std::runtime_error("setting the operator is not supported on assignment nodes.");
 		}
@@ -708,12 +663,10 @@ namespace HXSL
 	{
 		friend class ASTContext;
 	private:
-		Operator _operator;
 		SymbolRef* operatorSymbol;
 
 		CompoundAssignmentExpression(const TextSpan& span, Operator _operator, Expression* target, Expression* expression, SymbolRef* operatorSymbol)
-			: AssignmentExpression(span, ID, target, expression),
-			_operator(Operators::compoundToBinary(_operator)),
+			: AssignmentExpression(span, ID, target, expression, Operators::compoundToBinary(_operator)),
 			operatorSymbol(operatorSymbol)
 		{
 		}
@@ -733,16 +686,6 @@ namespace HXSL
 		SymbolRef*& GetOperatorSymbolRef()
 		{
 			return operatorSymbol;
-		}
-
-		const Operator& GetOperator() const noexcept override
-		{
-			return _operator;
-		}
-
-		void SetOperator(const Operator& value) noexcept override
-		{
-			_operator = value;
 		}
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);

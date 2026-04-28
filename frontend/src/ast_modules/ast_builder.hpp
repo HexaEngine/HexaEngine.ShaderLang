@@ -34,6 +34,7 @@ namespace HXSL
 		std::vector<ConstructorOverload*> constructors;
 		std::vector<FunctionOverload*> functions;
 		std::vector<OperatorOverload*> operators;
+		std::vector<Enum*> enums;
 		std::vector<Namespace*> namespaces;
 		std::vector<UsingDecl*> usings;
 		DeclContainerFlags flags;

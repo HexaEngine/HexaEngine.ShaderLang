@@ -8,6 +8,7 @@
 #include "ast_modules/container.hpp"
 #include "ast_modules/symbol_base.hpp"
 #include "ast_modules/declarations.hpp"
+#include "ast_modules/enum.hpp"
 #include "ast_modules/statements.hpp"
 #include "ast_modules/expressions.hpp"
 

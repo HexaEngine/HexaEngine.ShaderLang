@@ -58,12 +58,11 @@ namespace HXSL
 			return;
 		}
 
-		Expression* expr = statement->DetachReturnValueExpression();
+		Expression*& expr = statement->GetReturnValueExpressionMut();
 		if (!checker.AreTypesCompatible(expr, retType, exprType))
 		{
 			analyzer.Log(RETURN_TYPE_DOES_NOT_MATCH, statement->GetSpan(), exprType->ToString(), retType->ToString());
 		}
-		statement->SetReturnValueExpression(expr);
 	}
 
 	void DeclarationStatementChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, DeclarationStatement* statement)
@@ -82,12 +81,11 @@ namespace HXSL
 			return;
 		}
 
-		Expression* expr = statement->DetachInitializer();
+		Expression*& expr = statement->GetInitializerMut();
 		if (!checker.AreTypesCompatible(expr, declType, initType))
 		{
 			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), initType->ToString(), declType->ToString());
 		}
-		statement->SetInitializer(expr);
 	}
 
 	void ConditionalStatementChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, ConditionalStatement* statement)
@@ -99,12 +97,11 @@ namespace HXSL
 			return;
 		}
 
-		Expression* expr = statement->DetachCondition();
+		Expression*& expr = statement->GetConditionMut();
 		if (!checker.IsBooleanType(expr, conditionType))
 		{
 			analyzer.Log(TYPE_CONVERSION_NOT_FOUND, expr->GetSpan(), conditionType->ToString(), "bool");
 		}
-		statement->SetCondition(expr);
 	}
 
 	void SwitchStatementChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, SwitchStatement* statement)
@@ -116,12 +113,11 @@ namespace HXSL
 			return;
 		}
 
-		Expression* expr = statement->DetachExpression();
+		Expression*& expr = statement->GetExpressionMut();
 		if (!checker.IsIndexerType(expr, exprType))
 		{
 			analyzer.Log(EXPR_MUST_BE_INTEGRAL, expr->GetSpan());
 		}
-		statement->SetExpression(expr);
 	}
 
 	void CaseStatementChecker::HandleExpression(SemanticAnalyzer& analyzer, TypeChecker& checker, SymbolResolver& resolver, CaseStatement* statement)

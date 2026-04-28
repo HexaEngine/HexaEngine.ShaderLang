@@ -16,38 +16,10 @@ namespace HXSL
 	class IHasExpressions
 	{
 	private:
-		std::vector<Expression*> expressions;
 
 	protected:
-		void RegisterExpression(ASTNode* parent, Expression* expr);
-
-		template<class T>
-		void RegisterExpressions(ASTNode* parent, const std::vector<ast_ptr<T>>& expressions)
-		{
-			for (auto& expr : expressions)
-			{
-				RegisterExpression(parent, expr.get());
-			}
-		}
-
-		void UnregisterExpression(Expression* expr);
-
-		template<class T>
-		void UnregisterExpression(const std::vector<ast_ptr<T>>& expressions)
-		{
-			for (auto& expr : expressions)
-			{
-				UnregisterExpression(expr.get());
-			}
-		}
 
 	public:
-		const std::vector<Expression*>& GetExpressions() const noexcept
-		{
-			return expressions;
-		}
-
-		virtual ~IHasExpressions() = default;
 	};
 }
 

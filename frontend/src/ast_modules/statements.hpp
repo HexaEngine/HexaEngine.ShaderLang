@@ -96,11 +96,14 @@ namespace HXSL
 			: BodyStatement(span, type, body),
 			condition(condition)
 		{
-			REGISTER_EXPR(condition);
+			REGISTER_CHILD(condition);
 		}
 
 	public:
-		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Condition, condition);
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Condition, condition);
+
+		void ForEachExpr(ExprChildCallback cb, void* userdata);
+		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	class DeclarationStatement : public SymbolDef, public IHasExpressions
@@ -117,7 +120,7 @@ namespace HXSL
 			symbol(symbol),
 			initializer(initializer)
 		{
-			REGISTER_EXPR(initializer);
+			REGISTER_CHILD(initializer);
 		}
 
 	public:
@@ -140,10 +143,12 @@ namespace HXSL
 		}
 
 		DEFINE_GETTER_SETTER_PTR(SymbolRef*, Symbol, symbol);
-		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Initializer, initializer);
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Initializer, initializer);
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+		void ForEachExpr(ExprChildCallback cb, void* userdata);
+		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	class AssignmentStatement : public ASTNode, public IHasExpressions
@@ -158,7 +163,7 @@ namespace HXSL
 			: ASTNode(span, type),
 			expr(expr)
 		{
-			REGISTER_EXPR(expr);
+			REGISTER_CHILD(expr);
 		}
 
 	public:
@@ -192,6 +197,8 @@ namespace HXSL
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+		void ForEachExpr(ExprChildCallback cb, void* userdata);
+		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	class CompoundAssignmentStatement : public AssignmentStatement
@@ -228,17 +235,19 @@ namespace HXSL
 			: ASTNode(span, ID),
 			expression(expression)
 		{
-			REGISTER_EXPR(expression);
+			REGISTER_CHILD(expression);
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_ExpressionStatement;
 		static ExpressionStatement* Create(const TextSpan& span, Expression* expression);
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Expression, expression);
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+		void ForEachExpr(ExprChildCallback cb, void* userdata);
+		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	class ReturnStatement : public ASTNode, public IHasExpressions
@@ -251,17 +260,19 @@ namespace HXSL
 			: ASTNode(span, ID),
 			returnValueExpression(returnValueExpression)
 		{
-			REGISTER_EXPR(returnValueExpression);
+			REGISTER_CHILD(returnValueExpression);
 		}
 
 	public:
 		static constexpr NodeType ID = NodeType_ReturnStatement;
 		static ReturnStatement* Create(const TextSpan& span, Expression* returnValueExpression);
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, ReturnValueExpression, returnValueExpression)
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, ReturnValueExpression, returnValueExpression)
 
-		void ForEachChild(ASTChildCallback cb, void* userdata);
+			void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+		void ForEachExpr(ExprChildCallback cb, void* userdata);
+		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	class ElseStatement : public BodyStatement
@@ -356,7 +367,7 @@ namespace HXSL
 			: StatementContainer(span, ID),
 			expression(expression)
 		{
-			REGISTER_EXPR(expression);
+			REGISTER_CHILD(expression);
 		}
 
 	public:
@@ -364,7 +375,7 @@ namespace HXSL
 		static CaseStatement* Create(const TextSpan& span, Expression* expression, const Span<ASTNode*>& statements);
 		static CaseStatement* Create(const TextSpan& span, Expression* expression, uint32_t numStatements);
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Expression, expression);
 
 		std::string DebugName() const
 		{
@@ -375,6 +386,8 @@ namespace HXSL
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+		void ForEachExpr(ExprChildCallback cb, void* userdata);
+		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	class DefaultCaseStatement : public StatementContainer
@@ -408,7 +421,7 @@ namespace HXSL
 			expression(expression),
 			defaultCase(defaultCase)
 		{
-			REGISTER_EXPR(expression);
+			REGISTER_CHILD(expression);
 			REGISTER_CHILD(defaultCase);
 		}
 
@@ -420,7 +433,7 @@ namespace HXSL
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetCases, 0, storage);
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 1, storage);
 
-		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Expression, expression);
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Expression, expression);
 
 		DEFINE_GET_SET_MOVE_CHILD(DefaultCaseStatement*, DefaultCase, defaultCase);
 
@@ -433,6 +446,8 @@ namespace HXSL
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+		void ForEachExpr(ExprChildCallback cb, void* userdata);
+		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	class ForStatement : public ConditionalStatement, public TrailingObjects<ForStatement, AttributeDecl*>
@@ -449,7 +464,7 @@ namespace HXSL
 			iteration(iteration)
 		{
 			REGISTER_CHILD(init);
-			REGISTER_EXPR(iteration);
+			REGISTER_CHILD(iteration);
 		}
 
 	public:
@@ -458,9 +473,9 @@ namespace HXSL
 		static ForStatement* Create(const TextSpan& span, ASTNode* init, Expression* condition, Expression* iteration, BlockStatement* body, uint32_t numAttributes);
 
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetAttributes, 0, storage);
-		
+
 		DEFINE_GET_SET_MOVE_CHILD(ASTNode*, Init, init);
-		DEFINE_GET_SET_MOVE_REG_EXPR(Expression*, Iteration, iteration);
+		DEFINE_GET_SET_MOVE_CHILD(Expression*, Iteration, iteration);
 
 		std::string DebugName() const
 		{
@@ -471,6 +486,8 @@ namespace HXSL
 
 		void ForEachChild(ASTChildCallback cb, void* userdata);
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
+		void ForEachExpr(ExprChildCallback cb, void* userdata);
+		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	class BreakStatement : public ASTNode

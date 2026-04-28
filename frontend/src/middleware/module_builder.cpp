@@ -52,6 +52,11 @@ namespace HXSL
 			return cast<TypeLayout>(it->second);
 		}
 
+		if (auto enm = dyn_cast<Enum>(type))
+		{
+			return ConvertEnum(enm);
+		}
+
 		if (auto prim = dyn_cast<Primitive>(type))
 		{
 			return ConvertPrimitive(prim);
@@ -251,6 +256,30 @@ namespace HXSL
 		return res;
 	}
 
+	Backend::EnumLayout* ModuleBuilder::ConvertEnum(Enum* enm)
+	{
+		auto it = map.find(enm);
+		if (it != map.end())
+		{
+			return cast<EnumLayout>(it->second);
+		}
+
+		EnumLayoutBuilder builder = EnumLayoutBuilder(*module);
+		builder
+			.Name(enm->GetName())
+			.Access(enm->GetAccessModifiers())
+			.BaseType(ConvertType(enm->GetBaseType()));
+
+		for (auto& item : enm->GetItems())
+		{
+			builder.AddItem(item->GetName(), item->GetComputedValue());
+		}
+
+		auto res = builder.Build();
+		map.insert({ enm, res });
+		return res;
+	}
+
 	Backend::NamespaceLayout* ModuleBuilder::ConvertNamespace(Namespace* ns)
 	{
 		auto it = map.find(ns);
@@ -261,6 +290,11 @@ namespace HXSL
 
 		NamespaceLayoutBuilder builder = NamespaceLayoutBuilder(*module);
 		builder.Name(ns->GetName());
+
+		for (auto& enm : ns->GetEnums())
+		{
+			builder.AddEnum(ConvertEnum(enm));
+		}
 
 		for (auto& strct : ns->GetStructs())
 		{

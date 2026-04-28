@@ -57,13 +57,13 @@ namespace HXSL
 		switch (type)
 		{
 		case NodeType_Namespace: return AccessModifier_Public;
-		case NodeType_Enum: HXSL_ASSERT(false, "Enums not implemented."); return AccessModifier_None; // TODO: Enums.
+		case NodeType_Enum: return cast<Enum>(this)->GetAccessModifiers();
 		case NodeType_Primitive: return AccessModifier_Public;
 		case NodeType_Struct: return cast<Struct>(this)->GetAccessModifiers();
 		case NodeType_Class: return cast<Class>(this)->GetAccessModifiers();
 		case NodeType_Array: return AccessModifier_Public;
 		case NodeType_Pointer: return AccessModifier_Public;
-		case NodeType_Field: return cast<Field>(this)->GetAccessModifiers();;
+		case NodeType_Field: return cast<Field>(this)->GetAccessModifiers();
 		case NodeType_IntrinsicFunction: return AccessModifier_Public;
 		case NodeType_FunctionOverload: return cast<FunctionOverload>(this)->GetAccessModifiers();
 		case NodeType_OperatorOverload: return cast<OperatorOverload>(this)->GetAccessModifiers();
@@ -85,6 +85,7 @@ namespace HXSL
 		{
 		case NodeType_Namespace: return SymbolType_Namespace;
 		case NodeType_Enum: return SymbolType_Enum;
+		case NodeType_EnumItem: return SymbolType_EnumItem;
 		case NodeType_Primitive: return SymbolType_Struct;
 		case NodeType_Struct: return SymbolType_Struct;
 		case NodeType_Class: return SymbolType_Class;

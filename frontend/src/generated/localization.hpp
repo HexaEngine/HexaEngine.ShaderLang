@@ -588,12 +588,21 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL0212</para>
+	/// <para>Message: specified modifier is not allowed on enum</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_ENUM = 9223373187906027732;
+	
+	/// <summary>
+	/// <para>Code: HL0213</para>
 	/// <para>Message: specified modifier is not allowed on namespace</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_MODIFIER_ON_NAMESPACE = 9223373187906027732;
+	constexpr DiagnosticCode INVALID_MODIFIER_ON_NAMESPACE = 9223373187906027733;
 	
 	/// <summary>
 	/// <para>Code: HL0220</para>
@@ -1020,102 +1029,111 @@ namespace HXSL
 	
 	/// <summary>
 	/// <para>Code: HL1123</para>
+	/// <para>Message: '{}' is of type '{}', but a enum item was expected</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode EXPECTED_ENUM_ITEM_SYMBOL = 9223373187906028643;
+	
+	/// <summary>
+	/// <para>Code: HL1124</para>
 	/// <para>Message: '{}' is of type '{}', but a member or variable was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_IDENTIFIER_SYMBOL = 9223373187906028643;
+	constexpr DiagnosticCode EXPECTED_IDENTIFIER_SYMBOL = 9223373187906028644;
 	
 	/// <summary>
-	/// <para>Code: HL1124</para>
+	/// <para>Code: HL1125</para>
 	/// <para>Message: '{}' is of type '{}', but a attribute was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_ATTRIBUTE_SYMBOL = 9223373187906028644;
+	constexpr DiagnosticCode EXPECTED_ATTRIBUTE_SYMBOL = 9223373187906028645;
 	
 	/// <summary>
-	/// <para>Code: HL1125</para>
+	/// <para>Code: HL1126</para>
 	/// <para>Message: '{}' is of type '{}', but a member was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_MEMBER_SYMBOL = 9223373187906028645;
+	constexpr DiagnosticCode EXPECTED_MEMBER_SYMBOL = 9223373187906028646;
 	
 	/// <summary>
-	/// <para>Code: HL1126</para>
+	/// <para>Code: HL1127</para>
 	/// <para>Message: '{}' is of type '{}', but a struct, class or enum type was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_TYPE_SYMBOL = 9223373187906028646;
+	constexpr DiagnosticCode EXPECTED_TYPE_SYMBOL = 9223373187906028647;
 	
 	/// <summary>
-	/// <para>Code: HL1127</para>
+	/// <para>Code: HL1128</para>
 	/// <para>Message: '{}' is of type '{}', but a array type was expected</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode EXPECTED_ARRAY_SYMBOL = 9223373187906028647;
+	constexpr DiagnosticCode EXPECTED_ARRAY_SYMBOL = 9223373187906028648;
 	
 	/// <summary>
-	/// <para>Code: HL1128</para>
+	/// <para>Code: HL1129</para>
 	/// <para>Message: '{}' is not a valid array element type</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode INVALID_ARRAY_TYPE = 9223373187906028648;
+	constexpr DiagnosticCode INVALID_ARRAY_TYPE = 9223373187906028649;
 	
 	/// <summary>
-	/// <para>Code: HL1129</para>
+	/// <para>Code: HL1130</para>
 	/// <para>Message: use of variable '{}' before its declaration</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode USE_BEFORE_DECL = 9223373187906028649;
+	constexpr DiagnosticCode USE_BEFORE_DECL = 9223373187906028650;
 	
 	/// <summary>
-	/// <para>Code: HL1130</para>
+	/// <para>Code: HL1131</para>
 	/// <para>Message: couldn't resolve type of member '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode CANNOT_RESOLVE_MEMBER_TYPE = 9223373187906028650;
+	constexpr DiagnosticCode CANNOT_RESOLVE_MEMBER_TYPE = 9223373187906028651;
 	
 	/// <summary>
-	/// <para>Code: HL1131</para>
+	/// <para>Code: HL1132</para>
 	/// <para>Message: ambiguous function overload for '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode AMBIGUOUS_FUNC_OVERLOAD = 9223373187906028651;
+	constexpr DiagnosticCode AMBIGUOUS_FUNC_OVERLOAD = 9223373187906028652;
 	
 	/// <summary>
-	/// <para>Code: HL1132</para>
+	/// <para>Code: HL1133</para>
 	/// <para>Message: ambiguous constructor overload for '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode AMBIGUOUS_CTOR_OVERLOAD = 9223373187906028652;
+	constexpr DiagnosticCode AMBIGUOUS_CTOR_OVERLOAD = 9223373187906028653;
 	
 	/// <summary>
-	/// <para>Code: HL1133</para>
+	/// <para>Code: HL1134</para>
 	/// <para>Message: ambiguous operator overload for '{}'</para>
 	/// <para>Description: Desc</para>
 	/// <para>Category: Semantic Error</para>
 	/// <para>Severity: Error</para>
 	/// </summary>
-	constexpr DiagnosticCode AMBIGUOUS_OP_OVERLOAD = 9223373187906028653;
+	constexpr DiagnosticCode AMBIGUOUS_OP_OVERLOAD = 9223373187906028654;
 	
 	/// <summary>
 	/// <para>Code: HL1200</para>

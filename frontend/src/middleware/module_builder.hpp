@@ -68,6 +68,8 @@ namespace HXSL
 
 		Backend::StructLayout* ConvertClass(Class* clss);
 
+		Backend::EnumLayout* ConvertEnum(Enum* enm);
+
 		Backend::NamespaceLayout* ConvertNamespace(Namespace* ns);
 
 		Backend::Module* GetModule() const { return module.get(); }

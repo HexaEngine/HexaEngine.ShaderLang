@@ -338,6 +338,59 @@ namespace HXSL
 			}
 		};
 
+		class EnumLayoutBuilder : public LayoutBuilderBase
+		{
+		private:
+			EnumLayout* enm;
+			std::vector<EnumItemLayout*> itemsVec;
+
+		public:
+			explicit EnumLayoutBuilder(Module& m) : LayoutBuilderBase(m), enm(allocator.Alloc<EnumLayout>())
+			{
+			}
+
+			EnumLayoutBuilder& Name(const StringSpan& name)
+			{
+				enm->SetName(allocator.CopyString(name));
+				return *this;
+			}
+
+			EnumLayoutBuilder& Access(AccessModifier access)
+			{
+				enm->SetAccess(access);
+				return *this;
+			}
+
+			EnumLayoutBuilder& BaseType(TypeLayout* baseType)
+			{
+				enm->SetBaseType(baseType);
+				return *this;
+			}
+
+			EnumLayoutBuilder& AddItem(EnumItemLayout* item)
+			{
+				item->SetParent(enm);
+				itemsVec.push_back(item);
+				return *this;
+			}
+
+			EnumLayoutBuilder& AddItem(const StringSpan& name, uint64_t value)
+			{
+				EnumItemLayout* item = allocator.Alloc<EnumItemLayout>();
+				item->SetName(allocator.CopyString(name));
+				item->SetValue(value);
+				item->SetParent(enm);
+				itemsVec.push_back(item);
+				return *this;
+			}
+
+			[[nodiscard]] EnumLayout* Build()
+			{
+				enm->SetItems(allocator.CopySpan(itemsVec));
+				return enm;
+			}
+		};
+
 		class PrimitiveLayoutBuilder : LayoutBuilderBase
 		{
 		private:
@@ -430,6 +483,7 @@ namespace HXSL
 			std::vector<StructLayout*> structVec;
 			std::vector<FieldLayout*> globalFieldsVec;
 			std::vector<FunctionLayout*> functionsVec;
+			std::vector<EnumLayout*> enumVec;
 			std::vector<NamespaceLayout*> nestedNamespaceVec;
 
 		public:
@@ -447,6 +501,13 @@ namespace HXSL
 			{
 				strct->SetParent(ns);
 				structVec.push_back(strct);
+				return *this;
+			}
+
+			NamespaceLayoutBuilder& AddEnum(EnumLayout* enm)
+			{
+				enm->SetParent(ns);
+				enumVec.push_back(enm);
 				return *this;
 			}
 

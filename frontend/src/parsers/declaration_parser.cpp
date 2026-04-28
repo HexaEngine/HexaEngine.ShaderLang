@@ -1,5 +1,6 @@
 #include "declaration_parser.hpp"
 #include "sub_parser_registry.hpp"
+#include "hybrid_expr_parser.hpp"
 
 namespace HXSL
 {
@@ -256,7 +257,7 @@ namespace HXSL
 		}
 		
 		auto span = stream.MakeFromLast(start);
-		auto ns = Namespace::Create(span, name, builder.structs, builder.classes, builder.functions, builder.fields, builder.namespaces, builder.usings);
+		auto ns = Namespace::Create(span, name, builder.structs, builder.classes, builder.functions, builder.fields, builder.enums, builder.namespaces, builder.usings);
 		declOut = ns;
 		return true;
 	}
@@ -407,6 +408,71 @@ namespace HXSL
 		auto span = stream.MakeFromLast(startingToken);
 		auto _struct = Struct::Create(span, name, list.accessModifiers, builder.fields, builder.structs, builder.classes, builder.constructors, builder.functions, builder.operators);
 		declOut = _struct;
+		return true;
+	}
+
+	bool EnumParser::TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut)
+	{
+		auto startingToken = stream.Current();
+
+		IF_ERR_RET_FALSE(stream.TryGetKeyword(Keyword_Enum));
+
+		IdentifierInfo* name;
+		stream.ExpectIdentifier(name, EXPECTED_IDENTIFIER);
+
+		SymbolRef* baseTypeRef = nullptr;
+		if (stream.TryGetDelimiter(':'))
+		{
+			parser.ParseSymbol(SymbolRefType_Identifier, baseTypeRef);
+		}
+		else
+		{
+			baseTypeRef = SymbolRef::Create({}, ASTContext::GetCurrentContext()->GetIdentifier("int"), SymbolRefType_Identifier, false);
+		}
+
+		parser.RejectAttribute(ATTRIBUTE_INVALID_IN_CONTEXT);
+
+		auto scopeType = parser.scopeType();
+		if (scopeType != ScopeType_Global && scopeType != ScopeType_Namespace && scopeType != ScopeType_Struct && scopeType != ScopeType_Class)
+		{
+			parser.Log(STRUCT_DECL_OUT_OF_SCOPE, startingToken);
+		}
+
+		ModifierList list;
+		ModifierList allowed = ModifierList(AccessModifier_All, true);
+		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_ENUM);
+
+		std::vector<EnumItem*> values;
+		bool firstValue = true;
+
+		Token t;
+		parser.EnterScope(scopeType, nullptr, t, true, EXPECTED_LEFT_BRACE);
+		while (parser.IterateScope(nullptr))
+		{
+			if (!firstValue)
+			{
+				stream.ExpectDelimiter(',', EXPECTED_COMMA);
+			}
+			auto startItem = stream.Current().Span;
+			firstValue = false;
+			IdentifierInfo* itemName;
+			stream.ExpectIdentifier(itemName, EXPECTED_IDENTIFIER);
+
+			Expression* expr = nullptr;
+			if (stream.TryGetOperator(Operator_Assign))
+			{
+				HybridExpressionParser::ParseExpression(parser, stream, expr);
+			}
+
+			auto span = stream.MakeFromLast(startItem);
+			auto item = EnumItem::Create(span, itemName, expr);
+			values.push_back(item);
+		}
+
+		auto span = stream.MakeFromLast(startingToken);
+		auto enumDecl = Enum::Create(span, name, list.accessModifiers, baseTypeRef, values);
+		declOut = enumDecl;
+
 		return true;
 	}
 }

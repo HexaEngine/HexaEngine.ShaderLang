@@ -35,9 +35,11 @@
     std::move(ast_ptr<type>(dynamic_cast<type*>(std::move(ptr).release())))
 
 #define AST_ITERATE_CHILDREN(getter) for (auto c : getter()) cb(c, userdata);
-#define AST_ITERATE_CHILD(getter) cb(getter, userdata);
+#define AST_ITERATE_CHILD(getter) if (getter) cb(getter, userdata);
 
 #define AST_ITERATE_CHILDREN_MUT(getter) for (auto& c : getter()) cb(*reinterpret_cast<ASTNode**>(&c), userdata);
-#define AST_ITERATE_CHILD_MUT(getter) cb(*reinterpret_cast<ASTNode**>(&getter), userdata);
+#define AST_ITERATE_CHILD_MUT(getter) if (getter) cb(*reinterpret_cast<ASTNode**>(&getter), userdata);
+
+#define AST_ITERATE_CHILD_EXPR_MUT(getter) if (getter) cb(*reinterpret_cast<Expression**>(&getter), userdata);
 
 #endif

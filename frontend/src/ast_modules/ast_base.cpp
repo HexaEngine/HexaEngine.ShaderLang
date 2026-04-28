@@ -14,7 +14,8 @@ namespace HXSL
 		case NodeType_CompilationUnit: cast<CompilationUnit>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Namespace: cast<Namespace>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_UsingDecl: cast<UsingDecl>(this)->ForEachChild(cb, userdata); break;
-		case NodeType_Enum: break; //cast<Enum>(this)->ForEachChild(cb, userdata); break;
+		case NodeType_Enum: cast<Enum>(this)->ForEachChild(cb, userdata); break;
+		case NodeType_EnumItem: cast<EnumItem>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Primitive: cast<Primitive>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Struct: cast<Struct>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Class: cast<Class>(this)->ForEachChild(cb, userdata); break;
@@ -76,7 +77,8 @@ namespace HXSL
 		case NodeType_CompilationUnit: cast<CompilationUnit>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Namespace: cast<Namespace>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_UsingDecl: cast<UsingDecl>(this)->ForEachChild(cb, userdata); break;
-		case NodeType_Enum: break; //cast<Enum>(this)->ForEachChild(cb, userdata); break;
+		case NodeType_Enum: cast<Enum>(this)->ForEachChild(cb, userdata); break;
+		case NodeType_EnumItem: cast<EnumItem>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Primitive: cast<Primitive>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Struct: cast<Struct>(this)->ForEachChild(cb, userdata); break;
 		case NodeType_Class: cast<Class>(this)->ForEachChild(cb, userdata); break;
@@ -131,6 +133,50 @@ namespace HXSL
 		}
 	}
 
+	void ASTNode::ForEachExpr2(ExprChildCallback cb, void* userdata)
+	{
+		switch (type)
+		{
+		case NodeType_DeclarationStatement: cast<DeclarationStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_AssignmentStatement: cast<AssignmentStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_CompoundAssignmentStatement: cast<CompoundAssignmentStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_ExpressionStatement: cast<ExpressionStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_ReturnStatement: cast<ReturnStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_IfStatement: cast<IfStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_ElseIfStatement: cast<ElseIfStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_DoWhileStatement: cast<DoWhileStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_WhileStatement: cast<WhileStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_ForStatement: cast<ForStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_SwitchStatement: cast<SwitchStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_CaseStatement: cast<CaseStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_EnumItem: cast<EnumItem>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_BlockStatement: break;
+		case NodeType_ElseStatement: break;
+		default:
+			HXSL_ASSERT(false, "Unhandled ASTNode type in ForEachExpr.");
+			break;
+		}
+	}
+
+	void ASTNode::ForEachExpr2(ExprConstChildCallback cb, void* userdata) const
+	{
+		switch (type)
+		{
+		case NodeType_DeclarationStatement: cast<DeclarationStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_AssignmentStatement: cast<AssignmentStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_ExpressionStatement: cast<ExpressionStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_ReturnStatement: cast<ReturnStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_IfStatement: cast<IfStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_ElseIfStatement: cast<ElseIfStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_DoWhileStatement: cast<DoWhileStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_WhileStatement: cast<WhileStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_ForStatement: cast<ForStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_SwitchStatement: cast<SwitchStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_CaseStatement: cast<CaseStatement>(this)->ForEachExpr(cb, userdata); break;
+		case NodeType_EnumItem: cast<EnumItem>(this)->ForEachExpr(cb, userdata); break;
+		}
+	}
+
 	std::string ASTNode::DebugName() const
 	{
 		if (type == NodeType_Unknown)
@@ -146,6 +192,7 @@ namespace HXSL
 		case NodeType_ConstructorOverload: return cast<ConstructorOverload>(this)->DebugName();
 		case NodeType_Struct: return cast<Struct>(this)->DebugName();
 		case NodeType_Class: return cast<Class>(this)->DebugName();
+		case NodeType_Enum: return cast<Enum>(this)->DebugName();
 		case NodeType_BlockStatement: return cast<BlockStatement>(this)->DebugName();
 		case NodeType_ElseStatement: return cast<ElseStatement>(this)->DebugName();
 		case NodeType_ElseIfStatement: return cast<ElseIfStatement>(this)->DebugName();

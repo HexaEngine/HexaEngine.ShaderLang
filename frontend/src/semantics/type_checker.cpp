@@ -393,7 +393,7 @@ namespace HXSL
 
 	bool TypeChecker::CastOperatorCheck(const SymbolDef* target, const SymbolDef* source, SymbolRef*& result) const
 	{
-		auto signature = CastExpression::BuildOverloadSignature(target, source);
+		auto signature = CastExpression::BuildOverloadSignatureCast(target, source);
 
 		auto ref = SymbolRef::Create({}, ASTContext::GetCurrentContext()->GetIdentifier(signature), SymbolRefType_OperatorOverload, false);
 
@@ -485,17 +485,17 @@ namespace HXSL
 		}
 	}
 
+	static void ForEachExpr(Expression*& expr, void* userdata)
+	{
+		auto typeChecker = static_cast<TypeChecker*>(userdata);
+		typeChecker->TypeCheckExpression(expr);
+	}
+
 	void TypeChecker::TypeCheckStatement(ASTNode*& node)
 	{
 		auto type = node->GetType();
 
-		if (auto getter = dynamic_cast<IHasExpressions*>(node))
-		{
-			for (auto expr : getter->GetExpressions())
-			{
-				TypeCheckExpression(expr);
-			}
-		}
+		node->ForEachExpr2(ForEachExpr, this);
 
 		if (auto statement = node)
 		{
@@ -507,7 +507,7 @@ namespace HXSL
 			}
 		}
 	}
-	
+
 	bool TypeChecker::ResolveConstructor(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
 	{
 		outDefinition = nullptr;
@@ -541,7 +541,6 @@ namespace HXSL
 		}
 		return false;
 	}
-
 
 	bool TypeChecker::ResolveFunction(FunctionCallExpression* funcCallExpr, SymbolDef*& outDefinition, bool silent) const
 	{
@@ -743,7 +742,7 @@ namespace HXSL
 				}
 			}
 		}
-		
+
 		auto overloadHandle = bestMatch->GetSymbolHandle();
 		if (!overloadHandle.valid())
 		{

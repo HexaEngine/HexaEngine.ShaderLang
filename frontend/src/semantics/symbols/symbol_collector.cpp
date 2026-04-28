@@ -83,6 +83,24 @@ namespace HXSL
 		}
 		break;
 
+		case NodeType_Enum:
+		{
+			Enum* s = cast<Enum>(node);
+			auto symType = s->GetSymbolType();
+			auto metadata = SymbolMetadata::Create(s);
+			Push(s->GetName(), s, metadata, SymbolScopeType_Enum);
+		}
+		break;
+
+		case NodeType_EnumItem:
+		{
+			EnumItem* s = cast<EnumItem>(node);
+			auto symType = s->GetSymbolType();
+			auto metadata = SymbolMetadata::Create(s);
+			PushLeaf(s, metadata);
+		}
+		break;
+
 		case NodeType_FunctionOverload:
 		{
 			FunctionOverload* s = cast<FunctionOverload>(node);

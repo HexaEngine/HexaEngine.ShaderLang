@@ -103,8 +103,19 @@ namespace HXSL
 			}
 			break;
 
+		case SymbolRefType_EnumItem:
+			if (defType != SymbolType_EnumItem)
+			{
+				if (!silent)
+				{
+					analyzer.Log(EXPECTED_ENUM_ITEM_SYMBOL, span, name, ToString(defType));
+				}
+				return false;
+			}
+			break;
+
 		case SymbolRefType_Identifier:
-			if (defType != SymbolType_Field && defType != SymbolType_Parameter && defType != SymbolType_Variable && defType != SymbolType_Struct && defType != SymbolType_Primitive && defType != SymbolType_Class && defType != SymbolType_Enum)
+			if (defType != SymbolType_Field && defType != SymbolType_Parameter && defType != SymbolType_Variable && defType != SymbolType_Struct && defType != SymbolType_Primitive && defType != SymbolType_Class && defType != SymbolType_Enum && defType != SymbolType_EnumItem)
 			{
 				if (!silent)
 				{
@@ -591,6 +602,14 @@ namespace HXSL
 			ResolveSymbol(ref);
 		}
 		break;
+		case NodeType_Enum:
+		{
+			auto enumDef = cast<Enum>(node);
+			auto ref = enumDef->GetSymbolRef();
+			ResolveSymbol(ref);
+			PushScope(node, enumDef->GetName(), true);
+		}
+		break;
 		case NodeType_FunctionOverload:
 		{
 			auto function = cast<FunctionOverload>(node);
@@ -667,6 +686,14 @@ namespace HXSL
 			auto field = cast<Field>(node);
 			auto ref = field->GetSymbolRef();
 			ResolveSymbol(ref);
+		}
+		break;
+		case NodeType_Enum:
+		{
+			auto enumDef = cast<Enum>(node);
+			auto ref = enumDef->GetSymbolRef();
+			ResolveSymbol(ref);
+			PushScope(node, enumDef->GetName());
 		}
 		break;
 		case NodeType_FunctionOverload:

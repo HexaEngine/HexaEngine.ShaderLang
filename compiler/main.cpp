@@ -1,5 +1,4 @@
 #include "hxls_compiler.hpp"
-#include "preprocessing/evaluator.hpp"
 
 #define _CRTDBG_MAP_ALLOC
 #include <cstdlib>
@@ -12,9 +11,9 @@ int main()
 	SetLocale("en_US");
 
 	AssemblyCollection collection;
-	Compiler* compiler = new Compiler();
-	compiler->Compile({ "example/library.txt" }, "library.module", collection);
-	delete compiler;
+	Compiler compiler = Compiler();
+	compiler.Compile({ "example/library.txt" }, "library.module", collection);
+
 	//collection.LoadAssemblyFromFile("library.module");
 
 	//HXSLCompiler::Compile({ "shader.txt" , "shader2.txt" }, "shader.module", collection);

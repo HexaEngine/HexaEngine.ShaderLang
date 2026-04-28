@@ -23,6 +23,8 @@ namespace HXSL
 		class ConstructorLayout;
 		class FieldLayout;
 		class StructLayout;
+		class EnumLayout;
+		class EnumItemLayout;
 		class PrimitiveLayout;
 		class PointerLayout;
 		class NamespaceLayout;
@@ -40,6 +42,8 @@ namespace HXSL
 				ConstructorLayoutType,
 				FieldLayoutType,
 				StructLayoutType,
+				EnumLayoutType,
+				EnumItemLayoutType,
 				PrimitiveLayoutType,
 				PointerLayoutType,
 			};
@@ -258,6 +262,57 @@ namespace HXSL
 			}
 		};
 
+		class EnumLayout : public TypeLayout
+		{
+			Layout* parent = nullptr;
+			StringSpan name;
+			TypeLayout* baseType = nullptr;
+			Span<EnumItemLayout*> items;
+
+		public:
+			static constexpr LayoutType ID = EnumLayoutType;
+			EnumLayout() : TypeLayout(ID) {}
+
+			Layout* GetParent() const { return parent; }
+			void SetParent(Layout* newParent) { parent = newParent; }
+
+			const StringSpan& GetName() const { return name; }
+			void SetName(const StringSpan& n) { name = n; }
+
+			TypeLayout* GetBaseType() const { return baseType; }
+			void SetBaseType(TypeLayout* bt) { baseType = bt; }
+
+			const Span<EnumItemLayout*>& GetItems() const { return items; }
+			void SetItems(const Span<EnumItemLayout*>& i) { items = i; }
+		};
+
+		class EnumItemLayout : public Layout
+		{
+			Layout* parent = nullptr;
+			StringSpan name;
+			union
+			{
+				uint64_t value = 0;
+				int64_t svalue;
+			};
+
+		public:
+			static constexpr LayoutType ID = EnumItemLayoutType;
+			EnumItemLayout() : Layout(ID) {}
+
+			Layout* GetParent() const { return parent; }
+			void SetParent(Layout* newParent) { parent = newParent; }
+
+			const StringSpan& GetName() const { return name; }
+			void SetName(const StringSpan& n) { name = n; }
+
+			uint64_t GetValue() const { return value; }
+			void SetValue(uint64_t v) { value = v; }
+
+			int64_t GetSignedValue() const { return svalue; }
+			void SetSignedValue(int64_t v) { svalue = v; }
+		};
+
 		class PrimitiveLayout : public TypeLayout
 		{
 			PrimitiveKind primKind = PrimitiveKind_Void;
@@ -349,6 +404,7 @@ namespace HXSL
 		using type_layout_checker =
 			rtti_type_equals_checker<
 			Layout::StructLayoutType,
+			Layout::EnumLayoutType,
 			Layout::PrimitiveLayoutType,
 			Layout::PointerLayoutType>;
 
@@ -427,6 +483,7 @@ namespace HXSL
 			void WriteConstructor(const ConstructorLayout* ctor);
 			void WriteParameter(const ParameterLayout* param);
 			void WriteField(const FieldLayout* field);
+			void WriteEnum(const EnumLayout* enm);
 			void WritePointerType(const PointerLayout* ptr);
 			void WritePrimitiveType(const PrimitiveLayout* prim);
 			void WriteType(const TypeLayout* type);
@@ -479,6 +536,7 @@ namespace HXSL
 			void ReadModule();
 			NamespaceLayout* ReadNamespace();
 			StructLayout* ReadStruct();
+			EnumLayout* ReadEnum();
 			FunctionLayout* ReadFunction();
 			OperatorLayout* ReadOperator();
 			ConstructorLayout* ReadConstructor();

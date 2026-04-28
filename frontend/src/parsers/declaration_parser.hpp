@@ -29,6 +29,11 @@ namespace HXSL
 	{
 		bool TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut) override;
 	};
+
+	class EnumParser : public SubParser
+	{
+		bool TryParse(Parser& parser, TokenStream& stream, ASTNode*& declOut) override;
+	};
 }
 
 #endif

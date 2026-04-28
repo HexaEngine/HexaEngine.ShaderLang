@@ -31,16 +31,19 @@ namespace HXSL
 		const Span<Class*>& classes,
 		const Span<FunctionOverload*>& functions,
 		const Span<Field*>& fields,
+		const Span<Enum*>& enums,
 		const Span<Namespace*>& nestedNamespaces,
 		const Span<UsingDecl*>& usings)
 	{
 		auto* context = ASTContext::GetCurrentContext();
-		auto ptr = context->Alloc<Namespace>(TotalSizeToAlloc(structs.size(), classes.size(), functions.size(), fields.size(), nestedNamespaces.size(), usings.size()), span, name);
-		ptr->storage.InitializeMove(ptr, structs, classes, functions, fields, nestedNamespaces, usings);
+		auto ptr = context->Alloc<Namespace>(TotalSizeToAlloc(structs.size(), classes.size(), functions.size(), fields.size(), enums.size(), nestedNamespaces.size(), usings.size()), span, name);
+		ptr->storage.InitializeMove(ptr, structs, classes, functions, fields, enums, nestedNamespaces, usings);
 		REGISTER_CHILDREN_PTR(ptr, GetStructs());
 		REGISTER_CHILDREN_PTR(ptr, GetClasses());
 		REGISTER_CHILDREN_PTR(ptr, GetFunctions());
 		REGISTER_CHILDREN_PTR(ptr, GetFields());
+		REGISTER_CHILDREN_PTR(ptr, GetEnums());
+		REGISTER_CHILDREN_PTR(ptr, GetNestedNamespaces());
 		REGISTER_CHILDREN_PTR(ptr, GetUsings());
 		return ptr;
 	}
@@ -60,6 +63,7 @@ namespace HXSL
 		AST_ITERATE_CHILDREN_MUT(GetClasses);
 		AST_ITERATE_CHILDREN_MUT(GetFunctions);
 		AST_ITERATE_CHILDREN_MUT(GetFields);
+		AST_ITERATE_CHILDREN_MUT(GetEnums);
 		AST_ITERATE_CHILDREN_MUT(GetNestedNamespaces);
 	}
 
@@ -70,6 +74,7 @@ namespace HXSL
 		AST_ITERATE_CHILDREN(GetClasses);
 		AST_ITERATE_CHILDREN(GetFunctions);
 		AST_ITERATE_CHILDREN(GetFields);
+		AST_ITERATE_CHILDREN(GetEnums);
 		AST_ITERATE_CHILDREN(GetNestedNamespaces);
 	}
 

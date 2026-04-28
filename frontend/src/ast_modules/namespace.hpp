@@ -65,7 +65,7 @@ namespace HXSL
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const {}
 	};
 
-	class Namespace : public SymbolDef, public TrailingObjects<Namespace, Struct*, Class*, FunctionOverload*, Field*, Namespace*, UsingDecl*>
+	class Namespace : public SymbolDef, public TrailingObjects<Namespace, Struct*, Class*, FunctionOverload*, Field*, Enum*, Namespace*, UsingDecl*>
 	{
 		friend class ASTContext;
 	private:
@@ -84,6 +84,7 @@ namespace HXSL
 			const Span<Class*>& classes,
 			const Span<FunctionOverload*>& functions,
 			const Span<Field*>& fields,
+			const Span<Enum*>& enums,
 			const Span<Namespace*>& nestedNamespaces,
 			const Span<UsingDecl*>& usings);
 
@@ -91,8 +92,9 @@ namespace HXSL
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetClasses, 1, storage);
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetFunctions, 2, storage);
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetFields, 3, storage);
-		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetNestedNamespaces, 4, storage);
-		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetUsings, 5, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetEnums, 4, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetNestedNamespaces, 5, storage);
+		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetUsings, 6, storage);
 
 		void Warmup(const AssemblyCollection& references);
 

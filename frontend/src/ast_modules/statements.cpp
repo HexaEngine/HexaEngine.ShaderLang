@@ -201,12 +201,32 @@ namespace HXSL
 		AST_ITERATE_CHILDREN(GetStatements);
 	}
 
+	void ConditionalStatement::ForEachExpr(ExprChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_EXPR_MUT(condition);
+	}
+
+	void ConditionalStatement::ForEachExpr(ExprConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(condition);
+	}
+
 	void DeclarationStatement::ForEachChild(ASTChildCallback cb, void* userdata)
 	{
 		if (initializer) AST_ITERATE_CHILD_MUT(initializer);
 	}
 
 	void DeclarationStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
+	{
+		if (initializer) AST_ITERATE_CHILD(initializer);
+	}
+
+	void DeclarationStatement::ForEachExpr(ExprChildCallback cb, void* userdata)
+	{
+		if (initializer) AST_ITERATE_CHILD_EXPR_MUT(initializer);
+	}
+
+	void DeclarationStatement::ForEachExpr(ExprConstChildCallback cb, void* userdata) const
 	{
 		if (initializer) AST_ITERATE_CHILD(initializer);
 	}
@@ -221,6 +241,16 @@ namespace HXSL
 		AST_ITERATE_CHILD(expr);
 	}
 
+	void AssignmentStatement::ForEachExpr(ExprChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_EXPR_MUT(expr);
+	}
+
+	void AssignmentStatement::ForEachExpr(ExprConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(expr);
+	}
+
 	void ExpressionStatement::ForEachChild(ASTChildCallback cb, void* userdata)
 	{
 		AST_ITERATE_CHILD_MUT(expression);
@@ -231,14 +261,34 @@ namespace HXSL
 		AST_ITERATE_CHILD(expression);
 	}
 
+	void ExpressionStatement::ForEachExpr(ExprChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_EXPR_MUT(expression);
+	}
+
+	void ExpressionStatement::ForEachExpr(ExprConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(expression);
+	}
+
 	void ReturnStatement::ForEachChild(ASTChildCallback cb, void* userdata)
 	{
-		AST_ITERATE_CHILD_MUT(returnValueExpression);
+		if (returnValueExpression) AST_ITERATE_CHILD_MUT(returnValueExpression);
 	}
 
 	void ReturnStatement::ForEachChild(ASTConstChildCallback cb, void* userdata) const
 	{
-		AST_ITERATE_CHILD(returnValueExpression);
+		if (returnValueExpression) AST_ITERATE_CHILD(returnValueExpression);
+	}
+
+	void ReturnStatement::ForEachExpr(ExprChildCallback cb, void* userdata)
+	{
+		if (returnValueExpression) AST_ITERATE_CHILD_EXPR_MUT(returnValueExpression);
+	}
+
+	void ReturnStatement::ForEachExpr(ExprConstChildCallback cb, void* userdata) const
+	{
+		if (returnValueExpression) AST_ITERATE_CHILD(returnValueExpression);
 	}
 
 	void ElseStatement::ForEachChild(ASTChildCallback cb, void* userdata)
@@ -293,6 +343,16 @@ namespace HXSL
 		AST_ITERATE_CHILDREN(GetStatements);
 	}
 
+	void CaseStatement::ForEachExpr(ExprChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_EXPR_MUT(expression);
+	}
+
+	void CaseStatement::ForEachExpr(ExprConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(expression);
+	}
+
 	void DefaultCaseStatement::ForEachChild(ASTChildCallback cb, void* userdata)
 	{
 		AST_ITERATE_CHILDREN_MUT(GetStatements);
@@ -319,6 +379,16 @@ namespace HXSL
 		if (defaultCase) AST_ITERATE_CHILD(defaultCase);
 	}
 
+	void SwitchStatement::ForEachExpr(ExprChildCallback cb, void* userdata)
+	{
+		AST_ITERATE_CHILD_EXPR_MUT(expression);
+	}
+
+	void SwitchStatement::ForEachExpr(ExprConstChildCallback cb, void* userdata) const
+	{
+		AST_ITERATE_CHILD(expression);
+	}
+
 	void ForStatement::ForEachChild(ASTChildCallback cb, void* userdata)
 	{
 		AST_ITERATE_CHILDREN_MUT(GetAttributes);
@@ -335,6 +405,18 @@ namespace HXSL
 		if (condition) AST_ITERATE_CHILD(condition);
 		if (iteration) AST_ITERATE_CHILD(iteration);
 		AST_ITERATE_CHILD(body);
+	}
+
+	void ForStatement::ForEachExpr(ExprChildCallback cb, void* userdata)
+	{
+		if (condition) AST_ITERATE_CHILD_EXPR_MUT(condition);
+		if (iteration) AST_ITERATE_CHILD_EXPR_MUT(iteration);
+	}
+
+	void ForStatement::ForEachExpr(ExprConstChildCallback cb, void* userdata) const
+	{
+		if (condition) AST_ITERATE_CHILD(condition);
+		if (iteration) AST_ITERATE_CHILD(iteration);
 	}
 
 	void WhileStatement::ForEachChild(ASTChildCallback cb, void* userdata)

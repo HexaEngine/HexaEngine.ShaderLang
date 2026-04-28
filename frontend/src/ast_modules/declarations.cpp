@@ -29,7 +29,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	std::string FunctionOverload::BuildOverloadSignature(bool placeholder) noexcept
+	StringSpan FunctionOverload::BuildOverloadSignature(bool placeholder) noexcept
 	{
 		if (!placeholder && !cachedSignature.empty())
 		{
@@ -57,13 +57,16 @@ namespace HXSL
 		}
 		oss << ")";
 
+		auto ctx = ASTContext::GetCurrentContext();
+		auto& table = ctx->GetIdentifierTable();
+		auto ident = table.Get(oss.str());
 		if (placeholder)
 		{
-			return oss.str();
+			return ident->name;
 		}
 		else
 		{
-			cachedSignature = oss.str();
+			cachedSignature = ident->name;
 			return cachedSignature;
 		}
 	}
@@ -109,7 +112,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	std::string ConstructorOverload::BuildOverloadSignature(bool placeholder) noexcept
+	StringSpan ConstructorOverload::BuildOverloadSignature(bool placeholder) noexcept
 	{
 		if (!placeholder && !cachedSignature.empty())
 		{
@@ -138,13 +141,17 @@ namespace HXSL
 		}
 		str.push_back(')');
 
+		auto ctx = ASTContext::GetCurrentContext();
+		auto& table = ctx->GetIdentifierTable();
+		auto ident = table.Get(str);
+
 		if (placeholder)
 		{
-			return str;
+			return ident->name;
 		}
 		else
 		{
-			cachedSignature = str;
+			cachedSignature = ident->name;
 			return cachedSignature;
 		}
 	}
@@ -160,7 +167,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	std::string OperatorOverload::BuildOverloadSignature(bool placeholder) noexcept
+	StringSpan OperatorOverload::BuildOverloadSignature(bool placeholder) noexcept
 	{
 		if (!placeholder && !cachedSignature.empty())
 		{
@@ -214,13 +221,17 @@ namespace HXSL
 		}
 		str.push_back(')');
 
+		auto ctx = ASTContext::GetCurrentContext();
+		auto& table = ctx->GetIdentifierTable();
+		auto ident = table.Get(str);
+
 		if (placeholder)
 		{
-			return str;
+			return ident->name;
 		}
 		else
 		{
-			cachedSignature = str;
+			cachedSignature = ident->name;
 			return cachedSignature;
 		}
 	}

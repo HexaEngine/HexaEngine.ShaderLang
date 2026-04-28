@@ -1,0 +1,51 @@
+
+Expression:
+  type: class
+  base: ASTNode
+  fields:
+    inferredType:
+    - type: SymbolDef*
+    - access: private
+    - default: nullptr
+  properties:
+    LazyEvalState:
+      - type: uint32_t
+      - access: public
+      - default: 0
+    Traits:
+      - type: ExpressionTraits
+      - access: public
+      - default: {}
+  
+  constructors:
+    - parameters: [const TextSpan& span, NodeType type]
+      base:
+        - ASTNode(span, type)
+      body: {}
+      external: false
+
+  functions:
+    bool IsVoidType():
+      - access: public
+      - modifier: const noexcept
+      - external: true
+  
+    void GetInferredType():
+      - access: public
+      - modifier: const noexcept
+      - body: return inferredType;
+  
+    void SetInferredType(SymbolDef* type):
+      - access: public
+      - modifier: noexcept
+      - external: true
+  
+    void IncrementLazyEvalState():
+      - access: public
+      - modifier: noexcept
+      - body: ++lazyEvalState;
+  
+    void ResetLazyEvalState():
+      - access: public
+      - modifier: noexcept
+      - body: lazyEvalState = 0;

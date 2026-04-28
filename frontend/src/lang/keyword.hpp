@@ -38,6 +38,7 @@ namespace HXSL
 		Keyword_DomainShader,
 		Keyword_Dword,
 		Keyword_Else,
+		Keyword_Enum,
 		Keyword_Export,
 		Keyword_Extern,
 		Keyword_False,
@@ -192,6 +193,7 @@ namespace HXSL
 		case Keyword_DomainShader: return "DomainShader";
 		case Keyword_Dword: return "dword";
 		case Keyword_Else: return "else";
+		case Keyword_Enum: return "enum";
 		case Keyword_Export: return "export";
 		case Keyword_Extern: return "extern";
 		case Keyword_False: return "false";
@@ -345,6 +347,7 @@ namespace HXSL
 		t.Insert("DomainShader", Keyword_DomainShader);
 		t.Insert("dword", Keyword_Dword);
 		t.Insert("else", Keyword_Else);
+		t.Insert("enum", Keyword_Enum);
 		t.Insert("export", Keyword_Export);
 		t.Insert("extern", Keyword_Extern);
 		t.Insert("false", Keyword_False);

@@ -16,6 +16,9 @@ namespace HXSL
 		case NodeType_Class:
 			Append<Class, DeclContainerFlags::AllowClasses>(decl, classes, CLASS_DECL_OUT_OF_SCOPE);
 			break;
+		case NodeType_Enum:
+			Append<Enum, DeclContainerFlags::AllowEnums>(decl, enums, ENUM_DECL_OUT_OF_SCOPE);
+			break;
 		case NodeType_ConstructorOverload:
 			Append<ConstructorOverload, DeclContainerFlags::AllowConstructors>(decl, constructors, CTOR_DECL_OUT_OF_SCOPE);
 			break;

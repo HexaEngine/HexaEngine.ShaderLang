@@ -205,6 +205,20 @@ namespace HXSL
             WriteLittleEndian(field->GetInterpolationModifier());
         }
 
+        void ModuleWriter::WriteEnum(const EnumLayout* enm)
+        {
+            WriteRecordHeader(enm);
+            WriteString(enm->GetName());
+            WriteRecordRef(enm->GetBaseType());
+            WriteLittleEndian(enm->GetAccess());
+            WriteLittleEndian(static_cast<uint32_t>(enm->GetItems().size()));
+            for (auto* item : enm->GetItems())
+            {
+				WriteString(item->GetName());
+				WriteLittleEndian(item->GetValue());
+			}
+        }
+
         void ModuleWriter::WritePointerType(const PointerLayout* ptr)
         {
             WriteRecordHeader(ptr);
@@ -380,6 +394,12 @@ namespace HXSL
                     walkStack.push({ ptr->GetElementType(), false });
                 }
                 break;
+                case Layout::EnumLayoutType:
+                {
+					auto* enm = cast<EnumLayout>(layout);
+					walkStack.push({ enm->GetBaseType(), false });
+                }
+                break;
                 case Layout::PrimitiveLayoutType:
                     // Nothing to do
                     break;
@@ -424,6 +444,9 @@ namespace HXSL
                     break;
                 case Layout::FieldLayoutType:
                     WriteField(cast<FieldLayout>(layout));
+                    break;
+				case Layout::EnumLayoutType:
+                    WriteEnum(cast<EnumLayout>(layout));
                     break;
                 default:
                     HXSL_ASSERT(false, "Unknown layout type in module writer");
@@ -601,6 +624,28 @@ namespace HXSL
             for (uint32_t i = 0; i < nestedCount; ++i)
             {
                 builder.AddType(ReadRecordRef<StructLayout>());
+            }
+
+            return builder.Build();
+        }
+
+        EnumLayout* ModuleReader::ReadEnum()
+        {
+			auto name = ReadStringSpan();
+			auto* baseType = ReadRecordRef<TypeLayout>();
+			auto access = ReadLittleEndian<AccessModifier>();
+
+			EnumLayoutBuilder builder(*module);
+			builder.Name(name)
+				   .BaseType(baseType)
+                   .Access(access);
+
+			auto itemCount = ReadLittleEndian<uint32_t>();
+            for (uint32_t i = 0; i < itemCount; ++i)
+            {
+				auto itemName = ReadStringSpan();
+				auto itemValue = ReadLittleEndian<uint64_t>();
+				builder.AddItem(itemName, itemValue);
             }
 
             return builder.Build();

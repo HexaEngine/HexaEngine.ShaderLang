@@ -59,7 +59,7 @@ namespace HXSL
 		friend class ASTContext;
 		friend class TrailingObjects;
 	protected:
-		std::string cachedSignature;
+		StringSpan cachedSignature;
 		AccessModifier accessModifiers;
 		FunctionFlags functionFlags;
 		SymbolRef* returnSymbol;
@@ -116,9 +116,9 @@ namespace HXSL
 			return returnSymbol->GetDeclaration();
 		}
 
-		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
+		StringSpan BuildOverloadSignature(bool placeholder = false) noexcept;
 
-		std::string BuildTemporaryOverloadSignature() noexcept
+		StringSpan BuildTemporaryOverloadSignature() noexcept
 		{
 			return BuildOverloadSignature(true);
 		}
@@ -170,7 +170,7 @@ namespace HXSL
 			return constructorStorage.targetTypeSymbol->GetDeclaration();
 		}
 
-		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
+		StringSpan BuildOverloadSignature(bool placeholder = false) noexcept;
 
 		DEFINE_GETTER_SETTER_PTR(SymbolRef*, TargetTypeSymbol, constructorStorage.targetTypeSymbol)
 	};
@@ -190,7 +190,7 @@ namespace HXSL
 
 		static OperatorOverload* Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, FunctionFlags functionFlags, OperatorFlags operatorFlags, Operator _operator, SymbolRef* returnSymbol, BlockStatement* body, const Span<Parameter*>& parameters, const Span<AttributeDecl*>& attributes);
 
-		std::string BuildOverloadSignature(bool placeholder = false) noexcept;
+		StringSpan BuildOverloadSignature(bool placeholder = false) noexcept;
 
 		const OperatorFlags& GetOperatorFlags() const noexcept { return operatorStorage.operatorFlags; }
 

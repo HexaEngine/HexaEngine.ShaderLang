@@ -47,6 +47,33 @@ namespace HXSL
 		return context->Alloc<CastExpression>(sizeof(CastExpression), span, operatorSymbol, typeSymbol, operand);
 	}
 
+	StringSpan CastExpression::BuildOverloadSignatureCast(const SymbolDef* targetType, const SymbolDef* sourceType)
+	{
+		auto& retFqn = targetType->GetFullyQualifiedName();
+		auto& fqn = sourceType->GetFullyQualifiedName();
+
+		std::string str;
+		str.reserve(2 + retFqn.size() + 1 + fqn.size() + 1);
+		str.resize(2);
+		auto data = str.data();
+		data[0] = ToLookupChar(Operator_Cast);
+		data[1] = '#';
+		str.append(retFqn.view());
+		str.push_back('(');
+		str.append(fqn.view());
+		str.push_back(')');
+
+		auto ctx = ASTContext::GetCurrentContext();
+		auto& table = ctx->GetIdentifierTable();
+
+		return table.Get(str)->name;
+	}
+
+	StringSpan CastExpression::BuildOverloadSignature() const
+	{
+		return BuildOverloadSignatureCast(typeSymbol->GetDeclaration(), operand->GetInferredType());
+	}
+
 	TernaryExpression* TernaryExpression::Create(const TextSpan& span, Expression* condition, Expression* trueBranch, Expression* falseBranch)
 	{
 		auto* context = ASTContext::GetCurrentContext();

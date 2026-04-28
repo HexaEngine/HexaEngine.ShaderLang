@@ -27,6 +27,8 @@ namespace HXSL
 	class Struct;
 	class Class;
 	class Field;
+	class Enum;
+	class EnumItem;
 	class ArrayDecl;
 	class Primitive;
 	class Expression;
@@ -65,6 +67,7 @@ namespace HXSL
 		NodeType_Namespace,
 		NodeType_UsingDecl,
 		NodeType_Enum, // Placeholder (Will be added in the future.)
+		NodeType_EnumItem, // Placeholder (Will be added in the future.)
 		NodeType_Primitive,
 		NodeType_Struct,
 		NodeType_Class, // Needs parsing logic
@@ -104,7 +107,7 @@ namespace HXSL
 		NodeType_LiteralExpression, // type-check: yes
 		NodeType_MemberReferenceExpression, // type-check: yes
 		NodeType_FunctionCallExpression, // type-check: yes
-		NodeType_ConstructorCallExpression, 
+		NodeType_ConstructorCallExpression,
 		NodeType_FunctionCallParameter, // type-check: yes
 		NodeType_MemberAccessExpression, // type-check: yes
 		NodeType_IndexerAccessExpression, // type-check: yes
@@ -201,6 +204,7 @@ namespace HXSL
 		case NodeType_Namespace: return "Namespace";
 		case NodeType_UsingDecl: return "Using";
 		case NodeType_Enum: return "Enum";
+		case NodeType_EnumItem: return "EnumItem";
 		case NodeType_Primitive: return "Primitive";
 		case NodeType_Struct: return "Struct";
 		case NodeType_Class: return "Class";
@@ -254,26 +258,14 @@ namespace HXSL
 	using ASTChildCallback = void(*)(ASTNode*& node, void* userdata);
 	using ASTConstChildCallback = void(*)(ASTNode* const& node, void* userdata);
 
+	using ExprChildCallback = void(*)(Expression*& node, void* userdata);
+	using ExprConstChildCallback = void(*)(Expression* const& node, void* userdata);
+
 	class ASTNode
 	{
 		friend class ASTNodeAdapter;
-	private:
-		void AddChild(ASTNode* node)
-		{
-			if (node == nullptr) return;
-			//children.push_back(node);
-			node->parent = this;
-		}
-
-		void RemoveChild(ASTNode* node)
-		{
-			if (node == nullptr) return;
-			//children.erase(remove(children.begin(), children.end(), node), children.end());
-			node->parent = nullptr;
-		}
 
 	protected:
-		//std::vector<ASTNode*> children;
 		TextSpan span;
 		ASTNode* parent;
 		NodeType type : 6;
@@ -281,50 +273,39 @@ namespace HXSL
 
 		void RegisterChild(ASTNode* child)
 		{
-			if (child == nullptr) return;
-			child->SetParent(this);
-		}
-
-		template<class T>
-		void RegisterChild(const ast_ptr<T>& child)
-		{
-			RegisterChild(child.get());
-		}
-
-		template<class T>
-		void RegisterChildren(const Span<T*>& children)
-		{
-			for (auto child : children)
+			if (child)
 			{
-				RegisterChild(child);
+				child->SetParent(this);
 			}
 		}
 
 		void UnregisterChild(ASTNode* child)
 		{
-			if (child == nullptr) return;
-			child->SetParent(nullptr);
-		}
-
-		template<class T>
-		void UnregisterChild(const ast_ptr<T>& child)
-		{
-			UnregisterChild(child.get());
-		}
-
-		template<class T>
-		void UnregisterChildren(const std::vector<ast_ptr<T>>& children)
-		{
-			for (auto& child : children)
+			if (child)
 			{
-				UnregisterChild(child.get());
+				child->SetParent(nullptr);
+			}
+		}
+
+		template<typename T>
+		void RegisterChildren(const Span<T*>& children)
+		{
+			for (auto* child : children)
+			{
+				RegisterChild(child);
+			}
+		}
+
+		template<typename T>
+		void UnregisterChildren(const Span<T*>& children)
+		{
+			for (auto* child : children)
+			{
+				UnregisterChild(child);
 			}
 		}
 
 	public:
-		using child_iterator = ASTNode**;
-		using child_range = iterator_range<child_iterator>;
-
 		ASTNode(const TextSpan& span, NodeType type, bool isExtern = false) : span(span), parent(nullptr), type(type), isExtern(isExtern)
 		{
 		}
@@ -346,18 +327,9 @@ namespace HXSL
 				return;
 			}
 
-			if (parent)
-			{
-				parent->RemoveChild(this);
-			}
 			parent = newParent;
-			if (newParent)
-			{
-				newParent->AddChild(this);
-			}
 		}
 
-		const std::vector<ASTNode*>& GetChildren() const noexcept { /* return children; */ HXSL_ASSERT_DEPRECATION; }
 		NodeType GetType() const noexcept { return type; }
 		const TextSpan& GetSpan() const noexcept { return span; }
 		void SetSpan(TextSpan newSpan) noexcept { span = newSpan; }
@@ -429,12 +401,11 @@ namespace HXSL
 
 		std::string DebugName() const;
 
-		virtual ~ASTNode()
-		{
-		}
-
 		void ForEachChild2(ASTChildCallback cb, void* userdata);
 		void ForEachChild2(ASTConstChildCallback cb, void* userdata) const;
+
+		void ForEachExpr2(ExprChildCallback cb, void* userdata);
+		void ForEachExpr2(ExprConstChildCallback cb, void* userdata) const;
 	};
 
 	template <class Target, class Injector, class InsertFunc>
@@ -464,7 +435,7 @@ namespace HXSL
 				{
 					child = data->second;
 				}
-				}, & pair);
+				}, &pair);
 		}
 	}
 
