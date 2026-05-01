@@ -341,6 +341,19 @@ namespace HXSL
 
 		MAKE_IMPL_UNARY(NEG, -);
 
+		constexpr Number& operator++(int)
+		{
+			*this = *this + Number(1);
+			return *this;
+		}
+
+		constexpr Number& operator--(int)
+		{
+			*this = *this - Number(1);
+			return *this;
+		}
+
+
 		constexpr bool ToBool() const
 		{
 			switch (Kind)

@@ -443,18 +443,17 @@ namespace HXSL
 		parser.AcceptModifierList(&list, allowed, INVALID_MODIFIER_ON_ENUM);
 
 		std::vector<EnumItem*> values;
-		bool firstValue = true;
+		bool hadDelimiter = true;
 
 		Token t;
 		parser.EnterScope(scopeType, nullptr, t, true, EXPECTED_LEFT_BRACE);
 		while (parser.IterateScope(nullptr))
 		{
-			if (!firstValue)
+			if (!hadDelimiter)
 			{
-				stream.ExpectDelimiter(',', EXPECTED_COMMA);
+				parser.Log(EXPECTED_COMMA, stream.LastToken());
 			}
 			auto startItem = stream.Current().Span;
-			firstValue = false;
 			IdentifierInfo* itemName;
 			stream.ExpectIdentifier(itemName, EXPECTED_IDENTIFIER);
 
@@ -467,6 +466,8 @@ namespace HXSL
 			auto span = stream.MakeFromLast(startItem);
 			auto item = EnumItem::Create(span, itemName, expr);
 			values.push_back(item);
+
+			hadDelimiter = stream.TryGetDelimiter(',');
 		}
 
 		auto span = stream.MakeFromLast(startingToken);

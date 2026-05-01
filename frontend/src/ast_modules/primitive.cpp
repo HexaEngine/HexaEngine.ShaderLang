@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	Primitive* Primitive::Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, Span<OperatorOverload*>& operators)
+	Primitive* Primitive::Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint16_t rows, uint16_t columns, Span<OperatorOverload*>& operators)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<Primitive>(TotalSizeToAlloc(operators.size()), span, name, kind, _class, rows, columns);
@@ -11,7 +11,7 @@ namespace HXSL
 		return ptr;
 	}
 
-	Primitive* Primitive::Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint32_t rows, uint32_t columns, uint32_t numOperators)
+	Primitive* Primitive::Create(const TextSpan& span, IdentifierInfo* name, PrimitiveKind kind, PrimitiveClass _class, uint16_t rows, uint16_t columns, uint32_t numOperators)
 	{
 		auto context = ASTContext::GetCurrentContext();
 		auto ptr = context->Alloc<Primitive>(TotalSizeToAlloc(numOperators), span, name, kind, _class, rows, columns);

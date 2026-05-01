@@ -15,6 +15,16 @@ namespace HXSL
 
 		TraversalBehavior Analyze(SemanticAnalyzer& analyzer, ASTNode* node, CompilationUnit* compilation) override;
 	};
+
+	class EnumAnalyzer : public SubAnalyzer
+	{
+		virtual bool CanAnalyze(ASTNode* node) override
+		{
+			return node->IsTypeOf(NodeType_Enum);
+		}
+
+		TraversalBehavior Analyze(SemanticAnalyzer& analyzer, ASTNode* node, CompilationUnit* compilation) override;
+	};
 }
 
 #endif

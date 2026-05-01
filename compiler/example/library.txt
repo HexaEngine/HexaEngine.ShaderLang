@@ -19,7 +19,7 @@ namespace Core
 	{
 		First,
 		Second = 1 << 3,
-		Third
+		Third = Second | 1 << 4,
 	}
 
 	struct TestStruct

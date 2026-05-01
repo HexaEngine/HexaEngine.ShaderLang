@@ -3,7 +3,7 @@
 
 namespace HXSL
 {
-	inline Assembly::Assembly(const std::string& name) : name(std::make_unique<std::string>(name)), table(std::make_unique<SymbolTable>()), sealed(false)
+	inline Assembly::Assembly(const std::string& name) : name(std::make_unique<std::string>(name)), table(std::make_unique<SymbolTable>()), module(make_uptr<Backend::Module>()), sealed(false)
 	{
 	}
 
@@ -80,9 +80,13 @@ namespace HXSL
 		return WriteToStream(fs);
 	}
 
+	static const char* magic = "HXSL";
+
 	int Assembly::WriteToStream(Stream& stream) const
 	{
-		table->Write(stream);
+		stream.Write(magic, strlen(magic));
+		Backend::ModuleWriter writer(&stream);
+		writer.Write(module.get());
 		return 0;
 	}
 }

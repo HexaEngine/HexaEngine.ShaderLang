@@ -3,6 +3,11 @@
 
 namespace HXSL
 {
+	const SymbolTable* SymbolHandle::GetTable() const
+	{
+		return node->GetTable();
+	}
+
 	SymbolTableNode* SymbolHandle::GetNode() const
 	{
 		return node;
@@ -19,7 +24,7 @@ namespace HXSL
 		{
 			return {};
 		}
-		return table->GetFullyQualifiedName(node);
+		return GetTable()->GetFullyQualifiedName(node);
 	}
 
 	SymbolHandle SymbolHandle::FindFullPath(const StringSpan& span, const SymbolTable* alt) const
@@ -33,7 +38,7 @@ namespace HXSL
 			return {};
 		}
 
-		SymbolHandle handle = table->FindNodeIndexFullPath(span, node);
+		SymbolHandle handle = GetTable()->FindNodeIndexFullPath(span, node);
 		return handle;
 	}
 
@@ -44,7 +49,7 @@ namespace HXSL
 			return {};
 		}
 
-		SymbolHandle handle = table->FindNodeIndexPart(span, node);
+		SymbolHandle handle = GetTable()->FindNodeIndexPart(span, node);
 		return handle;
 	}
 }

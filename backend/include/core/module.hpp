@@ -7,6 +7,7 @@
 #include "utils/span.hpp"
 #include "utils/static_vector.hpp"
 #include "utils/bump_allocator.hpp"
+#include "utils/dense_set.hpp"
 
 #include "utils/rtti_helper.hpp"
 #include "io/stream.hpp"
@@ -382,7 +383,6 @@ namespace HXSL
 
 		class Module : public Layout
 		{
-		
 			BumpAllocator allocator;
 			std::vector<NamespaceLayout*> namespaces;
 			Span<FunctionLayout*> functions;

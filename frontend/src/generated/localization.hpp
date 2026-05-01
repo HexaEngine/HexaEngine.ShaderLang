@@ -1145,6 +1145,15 @@ namespace HXSL
 	constexpr DiagnosticCode RECURSIVE_STRUCT_LAYOUT = 9223373187906028720;
 	
 	/// <summary>
+	/// <para>Code: HL1201</para>
+	/// <para>Message: invalid enum base type</para>
+	/// <para>Description: Desc</para>
+	/// <para>Category: Semantic Error</para>
+	/// <para>Severity: Error</para>
+	/// </summary>
+	constexpr DiagnosticCode INVALID_ENUM_BASE_TYPE = 9223373187906028721;
+	
+	/// <summary>
 	/// <para>Code: HL1400</para>
 	/// <para>Message: unreachable code detected</para>
 	/// <para>Description: Desc</para>

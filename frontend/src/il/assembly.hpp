@@ -6,6 +6,7 @@
 #include "io/stream.hpp"
 
 #include "pch/std.hpp"
+#include "pch/il.hpp"
 #include "utils/memory.hpp"
 
 namespace HXSL
@@ -28,14 +29,18 @@ namespace HXSL
 
 		std::unique_ptr<std::string> name;
 		std::unique_ptr<SymbolTable> table;
-		std::unique_ptr<CompilationUnit> compilation;
+		std::unique_ptr<Backend::Module> module;
 		bool sealed;
 	public:
 		const std::string& GetName() const noexcept { return *name.get(); }
 
 		const SymbolTable* GetSymbolTable() const noexcept { return table.get(); }
 
-		CompilationUnit* GetCompilation() const noexcept { return compilation.get(); }
+		Backend::Module* GetModule() noexcept { return module.get(); }
+
+		const Backend::Module* GetModule() const noexcept { return module.get(); }
+
+		void SetModule(std::unique_ptr<Backend::Module>&& newModule) { module = std::move(newModule); }
 
 		SymbolTable* GetMutableSymbolTable() const { if (sealed) { throw std::logic_error("Cannot modify symbol table: Assembly is sealed."); } return table.get(); }
 

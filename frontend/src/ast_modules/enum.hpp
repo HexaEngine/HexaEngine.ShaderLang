@@ -45,12 +45,11 @@ namespace HXSL
 		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
 	};
 
-	class Enum : public SymbolDef, public TrailingObjects<Enum, EnumItem*>
+	class Enum : public Type, public TrailingObjects<Enum, EnumItem*>
 	{
 		friend class ASTContext;
 	private:
 		TrailingObjStorage<Enum, uint32_t> storage;
-		AccessModifier accessModifiers;
 		SymbolRef* baseTypeRef;
 
 	public:
@@ -59,16 +58,13 @@ namespace HXSL
 
 	protected:
 		Enum(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, SymbolRef* baseTypeRef)
-			: SymbolDef(span, ID, name),
-			accessModifiers(accessModifiers),
+			: Type(span, ID, name, accessModifiers),
 			baseTypeRef(baseTypeRef)
 		{
 		}
 
 	public:
 		DEFINE_TRAILING_OBJ_SPAN_GETTER(GetItems, 0, storage);
-
-		AccessModifier GetAccessModifiers() const { return accessModifiers; }
 
 		SymbolRef* GetSymbolRef() noexcept { return baseTypeRef; }
 		SymbolDef* GetBaseType() const;

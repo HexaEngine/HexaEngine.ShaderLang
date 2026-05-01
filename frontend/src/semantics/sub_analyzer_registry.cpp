@@ -10,6 +10,7 @@ namespace HXSL
 		std::call_once(initFlag, []()
 			{
 				Register<DeclarationAnalyzer>();
+				Register<EnumAnalyzer>();
 			});
 	}
 }

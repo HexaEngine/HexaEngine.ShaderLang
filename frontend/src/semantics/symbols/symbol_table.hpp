@@ -40,15 +40,21 @@ namespace HXSL
 		dense_map<StringSpan, SymbolTableNode*> children;
 		ObjPtr<SymbolMetadata> metadata; // TODO: Could get concretized since the ptr is never stored actually anywhere and we don't do merging anymore.
 		SymbolTableNode* parent;
+		SymbolTable* table;
 
 	public:
 		SymbolTableNode()
 		{
 		}
 
-		SymbolTableNode(const StringSpan& name, ObjPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent)
-			: name(name), metadata(std::move(metadata)), parent(parent)
+		SymbolTableNode(const StringSpan& name, ObjPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent, SymbolTable* table)
+			: name(name), metadata(std::move(metadata)), parent(parent), table(table)
 		{
+		}
+
+		SymbolTable* GetTable()
+		{
+			return table;
 		}
 
 		auto& GetChildren()
@@ -233,7 +239,7 @@ namespace HXSL
 		SymbolTableNode* AddNode(const StringSpan& name, ObjPtr<SymbolMetadata>&& metadata, SymbolTableNode* parent)
 		{
 			std::unique_lock<std::shared_mutex> writeLock(nodeMutex);
-			auto* node = allocator.Alloc(stringPool.add(name), std::move(metadata), parent);
+			auto* node = allocator.Alloc(stringPool.add(name), std::move(metadata), parent, this);
 			parent->GetChildren()[node->GetName()] = node;
 			return node;
 		}
@@ -250,7 +256,7 @@ namespace HXSL
 	public:
 		SymbolTable() : allocator(this)
 		{
-			root = allocator.Alloc(StringSpan(), ObjPtr<SymbolMetadata>(), nullptr);
+			root = allocator.Alloc(StringSpan(), ObjPtr<SymbolMetadata>(), nullptr, this);
 		}
 
 		~SymbolTable()
@@ -309,7 +315,7 @@ namespace HXSL
 
 		SymbolHandle MakeHandle(SymbolTableNode* node) const
 		{
-			return SymbolHandle(this, node);
+			return SymbolHandle(node);
 		}
 
 		SymbolHandle Insert(StringSpan span, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* start = nullptr);

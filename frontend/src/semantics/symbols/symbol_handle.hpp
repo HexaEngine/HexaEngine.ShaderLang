@@ -12,11 +12,10 @@ namespace HXSL
 	struct SymbolHandle
 	{
 	private:
-		const SymbolTable* table = nullptr;
 		SymbolTableNode* node = nullptr;
 
 	public:
-		SymbolHandle(const SymbolTable* table, SymbolTableNode* node) : table(table), node(node) {}
+		SymbolHandle(SymbolTableNode* node) : node(node) {}
 
 		SymbolHandle() = default;
 
@@ -29,10 +28,7 @@ namespace HXSL
 			return node;
 		}
 
-		const SymbolTable* GetTable() const
-		{
-			return table;
-		}
+		const SymbolTable* GetTable() const;
 
 		SymbolTableNode* GetNode() const;
 

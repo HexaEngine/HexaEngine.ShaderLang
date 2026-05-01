@@ -65,7 +65,7 @@ namespace HXSL
 		}
 
 		current->metadata = metadata;
-		return SymbolHandle(this, current);
+		return SymbolHandle(current);
 	}
 
 	static size_t FindSep(const StringSpan& span)
@@ -125,7 +125,7 @@ namespace HXSL
 	{
 		stringPool.clear();
 		RemoveNode(root);
-		root = allocator.Alloc(StringSpan(), ObjPtr<SymbolMetadata>(), nullptr);
+		root = allocator.Alloc(StringSpan(), ObjPtr<SymbolMetadata>(), nullptr, this);
 	}
 
 	void SymbolTable::Strip()

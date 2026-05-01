@@ -98,17 +98,20 @@ namespace HXSL
 			return;
 		}
 
-		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), module.get());
+		auto pModule = module.get();
+		std::unique_ptr<Assembly> assembly = Assembly::Create(output);
+		assembly->SetModule(std::move(module));
+
+		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), pModule);
 		cfAnalyzer.Analyze();
 
-		Backend::ILOptimizer optimizer = Backend::ILOptimizer(logger.get(), module.get());
+		Backend::ILOptimizer optimizer = Backend::ILOptimizer(logger.get(), pModule);
 		optimizer.Optimize();
 
 		if (!logger->HasErrors())
 		{
 			auto outputStream = FileStream::OpenCreate(output.c_str());
-			Backend::ModuleWriter writer(outputStream.get());
-			writer.Write(module.get());
+			assembly->WriteToStream(*outputStream);
 		}
 	}
 
