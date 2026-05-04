@@ -147,6 +147,12 @@ namespace HXSL
 				return *this;
 			}
 
+			FunctionLayoutBuilder& SetExtern(bool isExtern)
+			{
+				func->SetFlags(LayoutFlags::Extern);
+				return *this;
+			}
+
 			[[nodiscard]] FunctionLayout* Build()
 			{
 				func->SetParameters(allocator.CopySpan(parameters));
@@ -534,6 +540,7 @@ namespace HXSL
 
 			[[nodiscard]] NamespaceLayout* Build()
 			{
+				ns->SetEnums(allocator.CopySpan(enumVec));
 				ns->SetStructs(allocator.CopySpan(structVec));
 				ns->SetGlobalFields(allocator.CopySpan(globalFieldsVec));
 				ns->SetFunctions(allocator.CopySpan(functionsVec));

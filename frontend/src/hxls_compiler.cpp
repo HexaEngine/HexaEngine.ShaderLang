@@ -6,9 +6,12 @@
 #include "preprocessing/preprocessor.hpp"
 #include "parsers/parser.hpp"
 #include "semantics/semantic_analyzer.hpp"
+#include "semantics/assembly_resolver.hpp"
 #include "middleware/module_builder.hpp"
 #include "il/control_flow_analyzer.hpp"
 #include "optimizers/il_optimizer.hpp"
+#include "middleware/module_decompiler.hpp"
+#include "ast_modules/debug_visitor.hpp"
 
 namespace HXSL
 {
@@ -79,7 +82,23 @@ namespace HXSL
 		}
 
 		ModuleBuilder conv;
+		for (auto& stub : analyzer.GetStubManager().GetAllStubs())
+		{
+			conv.AddExternModule(stub.get());
+		}
+
 		return conv.Convert(compilation);
+	}
+
+	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const ConstSpan<AssemblyReference>& references)
+	{
+		AssemblyResolver resolver;
+		for (const auto& reference : references)
+		{
+			resolver.Resolve(reference);
+		}
+		auto collection = resolver.BuildCollection();
+		Compile(files, output, collection);
 	}
 
 	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)

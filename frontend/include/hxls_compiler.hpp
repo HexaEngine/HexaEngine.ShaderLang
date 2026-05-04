@@ -14,6 +14,7 @@ namespace HXSL
 		IncludeOpen includeOpen_;
 		IncludeClose includeClose_;
 	public:
+		void Compile(const std::vector<std::string>& files, const std::string& output, const ConstSpan<AssemblyReference>& references = {});
 		void Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references);
 		void SetIncludeHandler(IncludeOpen includeOpen, IncludeClose includeClose);
 	};

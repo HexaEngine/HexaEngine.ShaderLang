@@ -10,13 +10,11 @@ int main()
 {
 	SetLocale("en_US");
 
-	AssemblyCollection collection;
 	Compiler compiler = Compiler();
-	compiler.Compile({ "example/library.txt" }, "library.module", collection);
+	compiler.Compile({ "example/library.txt" }, "library.hlib");
 
-	//collection.LoadAssemblyFromFile("library.module");
-
-	//HXSLCompiler::Compile({ "shader.txt" , "shader2.txt" }, "shader.module", collection);
+	std::vector<AssemblyReference> refs = { { "library.hlib" } };
+	compiler.Compile({ "example/shader.txt" }, "test.hlib", refs);
 
 	//_CrtDumpMemoryLeaks();
 	return 0;

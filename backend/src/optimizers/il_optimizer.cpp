@@ -41,7 +41,7 @@ namespace HXSL
 				auto& cfg = function->cfg;
 				auto& metadata = function->metadata;
 
-				if (function->empty()) continue;
+				if (function->empty() || function->IsExtern()) continue;
 
 				SSABuilder ssaBuilder = SSABuilder(function);
 				ssaBuilder.Build();
@@ -73,7 +73,7 @@ namespace HXSL
 				auto function = functionLayout->GetContext();
 				auto& cfg = function->cfg;
 				auto& metadata = function->metadata;
-				if (function->empty()) continue;
+				if (function->empty() || function->IsExtern()) continue;
 
 				auto& loopTree = function->loopTree;
 				loopTree.Build();
@@ -98,7 +98,7 @@ namespace HXSL
 				auto function = functionLayout->GetContext();
 				auto& cfg = function->cfg;
 				auto& metadata = function->metadata;
-				if (function->empty()) continue;
+				if (function->empty() || function->IsExtern()) continue;
 
 				SSAReducer reducer = SSAReducer(metadata, cfg);
 				reducer.Reduce();

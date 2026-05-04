@@ -30,6 +30,14 @@ namespace HXSL
 		class PointerLayout;
 		class NamespaceLayout;
 
+		enum class LayoutFlags : char
+		{
+			None = 0,
+			Extern = 1,
+		};
+
+		DEFINE_FLAGS_OPERATORS(LayoutFlags, char);
+
 		class Layout
 		{
 		public:
@@ -48,11 +56,18 @@ namespace HXSL
 				PrimitiveLayoutType,
 				PointerLayoutType,
 			};
+
 		protected:
 			Layout(LayoutType typeId) : typeId(typeId) {}
 			LayoutType typeId;
+			LayoutFlags flags = LayoutFlags::None;
 		public:
 			LayoutType GetTypeId() const { return typeId; }
+
+			LayoutFlags GetFlags() const { return flags; }
+			bool HasFlag(LayoutFlags flag) const { return (flags & flag) != (LayoutFlags)0; }
+			void SetFlags(LayoutFlags newFlags) { flags |= newFlags; }
+			void ClearFlags(LayoutFlags flagsToClear) { flags &= ~flagsToClear; }
 		};
 
 		class TypeLayout : public Layout
@@ -266,7 +281,6 @@ namespace HXSL
 		class EnumLayout : public TypeLayout
 		{
 			Layout* parent = nullptr;
-			StringSpan name;
 			TypeLayout* baseType = nullptr;
 			Span<EnumItemLayout*> items;
 
@@ -276,9 +290,6 @@ namespace HXSL
 
 			Layout* GetParent() const { return parent; }
 			void SetParent(Layout* newParent) { parent = newParent; }
-
-			const StringSpan& GetName() const { return name; }
-			void SetName(const StringSpan& n) { name = n; }
 
 			TypeLayout* GetBaseType() const { return baseType; }
 			void SetBaseType(TypeLayout* bt) { baseType = bt; }
@@ -353,6 +364,7 @@ namespace HXSL
 		{
 			StringSpan name;
 			NamespaceLayout* parent = nullptr;
+			Span<EnumLayout*> enums;
 			Span<StructLayout*> structs;
 			Span<FunctionLayout*> functions;
 			Span<FieldLayout*> globalFields;
@@ -367,6 +379,9 @@ namespace HXSL
 
 			NamespaceLayout* GetParent() const { return parent; }
 			void SetParent(NamespaceLayout* value) { parent = value; }
+
+			const Span<EnumLayout*>& GetEnums() const { return enums; }
+			void SetEnums(const Span<EnumLayout*>& value) { enums = value; }
 
 			const Span<StructLayout*>& GetStructs() const { return structs; }
 			void SetStructs(const Span<StructLayout*>& value) { structs = value; }

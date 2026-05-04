@@ -139,7 +139,8 @@ namespace HXSL
 			for (auto& reference : references.GetAssemblies())
 			{
 				targetAssembly = reference.get();
-				ASTVisitor::Traverse(reference->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
+				// TODO: Fix me
+				//ASTVisitor::Traverse(reference->GetCompilation(), std::bind(&SymbolResolver::VisitExternal, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), std::bind(&SymbolResolver::VisitClose, this, std::placeholders::_1, std::placeholders::_2));
 			}
 
 			targetAssembly = assemblyBackup;

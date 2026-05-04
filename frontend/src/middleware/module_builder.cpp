@@ -185,6 +185,27 @@ namespace HXSL
 			return cast<FunctionLayout>(it->second);
 		}
 
+		if (func->IsExtern())
+		{
+			for (auto& externModule : externModules)
+			{
+				auto it = externModule->reverseMap.find(func);
+				if (it != externModule->reverseMap.end())
+				{
+					auto f = cast<FunctionLayout>(it->second);
+					f->SetFlags(LayoutFlags::Extern);
+					map.insert({ func, f });
+					functions.push_back(f);
+
+					auto blob = f->GetCodeBlob();
+					ILContext* context = module->GetAllocator().Alloc<ILContext>(module.get(), f, *blob);
+					f->SetContext(context);
+
+					return f;
+				}
+			}
+		}
+
 		FunctionLayoutBuilder builder = FunctionLayoutBuilder(*module);
 		map.insert({ func, builder.Peek() });
 		ConvertFunction(func, builder);

@@ -1,8 +1,22 @@
 #include "assembly.hpp"
 #include "semantics/symbols/symbol_table.hpp"
+#include "semantics/semantic_analyzer.hpp"
 
 namespace HXSL
 {
+	static constexpr size_t cstrlen(const char* str)
+	{
+		size_t len = 0;
+		while (str[len] != '\0')
+		{
+			++len;
+		}
+		return len;
+	}
+
+	static constexpr char const* magic = "HXSL";
+	static constexpr size_t magicSize = cstrlen(magic);
+
 	inline Assembly::Assembly(const std::string& name) : name(std::make_unique<std::string>(name)), table(std::make_unique<SymbolTable>()), module(make_uptr<Backend::Module>()), sealed(false)
 	{
 	}
@@ -55,9 +69,26 @@ namespace HXSL
 
 	AssemblyLoadResult Assembly::LoadFromStream(const std::string& path, Stream& stream, std::unique_ptr<Assembly>& assemblyOut)
 	{
+		char buffer[magicSize];
+		stream.Read(buffer, magicSize);
+
+		if (memcmp(buffer, magic, magicSize) != 0)
+		{
+			return AssemblyLoadResult_ParseError;
+		}
+
 		auto assembly = Create(path);
 
-		assembly->table->Read(stream, assembly.get());
+		auto referenceCount = stream.ReadUInt();
+		for (uint32_t i = 0; i < referenceCount; ++i)
+		{
+			AssemblyReference reference;
+			reference.name = stream.ReadString();
+			assembly->referencedAssemblies.push_back(std::move(reference));
+		}
+
+		Backend::ModuleReader reader(&stream);
+		assembly->module = reader.Read();
 
 		assembly->Seal();
 		assemblyOut = std::move(assembly);
@@ -80,11 +111,16 @@ namespace HXSL
 		return WriteToStream(fs);
 	}
 
-	static const char* magic = "HXSL";
-
 	int Assembly::WriteToStream(Stream& stream) const
 	{
-		stream.Write(magic, strlen(magic));
+		stream.Write(magic, magicSize);
+
+		stream.WriteUInt(static_cast<uint32_t>(referencedAssemblies.size()));
+		for (const auto& reference : referencedAssemblies)
+		{
+			stream.WriteString(reference.name);
+		}
+
 		Backend::ModuleWriter writer(&stream);
 		writer.Write(module.get());
 		return 0;

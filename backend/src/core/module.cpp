@@ -66,6 +66,12 @@ namespace HXSL
         {
             WriteRecordHeader(ns);
             WriteString(ns->GetName());
+
+			WriteLittleEndian(static_cast<uint32_t>(ns->GetEnums().size()));
+            for (auto* enm : ns->GetEnums())
+            {
+                WriteRecordRef(enm);
+			}
             
             WriteLittleEndian(static_cast<uint32_t>(ns->GetStructs().size()));
             for (auto* strct : ns->GetStructs())
@@ -497,6 +503,9 @@ namespace HXSL
                 case Layout::PointerLayoutType:
                     layout = ReadPointerType();
                     break;
+                case Layout::EnumLayoutType:
+                    layout = ReadEnum();
+					break;
                 case Layout::StructLayoutType:
                     layout = ReadStruct();
                     break;
@@ -557,6 +566,12 @@ namespace HXSL
 
             NamespaceLayoutBuilder builder(*module);
             builder.Name(name);
+
+			auto enumCount = ReadLittleEndian<uint32_t>();
+            for (uint32_t i = 0; i < enumCount; ++i)
+            {
+                builder.AddEnum(ReadRecordRef<EnumLayout>());
+			}
 
             auto structCount = ReadLittleEndian<uint32_t>();
             for (uint32_t i = 0; i < structCount; ++i)

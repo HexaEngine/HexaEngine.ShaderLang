@@ -22,6 +22,12 @@ namespace HXSL
 		AssemblyLoadResult_ParseError = -2
 	};
 
+	struct AssemblyReference
+	{
+		std::string name;
+
+	};
+
 	class Assembly
 	{
 	private:
@@ -30,9 +36,12 @@ namespace HXSL
 		std::unique_ptr<std::string> name;
 		std::unique_ptr<SymbolTable> table;
 		std::unique_ptr<Backend::Module> module;
+		std::vector<AssemblyReference> referencedAssemblies;
 		bool sealed;
 	public:
 		const std::string& GetName() const noexcept { return *name.get(); }
+
+		ConstSpan<AssemblyReference> GetReferencedAssemblies() const noexcept { return referencedAssemblies; }
 
 		const SymbolTable* GetSymbolTable() const noexcept { return table.get(); }
 
@@ -45,6 +54,8 @@ namespace HXSL
 		SymbolTable* GetMutableSymbolTable() const { if (sealed) { throw std::logic_error("Cannot modify symbol table: Assembly is sealed."); } return table.get(); }
 
 		void Seal() noexcept { sealed = true; };
+
+		void UnsealUnsafe() noexcept { sealed = false; }
 
 		bool IsSealed() const noexcept { return sealed; }
 

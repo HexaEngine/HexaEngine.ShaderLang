@@ -315,6 +315,11 @@ namespace HXSL
 			return isExtern;
 		}
 
+		void SetExtern(bool value)
+		{
+			isExtern = value;
+		}
+
 		ASTNode* GetParent() const noexcept { return parent; }
 		void SetParent(ASTNode* newParent) noexcept
 		{

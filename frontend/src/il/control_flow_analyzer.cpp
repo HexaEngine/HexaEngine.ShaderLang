@@ -53,6 +53,10 @@ namespace HXSL
 
 			for (auto& func : functions)
 			{
+				if (func->HasFlag(LayoutFlags::Extern))
+				{
+					continue;
+				}
 				DetectUnreachableCode(func->GetContext());
 			}
 		}

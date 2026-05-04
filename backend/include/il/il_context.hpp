@@ -25,6 +25,8 @@ namespace HXSL
 			{
 			}
 
+			ILContext(Module* module, FunctionLayout* function, ILCodeBlob& blob);
+
 			FunctionLayout* GetFunction() const { return function; }
 
 			BumpAllocator& GetAllocator() { return allocator; }
@@ -36,6 +38,10 @@ namespace HXSL
 			ILMetadata& GetMetadata() { return metadata; }
 
 			const ILMetadata& GetMetadata() const { return metadata; }
+
+			void SetMetadata(const ILMetadata& newMetadata) { metadata.CopyFrom(newMetadata); }
+
+			bool IsExtern() const { return function->HasFlag(LayoutFlags::Extern); }
 
 			ControlFlowGraph& GetCFG() { return cfg; }
 

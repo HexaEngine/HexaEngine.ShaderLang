@@ -5,6 +5,7 @@
 #include "core/module.hpp"
 #include "core/layout_builder.hpp"
 #include "utils/dense_map.hpp"
+#include "module_stub.hpp"
 
 namespace HXSL
 {
@@ -14,6 +15,7 @@ namespace HXSL
 		dense_map<Backend::TypeLayout*, Backend::PointerLayout*> pointerMap;
 		dense_map<SymbolDef*, Backend::Layout*> map;
 		std::vector<Backend::FunctionLayout*> functions;
+		std::vector<StubModule*> externModules;
 
 		void ConvertFunction(FunctionOverload* func, Backend::FunctionLayoutBuilder& builder);
 
@@ -46,6 +48,12 @@ namespace HXSL
 		}
 
 	public:
+
+		void AddExternModule(StubModule* module)
+		{
+			externModules.push_back(module);
+		}
+
 		Backend::PointerLayout* MakePointerType(Backend::TypeLayout* elementType);
 
 		Backend::PointerLayout* MakePointerType(SymbolDef* elementType);

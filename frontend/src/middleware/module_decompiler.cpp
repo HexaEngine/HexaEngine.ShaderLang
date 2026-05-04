@@ -51,6 +51,7 @@ namespace HXSL
 		auto* name = ASTContext::GetCurrentContext()->GetIdentifier(prim->GetName());
 		auto* node = Primitive::Create({}, name, prim->GetKind(), prim->GetClass(),
 			static_cast<uint16_t>(prim->GetRows()), static_cast<uint16_t>(prim->GetColumns()), 0u);
+		Transform(prim, node);
 		map.insert({ prim, node });
 		return node;
 	}
@@ -69,6 +70,7 @@ namespace HXSL
 		auto* typeRef = MakeTypeRef(field->GetType());
 		auto* node = Field::Create({}, name, field->GetAccess(), field->GetStorageClass(),
 			field->GetInterpolationModifier(), typeRef, semantic);
+		Transform(field, node);
 		map.insert({ field, node });
 		return node;
 	}
@@ -87,6 +89,7 @@ namespace HXSL
 		auto* typeRef = MakeTypeRef(param->GetType());
 		auto* node = Parameter::Create({}, name, param->GetParameterFlags(),
 			param->GetInterpolationModifier(), typeRef, semantic);
+		Transform(param, node);
 		map.insert({ param, node });
 		return node;
 	}
@@ -110,6 +113,7 @@ namespace HXSL
 
 		auto* node = FunctionOverload::Create({}, name, func->GetAccess(), func->GetFunctionFlags(),
 			returnRef, nullptr, nullptr, params, {});
+		Transform(func, node);
 		map.insert({ func, node });
 		return node;
 	}
@@ -133,6 +137,7 @@ namespace HXSL
 
 		auto* node = OperatorOverload::Create({}, name, op->GetAccess(), op->GetFunctionFlags(),
 			op->GetOperatorFlags(), op->GetOperator(), returnRef, nullptr, params, {});
+		Transform(op, node);
 		map.insert({ op, node });
 		return node;
 	}
@@ -156,6 +161,7 @@ namespace HXSL
 
 		auto* node = ConstructorOverload::Create({}, name, ctor->GetAccess(), ctor->GetFunctionFlags(),
 			targetRef, nullptr, params, {});
+		Transform(ctor, node);
 		map.insert({ ctor, node });
 		return node;
 	}
@@ -201,6 +207,16 @@ namespace HXSL
 		}
 	}
 
+	void ModuleDecompiler::Transform(Layout* layout, ASTNode* node)
+	{
+		if (options.markAsExtern)
+		{
+			node->SetExtern(true);
+		}
+
+		reverseMap.insert({ node, layout });
+	}
+
 	Struct* ModuleDecompiler::DeconvertStruct(StructLayout* strct)
 	{
 		auto it = map.find(strct);
@@ -218,15 +234,12 @@ namespace HXSL
 		std::vector<FunctionOverload*> funcs;
 		std::vector<OperatorOverload*> ops;
 
-		// Insert a placeholder so recursive references resolve correctly
-		auto* node = Struct::Create({}, name, strct->GetAccess(), {}, {}, {}, {}, {}, {});
-		map.insert({ strct, node });
-
 		FillDataType(strct, fields, structs, classes, ctors, funcs, ops);
 
-		auto* result = Struct::Create({}, name, strct->GetAccess(), fields, structs, classes, ctors, funcs, ops);
-		map[strct] = result;
-		return result;
+		auto* node = Struct::Create({}, name, strct->GetAccess(), fields, structs, classes, ctors, funcs, ops);
+		Transform(strct, node);
+		map.insert({ strct, node });
+		return node;
 	}
 
 	Class* ModuleDecompiler::DeconvertClass(StructLayout* clss)
@@ -246,15 +259,12 @@ namespace HXSL
 		std::vector<FunctionOverload*> funcs;
 		std::vector<OperatorOverload*> ops;
 
-		// Insert a placeholder so recursive references resolve correctly
-		auto* node = Class::Create({}, name, clss->GetAccess(), {}, {}, {}, {}, {}, {});
-		map.insert({ clss, node });
-
 		FillDataType(clss, fields, structs, classes, ctors, funcs, ops);
 
-		auto* result = Class::Create({}, name, clss->GetAccess(), fields, structs, classes, ctors, funcs, ops);
-		map[clss] = result;
-		return result;
+		auto* node = Class::Create({}, name, clss->GetAccess(), fields, structs, classes, ctors, funcs, ops);
+		Transform(clss, node);
+		map.insert({ clss, node });
+		return node;
 	}
 
 	Enum* ModuleDecompiler::DeconvertEnum(EnumLayout* enm)
@@ -275,10 +285,12 @@ namespace HXSL
 			auto* itemName = ctx->GetIdentifier(item->GetName());
 			auto* itemNode = EnumItem::Create({}, itemName, nullptr);
 			itemNode->SetComputedValue(item->GetValue());
+			Transform(item, itemNode);
 			items.push_back(itemNode);
 		}
 
 		auto* node = Enum::Create({}, name, enm->GetAccess(), baseRef, items);
+		Transform(enm, node);
 		map.insert({ enm, node });
 		return node;
 	}
@@ -293,11 +305,17 @@ namespace HXSL
 
 		auto* name = ASTContext::GetCurrentContext()->GetIdentifier(ns->GetName());
 
+		std::vector<Enum*> enums;
 		std::vector<Struct*> structs;
 		std::vector<Class*> classes;
 		std::vector<FunctionOverload*> funcs;
 		std::vector<Field*> fields;
 		std::vector<Namespace*> nestedNs;
+
+		for (auto* enm : ns->GetEnums())
+		{
+			enums.push_back(DeconvertEnum(enm));
+		}
 
 		for (auto* strct : ns->GetStructs())
 		{
@@ -326,12 +344,13 @@ namespace HXSL
 			nestedNs.push_back(DeconvertNamespace(nested));
 		}
 
-		auto* node = Namespace::Create({}, name, structs, classes, funcs, fields, {}, nestedNs, {});
+		auto* node = Namespace::Create({}, name, structs, classes, funcs, fields, enums, nestedNs, {});
+		Transform(ns, node);
 		map.insert({ ns, node });
 		return node;
 	}
 
-	CompilationUnit* ModuleDecompiler::Deconvert(Module* module)
+	uptr<StubModule> ModuleDecompiler::Deconvert(Module* module)
 	{
 		std::vector<Namespace*> namespaces;
 		for (auto* ns : module->GetNamespaces())
@@ -339,6 +358,13 @@ namespace HXSL
 			namespaces.push_back(DeconvertNamespace(ns));
 		}
 
-		return CompilationUnit::Create(true, namespaces, {});
+		auto* unit = CompilationUnit::Create(true, namespaces, {});
+		Transform(module, unit);
+
+		auto stub = make_uptr<StubModule>();
+		stub->module = module;
+		stub->unit = unit;
+		stub->reverseMap = std::move(reverseMap);
+		return stub;
 	}
 }

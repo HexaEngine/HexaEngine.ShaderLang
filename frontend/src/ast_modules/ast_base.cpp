@@ -193,6 +193,7 @@ namespace HXSL
 		case NodeType_Struct: return cast<Struct>(this)->DebugName();
 		case NodeType_Class: return cast<Class>(this)->DebugName();
 		case NodeType_Enum: return cast<Enum>(this)->DebugName();
+		case NodeType_EnumItem: return cast<EnumItem>(this)->DebugName();
 		case NodeType_BlockStatement: return cast<BlockStatement>(this)->DebugName();
 		case NodeType_ElseStatement: return cast<ElseStatement>(this)->DebugName();
 		case NodeType_ElseIfStatement: return cast<ElseIfStatement>(this)->DebugName();

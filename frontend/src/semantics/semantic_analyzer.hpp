@@ -3,6 +3,7 @@
 
 #include "pch/ast_analyzers.hpp"
 #include "logging/logger_adapter.hpp"
+#include "ast_stub_manager.hpp"
 
 namespace HXSL
 {
@@ -17,6 +18,7 @@ if (!expr) { \
 		CompilationUnit* compilation;
 
 		const AssemblyCollection& references;
+		ASTStubManager stubManager;
 		uptr<Assembly> outputAssembly;
 		uptr<PrimitiveManager> primitiveManager;
 		uptr<PointerManager> pointerManager;
@@ -38,6 +40,8 @@ if (!expr) { \
 
 		friend class SymbolResolver;
 
+		void AnalyzeInner(CompilationUnit* compilation);
+
 	public:
 		SemanticAnalyzer(ILogger* logger, CompilationUnit* compilation, const AssemblyCollection& references) :
 			LoggerAdapter(logger),
@@ -50,6 +54,8 @@ if (!expr) { \
 			swizzleManager(std::make_unique<SwizzleManager>(*primitiveManager.get()))
 		{
 		}
+
+		ASTStubManager& GetStubManager() { return stubManager; }
 
 		static void InitializeSubSystems();
 

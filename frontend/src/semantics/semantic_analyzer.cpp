@@ -53,9 +53,29 @@ namespace HXSL
 			ns->Warmup(references);
 		}
 	}
+	void SemanticAnalyzer::AnalyzeInner(CompilationUnit* compilation)
+	{
+
+	}
 
 	bool SemanticAnalyzer::Analyze()
 	{
+		for (auto& ref : references.GetAssemblies())
+		{
+			auto* refAsm = ref.get();
+			auto* stub = stubManager.AddStub(refAsm);
+			refAsm->UnsealUnsafe();
+			SymbolCollector collector(*this, refAsm);
+			collector.Traverse(stub->unit);
+
+			SymbolResolver resolver(*this, references, *refAsm, *primitiveManager.get(), *arrayManager.get(), *pointerManager.get(), *swizzleManager.get());
+			resolver.Traverse(stub->unit);
+
+			collector.LateTraverse();
+
+			refAsm->Seal();
+		}
+
 #if HXSL_DEBUG
 		DebugVisitor debug = DebugVisitor();
 		debug.Traverse(compilation);

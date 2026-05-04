@@ -28,6 +28,13 @@ namespace HXSL
 		AST_ITERATE_CHILD(value);
 	}
 
+	std::string EnumItem::DebugName() const
+	{
+		std::ostringstream oss;
+		oss << "[" << HXSL::ToString(type) << "] Name: " << GetName();
+		return oss.str();
+	}
+
 	Enum* Enum::Create(const TextSpan& span, IdentifierInfo* name, AccessModifier accessModifiers, SymbolRef* baseTypeRef, const Span<EnumItem*>& items)
 	{
 		auto context = ASTContext::GetCurrentContext();

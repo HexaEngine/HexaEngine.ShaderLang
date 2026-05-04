@@ -43,6 +43,8 @@ namespace HXSL
 		void ForEachChild(ASTConstChildCallback cb, void* userdata) const;
 		void ForEachExpr(ExprChildCallback cb, void* userdata);
 		void ForEachExpr(ExprConstChildCallback cb, void* userdata) const;
+
+		std::string DebugName() const;
 	};
 
 	class Enum : public Type, public TrailingObjects<Enum, EnumItem*>
