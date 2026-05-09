@@ -68,6 +68,8 @@ namespace HXSL
 
 		Backend::FunctionLayout* ConvertFunction(FunctionOverload* func);
 
+		void RehydrateFunction(Backend::FunctionLayout* func);
+
 		Backend::OperatorLayout* ConvertOperator(OperatorOverload* op);
 
 		Backend::ConstructorLayout* ConvertConstructor(ConstructorOverload* ctor);

@@ -193,13 +193,8 @@ namespace HXSL
 				if (it != externModule->reverseMap.end())
 				{
 					auto f = cast<FunctionLayout>(it->second);
-					f->SetFlags(LayoutFlags::Extern);
+					RehydrateFunction(f);
 					map.insert({ func, f });
-					functions.push_back(f);
-
-					auto blob = f->GetCodeBlob();
-					ILContext* context = module->GetAllocator().Alloc<ILContext>(module.get(), f, *blob);
-					f->SetContext(context);
 
 					return f;
 				}
@@ -210,6 +205,25 @@ namespace HXSL
 		map.insert({ func, builder.Peek() });
 		ConvertFunction(func, builder);
 		return builder.Build();
+	}
+
+	void ModuleBuilder::RehydrateFunction(Backend::FunctionLayout* func)
+	{
+		if (func->GetContext()) return;
+		func->SetFlags(LayoutFlags::Extern);
+
+		auto funcModule = func->GetModule();
+		functions.push_back(func);
+
+		auto blob = func->GetCodeBlob();
+		ILContext* context = funcModule->GetAllocator().Alloc<ILContext>(module.get(), func, *blob);
+		func->SetContext(context);
+
+		auto& metadata = context->GetMetadata();
+		for (auto& funcCall : metadata.functions)
+		{
+			RehydrateFunction(funcCall->func);
+		}
 	}
 
 	Backend::OperatorLayout* ModuleBuilder::ConvertOperator(OperatorOverload* op)
