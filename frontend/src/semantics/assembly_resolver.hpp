@@ -1,9 +1,11 @@
 #ifndef ASSEMBLY_RESOLVER_HPP
 #define ASSEMBLY_RESOLVER_HPP
 
+#include "core/module_linker.hpp"
+
 namespace HXSL
 {
-	class AssemblyResolver
+	class AssemblyResolver : public Backend::IModuleProvider
 	{
 		dense_map<StringSpan, uptr<Assembly>> assemblies;
 		StringPool2 pool;
@@ -18,6 +20,7 @@ namespace HXSL
 		void AddAssembly(std::unique_ptr<Assembly>&& assembly);
 		Assembly* Resolve(const AssemblyReference& name);
 		AssemblyCollection BuildCollection();
+		Backend::Module* LoadModule(const Backend::ModuleReference& ref) override;
 	};
 }
 

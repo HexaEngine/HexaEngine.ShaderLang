@@ -33,6 +33,7 @@ namespace HXSL
 		public:
 			explicit ParameterLayoutBuilder(Module& m) : LayoutBuilderBase(m), param(allocator.Alloc<ParameterLayout>())
 			{
+				param->SetModule(&m);
 			}
 
 			ParameterLayoutBuilder& Name(const StringSpan& name)
@@ -89,11 +90,13 @@ namespace HXSL
 
 			explicit FunctionLayoutBuilder(Module& m, FunctionLayout* func) : LayoutBuilderBase(m), func(func)
 			{
+				func->SetModule(&m);
 			}
 
 		public:
 			explicit FunctionLayoutBuilder(Module& m) : LayoutBuilderBase(m), func(allocator.Alloc<FunctionLayout>())
 			{
+				func->SetModule(&m);
 			}
 
 			FunctionLayout* Peek() { return func; }
@@ -169,6 +172,7 @@ namespace HXSL
 			explicit OperatorLayoutBuilder(Module& m) : FunctionLayoutBuilder(m, allocator.Alloc<OperatorLayout>())
 			{
 				op = static_cast<OperatorLayout*>(func);
+				op->SetModule(&m);
 			}
 
 			OperatorLayoutBuilder& Operator(Operator o)
@@ -198,6 +202,7 @@ namespace HXSL
 			explicit ConstructorLayoutBuilder(Module& m) : FunctionLayoutBuilder(m, allocator.Alloc<ConstructorLayout>())
 			{
 				ctor = static_cast<ConstructorLayout*>(func);
+				ctor->SetModule(&m);
 			}
 
 			[[nodiscard]] ConstructorLayout* Build()
@@ -214,6 +219,7 @@ namespace HXSL
 		public:
 			explicit FieldLayoutBuilder(Module& m) : LayoutBuilderBase(m), field(allocator.Alloc<FieldLayout>())
 			{
+				field->SetModule(&m);
 			}
 
 			FieldLayoutBuilder& Name(const StringSpan& name)
@@ -278,6 +284,7 @@ namespace HXSL
 		public:
 			explicit StructLayoutBuilder(Module& m) : LayoutBuilderBase(m), strct(allocator.Alloc<StructLayout>())
 			{
+				strct->SetModule(&m);
 			}
 
 			StructLayoutBuilder& Name(const StringSpan& name)
@@ -353,6 +360,7 @@ namespace HXSL
 		public:
 			explicit EnumLayoutBuilder(Module& m) : LayoutBuilderBase(m), enm(allocator.Alloc<EnumLayout>())
 			{
+				enm->SetModule(&m);
 			}
 
 			EnumLayoutBuilder& Name(const StringSpan& name)
@@ -405,6 +413,7 @@ namespace HXSL
 		public:
 			explicit PrimitiveLayoutBuilder(Module& m) : LayoutBuilderBase(m), prim(allocator.Alloc<PrimitiveLayout>())
 			{
+				prim->SetModule(&m);
 			}
 
 			PrimitiveLayoutBuilder& Name(const StringSpan& name)
@@ -454,8 +463,9 @@ namespace HXSL
 		private:
 			PointerLayout* pointer;
 		public:
-			PointerLayoutBuilder(Module& module) : LayoutBuilderBase(module), pointer(allocator.Alloc<PointerLayout>())
+			PointerLayoutBuilder(Module& m) : LayoutBuilderBase(m), pointer(allocator.Alloc<PointerLayout>())
 			{
+				pointer->SetModule(&m);
 			}
 
 			PointerLayoutBuilder& Name(const StringSpan& name)
@@ -493,8 +503,9 @@ namespace HXSL
 			std::vector<NamespaceLayout*> nestedNamespaceVec;
 
 		public:
-			NamespaceLayoutBuilder(Module& module) : LayoutBuilderBase(module), ns(allocator.Alloc<NamespaceLayout>())
+			NamespaceLayoutBuilder(Module& m) : LayoutBuilderBase(m), ns(allocator.Alloc<NamespaceLayout>())
 			{
+				ns->SetModule(&m);
 			}
 
 			NamespaceLayoutBuilder& Name(const StringSpan& name)

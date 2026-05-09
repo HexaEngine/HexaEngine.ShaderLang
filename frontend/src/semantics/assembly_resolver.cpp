@@ -40,7 +40,7 @@ namespace HXSL
 		searchPaths.push_back(path);
 	}
 
-	void AssemblyResolver::AddAssembly(std::unique_ptr<Assembly> && assembly)
+	void AssemblyResolver::AddAssembly(std::unique_ptr<Assembly>&& assembly)
 	{
 		auto& name = assembly->GetName();
 		auto spanName = pool.add(name);
@@ -87,5 +87,12 @@ namespace HXSL
 		}
 		assemblies.clear();
 		return collection;
+	}
+
+	Backend::Module* AssemblyResolver::LoadModule(const Backend::ModuleReference& ref)
+	{
+		auto assembly = Resolve({ ref.name.str() });
+		if (!assembly) return nullptr;
+		return assembly->GetModule();
 	}
 }

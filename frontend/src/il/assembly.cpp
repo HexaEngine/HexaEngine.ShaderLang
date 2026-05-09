@@ -1,6 +1,10 @@
 #include "assembly.hpp"
 #include "semantics/symbols/symbol_table.hpp"
 #include "semantics/semantic_analyzer.hpp"
+#include "core/module_reader.hpp"
+#include "core/module_writer.hpp"
+#include "core/module_linker.hpp"
+#include "../compiler_context.hpp"
 
 namespace HXSL
 {
@@ -44,6 +48,12 @@ namespace HXSL
 		return table->Insert(span, metadata, lookupIndex);
 	}
 
+	void Assembly::SetModule(std::unique_ptr<Backend::Module>&& newModule)
+	{
+		module = std::move(newModule);
+		module->SetName(module->GetAllocator().CopyString(*name.get()));
+	}
+
 	std::unique_ptr<Assembly> Assembly::Create(const std::string& path)
 	{
 		return std::unique_ptr<Assembly>(new Assembly(path));
@@ -52,7 +62,7 @@ namespace HXSL
 	AssemblyLoadResult Assembly::LoadFromFile(const std::string& path, std::unique_ptr<Assembly>& assemblyOut)
 	{
 		FILE* file;
-		auto error = fopen_s(&file, path.c_str(), "r");
+		auto error = fopen_s(&file, path.c_str(), "rb");
 
 		if (error != 0 || file == nullptr)
 		{
@@ -87,8 +97,10 @@ namespace HXSL
 			assembly->referencedAssemblies.push_back(std::move(reference));
 		}
 
+		auto ctx = CompilerContext::GetCurrent();
+		Backend::ModuleLinker linker = { ctx->GetResolver() };
 		Backend::ModuleReader reader(&stream);
-		assembly->module = reader.Read();
+		assembly->module = reader.Read(linker);
 
 		assembly->Seal();
 		assemblyOut = std::move(assembly);

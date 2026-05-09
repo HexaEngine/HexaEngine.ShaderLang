@@ -40,7 +40,7 @@ namespace HXSL
 		void ILCodeBlob::Write(Stream* stream, ModuleWriterContext& context)
 		{
 			metadata.Write(stream, context);
-			stream->WriteValue(EndianUtils::ToLittleEndian(static_cast<uint32_t>(instructions.size())));
+			stream->WriteLittleEndian(static_cast<uint32_t>(instructions.size()));
 			ILWriterOptions options = { false, metadata };
 			ILWriter writer(stream, options);
 			dense_map<const Instruction*, uint32_t> instrMap;
@@ -52,18 +52,18 @@ namespace HXSL
 			}
 
 			auto& labels = jumpTable.locations;
-			stream->WriteValue(EndianUtils::ToLittleEndian(static_cast<uint32_t>(labels.size())));
+			stream->WriteLittleEndian(static_cast<uint32_t>(labels.size()));
 			for (auto& label : labels)
 			{
 				uint32_t locIndex = instrMap[label];
-				stream->WriteValue(EndianUtils::ToLittleEndian(locIndex));
+				stream->WriteLittleEndian(locIndex);
 			}
 		}
 
 		void ILCodeBlob::Read(Stream* stream, ModuleReaderContext& context)
 		{
 			metadata.Read(stream, context);
-			auto instrCount = EndianUtils::FromLittleEndian(stream->ReadValue<uint32_t>());
+			auto instrCount = stream->ReadLittleEndian<uint32_t>();
 			ILReaderOptions options = { allocator, metadata, false };
 			ILReader reader(stream, options);
 
@@ -75,11 +75,11 @@ namespace HXSL
 				instructionsArray.push_back(instr);
 			}
 
-			auto labelCount = EndianUtils::FromLittleEndian(stream->ReadValue<uint32_t>());
+			auto labelCount = stream->ReadLittleEndian<uint32_t>();
 			jumpTable.Resize(labelCount);
 			for (uint32_t i = 0; i < labelCount; ++i)
 			{
-				auto locIndex = EndianUtils::FromLittleEndian(stream->ReadValue<uint32_t>());
+				auto locIndex = stream->ReadLittleEndian<uint32_t>();
 				jumpTable.locations[i] = instructionsArray[static_cast<size_t>(locIndex)];
 			}
 		}

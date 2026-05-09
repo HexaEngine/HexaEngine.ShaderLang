@@ -18,7 +18,7 @@ namespace HXSL
 			uint32_t used;
 
 			Block(Block* prev, uint32_t blockSize) : prev(prev), blockSize(blockSize), used(0)
-			{	
+			{
 			}
 
 			inline uint8_t* GetBaseAddress()
@@ -53,7 +53,7 @@ namespace HXSL
 		BumpAllocator(const BumpAllocator& other) = delete;
 		BumpAllocator operator=(BumpAllocator other) = delete;
 
-		BumpAllocator(BumpAllocator&& other) noexcept : head(head), tail(tail) 
+		BumpAllocator(BumpAllocator&& other) noexcept : head(other.head), tail(other.tail)
 		{
 			other.head = nullptr;
 			other.tail = nullptr;
@@ -84,7 +84,7 @@ namespace HXSL
 			{
 				return ptr;
 			}
-			
+
 			return CreateBlock(size > MaxDoublingSize ? size : size * 2)->Alloc(size, alignment);
 		}
 
@@ -109,6 +109,12 @@ namespace HXSL
 			}
 
 			head = tail = nullptr;
+		}
+
+		template <typename T>
+		T* AllocT(size_t count)
+		{
+			return reinterpret_cast<T*>(Alloc(sizeof(T) * count, alignof(T)));
 		}
 
 		template <class _Ty, class... _Types, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>

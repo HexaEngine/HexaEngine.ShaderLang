@@ -1,66 +1,23 @@
 #ifndef MODULE_HPP
 #define MODULE_HPP
 
-#include "pch/std.hpp"
-#include "language.hpp"
-
-#include "utils/span.hpp"
-#include "utils/static_vector.hpp"
-#include "utils/bump_allocator.hpp"
-#include "utils/dense_set.hpp"
-
-#include "utils/rtti_helper.hpp"
-#include "io/stream.hpp"
+#include "module_base.hpp"
+#include "module_tables.hpp"
 
 namespace HXSL
 {
 	namespace Backend
 	{
-		class ILContext;
-		class ILCodeBlob;
-		class TypeLayout;
-		class FunctionLayout;
-		class OperatorLayout;
-		class ConstructorLayout;
-		class FieldLayout;
-		class StructLayout;
-		class EnumLayout;
-		class EnumItemLayout;
-		class PrimitiveLayout;
-		class PointerLayout;
-		class NamespaceLayout;
-
-		enum class LayoutFlags : char
-		{
-			None = 0,
-			Extern = 1,
-		};
-
-		DEFINE_FLAGS_OPERATORS(LayoutFlags, char);
-
 		class Layout
 		{
 		public:
-			enum LayoutType : char
-			{
-				ModuleLayoutType,
-				NamespaceLayoutType,
-				ParameterLayoutType,
-				FunctionLayoutType,
-				OperatorLayoutType,
-				ConstructorLayoutType,
-				FieldLayoutType,
-				StructLayoutType,
-				EnumLayoutType,
-				EnumItemLayoutType,
-				PrimitiveLayoutType,
-				PointerLayoutType,
-			};
 
 		protected:
 			Layout(LayoutType typeId) : typeId(typeId) {}
 			LayoutType typeId;
 			LayoutFlags flags = LayoutFlags::None;
+			Module* module = nullptr;
+			RecordId exportId;
 		public:
 			LayoutType GetTypeId() const { return typeId; }
 
@@ -68,6 +25,13 @@ namespace HXSL
 			bool HasFlag(LayoutFlags flag) const { return (flags & flag) != (LayoutFlags)0; }
 			void SetFlags(LayoutFlags newFlags) { flags |= newFlags; }
 			void ClearFlags(LayoutFlags flagsToClear) { flags &= ~flagsToClear; }
+			bool IsExtern() const { return HasFlag(LayoutFlags::Extern); }
+			void SetModule(Module* mod) { module = mod; }
+			Module* GetModule() const { return module; }
+			AccessModifier GetAccessModifier() const;
+
+			RecordId GetExportId() const { return exportId; }
+			void SetExportId(RecordId id) { exportId = id; }
 		};
 
 		class TypeLayout : public Layout
@@ -94,7 +58,7 @@ namespace HXSL
 			InterpolationModifier interpolMod = InterpolationModifier_None;
 			ParameterFlags parameterFlags = ParameterFlags_None;
 		public:
-			static constexpr LayoutType ID = ParameterLayoutType;
+			static constexpr LayoutType ID = LayoutType::ParameterLayoutType;
 			ParameterLayout() : Layout(ID) {}
 
 			FunctionLayout* GetParent() const { return parent; }
@@ -142,7 +106,7 @@ namespace HXSL
 		protected:
 			FunctionLayout(LayoutType typeId) : Layout(typeId) {}
 		public:
-			static constexpr LayoutType ID = FunctionLayoutType;
+			static constexpr LayoutType ID = LayoutType::FunctionLayoutType;
 			FunctionLayout() : Layout(ID) {}
 
 			Layout* GetParent() const { return parent; }
@@ -180,7 +144,7 @@ namespace HXSL
 			Operator op = Operator_Unknown;
 			OperatorFlags operatorFlags = OperatorFlags_None;
 		public:
-			static constexpr LayoutType ID = OperatorLayoutType;
+			static constexpr LayoutType ID = LayoutType::OperatorLayoutType;
 			OperatorLayout() : FunctionLayout(ID) {}
 
 			Operator GetOperator() const { return op; }
@@ -193,7 +157,7 @@ namespace HXSL
 		class ConstructorLayout : public FunctionLayout
 		{
 		public:
-			ConstructorLayout() : FunctionLayout(ConstructorLayoutType) {}
+			ConstructorLayout() : FunctionLayout(LayoutType::ConstructorLayoutType) {}
 		};
 
 		class FieldLayout : public Layout
@@ -206,7 +170,7 @@ namespace HXSL
 			StorageClass storageClass = StorageClass_None;
 			InterpolationModifier interpolMod = InterpolationModifier_None;
 		public:
-			static constexpr LayoutType ID = FieldLayoutType;
+			static constexpr LayoutType ID = LayoutType::FieldLayoutType;
 			FieldLayout() : Layout(ID) {}
 
 			Layout* GetParent() const { return parent; }
@@ -248,7 +212,7 @@ namespace HXSL
 			StructLayoutFlags structFlags = StructLayoutFlags_None;
 
 		public:
-			static constexpr LayoutType ID = StructLayoutType;
+			static constexpr LayoutType ID = LayoutType::StructLayoutType;
 			StructLayout() : TypeLayout(ID) {}
 
 			Layout* GetParent() const { return parent; }
@@ -285,7 +249,7 @@ namespace HXSL
 			Span<EnumItemLayout*> items;
 
 		public:
-			static constexpr LayoutType ID = EnumLayoutType;
+			static constexpr LayoutType ID = LayoutType::EnumLayoutType;
 			EnumLayout() : TypeLayout(ID) {}
 
 			Layout* GetParent() const { return parent; }
@@ -309,7 +273,7 @@ namespace HXSL
 			};
 
 		public:
-			static constexpr LayoutType ID = EnumItemLayoutType;
+			static constexpr LayoutType ID = LayoutType::EnumItemLayoutType;
 			EnumItemLayout() : Layout(ID) {}
 
 			Layout* GetParent() const { return parent; }
@@ -333,7 +297,7 @@ namespace HXSL
 			uint32_t columns = 0;
 
 		public:
-			static constexpr LayoutType ID = PrimitiveLayoutType;
+			static constexpr LayoutType ID = LayoutType::PrimitiveLayoutType;
 			PrimitiveLayout() : TypeLayout(ID) {}
 
 			PrimitiveKind GetKind() const { return primKind; }
@@ -353,7 +317,7 @@ namespace HXSL
 		{
 			TypeLayout* elementType;
 		public:
-			static constexpr LayoutType ID = PointerLayoutType;
+			static constexpr LayoutType ID = LayoutType::PointerLayoutType;
 			PointerLayout() : TypeLayout(ID), elementType(nullptr) {}
 
 			TypeLayout* GetElementType() const { return elementType; }
@@ -371,7 +335,7 @@ namespace HXSL
 			Span<NamespaceLayout*> nestedNamespaces;
 
 		public:
-			static constexpr LayoutType ID = NamespaceLayoutType;
+			static constexpr LayoutType ID = LayoutType::NamespaceLayoutType;
 			NamespaceLayout() : Layout(ID) {}
 
 			const StringSpan& GetName() const { return name; }
@@ -396,32 +360,84 @@ namespace HXSL
 			void SetNestedNamespaces(const Span<NamespaceLayout*>& value) { nestedNamespaces = value; }
 		};
 
+		enum class ModuleStateFlags : uint8_t
+		{
+			None = 0,
+			HasLayouts = 1 << 0,
+			HasTables = 1 << 1,
+			Complete = HasLayouts | HasTables,
+			FromFile = 1 << 2,
+		};
+
+		DEFINE_FLAGS_OPERATORS(ModuleStateFlags, uint8_t);
+
 		class Module : public Layout
 		{
+			friend class ModuleWriter;
+			friend class ModuleReader;
+
 			BumpAllocator allocator;
 			std::vector<NamespaceLayout*> namespaces;
 			Span<FunctionLayout*> functions;
+			StringSpan name;
+			Version version;
+			void* userdata;
 
-		public:	
-			using RecordId = uint64_t;
-			static constexpr LayoutType ID = ModuleLayoutType;
-			Module() : Layout(ID) {}
+			ModuleStateFlags state;
+			ModuleReferenceTable referenceTable;
+			ExportTable exportTable;
+			ImportTable importTable;
+
+			void SetState(ModuleStateFlags value) { state = value; }
+			void AddStateFlag(ModuleStateFlags value) { state |= value; }
+			void ClearStateFlag(ModuleStateFlags value) { state &= ~value; }
+			void SetStateFlag(ModuleStateFlags value, bool cond) { if (cond) AddStateFlag(value); else ClearStateFlag(value); }
+
+		public:
+			static constexpr LayoutType ID = LayoutType::ModuleLayoutType;
+			Module() : Layout(ID), userdata(nullptr), state(ModuleStateFlags::None) {}
+
+			const StringSpan& GetName() const { return name; }
+			void SetName(const StringSpan& value) { name = value; }
+
+			const Version& GetVersion() const { return version; }
+			void SetVersion(const Version& value) { version = value; }
 
 			BumpAllocator& GetAllocator() { return allocator; }
 
 			const std::vector<NamespaceLayout*>& GetNamespaces() const { return namespaces; }
-			void AddNamespace(NamespaceLayout* ns) { namespaces.push_back(ns); }
+			void AddNamespace(NamespaceLayout* ns) { namespaces.push_back(ns); AddStateFlag(ModuleStateFlags::HasLayouts); }
 
 			const Span<FunctionLayout*>& GetAllFunctions() const { return functions; }
-			void SetAllFunctions(const Span<FunctionLayout*>& value) { functions = value; }
+			void SetAllFunctions(const Span<FunctionLayout*>& value) { functions = value; AddStateFlag(ModuleStateFlags::HasLayouts); }
+
+			void* GetUserdata() const noexcept { return userdata; }
+			void SetUserdata(void* value) noexcept { userdata = value; }
+
+			ModuleReferenceTable& GetModuleReferenceTable() noexcept { return referenceTable; }
+			const ModuleReferenceTable& GetModuleReferenceTable() const noexcept { return referenceTable; }
+
+			ExportTable& GetExportTable() noexcept { return exportTable; }
+			const ExportTable& GetExportTable() const noexcept { return exportTable; }
+
+			ImportTable& GetImportTable() noexcept { return importTable; }
+			const ImportTable& GetImportTable() const noexcept { return importTable; }
+
+			ModuleStateFlags GetStateFlags() const { return state; }
+			bool HasStateFlags(ModuleStateFlags value) const { return (state & value) == value; }
+
+			bool IsFromFile() const { return HasStateFlags(ModuleStateFlags::FromFile); }
+			bool HasTables() const { return HasStateFlags(ModuleStateFlags::HasTables); }
+			bool HasLayouts() const { return HasStateFlags(ModuleStateFlags::HasLayouts); }
+			bool IsComplete() const { return HasStateFlags(ModuleStateFlags::Complete); }
 		};
 
 		using type_layout_checker =
 			rtti_type_equals_checker<
-			Layout::StructLayoutType,
-			Layout::EnumLayoutType,
-			Layout::PrimitiveLayoutType,
-			Layout::PointerLayoutType>;
+			LayoutType::StructLayoutType,
+			LayoutType::EnumLayoutType,
+			LayoutType::PrimitiveLayoutType,
+			LayoutType::PointerLayoutType>;
 
 		template <typename T>
 		inline static bool isa(const Layout* N) { return N && N->GetTypeId() == T::ID; }
@@ -446,126 +462,8 @@ namespace HXSL
 		template <typename T>
 		inline static const T* dyn_cast(const Layout* N) { return isa<T>(N) ? static_cast<const T*>(N) : nullptr; }
 
-		class ModuleWriter;
-		class ModuleReader;
-
-		struct ModuleWriterContext
-		{
-			using RecordId = Module::RecordId;
-			ModuleWriter& writer;
-			const dense_map<const Layout*, RecordId>& recordMap;
-		};
-
-		struct ModuleReaderContext
-		{
-			using RecordId = Module::RecordId;
-			ModuleReader& reader;
-			const dense_map<RecordId, Layout*>& recordMap;
-		};
-
-		class ModuleWriter
-		{
-			using RecordId = Module::RecordId;
-			Stream* stream = nullptr;
-			dense_map<const Layout*, RecordId> recordMap;
-			dense_set<const Layout*> writtenRecords;
-			RecordId recordCounter = 1;
-			
-			ModuleWriterContext context{ *this, recordMap };
-
-		public:
-			template<typename T>
-			inline void WriteLittleEndian(T value)
-			{
-				stream->WriteValue(EndianUtils::ToLittleEndian(value));
-			}
-
-			inline void WriteString(const StringSpan& str)
-			{
-				uint32_t len = static_cast<uint32_t>(str.size());
-				WriteLittleEndian(len);
-				if (len == 0) return;
-				stream->Write(str.data(), len);
-			}
-
-			RecordId GetRecordId(const Layout* layout);
-			bool WriteRecordHeader(const Layout* layout);
-			void WriteRecordRef(const Layout* layout);
-			void WriteNamespace(const NamespaceLayout* ns);
-			void WriteStruct(const StructLayout* strct);
-			void WriteFunction(const FunctionLayout* func);
-			void WriteOperator(const OperatorLayout* op);
-			void WriteConstructor(const ConstructorLayout* ctor);
-			void WriteParameter(const ParameterLayout* param);
-			void WriteField(const FieldLayout* field);
-			void WriteEnum(const EnumLayout* enm);
-			void WritePointerType(const PointerLayout* ptr);
-			void WritePrimitiveType(const PrimitiveLayout* prim);
-			void WriteType(const TypeLayout* type);
-			void WriteModule(const Module* module);
-
-			ModuleWriter(Stream* s) : stream(s) {}
-
-			void Write(const Module* module);
-		};
-
-		struct ModuleReference
-		{
-			StringSpan name;
-			uint32_t majorVersion;
-			uint32_t minorVersion;
-			uint32_t patchVersion;
-			uint32_t buildVersion;
-		};
-
-		struct ExternalSymbol
-		{
-			uint32_t moduleRefId;
-			StringSpan name;
-		};
-
-		class ModuleReader
-		{
-			using RecordId = Module::RecordId;
-			Stream* stream = nullptr;
-			Module* module = nullptr;
-			dense_map<RecordId, Layout*> recordMap;
-			ModuleReaderContext context{ *this, recordMap };
-
-
-		public:
-			template<typename T>
-			inline T ReadLittleEndian()
-			{
-				return EndianUtils::FromLittleEndian(stream->ReadValue<T>());
-			}
-
-			RecordId ReadRecordRef();
-
-			template<typename T>
-			T* ReadRecordRef()
-			{
-				return cast<T>(recordMap[ReadRecordRef()]);
-			}
-
-			void ReadModule();
-			NamespaceLayout* ReadNamespace();
-			StructLayout* ReadStruct();
-			EnumLayout* ReadEnum();
-			FunctionLayout* ReadFunction();
-			OperatorLayout* ReadOperator();
-			ConstructorLayout* ReadConstructor();
-			ParameterLayout* ReadParameter();
-			FieldLayout* ReadField();
-			PointerLayout* ReadPointerType();
-			PrimitiveLayout* ReadPrimitiveType();
-			StringSpan ReadStringSpan();
-			ILCodeBlob* ReadILCodeBlob();
-
-			ModuleReader(Stream* s) : stream(s) {}
-
-			uptr<Module> Read();
-		};
+		struct ModuleWriterContext;
+		struct ModuleReaderContext;
 	}
 }
 

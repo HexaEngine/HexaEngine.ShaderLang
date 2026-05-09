@@ -7,8 +7,16 @@ namespace HXSL
 {
 	namespace Backend
 	{
+		struct FunctionInlinerConfig
+		{
+			bool aggressiveInline;
+			bool inlineExtern;
+		};
+
 		class FunctionInliner
 		{
+			FunctionInlinerConfig config;
+
 			enum class ParamInfoType
 			{
 				Unknown,
@@ -48,9 +56,10 @@ namespace HXSL
 			float ComputeInlineCost(FunctionLayout* funcLayout);
 
 		public:
-			FunctionInliner()
+			FunctionInliner(const FunctionInlinerConfig& config) : config(config)
 			{
 			}
+
 			void InlineAtSite(FunctionLayout* caller, FunctionLayout* callee, CallInstr* site);
 			void InlineAtAllSites(FunctionLayout* caller, FunctionLayout* callee, const Span<CallInstr*>& sites)
 			{

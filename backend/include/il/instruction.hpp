@@ -96,7 +96,7 @@ namespace HXSL
 			OpCode_VecClamp,			// <dst> vec_clamp <src> <src> <src>
 			OpCode_VecLerp,				// <dst> vec_lerp  <src> <src> <src/imm>
 
-			OpCode_Phi,				// <dst> phi <phi_id> not a real instruction
+			OpCode_Phi = std::numeric_limits<std::underlying_type_t<ILOpCode>>::max(),				// <dst> phi <phi_id> not a real instruction
 		};
 
 		inline static bool IsBasic(ILOpCode opcode)

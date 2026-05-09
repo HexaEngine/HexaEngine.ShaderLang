@@ -13,6 +13,7 @@ namespace HXSL
 	private:
 		IncludeOpen includeOpen_;
 		IncludeClose includeClose_;
+		void CompileCore(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references);
 	public:
 		void Compile(const std::vector<std::string>& files, const std::string& output, const ConstSpan<AssemblyReference>& references = {});
 		void Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references);
