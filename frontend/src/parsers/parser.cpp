@@ -103,7 +103,7 @@ namespace HXSL
 
 	bool Parser::EnterScope(ScopeType type, ASTNode* parent, Token& token, bool pretendOnError)
 	{
-		if (!stream->ExpectDelimiter('{', token, EXPECTED_RIGHT_BRACE) && !pretendOnError)
+		if (!stream->ExpectDelimiter('{', token, EXPECTED_LEFT_BRACE) && !pretendOnError)
 		{
 			return false;
 		}

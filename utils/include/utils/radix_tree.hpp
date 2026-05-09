@@ -6,6 +6,7 @@
 
 namespace HXSL
 {
+	// This radix tree is made for lookup performance not for low memory footprint.
 	template <typename T, typename IndexType = uint32_t, typename Equals = std::equal_to<T>>
 	class RadixTree
 	{

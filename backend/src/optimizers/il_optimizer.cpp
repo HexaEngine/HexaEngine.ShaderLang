@@ -54,7 +54,8 @@ namespace HXSL
 				Optimize(function);
 			}
 
-			FunctionInliner inliner = FunctionInliner();
+			FunctionInlinerConfig config{};
+			FunctionInliner inliner = FunctionInliner(config);
 			for (size_t i = 0; i < 10; ++i)
 			{	
 				auto inlined = inliner.Inline(functions);

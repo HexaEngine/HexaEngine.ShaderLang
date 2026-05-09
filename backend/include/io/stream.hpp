@@ -52,9 +52,21 @@ namespace HXSL
 		}
 
 		template<typename T>
-		size_t Write(const T& val)
+		size_t Write(const T& val) const
 		{
 			return Write(&val, sizeof(T));
+		}
+
+		template<typename T>
+		size_t WriteLittleEndian(const T& val) const
+		{
+			return Write(EndianUtils::ToLittleEndian(val));
+		}
+
+		template<typename T>
+		size_t WriteBigEndian(const T& val) const
+		{
+			return Write(EndianUtils::ToBigEndian(val));
 		}
 
 		int64_t Seek(int64_t offset, SeekOrigin origin) const
@@ -78,6 +90,69 @@ namespace HXSL
 		void Position(int64_t position) const
 		{
 			Seek(position, SeekOrigin_Begin);
+		}
+
+		struct SeekScope
+		{
+			Stream* stream = nullptr;
+			int64_t oldPos = -1;
+
+			SeekScope(Stream* stream, int64_t oldPos) : stream(stream), oldPos(oldPos)
+			{
+			}
+
+			SeekScope(const SeekScope&) = delete;
+			SeekScope& operator=(const SeekScope&) = delete;
+
+			SeekScope(SeekScope&& other) noexcept : stream(other.stream), oldPos(other.oldPos)
+			{
+				other.stream = nullptr;
+				other.oldPos = -1;
+			}
+
+			SeekScope& operator=(SeekScope&& other) noexcept
+			{
+				if (this != &other)
+				{
+					Reset();
+
+					stream = other.stream;
+					oldPos = other.oldPos;
+
+					other.stream = nullptr;
+					other.oldPos = -1;
+				}
+
+				return *this;
+			}
+
+			void Reset()
+			{
+				if (stream && oldPos > -1)
+				{
+					stream->Position(oldPos);
+					oldPos = -1;
+				}
+			}
+
+			~SeekScope()
+			{
+				Reset();
+			}
+		};
+
+		[[nodiscard]] SeekScope BeginSeek(int64_t offset, SeekOrigin origin)
+		{
+			auto old = Position();
+			Seek(offset, origin);
+			return SeekScope(this, old);
+		}
+
+		[[nodiscard]] SeekScope BeginJump(int64_t position)
+		{
+			auto old = Position();
+			Position(position);
+			return SeekScope(this, old);
 		}
 
 		int64_t Length() const
@@ -115,28 +190,33 @@ namespace HXSL
 		}
 
 		template<typename T>
-		void WriteValue(const T& value) const
+		T Read() const
 		{
-			T valueToWrite = EndianUtils::IsLittleEndian() ? value : EndianUtils::ToLittleEndian(value);
-			Write(&valueToWrite, sizeof(T));
+			T val{};
+			Read(&val, sizeof(T));
+			return val;
 		}
 
 		template<typename T>
-		T ReadValue() const
+		T ReadLittleEndian() const
 		{
-			T value{};
-			Read(&value, sizeof(T));
-			return EndianUtils::IsLittleEndian() ? value : EndianUtils::FromLittleEndian(value);
+			return EndianUtils::FromLittleEndian(Read<T>());
+		}
+
+		template<typename T>
+		T ReadBigEndian() const
+		{
+			return EndianUtils::FromBigEndian(Read<T>());
 		}
 
 		void WriteUInt(uint32_t value) const
 		{
-			WriteValue<uint32_t>(value);
+			WriteLittleEndian(value);
 		}
 
 		uint32_t ReadUInt() const
 		{
-			return ReadValue<uint32_t>();
+			return ReadLittleEndian<uint32_t>();
 		}
 
 		void WriteString(const std::string& str) const

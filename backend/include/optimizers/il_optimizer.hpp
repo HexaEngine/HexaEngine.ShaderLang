@@ -8,6 +8,10 @@ namespace HXSL
 {
 	namespace Backend
 	{
+		struct ILOptimizerConfig
+		{
+		};
+
 		class ILOptimizer
 		{
 			Module* module;

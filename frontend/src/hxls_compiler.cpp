@@ -1,4 +1,5 @@
 #include "hxls_compiler.hpp"
+#include "compiler_context.hpp"
 
 #include "ast_modules/ast_context.hpp"
 #include "ast_modules/ast_validator.hpp"
@@ -19,7 +20,7 @@ namespace HXSL
 	{
 		if (span.source == INVALID_SOURCE_ID) return {};
 		auto& manger = ASTContext::GetCurrentContext()->GetSourceManager();
-		auto source = manger.GetSource(span.source);	
+		auto source = manger.GetSource(span.source);
 		return source->GetSpan(span.start, span.length);
 	}
 
@@ -92,16 +93,23 @@ namespace HXSL
 
 	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const ConstSpan<AssemblyReference>& references)
 	{
-		AssemblyResolver resolver;
+		auto context = CompilerContext::Create();
+		AssemblyResolver& resolver = context->GetResolver();
 		for (const auto& reference : references)
 		{
 			resolver.Resolve(reference);
 		}
 		auto collection = resolver.BuildCollection();
-		Compile(files, output, collection);
+		CompileCore(files, output, collection);
 	}
 
 	void Compiler::Compile(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
+	{
+		auto context = CompilerContext::Create();
+		CompileCore(files, output, references);
+	}
+
+	void Compiler::CompileCore(const std::vector<std::string>& files, const std::string& output, const AssemblyCollection& references)
 	{
 		TextSpan::textSpanGetSpan = textSpanGetSpan;
 		TextSpan::textSpanGetStr = textSpanGetStr;
@@ -130,6 +138,11 @@ namespace HXSL
 		if (!logger->HasErrors())
 		{
 			auto outputStream = FileStream::OpenCreate(output.c_str());
+			if (outputStream == nullptr)
+			{
+				std::cerr << "Error opening output file." << std::endl;
+				return;
+			}
 			assembly->WriteToStream(*outputStream);
 		}
 	}

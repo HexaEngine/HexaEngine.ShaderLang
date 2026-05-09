@@ -49,7 +49,7 @@ namespace HXSL
 
 		const Backend::Module* GetModule() const noexcept { return module.get(); }
 
-		void SetModule(std::unique_ptr<Backend::Module>&& newModule) { module = std::move(newModule); }
+		void SetModule(std::unique_ptr<Backend::Module>&& newModule);
 
 		SymbolTable* GetMutableSymbolTable() const { if (sealed) { throw std::logic_error("Cannot modify symbol table: Assembly is sealed."); } return table.get(); }
 

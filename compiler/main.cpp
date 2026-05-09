@@ -11,7 +11,11 @@ int main()
 	SetLocale("en_US");
 
 	Compiler compiler = Compiler();
-	compiler.Compile({ "example/library.txt" }, "library.hlib");
+
+	compiler.Compile({ "example/library2.txt" }, "library2.hlib");
+
+	std::vector<AssemblyReference> refsLib = { { "library2.hlib" } };
+	compiler.Compile({ "example/library.txt" }, "library.hlib", refsLib);
 
 	std::vector<AssemblyReference> refs = { { "library.hlib" } };
 	compiler.Compile({ "example/shader.txt" }, "test.hlib", refs);

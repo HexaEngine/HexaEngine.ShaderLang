@@ -300,7 +300,7 @@ namespace HXSL
 					auto* callerLayout = nodes[callerNode]->GetFunction();
 					auto* caller = callerLayout->GetContext();
 					auto& metadata = caller->metadata;
-					if (caller->empty()) continue;
+					if (caller->empty() || caller->IsExtern()) continue;
 
 					for (auto& call : metadata.functions)
 					{
@@ -308,7 +308,7 @@ namespace HXSL
 						size_t calleeNode = callGraph.GetIndex(calleeLayout);
 						size_t calleeScc = nodes[calleeNode]->GetSCCIndex();
 
-						if (callerScc == calleeScc)
+						if (callerScc == calleeScc || (calleeLayout->IsExtern() && !config.inlineExtern))
 						{
 							continue;
 						}

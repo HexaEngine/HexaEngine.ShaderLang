@@ -1,4 +1,4 @@
-#ifndef HEXA_UTILS_MATH_HPP
+ï»¿#ifndef HEXA_UTILS_MATH_HPP
 #define HEXA_UTILS_MATH_HPP
 
 #include "common.hpp"
@@ -47,7 +47,7 @@ namespace HEXA_UTILS_NAMESPACE
 
 	static consteval double exp(double x)
 	{
-		// Handle large values by using exp(x) = exp(x/2)²
+		// Handle large values by using exp(x) = exp(x/2)Â²
 		if (x > 1.0)
 		{
 			double half_exp = exp(x * 0.5);
@@ -58,7 +58,7 @@ namespace HEXA_UTILS_NAMESPACE
 			return 1.0 / exp(-x);
 		}
 
-		// Taylor series: 1 + x + x²/2! + x³/3! + ...
+		// Taylor series: 1 + x + xÂ²/2! + xÂ³/3! + ...
 		double result = 1.0;
 		double term = 1.0;
 

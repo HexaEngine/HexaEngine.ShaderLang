@@ -1,5 +1,7 @@
 #include "il/il_metadata.hpp"
 #include "io/stream.hpp"
+#include "core/module_reader.hpp"
+#include "core/module_writer.hpp"
 
 namespace HXSL
 {

@@ -2,6 +2,7 @@
 #define STRING_POOL_H
 
 #include "span.hpp"
+#include "dense_set.hpp"
 
 namespace HXSL
 {
@@ -76,7 +77,7 @@ namespace HXSL
 	{
 	private:
 		BumpAllocator allocator;
-		std::unordered_set<StringSpan> stringToIndex;
+		dense_set<StringSpan> stringToIndex;
 
 	public:
 		StringSpan add(const StringSpan& str)

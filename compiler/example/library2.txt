@@ -1,0 +1,12 @@
+namespace Math
+{
+	float pow2(float x)
+	{
+		return x * x;
+	}
+
+	float pow3(float x)
+	{
+		return pow2(x) * x;
+	}
+}
