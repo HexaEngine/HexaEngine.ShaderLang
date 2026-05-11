@@ -7,7 +7,9 @@
 #include "preprocessing/preprocessor.hpp"
 #include "parsers/parser.hpp"
 #include "semantics/semantic_analyzer.hpp"
-#include "semantics/assembly_resolver.hpp"
+#include "il/assembly_resolver.hpp"
+#include "il/assembly_builder.hpp"
+#include "il/assembly_writer.hpp"
 #include "middleware/module_builder.hpp"
 #include "il/control_flow_analyzer.hpp"
 #include "optimizers/il_optimizer.hpp"
@@ -49,7 +51,7 @@ namespace HXSL
 				continue;
 			}
 
-			auto source = context->GetSourceManager().AddSource(fs.release(), true);
+			auto source = context->GetSourceManager().AddSource(fs, true);
 
 			if (!source->PrepareInputStream())
 			{
@@ -99,7 +101,8 @@ namespace HXSL
 		{
 			resolver.Resolve(reference);
 		}
-		auto collection = resolver.BuildCollection();
+		auto& loadContext = context->GetAssemblyLoadContext();
+		auto collection = loadContext.BuildCollection();
 		CompileCore(files, output, collection);
 	}
 
@@ -126,8 +129,12 @@ namespace HXSL
 		}
 
 		auto pModule = module.get();
-		std::unique_ptr<Assembly> assembly = Assembly::Create(output);
-		assembly->SetModule(std::move(module));
+		AssemblyBuilder builder = AssemblyBuilder(output);
+		builder.SetModule(std::move(module))
+			.SetArchitecture(Architecture::Any)
+			.SetLanguageId(LanguageIdentifier::HXSL_1_0);
+
+		auto assembly = builder.Build();
 
 		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), pModule);
 		cfAnalyzer.Analyze();
@@ -143,7 +150,9 @@ namespace HXSL
 				std::cerr << "Error opening output file." << std::endl;
 				return;
 			}
-			assembly->WriteToStream(*outputStream);
+
+			AssemblyWriter writer = { outputStream };
+			writer.Write(assembly.get());
 		}
 	}
 

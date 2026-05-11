@@ -1,13 +1,13 @@
 #pragma once
 
 #include "pch/std.hpp"
-#include "semantics/assembly_resolver.hpp"
+#include "il/assembly_loader.hpp"
 
 namespace HXSL
 {
 	class CompilerContext
 	{
-		AssemblyResolver resolver;
+		AssemblyLoadContext assemblyLoadContext;
 
 		static CompilerContext*& GetCurrentRef()
 		{
@@ -42,6 +42,7 @@ namespace HXSL
 			}
 		}
 
-		AssemblyResolver& GetResolver() { return resolver; }
+		AssemblyLoadContext& GetAssemblyLoadContext() { return assemblyLoadContext; }
+		AssemblyResolver& GetResolver() { return assemblyLoadContext.GetResolver(); }
 	};
 }

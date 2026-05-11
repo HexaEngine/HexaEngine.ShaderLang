@@ -11,38 +11,56 @@ namespace HXSL
 	{
 		void ModuleReader::ReadMetadata()
 		{
+			header.Read(stream.Get());
+			dataSectionStart = stream->Position();
+
 			auto& allocator = module->GetAllocator();
 			auto& referenceTable = module->GetModuleReferenceTable();
 			auto& exportTable = module->GetExportTable();
 			auto& importTable = module->GetImportTable();
-			referenceTable.Read(stream, allocator);
-			exportTable.Read(stream, allocator);
-			importTable.Read(stream, allocator);
+			referenceTable.Read(stream.Get(), allocator);
+			exportTable.Read(stream.Get(), allocator);
+			importTable.Read(stream.Get(), allocator);
 			module->AddStateFlag(ModuleStateFlags::HasTables | ModuleStateFlags::FromFile);
+
+			auto end = dataSectionStart + static_cast<int64_t>(header.moduleReferenceTableSize + header.exportTableSize + header.importTableSize + header.recordSectionSize);
+			stream->Position(end);
 		}
 
-		void ModuleReader::BuildImportRefs(ModuleLinker& linker)
+		void ModuleReader::BuildImportRefs()
 		{
 			auto& referenceTable = module->GetModuleReferenceTable();
 			auto& importTable = module->GetImportTable();
 
-			for (auto& entry : importTable)
+			for (size_t i = 0; i < importTable.size(); ++i)
 			{
-				auto& name = entry.name;
-				auto idx = name.IndexOf('@');
-				auto moduleIdSpan = name[{0, idx}];
-				ModuleId val;
-				auto res = std::from_chars(moduleIdSpan.data(), moduleIdSpan.data() + moduleIdSpan.size(), val, 16);
-				auto& modRef = referenceTable[val];
-
-				auto path = name[{idx, 0_rr}];
-				auto layout = linker.ResolveImport(modRef, path);
-
-				entry.layout = layout;
+				ResolveImportSymbol(importTable.IndexToId(i));
 			}
 		}
 
-		ModuleReader::ModuleReader(Stream* s) : stream(s), module(make_uptr<Module>())
+		Layout* ModuleReader::ResolveImportSymbol(RecordId id)
+		{
+			auto& entry = module->GetImportTable()[id];
+			if (entry.layout) return entry.layout;
+
+			auto _ = stream->BeginJump(); // note: we simply backup the stream position here, since the import could come from the same assembly.
+			auto& referenceTable = module->GetModuleReferenceTable();
+
+			auto& name = entry.name;
+			auto idx = name.IndexOf('@');
+			auto moduleIdSpan = name[{0, idx}];
+			ModuleId val;
+			auto res = std::from_chars(moduleIdSpan.data(), moduleIdSpan.data() + moduleIdSpan.size(), val, 16);
+			auto& modRef = referenceTable[val];
+
+			auto path = name[{idx, 0_rr}];
+			auto layout = linker.ResolveImport(modRef, path);
+
+			entry.layout = layout;
+			return layout;
+		}
+
+		ModuleReader::ModuleReader(const ObjPtr<Stream>& s, ModuleLinker& linker) : stream(s), linker(linker), module(make_uptr<Module>())
 		{
 			ReadMetadata();
 		}
@@ -54,23 +72,85 @@ namespace HXSL
 
 		Layout* ModuleReader::FindSymbol(RecordId id)
 		{
-			Layout* layout;
+			Layout* layout = nullptr;
 			if (id.IsExport())
 			{
-				layout = module->GetExportTable()[id].layout;
+				layout = ReadSymbol(id);
 			}
 			else
 			{
-				layout = module->GetImportTable()[id].layout;
+				layout = ResolveImportSymbol(id);
 			}
 
 			HXSL_ASSERT(layout, "Symbol not found.");
 			return layout;
 		}
 
-		uptr<Module> ModuleReader::Read(ModuleLinker& linker)
+		Layout* ModuleReader::ReadSymbol(RecordId id)
 		{
-			BuildImportRefs(linker);
+			auto& entry = module->GetExportTable()[id];
+			if (entry.layout) return entry.layout;
+
+			auto _ = stream->BeginJump(entry.offset);
+
+			Layout* layout = nullptr;
+
+			switch (entry.type)
+			{
+			case LayoutType::ModuleLayoutType:
+				layout = ReadModule(entry);
+				break;
+			case LayoutType::NamespaceLayoutType:
+				layout = ReadNamespace(entry);
+				break;
+			case LayoutType::PrimitiveLayoutType:
+				layout = ReadPrimitiveType(entry);
+				break;
+			case LayoutType::PointerLayoutType:
+				layout = ReadPointerType(entry);
+				break;
+			case LayoutType::EnumLayoutType:
+				layout = ReadEnum(entry);
+				break;
+			case LayoutType::StructLayoutType:
+				layout = ReadStruct(entry);
+				break;
+			case LayoutType::FunctionLayoutType:
+			{
+				auto function = ReadFunction(entry);
+				layout = function;
+			}
+			break;
+			case LayoutType::OperatorLayoutType:
+			{
+				auto op = ReadOperator(entry);
+				layout = op;
+			}
+			break;
+			case LayoutType::ConstructorLayoutType:
+			{
+				auto ctor = ReadConstructor(entry);
+				layout = ctor;
+			}
+			break;
+			case LayoutType::ParameterLayoutType:
+				layout = ReadParameter(entry);
+				break;
+			case LayoutType::FieldLayoutType:
+				layout = ReadField(entry);
+				break;
+			default:
+				HXSL_ASSERT(false, "Unknown layout type in module reader");
+				break;
+			}
+
+			layout->SetExportId(id);
+			return layout;
+		}
+
+		uptr<Module> ModuleReader::Read()
+		{
+			BuildImportRefs();
 
 			auto& exportTable = module->GetExportTable();
 			auto recordCount = exportTable.size();
@@ -82,62 +162,7 @@ namespace HXSL
 				auto recordId = exportTable.IndexToId(i);
 				stream->Position(entry.offset);
 
-				Layout* layout = nullptr;
-
-				switch (entry.type)
-				{
-				case LayoutType::ModuleLayoutType:
-					layout = ReadModule();
-					break;
-				case LayoutType::NamespaceLayoutType:
-					layout = ReadNamespace();
-					break;
-				case LayoutType::PrimitiveLayoutType:
-					layout = ReadPrimitiveType();
-					break;
-				case LayoutType::PointerLayoutType:
-					layout = ReadPointerType();
-					break;
-				case LayoutType::EnumLayoutType:
-					layout = ReadEnum();
-					break;
-				case LayoutType::StructLayoutType:
-					layout = ReadStruct();
-					break;
-				case LayoutType::FunctionLayoutType:
-				{
-					auto function = ReadFunction();
-					functions.push_back(function);
-					layout = function;
-				}
-				break;
-				case LayoutType::OperatorLayoutType:
-				{
-					auto op = ReadOperator();
-					functions.push_back(op);
-					layout = op;
-				}
-				break;
-				case LayoutType::ConstructorLayoutType:
-				{
-					auto ctor = ReadConstructor();
-					functions.push_back(ctor);
-					layout = ctor;
-				}
-				break;
-				case LayoutType::ParameterLayoutType:
-					layout = ReadParameter();
-					break;
-				case LayoutType::FieldLayoutType:
-					layout = ReadField();
-					break;
-				default:
-					HXSL_ASSERT(false, "Unknown layout type in module reader");
-					break;
-				}
-
-				entry.layout = layout;
-				layout->SetExportId(recordId);
+				ReadSymbol(recordId);
 			}
 
 			auto& alloc = module->GetAllocator();
@@ -147,12 +172,13 @@ namespace HXSL
 			return std::move(module);
 		}
 
-		Module* ModuleReader::ReadModule()
+		Module* ModuleReader::ReadModule(ExportTableEntry& entry)
 		{
+			entry.layout = module.get();
 			auto name = ReadStringSpan();
 			module->SetName(name);
 			Version version;
-			version.Read(stream);
+			version.Read(stream.Get());
 			module->SetVersion(version);
 			auto nsCount = ReadLittleEndian<uint32_t>();
 			for (uint32_t i = 0; i < nsCount; ++i)
@@ -163,11 +189,12 @@ namespace HXSL
 			return module.get();
 		}
 
-		NamespaceLayout* ModuleReader::ReadNamespace()
+		NamespaceLayout* ModuleReader::ReadNamespace(ExportTableEntry& entry)
 		{
+			NamespaceLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			StringSpan name = ReadStringSpan();
 
-			NamespaceLayoutBuilder builder(*module);
 			builder.Name(name);
 
 			auto enumCount = ReadLittleEndian<uint32_t>();
@@ -203,13 +230,14 @@ namespace HXSL
 			return builder.Build();
 		}
 
-		StructLayout* ModuleReader::ReadStruct()
+		StructLayout* ModuleReader::ReadStruct(ExportTableEntry& entry)
 		{
+			StructLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			auto name = ReadStringSpan();
 			auto access = ReadLittleEndian<AccessModifier>();
 			auto flags = ReadLittleEndian<StructLayoutFlags>();
 
-			StructLayoutBuilder builder(*module);
 			builder.Name(name)
 				.Access(access)
 				.StructFlags(flags);
@@ -247,13 +275,14 @@ namespace HXSL
 			return builder.Build();
 		}
 
-		EnumLayout* ModuleReader::ReadEnum()
+		EnumLayout* ModuleReader::ReadEnum(ExportTableEntry& entry)
 		{
+			EnumLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			auto name = ReadStringSpan();
 			auto* baseType = ReadRecordRef<TypeLayout>();
 			auto access = ReadLittleEndian<AccessModifier>();
 
-			EnumLayoutBuilder builder(*module);
 			builder.Name(name)
 				.BaseType(baseType)
 				.Access(access);
@@ -269,15 +298,16 @@ namespace HXSL
 			return builder.Build();
 		}
 
-		FunctionLayout* ModuleReader::ReadFunction()
+		FunctionLayout* ModuleReader::ReadFunction(ExportTableEntry& entry)
 		{
+			FunctionLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			auto name = ReadStringSpan();
 			auto returnType = ReadRecordRef<TypeLayout>();
 			auto access = ReadLittleEndian<AccessModifier>();
 			auto storageClass = ReadLittleEndian<StorageClass>();
 			auto functionFlags = ReadLittleEndian<FunctionFlags>();
 
-			FunctionLayoutBuilder builder(*module);
 			builder.Name(name)
 				.ReturnType(returnType)
 				.Access(access)
@@ -296,8 +326,10 @@ namespace HXSL
 			return builder.Build();
 		}
 
-		OperatorLayout* ModuleReader::ReadOperator()
+		OperatorLayout* ModuleReader::ReadOperator(ExportTableEntry& entry)
 		{
+			OperatorLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			auto op = ReadLittleEndian<Operator>();
 			auto opFlags = ReadLittleEndian<OperatorFlags>();
 			auto* returnType = ReadRecordRef<TypeLayout>();
@@ -305,7 +337,6 @@ namespace HXSL
 			auto storageClass = ReadLittleEndian<StorageClass>();
 			auto funcFlags = ReadLittleEndian<FunctionFlags>();
 
-			OperatorLayoutBuilder builder(*module);
 			builder
 				.Operator(op)
 				.OperatorFlags(opFlags)
@@ -326,13 +357,14 @@ namespace HXSL
 			return builder.Build();
 		}
 
-		ConstructorLayout* ModuleReader::ReadConstructor()
+		ConstructorLayout* ModuleReader::ReadConstructor(ExportTableEntry& entry)
 		{
+			ConstructorLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			auto access = ReadLittleEndian<AccessModifier>();
 			auto storageClass = ReadLittleEndian<StorageClass>();
 			auto flags = ReadLittleEndian<FunctionFlags>();
 
-			ConstructorLayoutBuilder builder(*module);
 			builder.Access(access)
 				.StorageClass(storageClass)
 				.FunctionFlags(flags);
@@ -349,8 +381,10 @@ namespace HXSL
 			return builder.Build();
 		}
 
-		ParameterLayout* ModuleReader::ReadParameter()
+		ParameterLayout* ModuleReader::ReadParameter(ExportTableEntry& entry)
 		{
+			ParameterLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			auto name = ReadStringSpan();
 			auto semantic = ReadStringSpan();
 			auto* type = ReadRecordRef<TypeLayout>();
@@ -358,7 +392,6 @@ namespace HXSL
 			auto interpolMod = ReadLittleEndian<InterpolationModifier>();
 			auto parameterFlags = ReadLittleEndian<ParameterFlags>();
 
-			ParameterLayoutBuilder builder(*module);
 			builder.Name(name)
 				.Semantic(semantic)
 				.Type(type)
@@ -369,8 +402,10 @@ namespace HXSL
 			return builder.Build();
 		}
 
-		FieldLayout* ModuleReader::ReadField()
+		FieldLayout* ModuleReader::ReadField(ExportTableEntry& entry)
 		{
+			FieldLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			auto name = ReadStringSpan();
 			auto semantic = ReadStringSpan();
 			auto* type = ReadRecordRef<TypeLayout>();
@@ -378,7 +413,6 @@ namespace HXSL
 			auto storageClass = ReadLittleEndian<StorageClass>();
 			auto interpolMod = ReadLittleEndian<InterpolationModifier>();
 
-			FieldLayoutBuilder builder(*module);
 			builder.Name(name)
 				.Semantic(semantic)
 				.Type(type)
@@ -389,28 +423,30 @@ namespace HXSL
 			return builder.Build();
 		}
 
-		PointerLayout* ModuleReader::ReadPointerType()
+		PointerLayout* ModuleReader::ReadPointerType(ExportTableEntry& entry)
 		{
+			PointerLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			auto name = ReadStringSpan();
 			auto access = ReadLittleEndian<AccessModifier>();
 			auto* elementType = ReadRecordRef<TypeLayout>();
 
-			PointerLayoutBuilder builder(*module);
 			return builder.Name(name)
 				.Access(access)
 				.ElementType(elementType)
 				.Build();
 		}
 
-		PrimitiveLayout* ModuleReader::ReadPrimitiveType()
+		PrimitiveLayout* ModuleReader::ReadPrimitiveType(ExportTableEntry& entry)
 		{
+			PrimitiveLayoutBuilder builder(*module);
+			entry.layout = builder.Peek();
 			StringSpan name = ReadStringSpan();
 			PrimitiveKind kind = ReadLittleEndian<PrimitiveKind>();
 			PrimitiveClass primClass = ReadLittleEndian<PrimitiveClass>();
 			uint32_t rows = ReadLittleEndian<uint32_t>();
 			uint32_t columns = ReadLittleEndian<uint32_t>();
 
-			PrimitiveLayoutBuilder builder(*module);
 			return builder.Name(name)
 				.Access(AccessModifier_Public)
 				.Kind(kind)
@@ -440,7 +476,7 @@ namespace HXSL
 		{
 			auto& alloc = module->GetAllocator();
 			auto codeBlob = alloc.Alloc<ILCodeBlob>();
-			codeBlob->Read(stream, context);
+			codeBlob->Read(stream.Get(), *this);
 			return codeBlob;
 		}
 	}

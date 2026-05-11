@@ -1,6 +1,5 @@
-#include "hxls_compiler.hpp"
-#include "core/module.hpp"
-#include "pch/il.hpp"
+#include "core/module_reader.hpp"
+#include "il/assembly_resolver.hpp"
 #include "il_interpreter.hpp"
 
 using namespace HXSL;
@@ -12,8 +11,10 @@ int main()
 
 	auto stream = FileStream::OpenRead("modules/library.module");
 
+	AssemblyResolver resolver;
+	ModuleLinker linker = { resolver };
 	ModuleReader reader = ModuleReader(stream.get());
-	auto module = reader.Read();
+	auto module = reader.Read(linker);
 	stream.reset();
 
 	auto& functions = module->GetAllFunctions();

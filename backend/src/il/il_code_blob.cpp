@@ -60,7 +60,7 @@ namespace HXSL
 			}
 		}
 
-		void ILCodeBlob::Read(Stream* stream, ModuleReaderContext& context)
+		void ILCodeBlob::Read(Stream* stream, ModuleReader& context)
 		{
 			metadata.Read(stream, context);
 			auto instrCount = stream->ReadLittleEndian<uint32_t>();

@@ -11,40 +11,37 @@ namespace HXSL
 		class ModuleReader;
 		class ModuleLinker;
 
-		struct ModuleReaderContext
-		{
-			using RecordId = LayoutDataTypes::RecordId;
-			using RecordSize = LayoutDataTypes::RecordSize;
-			ModuleReader& reader;
-		};
-
 		class ModuleReader
 		{
 			using RecordId = LayoutDataTypes::RecordId;
 			using RecordSize = LayoutDataTypes::RecordSize;
 			using ModuleId = LayoutDataTypes::ModuleId;
-			Stream* stream;
+			using ModuleHeader = LayoutDataTypes::ModuleHeader;
+			ObjPtr<Stream> stream;
+			ModuleLinker& linker;
 			uptr<Module> module;
-			ModuleReaderContext context{ *this };
+			ModuleHeader header;
+			int64_t dataSectionStart = 0;
 
 			void ReadMetadata();
-			void BuildImportRefs(ModuleLinker& linker);
-			Module* ReadModule();
-			NamespaceLayout* ReadNamespace();
-			StructLayout* ReadStruct();
-			EnumLayout* ReadEnum();
-			FunctionLayout* ReadFunction();
-			OperatorLayout* ReadOperator();
-			ConstructorLayout* ReadConstructor();
-			ParameterLayout* ReadParameter();
-			FieldLayout* ReadField();
-			PointerLayout* ReadPointerType();
-			PrimitiveLayout* ReadPrimitiveType();
+			void BuildImportRefs();
+			Layout* ResolveImportSymbol(RecordId id);
+			Module* ReadModule(ExportTableEntry& entry);
+			NamespaceLayout* ReadNamespace(ExportTableEntry& entry);
+			StructLayout* ReadStruct(ExportTableEntry& entry);
+			EnumLayout* ReadEnum(ExportTableEntry& entry);
+			FunctionLayout* ReadFunction(ExportTableEntry& entry);
+			OperatorLayout* ReadOperator(ExportTableEntry& entry);
+			ConstructorLayout* ReadConstructor(ExportTableEntry& entry);
+			ParameterLayout* ReadParameter(ExportTableEntry& entry);
+			FieldLayout* ReadField(ExportTableEntry& entry);
+			PointerLayout* ReadPointerType(ExportTableEntry& entry);
+			PrimitiveLayout* ReadPrimitiveType(ExportTableEntry& entry);
 			StringSpan ReadStringSpan();
 			ILCodeBlob* ReadILCodeBlob();
 
 		public:
-			ModuleReader(Stream* s);
+			ModuleReader(const ObjPtr<Stream>& s, ModuleLinker& linker);
 
 			ModuleReader(ModuleReader&&) = delete;
 			ModuleReader(const ModuleReader&) = delete;
@@ -80,7 +77,8 @@ namespace HXSL
 			}
 
 			Module* GetModule() { return module.get(); }
-			uptr<Module> Read(ModuleLinker& linker);
+			Layout* ReadSymbol(RecordId id);
+			uptr<Module> Read();
 		};
 	}
 }

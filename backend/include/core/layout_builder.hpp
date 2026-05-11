@@ -36,6 +36,8 @@ namespace HXSL
 				param->SetModule(&m);
 			}
 
+			ParameterLayout* Peek() { return param; }
+
 			ParameterLayoutBuilder& Name(const StringSpan& name)
 			{
 				param->SetName(allocator.CopyString(name));
@@ -175,6 +177,8 @@ namespace HXSL
 				op->SetModule(&m);
 			}
 
+			OperatorLayout* Peek() { return op; }
+
 			OperatorLayoutBuilder& Operator(Operator o)
 			{
 				op->SetOperator(o);
@@ -205,6 +209,8 @@ namespace HXSL
 				ctor->SetModule(&m);
 			}
 
+			ConstructorLayout* Peek() { return ctor; }
+
 			[[nodiscard]] ConstructorLayout* Build()
 			{
 				return ctor;
@@ -221,6 +227,8 @@ namespace HXSL
 			{
 				field->SetModule(&m);
 			}
+
+			FieldLayout* Peek() { return field; }
 
 			FieldLayoutBuilder& Name(const StringSpan& name)
 			{
@@ -286,6 +294,8 @@ namespace HXSL
 			{
 				strct->SetModule(&m);
 			}
+
+			StructLayout* Peek() { return strct; }
 
 			StructLayoutBuilder& Name(const StringSpan& name)
 			{
@@ -363,6 +373,8 @@ namespace HXSL
 				enm->SetModule(&m);
 			}
 
+			EnumLayout* Peek() { return enm; }
+
 			EnumLayoutBuilder& Name(const StringSpan& name)
 			{
 				enm->SetName(allocator.CopyString(name));
@@ -416,6 +428,8 @@ namespace HXSL
 				prim->SetModule(&m);
 			}
 
+			PrimitiveLayout* Peek() { return prim; }
+
 			PrimitiveLayoutBuilder& Name(const StringSpan& name)
 			{
 				prim->SetName(allocator.CopyString(name));
@@ -468,6 +482,8 @@ namespace HXSL
 				pointer->SetModule(&m);
 			}
 
+			PointerLayout* Peek() { return pointer; }
+
 			PointerLayoutBuilder& Name(const StringSpan& name)
 			{
 				pointer->SetName(allocator.CopyString(name));
@@ -507,6 +523,8 @@ namespace HXSL
 			{
 				ns->SetModule(&m);
 			}
+
+			NamespaceLayout* Peek() { return ns; }
 
 			NamespaceLayoutBuilder& Name(const StringSpan& name)
 			{

@@ -9,12 +9,12 @@ namespace HXSL
 	class AssemblyCollection
 	{
 	private:
-		std::vector<std::unique_ptr<Assembly>> assemblies;
+		std::vector<Assembly*> assemblies;
 		std::unordered_map<StringSpan, Assembly*> nameToAssemblies;
 	public:
-		void AddAssembly(std::unique_ptr<Assembly> assembly)
+		void AddAssembly(Assembly* assembly)
 		{
-			nameToAssemblies.emplace(assembly->GetName(), assembly.get());
+			nameToAssemblies.emplace(assembly->GetName(), assembly);
 			assemblies.push_back(std::move(assembly));
 		}
 
@@ -28,7 +28,7 @@ namespace HXSL
 			return nullptr;
 		}
 
-		const std::vector<std::unique_ptr<Assembly>>& GetAssemblies() const
+		const std::vector<Assembly*>& GetAssemblies() const
 		{
 			return assemblies;
 		}
@@ -40,17 +40,8 @@ namespace HXSL
 				auto index = assembly->GetSymbolTable()->FindNodeIndexFullPath(target, lookupIndex);
 				if (index.valid())
 				{
-					assemblyRefs.push_back(AssemblySymbolRef(assembly.get(), index));
+					assemblyRefs.push_back(AssemblySymbolRef(assembly, index));
 				}
-			}
-		}
-
-		void LoadAssemblyFromFile(const std::string& path)
-		{
-			std::unique_ptr<Assembly> assembly;
-			if (Assembly::LoadFromFile(path, assembly) == 0)
-			{
-				AddAssembly(std::move(assembly));
 			}
 		}
 	};

@@ -9,6 +9,8 @@ namespace HXSL
 {
 	namespace Backend
 	{
+		using ModuleHeader = LayoutDataTypes::ModuleHeader;
+
 		ModuleWriter::RecordId ModuleWriter::GetRecordId(const Layout* layout)
 		{
 			auto it = recordMap.find(layout);
@@ -131,7 +133,7 @@ namespace HXSL
 				WriteRecordRef(param);
 			}
 
-			func->GetCodeBlob()->Write(stream, context);
+			func->GetCodeBlob()->Write(stream.Get(), context);
 		}
 
 		void ModuleWriter::WriteOperator(const OperatorLayout* op)
@@ -150,7 +152,7 @@ namespace HXSL
 				WriteRecordRef(param);
 			}
 
-			op->GetCodeBlob()->Write(stream, context);
+			op->GetCodeBlob()->Write(stream.Get(), context);
 		}
 
 		void ModuleWriter::WriteConstructor(const ConstructorLayout* ctor)
@@ -166,7 +168,7 @@ namespace HXSL
 				WriteRecordRef(param);
 			}
 
-			ctor->GetCodeBlob()->Write(stream, context);
+			ctor->GetCodeBlob()->Write(stream.Get(), context);
 		}
 
 		void ModuleWriter::WriteParameter(const ParameterLayout* param)
@@ -245,7 +247,7 @@ namespace HXSL
 		{
 			auto scope = WriteRecordHeader(module);
 			WriteString(module->GetName());
-			module->GetVersion().Write(stream);
+			module->GetVersion().Write(stream.Get());
 			WriteLittleEndian(static_cast<uint32_t>(module->GetNamespaces().size()));
 			for (auto* ns : module->GetNamespaces())
 			{
@@ -255,6 +257,10 @@ namespace HXSL
 
 		void ModuleWriter::Write(Module* module)
 		{
+			auto headerStart = stream->Position();
+			stream->Seek(ModuleHeader::SizeOf(), SeekOrigin_Current); // reserve for header section.
+			ModuleHeader header;
+
 			referenceTable = make_uptr<ModuleReferenceTableBuilder>(module->GetModuleReferenceTable());
 			exportTable = make_uptr<ExportTableBuilder>(module->GetExportTable());
 			importTable = make_uptr<ImportTableBuilder>(module->GetImportTable());
@@ -457,15 +463,19 @@ namespace HXSL
 			}
 
 			// reserve space for tables.
+			header.moduleReferenceTableSize = referenceTable->TotalSizeInBytes();
 			auto referenceTableStart = stream->Position();
-			stream->Seek(referenceTable->TotalSizeInBytes(), SeekOrigin_Current);
+			stream->Seek(header.moduleReferenceTableSize, SeekOrigin_Current);
 
+			header.exportTableSize = exportTable->TotalSizeInBytes();
 			auto exportTableStart = stream->Position();
-			stream->Seek(exportTable->TotalSizeInBytes(), SeekOrigin_Current);
+			stream->Seek(header.exportTableSize, SeekOrigin_Current);
 
+			header.importTableSize = importTable->TotalSizeInBytes();
 			auto importTableStart = stream->Position();
-			stream->Seek(importTable->TotalSizeInBytes(), SeekOrigin_Current);
+			stream->Seek(header.importTableSize, SeekOrigin_Current);
 
+			auto recordSectionStart = stream->Position();
 			for (auto& layout : sorted)
 			{
 				if (layout->IsExtern())
@@ -515,19 +525,24 @@ namespace HXSL
 
 			auto end = stream->Position();
 
+			header.recordSectionSize = static_cast<uint64_t>(end - recordSectionStart);
+
 			stream->Position(referenceTableStart);
 
-			referenceTable->Write(stream);
+			referenceTable->Write(stream.Get());
 
 			HXSL_ASSERT(stream->Position() == exportTableStart, "Reference table size is invalid!");
 
-			exportTable->Write(stream);
+			exportTable->Write(stream.Get());
 
 			HXSL_ASSERT(stream->Position() == importTableStart, "Export table size is invalid!");
 
-			importTable->Write(stream);
+			importTable->Write(stream.Get());
 
 			HXSL_ASSERT(stream->Position() == importTableStart + importTable->TotalSizeInBytes(), "Import table size is invalid!");
+
+			stream->Position(headerStart);
+			header.Write(stream.Get());
 
 			stream->Position(end);
 		}

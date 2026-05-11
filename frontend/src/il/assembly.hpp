@@ -8,6 +8,7 @@
 #include "pch/std.hpp"
 #include "pch/il.hpp"
 #include "utils/memory.hpp"
+#include "assembly_format.hpp"
 
 namespace HXSL
 {
@@ -15,41 +16,91 @@ namespace HXSL
 	class SymbolDef;
 	class SymbolMetadata;
 
-	enum AssemblyLoadResult
+	enum class AssemblyLoadResult
 	{
-		AssemblyLoadResult_Success = 0,
-		AssemblyLoadResult_FileNotFound = -1,
-		AssemblyLoadResult_ParseError = -2
+		Success = 0,
+		FileNotFound = -1,
+		ParseError = -2
 	};
 
 	struct AssemblyReference
 	{
 		std::string name;
 
+		constexpr AssemblyReference() = default;
+		constexpr AssemblyReference(const std::string& name) : name(name) {}
+		constexpr AssemblyReference(std::string&& name) : name(std::move(name)) {}
+
+		void Write(Stream* stream) const
+		{
+			stream->WriteLittleEndian<uint32_t>(name.size());
+			stream->Write(name.c_str(), name.size());
+		}
+
+		void Read(Stream* stream)
+		{
+			auto len = stream->ReadLittleEndian<uint32_t>();
+			name.resize(len);
+			stream->Read(name.data(), len);
+		}
+
+		constexpr bool operator==(const AssemblyReference& other) const { return name == other.name; }
+		constexpr bool operator!=(const AssemblyReference& other) const { return !(*this == other); }
+
+		size_t hash() const
+		{
+			XXHash3_64 hash;
+			hash.Combine(name.data(), name.size());
+			return static_cast<size_t>(hash.Finalize());
+		}
 	};
+
+	class AssemblyBuilder;
 
 	class Assembly
 	{
-	private:
-		Assembly(const std::string& name);
+		using RecordId = Backend::RecordId;
+		using Module = Backend::Module;
 
-		std::unique_ptr<std::string> name;
-		std::unique_ptr<SymbolTable> table;
-		std::unique_ptr<Backend::Module> module;
+		friend class AssemblyBuilder;
+	private:
+		Assembly(const StringSpan& pathOrName);
+
+		uptr<std::string> name;
+		uptr<SymbolTable> table;
+		uptr<Module> module;
+		RecordId entryPoint = {};
+		Architecture architecture = Architecture::Unknown;
+		LanguageIdentifier languageId = LanguageIdentifier::Unknown;
+
 		std::vector<AssemblyReference> referencedAssemblies;
 		bool sealed;
 	public:
 		const std::string& GetName() const noexcept { return *name.get(); }
 
+		AssemblyReference AsReference() const { return AssemblyReference(*name.get()); }
+
+		Module* GetModule() { return module.get(); }
+
+		const Module* GetModule() const { return module.get(); }
+
+		RecordId GetEntryPointId() const { return entryPoint; }
+
+		Backend::FunctionLayout* GetEntryPoint()
+		{
+			if (entryPoint.IsNull()) return nullptr;
+			auto mainModule = GetModule();
+			auto& entryPointSymbol = mainModule->GetExportTable()[entryPoint];
+			return Backend::cast<Backend::FunctionLayout>(entryPointSymbol.layout);
+		}
+
+		Architecture GetArchitecture() const { return architecture; }
+
+		LanguageIdentifier GetLanguageIdentifier() const { return languageId; }
+
 		ConstSpan<AssemblyReference> GetReferencedAssemblies() const noexcept { return referencedAssemblies; }
 
 		const SymbolTable* GetSymbolTable() const noexcept { return table.get(); }
-
-		Backend::Module* GetModule() noexcept { return module.get(); }
-
-		const Backend::Module* GetModule() const noexcept { return module.get(); }
-
-		void SetModule(std::unique_ptr<Backend::Module>&& newModule);
 
 		SymbolTable* GetMutableSymbolTable() const { if (sealed) { throw std::logic_error("Cannot modify symbol table: Assembly is sealed."); } return table.get(); }
 
@@ -63,15 +114,24 @@ namespace HXSL
 
 		SymbolHandle AddSymbolScope(const StringSpan& name, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex = nullptr);
 
-		static std::unique_ptr<Assembly> Create(const std::string& path);
+		static std::unique_ptr<Assembly> Create(const StringSpan& path);
 
 		static AssemblyLoadResult LoadFromFile(const std::string& path, std::unique_ptr<Assembly>& assemblyOut);
 
-		static AssemblyLoadResult LoadFromStream(const std::string& path, Stream& stream, std::unique_ptr<Assembly>& assemblyOut);
-
-		int WriteToFile(const std::string& path) const;
-
-		int WriteToStream(Stream& stream) const;
+		static AssemblyLoadResult LoadFromStream(const std::string& path, const ObjPtr<Stream>& stream, std::unique_ptr<Assembly>& assemblyOut);
 	};
 }
+
+namespace std
+{
+	template<>
+	struct hash<HXSL::AssemblyReference>
+	{
+		size_t operator()(const HXSL::AssemblyReference& ref) const noexcept
+		{
+			return ref.hash();
+		}
+	};
+}
+
 #endif

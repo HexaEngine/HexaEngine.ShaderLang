@@ -120,6 +120,10 @@ HXSL_API int64_t HXSL_MemoryStreamGetBufferCapacity(HXSLStream* self);
 
 HXSL_API void HXSL_CloseStream(HXSLStream* self);
 
+HXSL_API uint32_t HXSL_StreamAddRef(HXSLStream* self);
+
+HXSL_API void HXSL_StreamRelease(HXSLStream* self);
+
 C_API_END
 #endif
 

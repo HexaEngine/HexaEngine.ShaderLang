@@ -22,7 +22,7 @@ namespace HXSL
 		{
 			using RecordId = LayoutDataTypes::RecordId;
 			using RecordSize = LayoutDataTypes::RecordSize;
-			Stream* stream = nullptr;
+			ObjPtr<Stream> stream;
 			dense_map<const Layout*, RecordId> recordMap;
 			dense_set<const Layout*> writtenRecords;
 			uptr<ModuleReferenceTableBuilder> referenceTable;
@@ -32,6 +32,8 @@ namespace HXSL
 			ModuleWriterContext context{ *this, recordMap };
 
 		public:
+			ModuleWriter(const ObjPtr<Stream>& s) : stream(s) {}
+
 			template<typename T>
 			inline void WriteLittleEndian(T value)
 			{
@@ -126,8 +128,6 @@ namespace HXSL
 			void WritePrimitiveType(const PrimitiveLayout* prim);
 			void WriteType(const TypeLayout* type);
 			void WriteModule(const Module* module);
-
-			ModuleWriter(Stream* s) : stream(s) {}
 
 			void Write(Module* module);
 		};

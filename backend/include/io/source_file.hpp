@@ -15,12 +15,12 @@ namespace HXSL
 	{
 		SourceManager* srcManager;
 		SourceFileID id;
-		Stream* stream;
+		ObjPtr<Stream> stream;
 		bool closeStream;
 		std::unique_ptr<TextStream> inputStream;
 
 	public:
-		SourceFile(SourceManager* srcManager, SourceFileID id, Stream* stream, bool closeStream) : srcManager(srcManager), id(id), stream(stream), closeStream(closeStream), inputStream(std::make_unique<TextStream>())
+		SourceFile(SourceManager* srcManager, SourceFileID id, const ObjPtr<Stream>& stream, bool closeStream) : srcManager(srcManager), id(id), stream(stream), closeStream(closeStream), inputStream(std::make_unique<TextStream>())
 		{
 		}
 
@@ -30,9 +30,8 @@ namespace HXSL
 			{
 				if (closeStream)
 				{
-					delete stream;
+					stream->Close();
 				}
-				stream = nullptr;
 			}
 		}
 

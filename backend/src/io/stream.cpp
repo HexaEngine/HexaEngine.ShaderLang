@@ -11,29 +11,27 @@ HXSL_API HXSLStream* HXSL_CreateStream(HXSLStreamDesc* desc)
 
 HXSL_API HXSLStream* HXSL_CreateFileStream(const char* path)
 {
-	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::OpenCreate(path).release());
+	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::OpenCreate(path).Detach());
 }
 
 HXSL_API HXSLStream* HXSL_ReadFileStream(const char* path)
 {
-	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::OpenRead(path).release());
+	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::OpenRead(path).Detach());
 }
 
 HXSL_API HXSLStream* HXSL_OpenFileStream(const char* path, const char* mode)
 {
-	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::Open(path, mode).release());
+	return reinterpret_cast<HXSLStream*>(HXSL::FileStream::Open(path, mode).Detach());
 }
 
 HXSL_API HXSLStream* HXSL_CreateMemoryStream(size_t capacity)
 {
-	HXSL::Stream* stream = new HXSL::MemoryStream(capacity);
-	return reinterpret_cast<HXSLStream*>(stream);
+	return reinterpret_cast<HXSLStream*>(HXSL::MemoryStream::Create(capacity).Detach());
 }
 
 HXSL_API HXSLStream* HXSL_CreateMemoryStreamFromBuffer(uint8_t* buffer, size_t size, bool isDynamic)
 {
-	HXSL::Stream* stream = new HXSL::MemoryStream(buffer, size, isDynamic);
-	return reinterpret_cast<HXSLStream*>(stream);
+	return reinterpret_cast<HXSLStream*>(HXSL::MemoryStream::Create(buffer, size, isDynamic).Detach());
 }
 
 HXSL_API uint8_t* HXSL_MemoryStreamGetBuffer(HXSLStream* self, bool takeOwnership)
@@ -74,7 +72,19 @@ HXSL_API void HXSL_CloseStream(HXSLStream* self)
 	if (self == nullptr)
 		return;
 	HXSL::Stream* base = reinterpret_cast<HXSL::Stream*>(self);
-	delete base;
+	base->Close();
+}
+
+HXSL_API uint32_t HXSL_StreamAddRef(HXSLStream* self)
+{
+	HXSL::Stream* base = reinterpret_cast<HXSL::Stream*>(self);
+	return base->AddRef();
+}
+
+HXSL_API void HXSL_StreamRelease(HXSLStream* self)
+{
+	HXSL::Stream* base = reinterpret_cast<HXSL::Stream*>(self);
+	base->Release();
 }
 
 #endif

@@ -7,7 +7,7 @@
 
 namespace HXSL
 {
-	struct Stream;
+	class Stream;
 	namespace Backend
 	{
 		class ILCodeBlob
@@ -25,7 +25,7 @@ namespace HXSL
 			void FromContext(ILContext* context);
 			void Print();
 			void Write(Stream* stream, ModuleWriterContext& context);
-			void Read(Stream* stream, ModuleReaderContext& context);
+			void Read(Stream* stream, ModuleReader& context);
 
 			ILContainer& GetInstructions() { return instructions; }
 			const ILContainer& GetInstructions() const { return instructions; }

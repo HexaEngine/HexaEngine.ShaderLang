@@ -68,20 +68,19 @@ struct Murmur3Hash
 template<typename Derived>
 class HashAlgorithm
 {
-public:
-	void Combine(const void* data, size_t length)
+	void CombineInternal(const void* data, size_t length)
 	{
-		static_cast<Derived*>(this)->Combine(data, length);
+		static_cast<Derived*>(this)->CombineInternal(data, length);
 	}
+public:
+	template<typename T>
+	void Combine(const T* value, size_t count) { CombineInternal(value, count * sizeof(T)); }
 
-	void Combine(uint64_t value) { Combine(&value, sizeof(uint64_t)); }
-	void Combine(int64_t value) { Combine(&value, sizeof(int64_t)); }
-	void Combine(uint32_t value) { Combine(&value, sizeof(uint32_t)); }
-	void Combine(int32_t value) { Combine(&value, sizeof(int32_t)); }
-	void Combine(uint16_t value) { Combine(&value, sizeof(uint16_t)); }
-	void Combine(int16_t value) { Combine(&value, sizeof(int16_t)); }
-	void Combine(uint8_t value) { Combine(&value, sizeof(uint8_t)); }
-	void Combine(int8_t value) { Combine(&value, sizeof(int8_t)); }
+	template<>
+	void Combine(const void* data, size_t length) { CombineInternal(data, length); }
+
+	template<typename T>
+	void Combine(const T& value) { CombineInternal(&value, sizeof(T)); }
 };
 
 class XXHash3_64 : public HashAlgorithm<XXHash3_64>
@@ -89,13 +88,12 @@ class XXHash3_64 : public HashAlgorithm<XXHash3_64>
 	XXH3_state_t* state;
 	friend class HashAlgorithm<XXHash3_64>;
 
-	void Combine(const void* data, size_t length)
+	void CombineInternal(const void* data, size_t length)
 	{
 		XXH3_64bits_update(state, data, length);
 	}
 
 public:
-	using HashAlgorithm<XXHash3_64>::Combine;
 
 	XXHash3_64()
 	{

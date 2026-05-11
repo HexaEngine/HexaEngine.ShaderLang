@@ -21,8 +21,16 @@ namespace HXSL
 	static constexpr char const* magic = "HXSL";
 	static constexpr size_t magicSize = cstrlen(magic);
 
-	inline Assembly::Assembly(const std::string& name) : name(std::make_unique<std::string>(name)), table(std::make_unique<SymbolTable>()), module(make_uptr<Backend::Module>()), sealed(false)
+	inline Assembly::Assembly(const StringSpan& pathOrName) : table(std::make_unique<SymbolTable>()), sealed(false)
 	{
+		StringSpan span = pathOrName;
+		auto idx = span.LastIndexOf([](const char c) { return c == '/' || c == '\\'; });
+		if (idx.IsValid())
+		{
+			span = span[{idx + 1, 0_rr}];
+		}
+
+		name = make_uptr<std::string>(span.str());
 	}
 
 	SymbolHandle Assembly::AddSymbol(const StringSpan& name, SymbolDef* def, const ObjPtr<SymbolMetadata>& metadata, SymbolTableNode* lookupIndex)
@@ -48,93 +56,51 @@ namespace HXSL
 		return table->Insert(span, metadata, lookupIndex);
 	}
 
-	void Assembly::SetModule(std::unique_ptr<Backend::Module>&& newModule)
-	{
-		module = std::move(newModule);
-		module->SetName(module->GetAllocator().CopyString(*name.get()));
-	}
-
-	std::unique_ptr<Assembly> Assembly::Create(const std::string& path)
+	std::unique_ptr<Assembly> Assembly::Create(const StringSpan& path)
 	{
 		return std::unique_ptr<Assembly>(new Assembly(path));
 	}
 
 	AssemblyLoadResult Assembly::LoadFromFile(const std::string& path, std::unique_ptr<Assembly>& assemblyOut)
 	{
-		FILE* file;
-		auto error = fopen_s(&file, path.c_str(), "rb");
+		auto fs = FileStream::OpenRead(path.c_str());
 
-		if (error != 0 || file == nullptr)
+		if (!fs)
 		{
-			return AssemblyLoadResult_FileNotFound;
+			return AssemblyLoadResult::FileNotFound;
 		}
-
-		std::unique_ptr<FILE, decltype(&fclose)> filePtr(file, &fclose);
-
-		FileStream fs(file);
 
 		auto result = LoadFromStream(path, fs, assemblyOut);
 		return result;
 	}
 
-	AssemblyLoadResult Assembly::LoadFromStream(const std::string& path, Stream& stream, std::unique_ptr<Assembly>& assemblyOut)
+	AssemblyLoadResult Assembly::LoadFromStream(const std::string& path, const ObjPtr<Stream>& stream, std::unique_ptr<Assembly>& assemblyOut)
 	{
 		char buffer[magicSize];
-		stream.Read(buffer, magicSize);
+		stream->Read(buffer, magicSize);
 
 		if (memcmp(buffer, magic, magicSize) != 0)
 		{
-			return AssemblyLoadResult_ParseError;
+			return AssemblyLoadResult::ParseError;
 		}
 
 		auto assembly = Create(path);
 
-		auto referenceCount = stream.ReadUInt();
+		auto referenceCount = stream->ReadUInt();
 		for (uint32_t i = 0; i < referenceCount; ++i)
 		{
 			AssemblyReference reference;
-			reference.name = stream.ReadString();
+			reference.name = stream->ReadString();
 			assembly->referencedAssemblies.push_back(std::move(reference));
 		}
 
 		auto ctx = CompilerContext::GetCurrent();
 		Backend::ModuleLinker linker = { ctx->GetResolver() };
-		Backend::ModuleReader reader(&stream);
-		assembly->module = reader.Read(linker);
+		Backend::ModuleReader reader(stream, linker);
+		assembly->module = reader.Read();
 
 		assembly->Seal();
 		assemblyOut = std::move(assembly);
-		return AssemblyLoadResult_Success;
-	}
-
-	int Assembly::WriteToFile(const std::string& path) const
-	{
-		FILE* file;
-		auto error = fopen_s(&file, path.c_str(), "wb+");
-
-		if (error != 0 || file == nullptr)
-		{
-			return -1;
-		}
-
-		std::unique_ptr<FILE, decltype(&fclose)> filePtr(file, &fclose);
-
-		FileStream fs(file);
-		return WriteToStream(fs);
-	}
-
-	int Assembly::WriteToStream(Stream& stream) const
-	{
-		stream.Write(magic, magicSize);
-
-		stream.WriteUInt(static_cast<uint32_t>(referencedAssemblies.size()));
-		for (const auto& reference : referencedAssemblies)
-		{
-			stream.WriteString(reference.name);
-		}
-
-		Backend::ModuleWriter writer(&stream);
-		writer.Write(module.get());
-		return 0;
+		return AssemblyLoadResult::Success;
 	}
 }

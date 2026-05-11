@@ -5,21 +5,19 @@
 
 namespace HXSL
 {
+	class AssemblyLoadContext;
 	class AssemblyResolver : public Backend::IModuleProvider
 	{
-		dense_map<StringSpan, uptr<Assembly>> assemblies;
-		StringPool2 pool;
 		std::vector<std::string> searchPaths;
+		AssemblyLoadContext& context;
 
 		Assembly* ResolveInner(const AssemblyReference& name);
 
 	public:
-		AssemblyResolver();
+		AssemblyResolver(AssemblyLoadContext& context);
 
 		void AddSearchPath(const std::string& path);
-		void AddAssembly(std::unique_ptr<Assembly>&& assembly);
 		Assembly* Resolve(const AssemblyReference& name);
-		AssemblyCollection BuildCollection();
 		Backend::Module* LoadModule(const Backend::ModuleReference& ref) override;
 	};
 }

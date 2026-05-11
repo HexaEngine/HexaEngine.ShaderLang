@@ -55,9 +55,10 @@ namespace HXSL
 			}
 
 			FunctionInlinerConfig config{};
+			config.inlineExtern = true;
 			FunctionInliner inliner = FunctionInliner(config);
 			for (size_t i = 0; i < 10; ++i)
-			{	
+			{
 				auto inlined = inliner.Inline(functions);
 				if (inlined.empty())
 				{
@@ -110,7 +111,7 @@ namespace HXSL
 #endif
 				auto& alloc = module->GetAllocator();
 				ILCodeBlob* ilBlob = alloc.Alloc<ILCodeBlob>();
-		
+
 				ilBlob->FromContext(function);
 
 #if HXSL_DEBUG

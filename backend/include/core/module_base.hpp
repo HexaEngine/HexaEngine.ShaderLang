@@ -10,6 +10,7 @@
 
 #include "utils/rtti_helper.hpp"
 #include "io/stream.hpp"
+#include "io/version.hpp"
 
 namespace HXSL
 {
@@ -30,6 +31,9 @@ namespace HXSL
 		class PrimitiveLayout;
 		class PointerLayout;
 		class NamespaceLayout;
+
+		class ModuleReader;
+		class ModuleWriter;
 
 		enum class LayoutFlags : uint8_t
 		{
@@ -78,54 +82,54 @@ namespace HXSL
 			constexpr bool operator!=(RecordId other) const noexcept { return !(*this == other); }
 		};
 
-		struct Version
-		{
-			uint32_t major = 0;
-			uint32_t minor = 0;
-			uint32_t patch = 0;
-			uint32_t build = 0;
-
-			constexpr Version() : major(0), minor(0), patch(0), build(0) {}
-			explicit constexpr Version(uint32_t major, uint32_t minor = 0, uint32_t patch = 0, uint32_t build = 0) : major(major), minor(minor), patch(patch), build(build) {}
-
-			static constexpr size_t SizeOf() { return sizeof(uint32_t) * 4; }
-
-			void Write(Stream* stream) const
-			{
-				stream->WriteLittleEndian(major);
-				stream->WriteLittleEndian(minor);
-				stream->WriteLittleEndian(patch);
-				stream->WriteLittleEndian(build);
-			}
-
-			void Read(Stream* stream)
-			{
-				major = stream->ReadLittleEndian<uint32_t>();
-				minor = stream->ReadLittleEndian<uint32_t>();
-				patch = stream->ReadLittleEndian<uint32_t>();
-				build = stream->ReadLittleEndian<uint32_t>();
-			}
-
-			constexpr bool operator==(const Version& other) const { return major == other.major && minor == other.minor && patch == other.patch && build == other.build; }
-			constexpr bool operator!=(const Version& other) const { return !(*this == other); }
-
-			size_t hash() const
-			{
-				XXHash3_64 hash;
-				hash.Combine(major);
-				hash.Combine(minor);
-				hash.Combine(patch);
-				hash.Combine(build);
-				return static_cast<size_t>(hash.Finalize());
-			}
-		};
-
 		namespace LayoutDataTypes
 		{
 			using ModuleId = uint32_t;
 			using ModuleIdCount = ModuleId;
 			using RecordId = ::HXSL::Backend::RecordId;
 			using RecordSize = uint32_t;
+
+			enum class ModuleFormatVersion : uint32_t
+			{
+				Unknown,
+				Version1_0 = (1 << 24) | (0 << 16) | (0 << 8) | 0,
+			};
+
+			struct ModuleHeader
+			{
+				static constexpr ModuleFormatVersion MinVersion = ModuleFormatVersion::Version1_0;
+				static constexpr ModuleFormatVersion CurrentVersion = ModuleFormatVersion::Version1_0;
+				ModuleFormatVersion version = CurrentVersion;
+
+				uint64_t moduleReferenceTableSize = 0;
+				uint64_t exportTableSize = 0;
+				uint64_t importTableSize = 0;
+				uint64_t recordSectionSize = 0;
+
+				void Write(Stream* stream) const
+				{
+					stream->WriteLittleEndian(version);
+					stream->WriteLittleEndian(moduleReferenceTableSize);
+					stream->WriteLittleEndian(exportTableSize);
+					stream->WriteLittleEndian(importTableSize);
+					stream->WriteLittleEndian(recordSectionSize);
+				}
+
+				bool Read(Stream* stream)
+				{
+					version = stream->ReadLittleEndian<ModuleFormatVersion>();
+					if (version < MinVersion || version > CurrentVersion) return false;
+
+					moduleReferenceTableSize = stream->ReadLittleEndian<uint64_t>();
+					exportTableSize = stream->ReadLittleEndian<uint64_t>();
+					importTableSize = stream->ReadLittleEndian<uint64_t>();
+					recordSectionSize = stream->ReadLittleEndian<uint64_t>();
+
+					return true;
+				}
+
+				static constexpr size_t SizeOf() { return sizeof(ModuleFormatVersion) + sizeof(uint64_t) * 4; }
+			};
 		}
 	}
 }
@@ -138,15 +142,6 @@ namespace std
 		size_t operator()(HXSL::Backend::RecordId id) const noexcept
 		{
 			return std::hash<uint64_t>{}(id.value);
-		}
-	};
-
-	template<>
-	struct hash<HXSL::Backend::Version>
-	{
-		size_t operator()(const HXSL::Backend::Version& id) const noexcept
-		{
-			return id.hash();
 		}
 	};
 }

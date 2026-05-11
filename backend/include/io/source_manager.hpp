@@ -14,7 +14,7 @@ namespace HXSL
 
 	public:
 		void AddSource(std::unique_ptr<SourceFile>&& file) { files.push_back(std::forward<std::unique_ptr<SourceFile>>(file)); };
-		SourceFile* AddSource(Stream* stream, bool closeStream)
+		SourceFile* AddSource(const ObjPtr<Stream>& stream, bool closeStream)
 		{
 			files.push_back(std::make_unique<SourceFile>(this, static_cast<SourceFileID>(files.size()), stream, closeStream));
 			return files.back().get();

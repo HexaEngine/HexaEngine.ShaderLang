@@ -11,8 +11,12 @@
 
 namespace HXSL
 {
-	struct Stream
+	class Stream
 	{
+	private:
+		std::atomic<uint32_t> refCount = { 1 };
+
+	protected:
 		size_t version;
 		void* userdata;
 		StreamReadFunc readFunc;
@@ -23,14 +27,30 @@ namespace HXSL
 		StreamFlushFunc flushFunc;
 		StreamCloseFunc closeFunc;
 
+	public:
 		Stream(size_t version, void* userdata, const StreamReadFunc& readFunc, const StreamWriteFunc& writeFunc, const StreamSeekFunc& seekFunc, const StreamGetPositionFunc& getPositionFunc, const StreamGetLengthFunc& getLengthFunc, const StreamFlushFunc& flushFunc, const StreamCloseFunc& closeFunc)
 			: version(version), userdata(userdata), readFunc(readFunc), writeFunc(writeFunc), seekFunc(seekFunc), getPositionFunc(getPositionFunc), getLengthFunc(getLengthFunc), flushFunc(flushFunc), closeFunc(closeFunc)
 		{
 		}
 
-		virtual ~Stream()
+	protected:
+		~Stream()
 		{
 			Close();
+		}
+
+	public:
+		uint32_t AddRef()
+		{
+			return refCount.fetch_add(1, std::memory_order_acq_rel);
+		}
+
+		void Release()
+		{
+			if (refCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+			{
+				delete this;
+			}
 		}
 
 		size_t Read(void* buffer, size_t size) const
@@ -155,9 +175,15 @@ namespace HXSL
 			return SeekScope(this, old);
 		}
 
+		[[nodiscard]] SeekScope BeginJump()
+		{
+			auto old = Position();
+			return SeekScope(this, old);
+		}
+
 		int64_t Length() const
 		{
-			if (getPositionFunc)
+			if (getLengthFunc)
 			{
 				return getLengthFunc(userdata);
 			}
@@ -256,8 +282,9 @@ namespace HXSL
 		}
 	};
 
-	struct FileStream : public Stream
+	class FileStream : public Stream
 	{
+
 		FILE* file;
 		FileStream(FILE* file)
 			: Stream(sizeof(FileStream), this, FileStreamRead, FileStreamWrite, FileStreamSeek, FileStreamPosition, FileStreamLength, FileStreamFlush, FileStreamClose),
@@ -265,37 +292,38 @@ namespace HXSL
 		{
 		}
 
-		static std::unique_ptr<FileStream> OpenRead(const char* path)
+	public:
+		static [[nodiscard]] ObjPtr<FileStream> OpenRead(const char* path)
 		{
 			FILE* file;
 			auto error = fopen_s(&file, path, "rb");
 			if (error != 0 || file == nullptr)
 			{
-				return nullptr;
+				return {};
 			}
-			return std::make_unique<FileStream>(file);
+			return ObjPtr<FileStream>::Attach(new FileStream(file));
 		}
 
-		static std::unique_ptr<FileStream> OpenCreate(const char* path)
+		static [[nodiscard]] ObjPtr<FileStream> OpenCreate(const char* path)
 		{
 			FILE* file;
 			auto error = fopen_s(&file, path, "wb+");
 			if (error != 0 || file == nullptr)
 			{
-				return nullptr;
+				return {};
 			}
-			return std::make_unique<FileStream>(file);
+			return ObjPtr<FileStream>::Attach(new FileStream(file));
 		}
 
-		static std::unique_ptr<FileStream> Open(const char* path, const char* mode)
+		static [[nodiscard]] ObjPtr<FileStream> Open(const char* path, const char* mode)
 		{
 			FILE* file;
 			auto error = fopen_s(&file, path, mode);
 			if (error != 0 || file == nullptr)
 			{
-				return nullptr;
+				return {};
 			}
-			return std::make_unique<FileStream>(file);
+			return ObjPtr<FileStream>::Attach(new FileStream(file));
 		}
 
 	private:
@@ -360,7 +388,7 @@ namespace HXSL
 		}
 	};
 
-	struct MemoryStream : public Stream
+	class MemoryStream : public Stream
 	{
 	private:
 		uint8_t* buffer;
@@ -377,7 +405,6 @@ namespace HXSL
 			capacity = 0;
 		}
 
-	public:
 		MemoryStream(uint8_t* buffer, size_t size, bool isDynamic) : Stream(sizeof(MemoryStream), this, MemoryStreamRead, MemoryStreamWrite, MemoryStreamSeek, MemoryStreamPosition, MemoryStreamLength, MemoryStreamFlush, MemoryStreamClose),
 			buffer(buffer), position(0), length(size), capacity(size), isDynamic(isDynamic)
 		{
@@ -387,14 +414,15 @@ namespace HXSL
 			buffer((uint8_t*)HXSL_Alloc(capacity)), position(0), length(capacity), capacity(capacity), isDynamic(true)
 		{
 		}
-
-		~MemoryStream()
+	public:
+		static [[nodiscard]] ObjPtr<MemoryStream> Create(uint8_t* buffer, size_t size, bool isDynamic)
 		{
-			if (isDynamic && buffer)
-			{
-				HXSL_Free(buffer);
-				Reset();
-			}
+			return ObjPtr<MemoryStream>::Attach(new MemoryStream(buffer, size, isDynamic));
+		}
+
+		static [[nodiscard]] ObjPtr<MemoryStream> Create(size_t capacity)
+		{
+			return ObjPtr<MemoryStream>::Attach(new MemoryStream(capacity));
 		}
 
 		uint8_t* GetBuffer(bool takeOwnership)
@@ -419,6 +447,7 @@ namespace HXSL
 			return capacity;
 		}
 
+	private:
 		static size_t MemoryStreamRead(void* userdata, void* buffer, size_t size)
 		{
 			MemoryStream* stream = static_cast<MemoryStream*>(userdata);
@@ -497,11 +526,18 @@ namespace HXSL
 
 		static void MemoryStreamClose(void* userdata)
 		{
+			MemoryStream* stream = static_cast<MemoryStream*>(userdata);
+			if (stream->isDynamic && stream->buffer)
+			{
+				HXSL_Free(stream->buffer);
+				stream->Reset();
+			}
 		}
 	};
 
-	struct BufferedStream : Stream
+	class BufferedStream : public Stream
 	{
+	private:
 		enum class LastAction
 		{
 			None,
@@ -509,7 +545,7 @@ namespace HXSL
 			Write,
 		};
 
-		Stream* inner;
+		ObjPtr<Stream> inner;
 		bool closeInner;
 		uint8_t* buffer;
 		size_t bufferSize;
@@ -517,7 +553,7 @@ namespace HXSL
 		size_t bufferReadSize;
 		LastAction lastAction;
 
-		BufferedStream(Stream* inner, bool closeInner = true, size_t bufferSize = 4096)
+		BufferedStream(const ObjPtr<Stream>& inner, bool closeInner = true, size_t bufferSize = 4096)
 			: Stream(sizeof(BufferedStream), this, BufferedStreamRead, BufferedStreamWrite, BufferedStreamSeek, BufferedStreamPosition, BufferedStreamLength, BufferedStreamFlush, BufferedStreamClose),
 			inner(inner),
 			closeInner(closeInner),
@@ -532,6 +568,13 @@ namespace HXSL
 		BufferedStream(const BufferedStream&) = delete;
 		BufferedStream& operator=(const BufferedStream&) = delete;
 
+	public:
+		static [[nodiscard]] ObjPtr<BufferedStream> Create(const ObjPtr<Stream>& inner, bool closeInner = true, size_t bufferSize = 4096)
+		{
+			return ObjPtr<BufferedStream>::Attach(new BufferedStream(inner, closeInner, bufferSize));
+		}
+
+	private:
 		static size_t BufferedStreamRead(void* userdata, void* buffer, size_t size)
 		{
 			if (size == 0) return 0;
@@ -618,7 +661,7 @@ namespace HXSL
 			auto stream = static_cast<BufferedStream*>(userdata);
 			auto& lastAction = stream->lastAction;
 			if (lastAction == LastAction::Write) { stream->Flush(); }
-			auto inner = stream->inner;
+			auto& inner = stream->inner;
 			auto& bufferReadSize = stream->bufferReadSize;
 			auto& bufferPosition = stream->bufferPosition;
 
@@ -670,7 +713,7 @@ namespace HXSL
 		static void BufferedStreamFlush(void* userdata)
 		{
 			auto stream = static_cast<BufferedStream*>(userdata);
-			auto inner = stream->inner;
+			auto& inner = stream->inner;
 			auto& bufferPosition = stream->bufferPosition;
 			auto& lastAction = stream->lastAction;
 
@@ -706,6 +749,7 @@ namespace HXSL
 				stream->inner = nullptr;
 				stream->closeInner = false;
 			}
+			stream->Release();
 		}
 	};
 }

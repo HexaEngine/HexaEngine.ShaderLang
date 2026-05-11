@@ -63,10 +63,8 @@ namespace HXSL
 			return ILVariable(varId, typeId, flags);
 		}
 
-		void ILMetadata::Read(Stream* stream, ModuleReaderContext& context)
+		void ILMetadata::Read(Stream* stream, ModuleReader& reader)
 		{
-			auto& reader = context.reader;
-
 			auto typeCount = reader.ReadLittleEndian<uint32_t>();
 			for (uint32_t i = 0; i < typeCount; ++i)
 			{

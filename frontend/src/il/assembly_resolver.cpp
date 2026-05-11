@@ -1,36 +1,23 @@
 #include "assembly_resolver.hpp"
+#include "assembly_loader.hpp"
 #include <filesystem>
 
 namespace HXSL
 {
 	Assembly* AssemblyResolver::ResolveInner(const AssemblyReference& ref)
 	{
-		auto it = assemblies.find(ref.name);
-		if (it != assemblies.end())
-		{
-			return it->second.get();
-		}
-
 		for (const auto& path : searchPaths)
 		{
 			std::string fullPath = path + "/" + ref.name;
 			if (std::filesystem::exists(fullPath))
 			{
-				uptr<Assembly> assembly;
-				auto result = Assembly::LoadFromFile(fullPath, assembly);
-				if (result == AssemblyLoadResult_Success)
-				{
-					auto ptr = assembly.get();
-					auto spanName = pool.add(ref.name);
-					assemblies.insert({ spanName, std::move(assembly) });
-					return ptr;
-				}
+				return context.LoadFromFile(fullPath);
 			}
 		}
 		return nullptr;
 	}
 
-	AssemblyResolver::AssemblyResolver()
+	AssemblyResolver::AssemblyResolver(AssemblyLoadContext& context) : context(context)
 	{
 		searchPaths.push_back(std::filesystem::current_path().string());
 	}
@@ -38,13 +25,6 @@ namespace HXSL
 	void AssemblyResolver::AddSearchPath(const std::string& path)
 	{
 		searchPaths.push_back(path);
-	}
-
-	void AssemblyResolver::AddAssembly(std::unique_ptr<Assembly>&& assembly)
-	{
-		auto& name = assembly->GetName();
-		auto spanName = pool.add(name);
-		assemblies.insert({ spanName, std::move(assembly) });
 	}
 
 	Assembly* AssemblyResolver::Resolve(const AssemblyReference& name)
@@ -74,19 +54,6 @@ namespace HXSL
 		}
 
 		return assembly;
-	}
-
-	AssemblyCollection AssemblyResolver::BuildCollection()
-	{
-		AssemblyCollection collection;
-		auto it = assemblies.begin();
-		auto end = assemblies.end();
-		for (; it != end; ++it)
-		{
-			collection.AddAssembly(std::move(it->second));
-		}
-		assemblies.clear();
-		return collection;
 	}
 
 	Backend::Module* AssemblyResolver::LoadModule(const Backend::ModuleReference& ref)

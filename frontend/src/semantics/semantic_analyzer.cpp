@@ -55,14 +55,13 @@ namespace HXSL
 	}
 	void SemanticAnalyzer::AnalyzeInner(CompilationUnit* compilation)
 	{
-
 	}
 
 	bool SemanticAnalyzer::Analyze()
 	{
 		for (auto& ref : references.GetAssemblies())
 		{
-			auto* refAsm = ref.get();
+			auto* refAsm = ref;
 			auto* stub = stubManager.AddStub(refAsm);
 			refAsm->UnsealUnsafe();
 			SymbolCollector collector(*this, refAsm);

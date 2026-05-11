@@ -8,7 +8,7 @@
 
 namespace HXSL
 {
-	struct Stream;
+	class Stream;
 
 	namespace Backend
 	{
@@ -439,7 +439,7 @@ namespace HXSL
 			}
 
 			void Write(Stream* stream, ModuleWriterContext& context);
-			void Read(Stream* stream, ModuleReaderContext& context);
+			void Read(Stream* stream, ModuleReader& context);
 		};
 	}
 }
