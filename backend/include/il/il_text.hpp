@@ -87,7 +87,7 @@ namespace HXSL
 		static std::string ToString(ILVarId varId, const ILMetadata& metadata)
 		{
 			std::ostringstream oss;
-			oss << (varId.var.temp ? "%tmp" : "%var") << varId.var.version << "_" << varId.var.id << ": " << metadata.GetVarTypeName(varId);
+			oss << (varId.temp() ? "%tmp" : "%var") << varId.version() << "_" << varId.id() << ": " << metadata.GetVarTypeName(varId);
 			return oss.str();
 		}
 

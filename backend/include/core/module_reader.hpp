@@ -3,6 +3,7 @@
 
 #include "module.hpp"
 #include "module_tables.hpp"
+#include <utils/co_trampoline.hpp>
 
 namespace HXSL
 {
@@ -11,74 +12,79 @@ namespace HXSL
 		class ModuleReader;
 		class ModuleLinker;
 
+		struct ModuleLinkerTask
+		{
+			RecordId recordId;
+			void** slot;
+		};
+
 		class ModuleReader
 		{
+			friend class ModuleLinker;
+			template<typename T>
+			using CoTask = TrampolineTask<T>;
 			using RecordId = LayoutDataTypes::RecordId;
 			using RecordSize = LayoutDataTypes::RecordSize;
 			using ModuleId = LayoutDataTypes::ModuleId;
 			using ModuleHeader = LayoutDataTypes::ModuleHeader;
 			ObjPtr<Stream> stream;
 			ModuleLinker& linker;
-			uptr<Module> module;
+			Module* module;
 			ModuleHeader header;
 			int64_t dataSectionStart = 0;
+			RecordId nextRecordId = {};
 
 			void ReadMetadata();
-			void BuildImportRefs();
-			Layout* ResolveImportSymbol(RecordId id);
-			Module* ReadModule(ExportTableEntry& entry);
-			NamespaceLayout* ReadNamespace(ExportTableEntry& entry);
-			StructLayout* ReadStruct(ExportTableEntry& entry);
-			EnumLayout* ReadEnum(ExportTableEntry& entry);
-			FunctionLayout* ReadFunction(ExportTableEntry& entry);
-			OperatorLayout* ReadOperator(ExportTableEntry& entry);
-			ConstructorLayout* ReadConstructor(ExportTableEntry& entry);
-			ParameterLayout* ReadParameter(ExportTableEntry& entry);
-			FieldLayout* ReadField(ExportTableEntry& entry);
-			PointerLayout* ReadPointerType(ExportTableEntry& entry);
+			CoTask<Layout*> ResolveImportSymbol(RecordId id);
+			CoTask<Module*> ReadModule(ExportTableEntry& entry);
+			CoTask<NamespaceLayout*> ReadNamespace(ExportTableEntry& entry);
+			CoTask<StructLayout*> ReadStruct(ExportTableEntry& entry);
+			CoTask<EnumLayout*> ReadEnum(ExportTableEntry& entry);
+			CoTask<FunctionLayout*> ReadFunction(ExportTableEntry& entry);
+			CoTask<OperatorLayout*> ReadOperator(ExportTableEntry& entry);
+			CoTask<ConstructorLayout*> ReadConstructor(ExportTableEntry& entry);
+			CoTask<ParameterLayout*> ReadParameter(ExportTableEntry& entry);
+			CoTask<FieldLayout*> ReadField(ExportTableEntry& entry);
+			CoTask<PointerLayout*> ReadPointerType(ExportTableEntry& entry);
 			PrimitiveLayout* ReadPrimitiveType(ExportTableEntry& entry);
 			StringSpan ReadStringSpan();
-			ILCodeBlob* ReadILCodeBlob();
+			CoTask<ILCodeBlob*> ReadILCodeBlob();
 
+			CoTask<Layout*> ReadExportSymbol(RecordId id);
+
+			ModuleReader(const ObjPtr<Stream>& s, ModuleLinker& linker, Module* module);
 		public:
-			ModuleReader(const ObjPtr<Stream>& s, ModuleLinker& linker);
-
 			ModuleReader(ModuleReader&&) = delete;
 			ModuleReader(const ModuleReader&) = delete;
 			ModuleReader& operator=(ModuleReader&&) = delete;
 			ModuleReader& operator=(const ModuleReader&) = delete;
 
+			[[nodiscard]] static ModuleReader* Create(const ObjPtr<Stream>& s, ModuleLinker& linker, Module* module) { return new ModuleReader(s, linker, module); }
+
 			template<typename T>
 			inline T ReadLittleEndian()
 			{
-				return stream->ReadLittleEndian<T>();
-			}
-
-			template<>
-			inline RecordId ReadLittleEndian()
-			{
-				return RecordId(stream->ReadLittleEndian<uint64_t>());
+				return stream->ReadLEB128<T>();
 			}
 
 			RecordId ReadRecordRef();
-			Layout* FindSymbol(RecordId id);
+			CoTask<Layout*> FindSymbol(RecordId id);
 
 			template<typename T>
-			T* FindSymbol(RecordId id)
+			CoTask<T*> FindSymbol(RecordId id)
 			{
-				Layout* layout = FindSymbol(id);
-				return cast<T>(layout);
+				Layout* layout = co_await FindSymbol(id);
+				co_return cast<T>(layout);
 			}
 
 			template<typename T>
-			T* ReadRecordRef()
+			CoTask<T*> ReadRecordRef()
 			{
 				return FindSymbol<T>(ReadRecordRef());
 			}
 
-			Module* GetModule() { return module.get(); }
 			Layout* ReadSymbol(RecordId id);
-			uptr<Module> Read();
+			void ReadFull();
 		};
 	}
 }

@@ -76,43 +76,76 @@ namespace HXSL
 			}
 		};
 
-		struct ILVarId_T
-		{
-			uint64_t id : 32;
-			uint64_t version : 31;
-			uint64_t temp : 1;
-		};
-
 		struct ILVarId
 		{
-			union
+			static constexpr size_t IdBits = 32;
+			static constexpr size_t VersionBits = 31;
+			static constexpr size_t TempFlagBits = 1;
+
+			static constexpr size_t IdShift = 0;
+			static constexpr size_t VersionShift = IdShift + IdBits;
+			static constexpr size_t TempFlagShift = VersionShift + VersionBits;
+
+			static constexpr uint64_t IdMask = (static_cast<uint64_t>(1) << IdBits) - 1;
+			static constexpr uint64_t VersionMask = (static_cast<uint64_t>(1) << VersionBits) - 1;
+			static constexpr uint64_t TempFlagMask = (static_cast<uint64_t>(1) << TempFlagBits) - 1;
+			static constexpr uint64_t TempFlagFastMask = (static_cast<uint64_t>(1) << TempFlagShift);
+
+			static constexpr uint64_t Make(uint32_t id, uint32_t ver, bool temp)
 			{
-				ILVarId_T var;
-				uint64_t raw;
-			};
+				return ((static_cast<uint64_t>(id) & IdMask) << IdShift) | ((static_cast<uint64_t>(ver) & VersionMask) << VersionShift) | (static_cast<uint64_t>(temp) << TempFlagShift);
+			}
+
+			uint64_t raw;
 
 			constexpr ILVarId(uint64_t raw) : raw(raw) {}
-			constexpr ILVarId(ILVarId_T var) : var(var) {}
+			constexpr ILVarId(uint32_t id, uint32_t ver, bool temp) : raw(Make(id, ver, temp)) {}
 			constexpr ILVarId() : raw(0) {}
 
-			constexpr bool id() const { return var.id; }
-			constexpr bool version() const { return var.version; }
-			constexpr bool temp() const { return var.temp; }
+			constexpr uint32_t id() const { return static_cast<uint32_t>(raw & IdMask); }
+			constexpr uint32_t version() const { return static_cast<uint32_t>((raw >> VersionShift) & VersionMask); }
+			constexpr bool temp() const { return raw & TempFlagFastMask; }
+
+			constexpr void id(uint32_t v) { *this = WithId(v); }
+			constexpr void version(uint32_t v) { *this = WithVersion(v); }
+			constexpr void temp(bool v) { *this = WithTemp(v); }
+
+			constexpr ILVarId StripId() const
+			{
+				return ILVarId(raw & ~(IdMask << IdShift));
+			}
+
+			constexpr ILVarId WithId(uint32_t id) const
+			{
+				return ILVarId(StripId().raw | static_cast<uint64_t>(id) << IdShift);
+			}
+
 			constexpr ILVarId StripVersion() const
 			{
-				ILVarId_T v = var;
-				v.version = 0;
-				return ILVarId(v);
+				return ILVarId(raw & ~(VersionMask << VersionShift));
 			}
+
 			constexpr ILVarId WithVersion(uint32_t version) const
 			{
-				ILVarId_T v = var;
-				v.version = version;
-				return ILVarId(v);
+				return ILVarId(StripVersion().raw | static_cast<uint64_t>(version) << VersionShift);
+			}
+
+			constexpr ILVarId StripTemp() const
+			{
+				return ILVarId(raw & ~(TempFlagMask << TempFlagShift));
+			}
+
+			constexpr ILVarId WithTemp(bool temp) const
+			{
+				return ILVarId(StripTemp().raw | static_cast<uint64_t>(temp) << TempFlagShift);
+			}
+
+			constexpr void IncrementVersion()
+			{
+				*this = WithVersion(version() + 1);
 			}
 
 			constexpr operator uint64_t() const { return raw; }
-			constexpr operator ILVarId_T() const { return var; }
 
 			constexpr bool operator==(const ILVarId& other) const { return raw == other.raw; }
 			constexpr bool operator!=(const ILVarId& other) const { return raw != other.raw; }

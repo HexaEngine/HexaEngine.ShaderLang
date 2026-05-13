@@ -387,6 +387,7 @@ namespace HXSL
 			ModuleReferenceTable referenceTable;
 			ExportTable exportTable;
 			ImportTable importTable;
+			ModuleReader* reader = nullptr;
 
 			void SetState(ModuleStateFlags value) { state = value; }
 			void AddStateFlag(ModuleStateFlags value) { state |= value; }
@@ -396,6 +397,7 @@ namespace HXSL
 		public:
 			static constexpr LayoutType ID = LayoutType::ModuleLayoutType;
 			Module() : Layout(ID), userdata(nullptr), state(ModuleStateFlags::None) {}
+			~Module();
 
 			const StringSpan& GetName() const { return name; }
 			void SetName(const StringSpan& value) { name = value; }
@@ -430,6 +432,10 @@ namespace HXSL
 			bool HasTables() const { return HasStateFlags(ModuleStateFlags::HasTables); }
 			bool HasLayouts() const { return HasStateFlags(ModuleStateFlags::HasLayouts); }
 			bool IsComplete() const { return HasStateFlags(ModuleStateFlags::Complete); }
+
+			ModuleReader* GetReader() { return reader; }
+
+			static uptr<Module> OpenRead(const ObjPtr<Stream>& stream, ModuleLinker& linker);
 		};
 
 		using type_layout_checker =

@@ -1,4 +1,5 @@
 #include "module_decompiler.hpp"
+#include <core/module_reader.hpp>
 
 namespace HXSL
 {
@@ -352,6 +353,7 @@ namespace HXSL
 
 	uptr<StubModule> ModuleDecompiler::Deconvert(Module* module)
 	{
+		module->GetReader()->ReadFull();
 		std::vector<Namespace*> namespaces;
 		for (auto* ns : module->GetNamespaces())
 		{

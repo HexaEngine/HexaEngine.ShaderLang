@@ -36,6 +36,7 @@ namespace HXSL
 		AssemblyBuilder& SetModule(uptr<Module>&& module)
 		{
 			assembly->module = std::move(module);
+			assembly->module->SetName(assembly->GetName());
 			return *this;
 		}
 

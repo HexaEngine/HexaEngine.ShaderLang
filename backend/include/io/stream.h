@@ -15,6 +15,7 @@ typedef size_t(*StreamWriteFunc)(void* userdata, const void* buffer, size_t size
 typedef int64_t(*StreamSeekFunc)(void* userdata, int64_t offset, SeekOrigin origin);
 typedef int64_t(*StreamGetPositionFunc)(void* userdata);
 typedef int64_t(*StreamGetLengthFunc)(void* userdata);
+typedef bool(*StreamSetLengthFunc)(void* userdata, int64_t length);
 typedef void(*StreamFlushFunc)(void* userdata);
 typedef void(*StreamCloseFunc)(void* userdata);
 
@@ -33,6 +34,7 @@ typedef struct
 	StreamSeekFunc seekFunc;
 	StreamGetPositionFunc getPositionFunc;
 	StreamGetLengthFunc getLengthFunc;
+	StreamSetLengthFunc setLengthFunc;
 	StreamFlushFunc flushFunc;
 	StreamCloseFunc closeFunc;
 } HXSLStreamDesc;

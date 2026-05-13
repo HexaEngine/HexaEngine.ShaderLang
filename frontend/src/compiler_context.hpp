@@ -17,7 +17,7 @@ namespace HXSL
 
 		CompilerContext() {}
 	public:
-		static [[nodiscard]] uptr<CompilerContext> Create()
+		[[nodiscard]] static uptr<CompilerContext> Create()
 		{
 			uptr<CompilerContext> ctx(new CompilerContext());
 			if (!GetCurrent()) SetCurrent(ctx.get());

@@ -17,9 +17,16 @@ namespace HXSL
 			} while (value);
 		}
 
+		void ILWriter::EncodeVarId(Stream* stream, ILVarId varId)
+		{
+			HXSL_ASSERT(varId.version() == 0, "Cannot encode ILVarId with version.");
+			uint64_t encoded = (static_cast<uint64_t>(varId.id()) << 1) | static_cast<uint64_t>(varId.temp());
+			stream->WriteLEB128(encoded);
+		}
+
 		void ILWriter::EncodeVarId(ILVarId varId)
 		{
-			Write(EndianUtils::ToLittleEndian(varId.raw));
+			EncodeVarId(stream, varId);
 		}
 
 		void ILWriter::EncodeOperand(const Operand* op)
@@ -30,32 +37,32 @@ namespace HXSL
 			case Value::LabelVal:
 			{
 				auto label = cast<Label>(op);
-				Write(EndianUtils::ToLittleEndian(label->label.value));
+				stream->WriteLEB128(label->label.value);
 			}
 			break;
 			case Value::TypeVal:
 			{
 				auto typeValue = cast<TypeValue>(op);
-				Write(EndianUtils::ToLittleEndian(typeValue->typeId->id));
+				stream->WriteLEB128(typeValue->typeId->id);
 			}
 			break;
 			case Value::FuncVal:
 			{
 				auto function = cast<Function>(op);
-				Write(EndianUtils::ToLittleEndian(function->funcId->id));
+				stream->WriteLEB128(function->funcId->id);
 			}
 			break;
 			case Value::FieldVal:
 			{
 				auto field = cast<FieldAccess>(op);
-				Write(EndianUtils::ToLittleEndian(field->field.fieldId.value));
-				Write(EndianUtils::ToLittleEndian(field->field.typeId->id));
+				stream->WriteLEB128(field->field.fieldId.value);
+				stream->WriteLEB128(field->field.typeId->id);
 			}
 			break;
 			case Value::VariableVal:
 			{
 				auto variable = cast<Variable>(op);
-				Write(EndianUtils::ToLittleEndian(variable->varId.raw));
+				EncodeVarId(variable->varId);
 			}
 			break;
 			case Value::ConstantVal:
@@ -79,21 +86,34 @@ namespace HXSL
 				WriteByte(imm.u8);
 				break;
 			case NumberType_Int16:
+				stream->WriteLEB128(imm.i16);
+				break;
+			case NumberType_Int32:
+				stream->WriteLEB128(imm.i32);
+				break;
+			case NumberType_Int64:
+				stream->WriteLEB128(imm.i64);
+				break;
 			case NumberType_UInt16:
+				stream->WriteLEB128(imm.u16);
+				break;
+			case NumberType_UInt32:
+				stream->WriteLEB128(imm.u32);
+				break;
+			case NumberType_UInt64:
+				stream->WriteLEB128(imm.u64);
+				break;
 			case NumberType_Half:
 				Write(EndianUtils::ToLittleEndian(imm.u16));
 				break;
-			case NumberType_Int32:
-			case NumberType_UInt32:
 			case NumberType_Float:
 				Write(EndianUtils::ToLittleEndian(imm.u32));
 				break;
-			case NumberType_Int64:
-			case NumberType_UInt64:
 			case NumberType_Double:
 				Write(EndianUtils::ToLittleEndian(imm.u64));
 				break;
 			default:
+				HXSL_ASSERT(false, "Unhandled number type.");
 				break;
 			}
 		}
@@ -162,7 +182,7 @@ namespace HXSL
 				auto callInstr = cast<CallInstr>(&instr);
 				auto func = callInstr->GetFunction();
 				EncodeOperand(func);
-				Write(EndianUtils::ToLittleEndian(callInstr->GetResult().raw));
+				EncodeVarId(callInstr->GetResult());
 			}
 			break;
 			case Value::JumpInstrVal:
@@ -288,10 +308,17 @@ namespace HXSL
 			return static_cast<ILOpCode>(value);
 		}
 
+		ILVarId ILReader::DecodeVarId(Stream* stream)
+		{
+			auto encoded = stream->ReadLEB128<uint64_t>();
+			bool temp = (encoded & 1) != 0;
+			auto id = static_cast<uint32_t>(encoded >> 1);
+			return ILVarId(id, 0, temp);
+		}
+
 		ILVarId ILReader::DecodeVarId()
 		{
-			auto raw = EndianUtils::FromLittleEndian(Read<uint64_t>());
-			return ILVarId(raw);
+			return DecodeVarId(stream);
 		}
 
 		Operand* ILReader::DecodeOperand(OpKind kind)
@@ -309,44 +336,44 @@ namespace HXSL
 			case OpKind::ImmI8:
 				return alloc.Alloc<Constant>(Number(Read<int8_t>()));
 			case OpKind::ImmU16:
-				return alloc.Alloc<Constant>(Number(EndianUtils::FromLittleEndian(Read<uint16_t>())));
+				return alloc.Alloc<Constant>(Number(stream->ReadLEB128<uint16_t>()));
 			case OpKind::ImmI16:
-				return alloc.Alloc<Constant>(Number(EndianUtils::FromLittleEndian(Read<int16_t>())));
+				return alloc.Alloc<Constant>(Number(stream->ReadLEB128<int16_t>()));
 			case OpKind::ImmF16:
 				return alloc.Alloc<Constant>(Number(static_cast<half>(EndianUtils::FromLittleEndian(Read<uint16_t>()))));
 			case OpKind::ImmU32:
-				return alloc.Alloc<Constant>(Number(EndianUtils::FromLittleEndian(Read<uint32_t>())));
+				return alloc.Alloc<Constant>(Number(stream->ReadLEB128<uint32_t>()));
 			case OpKind::ImmI32:
-				return alloc.Alloc<Constant>(Number(EndianUtils::FromLittleEndian(Read<int32_t>())));
+				return alloc.Alloc<Constant>(Number(stream->ReadLEB128<int32_t>()));
 			case OpKind::ImmF32:
 				return alloc.Alloc<Constant>(Number(EndianUtils::FromLittleEndian(Read<float>())));
 			case OpKind::ImmU64:
-				return alloc.Alloc<Constant>(Number(EndianUtils::FromLittleEndian(Read<uint64_t>())));
+				return alloc.Alloc<Constant>(Number(stream->ReadLEB128<uint64_t>()));
 			case OpKind::ImmI64:
-				return alloc.Alloc<Constant>(Number(EndianUtils::FromLittleEndian(Read<int64_t>())));
+				return alloc.Alloc<Constant>(Number(stream->ReadLEB128<int64_t>()));
 			case OpKind::ImmF64:
 				return alloc.Alloc<Constant>(Number(EndianUtils::FromLittleEndian(Read<double>())));
 			case OpKind::Label:
 			{
-				auto labelValue = EndianUtils::FromLittleEndian(Read<uint64_t>());
+				auto labelValue = stream->ReadLEB128<uint64_t>();
 				return alloc.Alloc<Label>(ILLabel(labelValue));
 			}
 			case OpKind::Type:
 			{
-				auto typeId = EndianUtils::FromLittleEndian(Read<ILTypeMetadata::ILTypeId>());
+				auto typeId = stream->ReadLEB128<ILTypeMetadata::ILTypeId>();
 				auto type = options.metadata.GetTypeById(typeId);
 				return alloc.Alloc<TypeValue>(type);
 			}
 			case OpKind::Function:
 			{
-				auto funcId = EndianUtils::FromLittleEndian(Read<ILFuncCallMetadata::ILFuncCallId>());
+				auto funcId = stream->ReadLEB128<ILFuncCallMetadata::ILFuncCallId>();
 				auto func = options.metadata.GetFuncById(funcId);
 				return alloc.Alloc<Function>(func);
 			}
 			case OpKind::Field:
 			{
-				auto fieldIdValue = EndianUtils::FromLittleEndian(Read<uint32_t>());
-				auto typeId = EndianUtils::FromLittleEndian(Read<ILTypeMetadata::ILTypeId>());
+				auto fieldIdValue = stream->ReadLEB128<uint32_t>();
+				auto typeId = stream->ReadLEB128<ILTypeMetadata::ILTypeId>();
 				auto type = options.metadata.GetTypeById(typeId);
 				ILFieldAccess field(type, ILFieldId(fieldIdValue));
 				return alloc.Alloc<FieldAccess>(field);

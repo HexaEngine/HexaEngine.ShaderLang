@@ -37,19 +37,13 @@ namespace HXSL
 			template<typename T>
 			inline void WriteLittleEndian(T value)
 			{
-				stream->WriteLittleEndian(value);
-			}
-
-			template<>
-			inline void WriteLittleEndian(RecordId value)
-			{
-				stream->WriteLittleEndian(value.value);
+				stream->WriteLEB128(value);
 			}
 
 			inline void WriteString(const StringSpan& str)
 			{
 				uint32_t len = static_cast<uint32_t>(str.size());
-				WriteLittleEndian(len);
+				stream->WriteLEB128(len);
 				if (len == 0) return;
 				stream->Write(str.data(), len);
 			}

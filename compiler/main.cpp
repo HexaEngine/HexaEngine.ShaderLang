@@ -1,10 +1,32 @@
 #include "hxls_compiler.hpp"
+#include <utils/co_trampoline.hpp>
 
 #define _CRTDBG_MAP_ALLOC
 #include <cstdlib>
 #include <crtdbg.h>
 
 using namespace HXSL;
+
+static size_t nextTask = 0;
+
+TrampolineTask<bool> Test2()
+{
+	nextTask = 1;
+	co_await TrampolineBounce();
+	nextTask = 22;
+	co_await TrampolineBounce();
+	co_return true;
+}
+
+TrampolineTask<bool> Test()
+{
+	if (nextTask == 22) co_return true;
+	co_await Test2();
+	co_return true;
+}
+
+
+
 
 int main()
 {

@@ -16,11 +16,26 @@ namespace HXSL
 		RecordId ExportTableBuilder::Append(Layout* layout, const StringSpan& mangledName)
 		{
 			auto& entry = table.Append(layout, mangledName);
-			sizeInBytes += entry.SizeOf();
+			sizeInBytes += entry.SizeOfEstimate();
 
 			auto id = RecordId::Export(table.size()); // 1 based; 0 is null
 			layout->SetExportId(id);
 			return id;
+		}
+
+		uint64_t ExportTableBuilder::ComputeSize() const
+		{
+			uint64_t size = ExportTableHeader(table.size()).SizeOf();
+			uint64_t prevOffset = 0;
+			for (auto& entry : table)
+			{
+				HXSL_ASSERT(entry.offset >= prevOffset, "Export table entries must be written in monotonically increasing offset order");
+
+				size += entry.SizeOf(prevOffset);
+				prevOffset = entry.offset;
+			}
+
+			return size;
 		}
 
 		ImportTableEntry& ImportTable::Append(Layout* layout, const StringSpan& mangledName)

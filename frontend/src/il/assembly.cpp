@@ -96,8 +96,8 @@ namespace HXSL
 
 		auto ctx = CompilerContext::GetCurrent();
 		Backend::ModuleLinker linker = { ctx->GetResolver() };
-		Backend::ModuleReader reader(stream, linker);
-		assembly->module = reader.Read();
+
+		assembly->module = Backend::Module::OpenRead(stream, linker);
 
 		assembly->Seal();
 		assemblyOut = std::move(assembly);

@@ -4,6 +4,7 @@
 #include "il_metadata.hpp"
 #include "jump_table.hpp"
 #include "il_container.hpp"
+#include <utils/co_trampoline.hpp>
 
 namespace HXSL
 {
@@ -18,6 +19,9 @@ namespace HXSL
 			ILContainer instructions;
 
 		public:
+			template<typename T>
+			using CoTask = TrampolineTask<T>;
+
 			ILCodeBlob() : metadata(allocator), instructions(allocator)
 			{
 			}
@@ -25,7 +29,7 @@ namespace HXSL
 			void FromContext(ILContext* context);
 			void Print();
 			void Write(Stream* stream, ModuleWriterContext& context);
-			void Read(Stream* stream, ModuleReader& context);
+			CoTask<void> Read(Stream* stream, ModuleReader& context);
 
 			ILContainer& GetInstructions() { return instructions; }
 			const ILContainer& GetInstructions() const { return instructions; }

@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.12)
 
 project(HXSLCompiler VERSION 1.0 LANGUAGES CXX)
 
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-w)
+endif()
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/zstd/build/cmake ${CMAKE_BINARY_DIR}/external/zstd)
 target_include_directories(zstd PUBLIC ${CMAKE_SOURCE_DIR}/external/zstd/lib/)
 

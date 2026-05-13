@@ -62,7 +62,7 @@ namespace HXSL
 		void SSABuilder::InsertPhiMeta(BasicBlock& node, ILVarId varId)
 		{
 			auto& globalMetadata = metadata;
-			auto& var = globalMetadata.variables[varId.var.id];
+			auto& var = globalMetadata.variables[varId.id()];
 			auto incomingCount = node.NumPredecessors();
 			auto instr = node.InsertInstr(node.begin(), PhiInstr(context->allocator, var, incomingCount));
 			globalMetadata.phiNodes.push_back(instr);

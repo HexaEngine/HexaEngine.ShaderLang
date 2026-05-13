@@ -37,7 +37,7 @@ namespace HXSL
 			ILVarId MakeNewVersion(ILVarId varId, bool push = true)
 			{
 				ILVarId newVersion = varId;
-				newVersion.var.version = ++versionCounters[varId];
+				newVersion.version(++versionCounters[varId]);
 				if (push)
 				{
 					versionStacks[varId].push(newVersion);

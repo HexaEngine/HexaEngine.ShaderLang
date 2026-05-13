@@ -489,7 +489,7 @@ namespace HXSL
 		{
 			Token current = Current();
 			if (current.Type != TokenType_Delimiter) return true;
-			char delimiter = current.Span[0];
+			char delimiter = current.Value;
 			if (delimiters.find(delimiter) != delimiters.end())
 			{
 				LogFormatted(code, std::forward<Args>(args)...);

@@ -5,7 +5,7 @@
 
 HXSL_API HXSLStream* HXSL_CreateStream(HXSLStreamDesc* desc)
 {
-	HXSL::Stream* stream = new HXSL::Stream(desc->version, desc->userdata, desc->readFunc, desc->writeFunc, desc->seekFunc, desc->getPositionFunc, desc->getLengthFunc, desc->flushFunc, desc->closeFunc);
+	HXSL::Stream* stream = new HXSL::Stream(desc->version, desc->userdata, desc->readFunc, desc->writeFunc, desc->seekFunc, desc->getPositionFunc, desc->getLengthFunc, desc->setLengthFunc, desc->flushFunc, desc->closeFunc);
 	return reinterpret_cast<HXSLStream*>(stream);
 }
 

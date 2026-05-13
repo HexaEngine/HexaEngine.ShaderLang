@@ -55,7 +55,7 @@ namespace HXSL
 			}
 
 			FunctionInlinerConfig config{};
-			config.inlineExtern = true;
+			config.inlineExtern = false;
 			FunctionInliner inliner = FunctionInliner(config);
 			for (size_t i = 0; i < 10; ++i)
 			{

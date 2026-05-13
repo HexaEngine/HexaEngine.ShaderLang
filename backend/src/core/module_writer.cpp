@@ -4,6 +4,7 @@
 #include "core/name_mangler.hpp"
 #include "utils/endianness.hpp"
 #include "il/il_encoding.hpp"
+#include <random>
 
 namespace HXSL
 {
@@ -41,7 +42,9 @@ namespace HXSL
 		void ModuleWriter::WriteRecordRef(const Layout* layout)
 		{
 			RecordId id = GetRecordId(layout);
-			WriteLittleEndian(id);
+			auto value = id.value;
+			auto encoded = (value >> 63) | (value << 1);
+			stream->WriteLEB128(encoded);
 		}
 
 		void ModuleWriter::WriteNamespace(const NamespaceLayout* ns)
@@ -467,7 +470,7 @@ namespace HXSL
 			auto referenceTableStart = stream->Position();
 			stream->Seek(header.moduleReferenceTableSize, SeekOrigin_Current);
 
-			header.exportTableSize = exportTable->TotalSizeInBytes();
+			header.exportTableSize = exportTable->EstimateSizeInBytes();
 			auto exportTableStart = stream->Position();
 			stream->Seek(header.exportTableSize, SeekOrigin_Current);
 
@@ -523,9 +526,53 @@ namespace HXSL
 				}
 			}
 
-			auto end = stream->Position();
+			uint64_t delta = 0;
+			uint64_t firstSize = exportTable->EstimateSizeInBytes();
+			uint64_t estimateSize = firstSize;
+			do
+			{
+				uint64_t size = exportTable->ComputeSize();
+				HXSL_ASSERT(size <= estimateSize, "Actual size is larger than estimate that should never happen.");
+				delta = estimateSize - size;
+				if (delta)
+				{
+					for (auto& entry : exportTable->table)
+					{
+						HXSL_ASSERT(entry.offset >= delta, "Export table offset underflow during compaction");
+						entry.offset -= delta;
+					}
+				}
+				estimateSize = size;
+			} while (delta > 0);
 
+			auto end = stream->Position();
 			header.recordSectionSize = static_cast<uint64_t>(end - recordSectionStart);
+
+			auto moveDelta = firstSize - estimateSize;
+			if (moveDelta > 0)
+			{
+				Array<uint8_t, 4096> buffer;
+
+				auto fromPos = recordSectionStart;
+				auto toPos = recordSectionStart - moveDelta;
+				auto toMove = header.recordSectionSize;
+				while (toMove > 0)
+				{
+					stream->Position(fromPos);
+					auto toCopy = std::min(toMove, buffer.size());
+					stream->Read(buffer.data(), toCopy);
+					stream->Position(toPos);
+					stream->Write(buffer.data(), toCopy);
+					fromPos += toCopy;
+					toPos += toCopy;
+					toMove -= toCopy;
+				}
+
+				recordSectionStart -= moveDelta;
+				importTableStart -= moveDelta;
+				end -= moveDelta;
+			}
+			header.exportTableSize = estimateSize;
 
 			stream->Position(referenceTableStart);
 
@@ -545,6 +592,7 @@ namespace HXSL
 			header.Write(stream.Get());
 
 			stream->Position(end);
+			stream->Length(end);
 		}
 	}
 }

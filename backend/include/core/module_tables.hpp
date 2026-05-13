@@ -6,6 +6,9 @@ namespace HXSL
 {
 	namespace Backend
 	{
+		static_assert(static_cast<uint8_t>(LayoutType::Count) <= 16, "LayoutType no longer fits in 4 bits");
+		static_assert(AccessModifier_All <= 0x0F);
+
 		struct ExportTableEntry
 		{
 			StringSpan name = {};
@@ -14,30 +17,39 @@ namespace HXSL
 			uint64_t offset = 0;
 			Layout* layout = nullptr;
 
-			size_t SizeOf() const
+			size_t SizeOfEstimate() const
 			{
-				return sizeof(uint32_t) + name.size() + sizeof(LayoutType) + sizeof(AccessModifier) + sizeof(uint64_t);
+				return LEB128Size(static_cast<uint32_t>(name.size())) + name.size() + sizeof(uint8_t) + sizeof(uint64_t);
 			}
 
-			void Write(Stream* stream) const
+			size_t SizeOf(uint64_t prevOffset) const
 			{
-				stream->WriteLittleEndian(static_cast<uint32_t>(name.size()));
+				auto delta = offset - prevOffset;
+				return LEB128Size(static_cast<uint32_t>(name.size())) + name.size() + sizeof(uint8_t) + LEB128Size(delta);
+			}
+
+			void Write(Stream* stream, uint64_t prevOffset) const
+			{
+				stream->WriteLEB128(static_cast<uint32_t>(name.size()));
 				stream->Write(name.data(), name.size());
-				stream->WriteLittleEndian(type);
-				stream->WriteLittleEndian(access);
-				stream->WriteLittleEndian(offset);
+				uint8_t packed = (static_cast<uint8_t>(type) << 4) | (static_cast<uint8_t>(access) & 0x0F);
+				stream->WriteLittleEndian(packed);
+				auto delta = offset - prevOffset;
+				stream->WriteLEB128(delta);
 			}
 
-			void Read(Stream* stream, BumpAllocator& allocator)
+			void Read(Stream* stream, BumpAllocator& allocator, uint64_t prevOffset)
 			{
-				auto len = stream->ReadLittleEndian<uint32_t>();
+				auto len = stream->ReadLEB128<uint32_t>();
 				auto* pname = allocator.AllocT<char>(len + 1);
 				stream->Read(pname, len);
 				pname[len] = 0;
 				name = { pname, len };
-				type = stream->ReadLittleEndian<LayoutType>();
-				access = stream->ReadLittleEndian<AccessModifier>();
-				offset = stream->ReadLittleEndian<uint64_t>();
+				auto packed = stream->ReadLittleEndian<uint8_t>();
+				type = static_cast<LayoutType>(packed >> 4);
+				access = static_cast<AccessModifier>(packed & 0x0F);
+				auto delta = stream->ReadLEB128<uint64_t>();
+				offset = prevOffset + delta;
 			}
 		};
 
@@ -45,16 +57,16 @@ namespace HXSL
 		{
 			uint64_t count = 0;
 
-			static constexpr size_t SizeOf() { return sizeof(uint64_t); }
+			constexpr size_t SizeOf() const { return LEB128Size(count); }
 
 			void Write(Stream* stream) const
 			{
-				stream->WriteLittleEndian(count);
+				stream->WriteLEB128(count);
 			}
 
 			void Read(Stream* stream)
 			{
-				count = stream->ReadLittleEndian<uint64_t>();
+				count = stream->ReadLEB128<uint64_t>();
 			}
 		};
 
@@ -97,9 +109,12 @@ namespace HXSL
 				ExportTableHeader header = { static_cast<uint64_t>(entries.size()) };
 				header.Write(stream);
 
+				uint64_t prevOffset = 0;
 				for (auto& entry : entries)
 				{
-					entry.Write(stream);
+					entry.Write(stream, prevOffset);
+					HXSL_ASSERT(entry.offset >= prevOffset, "Offsets must be linear");
+					prevOffset = entry.offset;
 				}
 			}
 
@@ -110,9 +125,12 @@ namespace HXSL
 
 				auto count = static_cast<size_t>(header.count);
 				entries.resize(count);
+				uint64_t prevOffset = 0;
 				for (size_t i = 0; i < count; ++i)
 				{
-					entries[i].Read(stream, allocator);
+					auto& entry = entries[i];
+					entry.Read(stream, allocator, prevOffset);
+					prevOffset = entry.offset;
 				}
 			}
 		};
@@ -120,7 +138,7 @@ namespace HXSL
 		struct ExportTableBuilder
 		{
 			ExportTable& table;
-			size_t sizeInBytes = 0;
+			uint64_t sizeInBytes = 0;
 
 			RecordId Append(Layout* layout, const StringSpan& mangledName);
 
@@ -135,7 +153,9 @@ namespace HXSL
 				table[index].offset = offset;
 			}
 
-			size_t TotalSizeInBytes() const { return sizeInBytes + ExportTableHeader::SizeOf(); }
+			uint64_t EstimateSizeInBytes() const { return sizeInBytes + ExportTableHeader(table.size()).SizeOf(); }
+
+			uint64_t ComputeSize() const;
 
 			void Write(Stream* stream) const
 			{
@@ -151,19 +171,19 @@ namespace HXSL
 
 			size_t SizeOf() const
 			{
-				return sizeof(uint32_t) + name.size() + sizeof(LayoutType);
+				return LEB128Size(static_cast<uint32_t>(name.size())) + name.size() + sizeof(LayoutType);
 			}
 
 			void Write(Stream* stream) const
 			{
-				stream->WriteLittleEndian(static_cast<uint32_t>(name.size()));
+				stream->WriteLEB128(static_cast<uint32_t>(name.size()));
 				stream->Write(name.data(), name.size());
 				stream->WriteLittleEndian(type);
 			}
 
 			void Read(Stream* stream, BumpAllocator& allocator)
 			{
-				auto len = stream->ReadLittleEndian<uint32_t>();
+				auto len = stream->ReadLEB128<uint32_t>();
 				auto* pname = allocator.AllocT<char>(len + 1);
 				stream->Read(pname, len);
 				pname[len] = 0;
@@ -176,16 +196,16 @@ namespace HXSL
 		{
 			uint64_t count = 0;
 
-			static constexpr size_t SizeOf() { return sizeof(uint64_t); }
+			constexpr size_t SizeOf() const { return LEB128Size(count); }
 
 			void Write(Stream* stream) const
 			{
-				stream->WriteLittleEndian(count);
+				stream->WriteLEB128(count);
 			}
 
 			void Read(Stream* stream)
 			{
-				count = stream->ReadLittleEndian<uint64_t>();
+				count = stream->ReadLEB128<uint64_t>();
 			}
 		};
 
@@ -252,7 +272,7 @@ namespace HXSL
 
 			RecordId Append(Layout* layout, const StringSpan& mangledName);
 
-			size_t TotalSizeInBytes() const { return sizeInBytes + ImportTableHeader::SizeOf(); }
+			size_t TotalSizeInBytes() const { return sizeInBytes + ImportTableHeader(table.size()).SizeOf(); }
 
 			void Write(Stream* stream) const
 			{
@@ -265,18 +285,18 @@ namespace HXSL
 			StringSpan name;
 			Version version;
 
-			size_t SizeOf() const { return sizeof(uint32_t) + name.size() + Version::SizeOf(); }
+			size_t SizeOf() const { return LEB128Size(static_cast<uint32_t>(name.size())) + name.size() + version.SizeOf(); }
 
 			void Write(Stream* stream) const
 			{
-				stream->WriteLittleEndian(static_cast<uint32_t>(name.size()));
+				stream->WriteLEB128(static_cast<uint32_t>(name.size()));
 				stream->Write(name.data(), name.size());
 				version.Write(stream);
 			}
 
 			void Read(Stream* stream, BumpAllocator& allocator)
 			{
-				auto len = stream->ReadLittleEndian<uint32_t>();
+				auto len = stream->ReadLEB128<uint32_t>();
 				auto* pname = allocator.AllocT<char>(len + 1);
 				stream->Read(pname, len);
 				pname[len] = 0;
@@ -295,16 +315,16 @@ namespace HXSL
 			using ModuleIdCount = LayoutDataTypes::ModuleIdCount;
 			ModuleIdCount count = 0;
 
-			static constexpr size_t SizeOf() { return sizeof(ModuleIdCount); }
+			constexpr size_t SizeOf() const { return LEB128Size(count); }
 
 			void Write(Stream* stream) const
 			{
-				stream->WriteLittleEndian(count);
+				stream->WriteLEB128(count);
 			}
 
 			void Read(Stream* stream)
 			{
-				count = stream->ReadLittleEndian<ModuleIdCount>();
+				count = stream->ReadLEB128<ModuleIdCount>();
 			}
 		};
 
@@ -372,7 +392,7 @@ namespace HXSL
 				return table.IndexToId(index);
 			}
 
-			size_t TotalSizeInBytes() const { return sizeInBytes + ModuleReferenceTableHeader::SizeOf(); }
+			size_t TotalSizeInBytes() const { return sizeInBytes + ModuleReferenceTableHeader(table.size()).SizeOf(); }
 
 			void Write(Stream* stream) const
 			{

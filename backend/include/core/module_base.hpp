@@ -34,6 +34,7 @@ namespace HXSL
 
 		class ModuleReader;
 		class ModuleWriter;
+		class ModuleLinker;
 
 		enum class LayoutFlags : uint8_t
 		{
@@ -58,6 +59,7 @@ namespace HXSL
 			EnumItemLayoutType,
 			PrimitiveLayoutType,
 			PointerLayoutType,
+			Count,
 		};
 
 		struct RecordId

@@ -9,8 +9,53 @@
 
 #include "pch/std.hpp"
 
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 namespace HXSL
 {
+	static constexpr size_t LEB128Size(uint32_t v)
+	{
+		if (v < (1u << 7))  return 1;
+		if (v < (1u << 14)) return 2;
+		if (v < (1u << 21)) return 3;
+		if (v < (1u << 28)) return 4;
+		return 5;
+	}
+
+	static constexpr size_t LEB128Size(uint64_t v)
+	{
+		if (v < (1u << 7))  return 1;
+		if (v < (1u << 14)) return 2;
+		if (v < (1u << 21)) return 3;
+		if (v < (1u << 28)) return 4;
+		if (v < (1ull << 35)) return 5;
+		if (v < (1ull << 42)) return 6;
+		if (v < (1ull << 49)) return 7;
+		if (v < (1ull << 56)) return 8;
+		if (v < (1ull << 63)) return 9;
+		return 10;
+	}
+
+
+
+	template<std::signed_integral T>
+	static constexpr std::make_unsigned_t<T> EncodeZigZag(T value)
+	{
+		using UT = std::make_unsigned_t<T>;
+		constexpr size_t bits = sizeof(T) * 8;
+		return static_cast<UT>((value << 1) ^ (value >> (bits - 1)));
+	}
+
+	template<std::signed_integral T>
+	static constexpr T DecodeZigZag(std::make_unsigned_t<T> value)
+	{
+		return static_cast<T>((value >> 1)) ^ -static_cast<T>((value & 1));
+	}
+
 	class Stream
 	{
 	private:
@@ -24,12 +69,13 @@ namespace HXSL
 		StreamSeekFunc seekFunc;
 		StreamGetPositionFunc getPositionFunc;
 		StreamGetLengthFunc getLengthFunc;
+		StreamSetLengthFunc setLengthFunc;
 		StreamFlushFunc flushFunc;
 		StreamCloseFunc closeFunc;
 
 	public:
-		Stream(size_t version, void* userdata, const StreamReadFunc& readFunc, const StreamWriteFunc& writeFunc, const StreamSeekFunc& seekFunc, const StreamGetPositionFunc& getPositionFunc, const StreamGetLengthFunc& getLengthFunc, const StreamFlushFunc& flushFunc, const StreamCloseFunc& closeFunc)
-			: version(version), userdata(userdata), readFunc(readFunc), writeFunc(writeFunc), seekFunc(seekFunc), getPositionFunc(getPositionFunc), getLengthFunc(getLengthFunc), flushFunc(flushFunc), closeFunc(closeFunc)
+		Stream(size_t version, void* userdata, const StreamReadFunc& readFunc, const StreamWriteFunc& writeFunc, const StreamSeekFunc& seekFunc, const StreamGetPositionFunc& getPositionFunc, const StreamGetLengthFunc& getLengthFunc, const StreamSetLengthFunc& setLengthFunc, const StreamFlushFunc& flushFunc, const StreamCloseFunc& closeFunc)
+			: version(version), userdata(userdata), readFunc(readFunc), writeFunc(writeFunc), seekFunc(seekFunc), getPositionFunc(getPositionFunc), getLengthFunc(getLengthFunc), setLengthFunc(setLengthFunc), flushFunc(flushFunc), closeFunc(closeFunc)
 		{
 		}
 
@@ -190,6 +236,15 @@ namespace HXSL
 			return EOF;
 		}
 
+		bool Length(int64_t length)
+		{
+			if (setLengthFunc)
+			{
+				return setLengthFunc(userdata, length);
+			}
+			return false;
+		}
+
 		void Flush() const
 		{
 			if (flushFunc)
@@ -210,6 +265,7 @@ namespace HXSL
 				seekFunc = nullptr;
 				getPositionFunc = nullptr;
 				getLengthFunc = nullptr;
+				setLengthFunc = nullptr;
 				flushFunc = nullptr;
 				closeFunc = nullptr;
 			}
@@ -221,6 +277,11 @@ namespace HXSL
 			T val{};
 			Read(&val, sizeof(T));
 			return val;
+		}
+
+		uint8_t ReadByte()
+		{
+			return Read<uint8_t>();
 		}
 
 		template<typename T>
@@ -245,25 +306,25 @@ namespace HXSL
 			return ReadLittleEndian<uint32_t>();
 		}
 
-		void WriteString(const std::string& str) const
+		void WriteString(const std::string& str)
 		{
 			uint32_t len = static_cast<uint32_t>(str.size());
-			WriteUInt(len);
+			WriteLEB128(len);
 			if (len == 0) return;
 			Write(str.data(), len);
 		}
 
-		void WriteString(const StringSpan& str) const
+		void WriteString(const StringSpan& str)
 		{
 			uint32_t len = static_cast<uint32_t>(str.size());
-			WriteUInt(len);
+			WriteLEB128(len);
 			if (len == 0) return;
 			Write(str.data(), len);
 		}
 
-		std::string ReadString() const
+		std::string ReadString()
 		{
-			uint32_t len = ReadUInt();
+			uint32_t len = ReadLEB128<uint32_t>();
 			std::string result(len, '\0');
 			Read(result.data(), len);
 			return result;
@@ -280,20 +341,82 @@ namespace HXSL
 			Read(result.data(), lenU);
 			return result;
 		}
+
+		template<std::unsigned_integral T>
+		void WriteLEB128(T value)
+		{
+			constexpr size_t size = sizeof(T);
+			constexpr size_t lebMaxCount = DivCeil(size * 8, 7);
+			uint8_t buf[lebMaxCount]{};
+			size_t i = 0;
+			do
+			{
+				uint8_t b = value & 0x7F;
+				value >>= 7;
+				b |= (value != 0) << 7;
+				buf[i++] = b;
+			} while (value);
+			Write(buf, i);
+		}
+
+		template<typename T>
+			requires std::is_enum_v<T>&& std::integral<std::underlying_type_t<T>>
+		void WriteLEB128(T value)
+		{
+			WriteLEB128(static_cast<std::underlying_type_t<T>>(value));
+		}
+
+		template<std::signed_integral T>
+		void WriteLEB128(T value)
+		{
+			WriteLEB128(EncodeZigZag(value));
+		}
+
+		template<std::unsigned_integral T>
+		T ReadLEB128()
+		{
+			constexpr size_t size = sizeof(T);
+			constexpr size_t lebMaxCount = DivCeil(size * 8, 7);
+			T value = 0;
+			size_t shift = 0;
+			uint8_t b;
+			do
+			{
+				b = ReadByte();
+				value |= static_cast<T>(b & 0x7F) << (shift * 7);
+				shift++;
+			} while (b & 0x80 && shift < lebMaxCount);
+
+			HXSL_ASSERT((b & 0x80) == 0, "Invalid LEB128 value.");
+
+			return value;
+		}
+
+		template<typename T>
+			requires std::is_enum_v<T>&& std::integral<std::underlying_type_t<T>>
+		T ReadLEB128()
+		{
+			return static_cast<T>(ReadLEB128<std::underlying_type_t<T>>());
+		}
+
+		template<std::signed_integral T>
+		T ReadLEB128()
+		{
+			return DecodeZigZag<T>(ReadLEB128<std::make_unsigned_t<T>>());
+		}
 	};
 
 	class FileStream : public Stream
 	{
-
 		FILE* file;
 		FileStream(FILE* file)
-			: Stream(sizeof(FileStream), this, FileStreamRead, FileStreamWrite, FileStreamSeek, FileStreamPosition, FileStreamLength, FileStreamFlush, FileStreamClose),
+			: Stream(sizeof(FileStream), this, FileStreamRead, FileStreamWrite, FileStreamSeek, FileStreamPosition, FileStreamLength, FileStreamSetLength, FileStreamFlush, FileStreamClose),
 			file(file)
 		{
 		}
 
 	public:
-		static [[nodiscard]] ObjPtr<FileStream> OpenRead(const char* path)
+		[[nodiscard]] static ObjPtr<FileStream> OpenRead(const char* path)
 		{
 			FILE* file;
 			auto error = fopen_s(&file, path, "rb");
@@ -304,7 +427,7 @@ namespace HXSL
 			return ObjPtr<FileStream>::Attach(new FileStream(file));
 		}
 
-		static [[nodiscard]] ObjPtr<FileStream> OpenCreate(const char* path)
+		[[nodiscard]] static ObjPtr<FileStream> OpenCreate(const char* path)
 		{
 			FILE* file;
 			auto error = fopen_s(&file, path, "wb+");
@@ -315,7 +438,7 @@ namespace HXSL
 			return ObjPtr<FileStream>::Attach(new FileStream(file));
 		}
 
-		static [[nodiscard]] ObjPtr<FileStream> Open(const char* path, const char* mode)
+		[[nodiscard]] static ObjPtr<FileStream> Open(const char* path, const char* mode)
 		{
 			FILE* file;
 			auto error = fopen_s(&file, path, mode);
@@ -371,6 +494,20 @@ namespace HXSL
 			return length;
 		}
 
+		static bool FileStreamSetLength(void* userdata, int64_t length)
+		{
+			FileStream* fs = static_cast<FileStream*>(userdata);
+			auto file = fs->file;
+
+			fflush(fs->file);
+
+#if defined(_WIN32)
+			return _chsize_s(_fileno(fs->file), static_cast<__int64>(length)) == 0;
+#else
+			return ftruncate(fileno(fs->file), static_cast<off_t>(length)) == 0;
+#endif
+		}
+
 		static void FileStreamFlush(void* userdata)
 		{
 			FileStream* fs = static_cast<FileStream*>(userdata);
@@ -405,22 +542,22 @@ namespace HXSL
 			capacity = 0;
 		}
 
-		MemoryStream(uint8_t* buffer, size_t size, bool isDynamic) : Stream(sizeof(MemoryStream), this, MemoryStreamRead, MemoryStreamWrite, MemoryStreamSeek, MemoryStreamPosition, MemoryStreamLength, MemoryStreamFlush, MemoryStreamClose),
+		MemoryStream(uint8_t* buffer, size_t size, bool isDynamic) : Stream(sizeof(MemoryStream), this, MemoryStreamRead, MemoryStreamWrite, MemoryStreamSeek, MemoryStreamPosition, MemoryStreamLength, MemoryStreamSetLength, MemoryStreamFlush, MemoryStreamClose),
 			buffer(buffer), position(0), length(size), capacity(size), isDynamic(isDynamic)
 		{
 		}
 
-		MemoryStream(size_t capacity) : Stream(sizeof(MemoryStream), this, MemoryStreamRead, MemoryStreamWrite, MemoryStreamSeek, MemoryStreamPosition, MemoryStreamLength, MemoryStreamFlush, MemoryStreamClose),
+		MemoryStream(size_t capacity) : Stream(sizeof(MemoryStream), this, MemoryStreamRead, MemoryStreamWrite, MemoryStreamSeek, MemoryStreamPosition, MemoryStreamLength, MemoryStreamSetLength, MemoryStreamFlush, MemoryStreamClose),
 			buffer((uint8_t*)HXSL_Alloc(capacity)), position(0), length(capacity), capacity(capacity), isDynamic(true)
 		{
 		}
 	public:
-		static [[nodiscard]] ObjPtr<MemoryStream> Create(uint8_t* buffer, size_t size, bool isDynamic)
+		[[nodiscard]] static ObjPtr<MemoryStream> Create(uint8_t* buffer, size_t size, bool isDynamic)
 		{
 			return ObjPtr<MemoryStream>::Attach(new MemoryStream(buffer, size, isDynamic));
 		}
 
-		static [[nodiscard]] ObjPtr<MemoryStream> Create(size_t capacity)
+		[[nodiscard]] static ObjPtr<MemoryStream> Create(size_t capacity)
 		{
 			return ObjPtr<MemoryStream>::Attach(new MemoryStream(capacity));
 		}
@@ -520,6 +657,35 @@ namespace HXSL
 			return stream->length;
 		}
 
+		static bool MemoryStreamSetLength(void* userdata, int64_t length)
+		{
+			if (length < 0) return false;
+			MemoryStream* stream = static_cast<MemoryStream*>(userdata);
+			size_t newLength = static_cast<size_t>(length);
+
+			if (newLength > stream->capacity)
+			{
+				if (!stream->isDynamic) return false;
+				auto newCapacity = std::max(stream->capacity * 2, newLength);
+				auto newBuffer = (uint8_t*)HXSL_ReAlloc(stream->buffer, newCapacity);
+				if (newBuffer == nullptr) return false;
+				stream->buffer = newBuffer;
+				stream->capacity = newCapacity;
+			}
+
+			if (newLength > stream->length)
+			{
+				std::memset(stream->buffer + stream->length, 0, newLength - stream->length);
+			}
+
+			stream->length = newLength;
+			if (stream->position > newLength)
+			{
+				stream->position = newLength;
+			}
+			return true;
+		}
+
 		static void MemoryStreamFlush(void* userdata)
 		{
 		}
@@ -554,7 +720,7 @@ namespace HXSL
 		LastAction lastAction;
 
 		BufferedStream(const ObjPtr<Stream>& inner, bool closeInner = true, size_t bufferSize = 4096)
-			: Stream(sizeof(BufferedStream), this, BufferedStreamRead, BufferedStreamWrite, BufferedStreamSeek, BufferedStreamPosition, BufferedStreamLength, BufferedStreamFlush, BufferedStreamClose),
+			: Stream(sizeof(BufferedStream), this, BufferedStreamRead, BufferedStreamWrite, BufferedStreamSeek, BufferedStreamPosition, BufferedStreamLength, BufferedStreamSetLength, BufferedStreamFlush, BufferedStreamClose),
 			inner(inner),
 			closeInner(closeInner),
 			bufferSize(bufferSize),
@@ -569,7 +735,7 @@ namespace HXSL
 		BufferedStream& operator=(const BufferedStream&) = delete;
 
 	public:
-		static [[nodiscard]] ObjPtr<BufferedStream> Create(const ObjPtr<Stream>& inner, bool closeInner = true, size_t bufferSize = 4096)
+		[[nodiscard]] static ObjPtr<BufferedStream> Create(const ObjPtr<Stream>& inner, bool closeInner = true, size_t bufferSize = 4096)
 		{
 			return ObjPtr<BufferedStream>::Attach(new BufferedStream(inner, closeInner, bufferSize));
 		}
@@ -708,6 +874,13 @@ namespace HXSL
 		{
 			auto stream = static_cast<BufferedStream*>(userdata);
 			return stream->inner->Length();
+		}
+
+		static bool BufferedStreamSetLength(void* userdata, int64_t length)
+		{
+			auto stream = static_cast<BufferedStream*>(userdata);
+			if (stream->lastAction == LastAction::Write) { stream->Flush(); }
+			return stream->inner->Length(length);
 		}
 
 		static void BufferedStreamFlush(void* userdata)

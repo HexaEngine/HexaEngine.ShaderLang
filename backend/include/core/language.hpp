@@ -5,7 +5,7 @@
 
 namespace HXSL
 {
-	enum AccessModifier : char
+	enum AccessModifier : uint8_t
 	{
 		AccessModifier_None = 0,
 		AccessModifier_Private = 1,
@@ -27,7 +27,7 @@ namespace HXSL
 		return lhs;
 	}
 
-	enum ParameterFlags : char
+	enum ParameterFlags : uint8_t
 	{
 		ParameterFlags_None = -1,
 		ParameterFlags_In = 0,
@@ -37,7 +37,7 @@ namespace HXSL
 		ParameterFlags_Precise = 8,
 	};
 
-	enum InterpolationModifier : char
+	enum InterpolationModifier : uint8_t
 	{
 		InterpolationModifier_None = 0,
 		InterpolationModifier_Linear = 1,
@@ -59,7 +59,7 @@ namespace HXSL
 		return lhs;
 	}
 
-	enum OperatorFlags : char
+	enum OperatorFlags : uint8_t
 	{
 		OperatorFlags_None = 0,
 		OperatorFlags_Explicit = 1,
@@ -81,7 +81,7 @@ namespace HXSL
 #pragma warning(push)
 #pragma warning(disable : 26827) // FunctionFlags_All will be extended in the future.
 
-	enum FunctionFlags : char
+	enum FunctionFlags : uint8_t
 	{
 		FunctionFlags_None = 0,
 		FunctionFlags_Inline = 1,
@@ -101,7 +101,7 @@ namespace HXSL
 		return lhs;
 	}
 
-	enum StorageClass : char
+	enum StorageClass : uint8_t
 	{
 		StorageClass_None = 0,
 		StorageClass_Const = 1,
@@ -125,7 +125,7 @@ namespace HXSL
 		return lhs;
 	}
 
-	enum PrimitiveKind : char
+	enum PrimitiveKind : uint8_t
 	{
 		PrimitiveKind_Void,
 		PrimitiveKind_Bool,
@@ -154,7 +154,7 @@ namespace HXSL
 		return kind;
 	}
 
-	enum PrimitiveClass : char
+	enum PrimitiveClass : uint8_t
 	{
 		PrimitiveClass_Scalar = 0,
 		PrimitiveClass_Vector = 1,

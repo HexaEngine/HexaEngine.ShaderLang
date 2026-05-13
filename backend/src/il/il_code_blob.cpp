@@ -6,6 +6,9 @@ namespace HXSL
 {
 	namespace Backend
 	{
+		template<typename T>
+		using CoTask = TrampolineTask<T>;
+
 		void ILCodeBlob::FromContext(ILContext* context)
 		{
 			auto& cfg = context->GetCFG();
@@ -40,7 +43,8 @@ namespace HXSL
 		void ILCodeBlob::Write(Stream* stream, ModuleWriterContext& context)
 		{
 			metadata.Write(stream, context);
-			stream->WriteLittleEndian(static_cast<uint32_t>(instructions.size()));
+			stream->WriteLEB128(static_cast<uint32_t>(instructions.size()));
+
 			ILWriterOptions options = { false, metadata };
 			ILWriter writer(stream, options);
 			dense_map<const Instruction*, uint32_t> instrMap;
@@ -52,18 +56,19 @@ namespace HXSL
 			}
 
 			auto& labels = jumpTable.locations;
-			stream->WriteLittleEndian(static_cast<uint32_t>(labels.size()));
+			stream->WriteLEB128(static_cast<uint32_t>(labels.size()));
 			for (auto& label : labels)
 			{
 				uint32_t locIndex = instrMap[label];
-				stream->WriteLittleEndian(locIndex);
+				stream->WriteLEB128(locIndex);
 			}
 		}
 
-		void ILCodeBlob::Read(Stream* stream, ModuleReader& context)
+		CoTask<void> ILCodeBlob::Read(Stream* stream, ModuleReader& context)
 		{
-			metadata.Read(stream, context);
-			auto instrCount = stream->ReadLittleEndian<uint32_t>();
+			co_await metadata.Read(stream, context);
+			auto instrCount = stream->ReadLEB128<uint32_t>();
+
 			ILReaderOptions options = { allocator, metadata, false };
 			ILReader reader(stream, options);
 
@@ -75,11 +80,11 @@ namespace HXSL
 				instructionsArray.push_back(instr);
 			}
 
-			auto labelCount = stream->ReadLittleEndian<uint32_t>();
+			auto labelCount = stream->ReadLEB128<uint32_t>();
 			jumpTable.Resize(labelCount);
 			for (uint32_t i = 0; i < labelCount; ++i)
 			{
-				auto locIndex = stream->ReadLittleEndian<uint32_t>();
+				auto locIndex = stream->ReadLEB128<uint32_t>();
 				jumpTable.locations[i] = instructionsArray[static_cast<size_t>(locIndex)];
 			}
 		}

@@ -33,6 +33,10 @@ namespace HXSL
 		}
 
 		auto fs = FileStream::OpenRead(path.data());
+		if (!fs)
+		{
+			throw std::runtime_error("");
+		}
 		AssemblyReader reader = { *this, fs };
 		uptr<Assembly> ass;
 		reader.Read(path, ass);
@@ -64,7 +68,7 @@ namespace HXSL
 		builder.SetEntryPoint(header.entryPoint);
 
 		auto& resolver = ctx.GetResolver();
-		auto referenceCount = stream->ReadLittleEndian<uint32_t>();
+		auto referenceCount = stream->ReadLEB128<uint32_t>();
 		for (uint32_t i = 0; i < referenceCount; ++i)
 		{
 			AssemblyReference reference;
@@ -74,8 +78,7 @@ namespace HXSL
 		}
 
 		ModuleLinker& linker = ctx.GetLinker();
-		ModuleReader reader = { stream, linker };
-		builder.SetModule(reader.Read());
+		builder.SetModule(Backend::Module::OpenRead(stream, linker));
 
 		assembly = builder.Build();
 

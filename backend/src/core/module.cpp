@@ -3,6 +3,8 @@
 #include "core/layout_builder.hpp"
 #include "utils/endianness.hpp"
 #include "il/il_encoding.hpp"
+#include "core/module_reader.hpp"
+#include "core/module_linker.hpp"
 
 namespace HXSL
 {
@@ -55,6 +57,22 @@ namespace HXSL
 			ss << ")";
 
 			return ss.str();
+		}
+
+		Module::~Module()
+		{
+			if (reader)
+			{
+				delete reader;
+			}
+		}
+
+		uptr<Module> Module::OpenRead(const ObjPtr<Stream>& stream, ModuleLinker& linker)
+		{
+			auto module = make_uptr<Module>();
+			ModuleReader* reader = ModuleReader::Create(stream, linker, module.get());
+			module->reader = reader;
+			return module;
 		}
 	}
 }

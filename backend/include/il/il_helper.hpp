@@ -267,7 +267,7 @@ namespace HXSL
 		}
 
 #define DEFINE_IMM_COMP(name, value) \
-	static bool name##(const Value* op) { \
+	static bool name(const Value* op) { \
 	if (!Operand::IsImm(op)) return false; auto imm = cast<Constant>(op)->imm(); \
 	switch (imm.Kind) { \
 	case NumberType_Int8: return imm.i8 == value; \

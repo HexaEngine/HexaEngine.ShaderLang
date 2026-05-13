@@ -16,7 +16,7 @@ namespace HXSL
 		header.Write(stream.Get());
 
 		auto references = assembly->GetReferencedAssemblies();
-		stream->WriteLittleEndian(static_cast<uint32_t>(references.size()));
+		stream->WriteLEB128(static_cast<uint32_t>(references.size()));
 		for (auto& ref : references)
 		{
 			stream->WriteString(ref.name);

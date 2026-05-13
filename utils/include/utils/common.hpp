@@ -5,4 +5,18 @@
 
 #define HEXA_UTILS_NAMESPACE HXSL
 
+namespace HEXA_UTILS_NAMESPACE
+{
+    extern bool UtilsEnableAsserts;
+}
+
+#define HEXA_UTILS_ASSERT(expr, message) \
+    do { \
+        bool _result = (expr);  \
+        if (!_result && UtilsEnableAsserts) { \
+            fprintf(stderr, "ASSERTION FAILED: %s\n", message); \
+            assert(false && message); \
+        } \
+    } while (0);
+
 #endif

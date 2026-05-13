@@ -5,6 +5,7 @@
 #include "instruction.hpp"
 #include "ssa/ssa_instruction.hpp"
 #include "utils/macros.hpp"
+#include <utils/co_trampoline.hpp>
 
 namespace HXSL
 {
@@ -12,7 +13,7 @@ namespace HXSL
 
 	namespace Backend
 	{
-		enum ILVariableFlags : int
+		enum ILVariableFlags : uint32_t
 		{
 			ILVariableFlags_None = 0,
 			ILVariableFlags_Reference = 1 << 0,
@@ -303,8 +304,8 @@ namespace HXSL
 
 			ILVariable& GetVar(const ILVarId& varId)
 			{
-				auto id = varId.var.id;
-				if (varId.var.temp)
+				auto id = varId.id();
+				if (varId.temp())
 				{
 					if (id >= tempVariables.size())
 					{
@@ -324,8 +325,8 @@ namespace HXSL
 
 			const ILVariable& GetVar(const ILVarId& varId) const
 			{
-				auto id = varId.var.id;
-				if (varId.var.temp)
+				auto id = varId.id();
+				if (varId.temp())
 				{
 					if (id >= tempVariables.size())
 					{
@@ -397,8 +398,8 @@ namespace HXSL
 
 			StringSpan GetVarTypeName(ILVarId varId) const
 			{
-				auto id = varId.var.id;
-				if (varId.var.temp)
+				auto id = varId.id();
+				if (varId.temp())
 				{
 					if (id >= tempVariables.size())
 					{
@@ -438,8 +439,11 @@ namespace HXSL
 				return functions[funcId];
 			}
 
+			template<typename T>
+			using CoTask = TrampolineTask<T>;
+
 			void Write(Stream* stream, ModuleWriterContext& context);
-			void Read(Stream* stream, ModuleReader& context);
+			CoTask<void> Read(Stream* stream, ModuleReader& context);
 		};
 	}
 }

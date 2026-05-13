@@ -239,13 +239,13 @@ namespace HXSL
 			Number num; num.Kind = rhl.Kind; \
 			switch (num.Kind) { \
 			case NumberType_Unknown: return {}; \
-			case NumberType_Int8: num.i8 = op##rhl.i8; return num; \
-			case NumberType_Int16: num.i16 = op##rhl.i16; return num; \
-			case NumberType_Int32: num.i32 = op##rhl.i32; return num; \
-			case NumberType_Int64: num.i64 = op##rhl.i64; return num; \
-			case NumberType_Half: num.half_ = op##rhl.half_; return num; \
-			case NumberType_Float: num.float_ = op##rhl.float_; return num; \
-			case NumberType_Double: num.double_ = op##rhl.double_; return num; \
+			case NumberType_Int8: num.i8 = op rhl.i8; return num; \
+			case NumberType_Int16: num.i16 = op rhl.i16; return num; \
+			case NumberType_Int32: num.i32 = op rhl.i32; return num; \
+			case NumberType_Int64: num.i64 = op rhl.i64; return num; \
+			case NumberType_Half: num.half_ = op rhl.half_; return num; \
+			case NumberType_Float: num.float_ = op rhl.float_; return num; \
+			case NumberType_Double: num.double_ = op rhl.double_; return num; \
 			} \
 			num = {}; return num;  \
 		} Number constexpr operator op() const { return name##Impl(*this); }
@@ -273,14 +273,14 @@ namespace HXSL
 			Number num; num.Kind = rhl.Kind; \
 			switch (num.Kind) { \
 			case NumberType_Unknown: return {}; \
-			case NumberType_Int8: num.i8 = op##rhl.i8; return num; \
-			case NumberType_UInt8: num.u8 = op##rhl.u8; return num; \
-			case NumberType_Int16: num.i16 = op##rhl.i16; return num; \
-			case NumberType_UInt16: num.u16 = op##rhl.u16; return num; \
-			case NumberType_Int32: num.i32 = op##rhl.i32; return num; \
-			case NumberType_UInt32: num.u32 = op##rhl.u32; return num; \
-			case NumberType_Int64: num.i64 = op##rhl.i64; return num; \
-			case NumberType_UInt64: num.u64 = op##rhl.u64; return num; \
+			case NumberType_Int8: num.i8 = op rhl.i8; return num; \
+			case NumberType_UInt8: num.u8 = op rhl.u8; return num; \
+			case NumberType_Int16: num.i16 = op rhl.i16; return num; \
+			case NumberType_UInt16: num.u16 = op rhl.u16; return num; \
+			case NumberType_Int32: num.i32 = op rhl.i32; return num; \
+			case NumberType_UInt32: num.u32 = op rhl.u32; return num; \
+			case NumberType_Int64: num.i64 = op rhl.i64; return num; \
+			case NumberType_UInt64: num.u64 = op rhl.u64; return num; \
 			} \
 			num = {}; return num; \
 		} Number constexpr operator op() const { return name##Impl(*this); }
