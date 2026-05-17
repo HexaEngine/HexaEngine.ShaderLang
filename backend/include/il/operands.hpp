@@ -140,9 +140,11 @@ namespace HXSL
 				return ILVarId(StripTemp().raw | static_cast<uint64_t>(temp) << TempFlagShift);
 			}
 
-			constexpr void IncrementVersion()
+			constexpr ILVarId IncrementVersion()
 			{
+				auto prev = *this;
 				*this = WithVersion(version() + 1);
+				return prev;
 			}
 
 			constexpr operator uint64_t() const { return raw; }
@@ -297,6 +299,15 @@ namespace std
 		size_t operator()(const HXSL::Backend::ILVarId& var) const noexcept
 		{
 			return hash<uint64_t>{}(var.raw);
+		}
+	};
+
+	template <>
+	struct hash<HXSL::Backend::ILLabel>
+	{
+		size_t operator()(const HXSL::Backend::ILLabel& var) const noexcept
+		{
+			return hash<uint64_t>{}(var.value);
 		}
 	};
 }

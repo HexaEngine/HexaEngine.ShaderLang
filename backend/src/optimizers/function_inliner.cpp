@@ -6,6 +6,50 @@ namespace HXSL
 {
 	namespace Backend
 	{
+		using instr_iterator = BasicBlock::instr_iterator;
+
+		void FunctionInliner::InlineContext::PrepareBlockMapping()
+		{
+			if (!multiBlockMode)
+			{
+				return;
+			}
+
+			auto* caller = this->caller->GetContext();
+			auto* callee = this->callee->GetContext();
+			auto& callerCFG = caller->GetCFG();
+			auto& calleeCFG = callee->GetCFG();
+			auto& calleeBlocks = calleeCFG.GetNodes();
+
+			for (size_t i = 1; i < calleeBlocks.size(); ++i)
+			{
+				auto& calleeBlock = calleeBlocks[i];
+				auto nodeId = callerCFG.AddNode(calleeBlock->GetType(), true);
+
+				blockMap.insert({ ILLabel(calleeBlock->GetId()), ILLabel(nodeId) });
+			}
+
+			for (size_t i = 1; i < calleeBlocks.size(); ++i)
+			{
+				auto& calleeBlock = calleeBlocks[i];
+				auto mappedBlockId = blockMap[ILLabel(calleeBlock->GetId())].value;
+
+				for (auto predId : calleeBlock->GetPredecessors())
+				{
+					auto predIdMapped = blockMap[ILLabel(predId)].value;
+					callerCFG.Link(predIdMapped, mappedBlockId);
+				}
+
+				auto& callerBlock = callerCFG.GetNode(mappedBlockId);
+				if (callerBlock->GetType() == ControlFlowType_Exit)
+				{
+					callerBlock->SetType(ControlFlowType_Unconditional);
+					callerCFG.Link(mappedBlockId, exitNode->GetId());
+					// do not eagerly insert jump instruction here, this can cause issues with remapping.
+				}
+			}
+		}
+
 		ILVarId FunctionInliner::InlineContext::RemapVarId(const ILVarId& varId)
 		{
 			auto* caller = this->caller->GetContext();
@@ -60,21 +104,36 @@ namespace HXSL
 			else if (auto retInstr = dyn_cast<ReturnInstr>(&instr))
 			{
 				auto src = retInstr->GetReturnValue();
+				Instruction* moveInstr = nullptr;
+				
 				if (auto var = dyn_cast<Variable>(src))
 				{
 					auto itt = varIdMap.find(var->varId);
 					HXSL_ASSERT(itt != varIdMap.end(), "Variable has no mapping, this should never happen while inlining.");
 					auto varId = itt->second;
 
-					block->InsertInstrO<MoveInstr>(insertTarget, callSite->GetResult(), varId);
+					if (multiBlockMode) // Copy propagation optimization for multi-block, because we insert a phi at the end. 
+					{
+						returnVars.push_back(varId);
+					}
+					else
+					{
+						auto callSiteRetId = AddReturnVar();
+						moveInstr = block->InsertInstrO<MoveInstr>(insertTarget, callSiteRetId, varId);
+					}
 				}
 				else if (auto constant = dyn_cast<Constant>(src))
 				{
-					block->InsertInstrO<MoveInstr>(insertTarget, callSite->GetResult(), constant->imm());
+					moveInstr = block->InsertInstrO<MoveInstr>(insertTarget, AddReturnVar(), constant->imm());
 				}
 				else
 				{
 					HXSL_ASSERT(false, "Unhandled return value type in inliner.");
+				}
+
+				if (multiBlockMode)
+				{
+					block->AddInstrNO<JumpInstr>(OpCode_Jump, ILLabel(exitNode->GetId()));
 				}
 
 				return;
@@ -97,9 +156,131 @@ namespace HXSL
 					HXSL_ASSERT(it != varIdMap.end(), "Variable has no mapping, this should never happen while inlining.");
 					var->varId = it->second;
 				}
+				else if (auto label = dyn_cast<Label>(op))
+				{
+					auto it = blockMap.find(label->label);
+					HXSL_ASSERT(it != blockMap.end(), "Block has no mapping, this should never happen while inlining.");
+					label->label = it->second;
+				}
 			}
 
 			block->InsertInstr(insertTarget, clonedInstr);
+		}
+
+		void FunctionInliner::InlineAtSite(FunctionLayout* callerLayout, FunctionLayout* calleeLayout, CallInstr* site)
+		{
+			InlineContext ctx = { callerLayout, calleeLayout, site, nullptr, false };
+
+			auto* caller = callerLayout->GetContext();
+			auto* callee = calleeLayout->GetContext();
+			auto& callerCFG = caller->cfg;
+			auto& calleeCFG = callee->cfg;
+			auto& callerMetadata = caller->metadata;
+			auto& calleeMetadata = callee->metadata;
+
+			auto paramCount = calleeLayout->GetParameters().size();
+			ctx.params.resize(paramCount);
+
+			auto prev = site->GetPrev();
+			auto block = site->GetParent();
+			Instruction* lastArg = site;
+
+			auto insertTarget = BasicBlock::instr_iterator(site);
+
+			if (paramCount > 0)
+			{
+				size_t collectedParams = 0;
+				while (prev)
+				{
+					auto arg = dyn_cast<StoreParamInstr>(prev);
+					if (!arg)
+					{
+						prev = prev->GetPrev();
+						continue;
+					}
+
+					auto src = arg->GetSource();
+					auto idx = arg->GetParamIdx();
+					auto& info = ctx.params[idx];
+					if (auto constant = dyn_cast<Constant>(src))
+					{
+						auto imm = constant->imm();
+						info.type = ParamInfoType::Imm;
+						info.imm = imm;
+					}
+					else if (auto var = dyn_cast<Variable>(src))
+					{
+						info.type = ParamInfoType::VarId;
+						info.varId = var->varId;
+					}
+					else
+					{
+						HXSL_ASSERT(false, "Unhandled param type in function inliner.")
+					}
+
+					auto next = prev->GetPrev();
+					block->RemoveInstr(prev);
+					prev = next;
+					if (++collectedParams == paramCount)
+					{
+						break;
+					}
+				}
+			}
+
+			ctx.returnVarId = site->GetResult();
+			ctx.exitNode = block;
+			bool domTreeAltered = false;
+			auto& calleeBlocks = calleeCFG.GetNodes();
+
+			ctx.blockMap.insert({ ILLabel(calleeBlocks[0]->GetId()), ILLabel(block->GetId()) });
+			if (calleeBlocks.size() > 1) // split block.
+			{
+				auto newNodeId = callerCFG.SplitNode(block->GetId(), insertTarget);
+				callerCFG.Unlink(block->GetId(), newNodeId);
+				ctx.exitNode = callerCFG.GetNode(newNodeId).get();
+				ctx.multiBlockMode = true;
+				ctx.returnVarId.IncrementVersion();
+				domTreeAltered = true;
+			}
+
+			callerCFG.Print();
+
+			ctx.PrepareBlockMapping();
+
+			for (auto& calleeBlock : calleeBlocks)
+			{
+				auto targetBlockId = ctx.blockMap[ILLabel(calleeBlock->GetId())];
+				auto targetBlock = callerCFG.GetNode(targetBlockId.value).get();
+				auto insertTarget = targetBlock->end();
+				// TODO: Handle multiple blocks / control flow
+				for (auto& instr : *calleeBlock)
+				{
+					ctx.CloneInstruction(instr, targetBlock, insertTarget);
+				}
+			}
+			if (ctx.multiBlockMode && ctx.returnVars.size() > 0)
+			{
+				auto exitNode = ctx.exitNode;
+				auto& returnVars = ctx.returnVars;
+				auto returnVarCount = returnVars.size();
+				auto phi = cast<PhiInstr>(exitNode->ReplaceInstrO<PhiInstr>(site, site->GetResult(), returnVarCount));
+				for (size_t i = 0; i < returnVarCount; ++i)
+				{
+					phi->GetOperands()[i] = exitNode->GetParent()->Alloc<Variable>(returnVars[i]);
+				}
+				caller->metadata.phiNodes.push_back(phi);
+			}
+			else
+			{
+				HXSL_ASSERT(ctx.returnVars.size() <= 1, "Single block merge has multiple return vars, this should never happen.");
+				ctx.exitNode->RemoveInstr(site);
+			}
+
+			if (domTreeAltered)
+			{
+				callerCFG.RebuildDomTree();
+			}
 		}
 
 		/// <summary>
@@ -173,91 +354,6 @@ namespace HXSL
 			return totalCost;
 		}
 
-		void FunctionInliner::InlineAtSite(FunctionLayout* callerLayout, FunctionLayout* calleeLayout, CallInstr* site)
-		{
-			InlineContext ctx = { callerLayout, calleeLayout, site };
-
-			auto* caller = callerLayout->GetContext();
-			auto* callee = calleeLayout->GetContext();
-			auto& callerCFG = caller->cfg;
-			auto& calleeCFG = callee->cfg;
-			auto& callerMetadata = caller->metadata;
-			auto& calleeMetadata = callee->metadata;
-
-			auto paramCount = calleeLayout->GetParameters().size();
-			ctx.params.resize(paramCount);
-
-			auto prev = site->GetPrev();
-			auto block = site->GetParent();
-			Instruction* lastArg = site;
-
-			auto insertTarget = BasicBlock::instr_iterator(site);
-
-			if (paramCount > 0)
-			{
-				size_t collectedParams = 0;
-				while (prev)
-				{
-					auto arg = dyn_cast<StoreParamInstr>(prev);
-					if (!arg)
-					{
-						prev = prev->GetPrev();
-						continue;
-					}
-
-					auto src = arg->GetSource();
-					auto idx = arg->GetParamIdx();
-					auto& info = ctx.params[idx];
-					if (auto constant = dyn_cast<Constant>(src))
-					{
-						auto imm = constant->imm();
-						info.type = ParamInfoType::Imm;
-						info.imm = imm;
-					}
-					else if (auto var = dyn_cast<Variable>(src))
-					{
-						info.type = ParamInfoType::VarId;
-						info.varId = var->varId;
-					}
-					else
-					{
-						HXSL_ASSERT(false, "Unhandled param type in function inliner.")
-					}
-
-					auto next = prev->GetPrev();
-					block->RemoveInstr(prev);
-					prev = next;
-					if (++collectedParams == paramCount)
-					{
-						break;
-					}
-				}
-			}
-
-			bool domTreeAltered = false;
-			auto& calleBlocks = calleeCFG.GetNodes();
-			if (calleBlocks.size() > 1) // split block.
-			{
-				auto newNodeId = callerCFG.SplitNode(block->GetId(), insertTarget);
-				domTreeAltered = true;
-			}
-
-			for (auto& calleeBlock : calleBlocks)
-			{
-				// TODO: Handle multiple blocks / control flow
-				for (auto& instr : *calleeBlock)
-				{
-					ctx.CloneInstruction(instr, block, insertTarget);
-				}
-			}
-
-			if (domTreeAltered)
-			{
-				callerCFG.RebuildDomTree();
-			}
-
-			block->RemoveInstr(site);
-		}
 
 		dense_set<FunctionLayout*> FunctionInliner::Inline(const Span<FunctionLayout*> functions)
 		{

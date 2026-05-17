@@ -72,7 +72,7 @@ namespace HXSL
 		{
 			const size_t n = cfg.size();
 
-			std::unordered_map<ILVarId, std::unordered_set<size_t>> defSites;
+			dense_map<ILVarId, dense_set<size_t>> defSites;
 			for (size_t i = 0; i < n; ++i)
 			{
 				for (auto& instr : *cfg.GetNode(i))
@@ -88,7 +88,7 @@ namespace HXSL
 				}
 			}
 
-			std::unordered_map<uint64_t, std::unordered_set<size_t>> hasPhi;
+			dense_map<uint64_t, dense_set<size_t>> hasPhi;
 			for (auto& p : defSites)
 			{
 				uint64_t varId = p.first;
@@ -103,7 +103,7 @@ namespace HXSL
 						if (hasPhi[varId].insert(df).second)
 						{
 							InsertPhiMeta(*cfg.GetNode(df), varId);
-							if (!p.second.count(df)) wl.push(df);
+							if (!p.second.contains(df)) wl.push(df);
 						}
 					}
 				}

@@ -50,6 +50,11 @@ namespace HXSL
 			{
 				return op;
 			}
+
+			size_t operator()(size_t value) const noexcept
+			{
+				return value;
+			}
 		};
 	}
 }

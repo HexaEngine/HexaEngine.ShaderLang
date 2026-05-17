@@ -1,0 +1,17 @@
+namespace Test
+{
+	float test(float x)
+	{
+		if (x > 3)
+		{
+			return x * 3;
+		}
+		return x * 2;
+	}
+
+
+	float main(float x)
+	{
+		return test(x);
+	}
+}

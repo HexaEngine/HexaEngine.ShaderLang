@@ -101,6 +101,57 @@ namespace HXSL
 			}
 
 			template<typename U>
+			U* AddInstr(const U& instr)
+			{
+				auto& allocator = instructions.get_allocator();
+				auto res = instructions.append_move(allocator.Alloc<U>(instr));
+				res->SetParent(this);
+				return static_cast<U*>(res);
+			}
+
+			template<typename U>
+			U* AddInstr(U&& instr)
+			{
+				auto& allocator = instructions.get_allocator();
+				auto res = instructions.append_move(allocator.Alloc<U>(std::forward<U>(instr)));
+				res->SetParent(this);
+				return static_cast<U*>(res);
+			}
+
+			template<typename T, typename... Operands>
+			Instruction* AddInstrO(ILVarId result, Operands&&... operands)
+			{
+				static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+				auto& allocator = instructions.get_allocator();
+				OperandFactory factory{ allocator };
+				auto res = instructions.append_move(allocator.Alloc<T>(allocator, result, factory(std::forward<Operands>(operands))...));
+				res->SetParent(this);
+				return res;
+			}
+
+			template<typename T, typename... Operands>
+			Instruction* AddInstrNO(ILOpCode opCode, Operands&&... operands)
+			{
+				static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+				auto& allocator = instructions.get_allocator();
+				OperandFactory factory{ allocator };
+				auto res = instructions.append_move(allocator.Alloc<T>(allocator, opCode, factory(std::forward<Operands>(operands))...));
+				res->SetParent(this);
+				return res;
+			}
+
+			template<typename T, typename... Operands>
+			Instruction* AddInstrONO(Operands&&... operands)
+			{
+				static_assert(std::is_base_of_v<Instruction, T>, "T must derive from Instruction");
+				auto& allocator = instructions.get_allocator();
+				OperandFactory factory{ allocator };
+				auto res = instructions.append_move(allocator.Alloc<T>(allocator, factory(std::forward<Operands>(operands))...));
+				res->SetParent(this);
+				return res;
+			}
+
+			template<typename U>
 			U* InsertInstr(const instr_iterator& it, const U& instr)
 			{
 				auto& allocator = instructions.get_allocator();
@@ -290,9 +341,9 @@ namespace HXSL
 				return count;
 			}
 
-			size_t AddNode(ControlFlowType type)
+			size_t AddNode(ControlFlowType type, bool forceCreate = false)
 			{
-				if (!nodes.empty())
+				if (!nodes.empty() && !forceCreate)
 				{
 					auto& last = nodes.back();
 					if (last->successors.empty() && last->instructions.empty())

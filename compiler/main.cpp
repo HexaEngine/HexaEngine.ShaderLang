@@ -16,7 +16,9 @@ int main()
 	SetLocale("en_US");
 
 	Compiler compiler = Compiler(options);
+	compiler.Compile({ "example/inline_multiblock.txt" }, "inline_multiblock.hlib");
 
+	/*
 	std::cout << "Compiling library2.hlib" << std::endl;
 	compiler.Compile({ "example/library2.txt" }, "library2.hlib");
 
@@ -29,7 +31,7 @@ int main()
 	std::cout << "Compiling test.hlib" << std::endl;
 	std::vector<AssemblyReference> refs = { { "library.hlib" } };
 	compiler.Compile({ "example/shader.txt" }, "test.hlib", refs);
-
+	*/
 	//_CrtDumpMemoryLeaks();
 	return 0;
 }

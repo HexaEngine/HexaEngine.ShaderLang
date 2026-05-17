@@ -276,6 +276,11 @@ namespace HXSL
 
 			nodeA->instructions.split_before_prepend(&*at, nodeB->instructions);
 
+			for (auto& instr : nodeB->instructions)
+			{
+				instr.SetParent(nodeB);
+			}
+
 			for (auto& succ : nodeA->GetSuccessors())
 			{
 				nodeB->AddSuccessor(succ);
