@@ -253,7 +253,6 @@ namespace HXSL
 				auto targetBlockId = ctx.blockMap[ILLabel(calleeBlock->GetId())];
 				auto targetBlock = callerCFG.GetNode(targetBlockId.value).get();
 				auto insertTarget = targetBlock->end();
-				// TODO: Handle multiple blocks / control flow
 				for (auto& instr : *calleeBlock)
 				{
 					ctx.CloneInstruction(instr, targetBlock, insertTarget);
