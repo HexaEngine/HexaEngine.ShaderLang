@@ -268,6 +268,27 @@ namespace HXSL
 			RemoveNode(from);
 		}
 
+		size_t ControlFlowGraph::SplitNode(size_t nodeAId, BasicBlock::instr_iterator at)
+		{
+			auto nodeA = nodes[nodeAId].get();
+			auto nodeBId = AddNode(nodeA->GetType());
+			auto nodeB = nodes[nodeBId].get();
+
+			nodeA->instructions.split_before_prepend(&*at, nodeB->instructions);
+
+			for (auto& succ : nodeA->GetSuccessors())
+			{
+				nodeB->AddSuccessor(succ);
+				nodes[succ]->ReplacePredecessor(nodeAId, nodeBId);
+			}
+
+			nodeA->successors.clear();
+			nodeA->SetType(ControlFlowType_Normal); // override the type before calling Link or else it might get rejected if type was exit.
+			Link(nodeAId, nodeBId);
+
+			return nodeBId;
+		}
+
 		void ControlFlowGraph::Print() const
 		{
 			auto fn = context->GetFunction();

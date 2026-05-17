@@ -1,6 +1,7 @@
 #ifndef INTRUSIVE_LIST_HPP
 #define INTRUSIVE_LIST_HPP
 
+#include "common.hpp"
 #include "bump_allocator.hpp"
 
 namespace HXSL
@@ -365,6 +366,7 @@ namespace HXSL
 			else
 			{
 				tail->next = list.head;
+				list.head->prev = tail;
 				list.head = tail;
 				tail = list.tail;
 			}
@@ -611,6 +613,77 @@ namespace HXSL
 			node->~T();
 			return newNode;
 		}
+
+		void append_range_move(T* start, T* end)
+		{
+			HEXA_UTILS_ASSERT(!start->prev && !end->next, "Dangling chain detected");
+			if (tail)
+			{
+				tail->next = start;
+				start->prev = tail;
+			}
+			tail = end;
+			if (!head)
+			{
+				head = start;
+			}
+		}
+
+		void prepend_range_move(T* start, T* end)
+		{
+			HEXA_UTILS_ASSERT(!start->prev && !end->next, "Dangling chain detected");
+			if (head)
+			{
+				head->prev = end;
+				end->next = head;
+			}
+			head = start;
+			if (!tail)
+			{
+				tail = end;
+			}
+		}
+
+		void split_before_core(T* node, ilist<T>& other, bool append)
+		{
+			HEXA_UTILS_ASSERT(node, "Cannot split null node");
+			if (!head) return;
+			auto oldTail = tail;
+			auto prev = node->prev;
+			node->prev = nullptr;
+			if (prev)
+			{
+				prev->next = nullptr;
+				tail = prev;
+			}
+			else
+			{
+				head = nullptr;
+				tail = nullptr;
+			}
+			if (append)
+			{
+				other.append_range_move(node, oldTail);
+			}
+			else
+			{
+				other.prepend_range_move(node, oldTail);
+			}
+		}
+
+		void split_before_prepend(T* node, ilist<T>& other) { split_before_core(node, other, false); }
+
+		void split_before_append(T* node, ilist<T>& other) { split_before_core(node, other, true); }
+
+		void split_after_core(T* node, ilist<T>& other, bool append)
+		{
+			if (!node->next) return;
+			split_before_core(node->next, other, append);
+		}
+
+		void split_after_prepend(T* node, ilist<T>& other) { split_after_core(node, other, false); }
+
+		void split_after_append(T* node, ilist<T>& other) { split_after_core(node, other, true); }
 
 		void clear()
 		{

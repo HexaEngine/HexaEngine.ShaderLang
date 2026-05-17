@@ -113,7 +113,6 @@ namespace HXSL
 				while (true)
 				{
 					sched.insert_frame();
-					std::cout << "Discover: " << nextOperation.record.value << std::endl;
 					auto nextRecordId = nextOperation.record;
 					auto nextModule = nextOperation.module;
 					CoTask<Layout*> taskInner;

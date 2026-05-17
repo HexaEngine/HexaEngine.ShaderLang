@@ -7,11 +7,11 @@
 
 #include "types.hpp"
 
-void MurmurHash3_x86_32(const void* key, int len, uint32_t seed, uint32_t& out);
+void MurmurHash3_x86_32(const void* key, size_t len, uint32_t seed, uint32_t& out);
 
-void MurmurHash3_x86_128(const void* key, int len, uint32_t seed, HEXA_UTILS_NAMESPACE::uint128_t& out);
+void MurmurHash3_x86_128(const void* key, size_t len, uint32_t seed, HEXA_UTILS_NAMESPACE::uint128_t& out);
 
-void MurmurHash3_x64_128(const void* key, int len, uint32_t seed, HEXA_UTILS_NAMESPACE::uint128_t& out);
+void MurmurHash3_x64_128(const void* key, size_t len, uint32_t seed, HEXA_UTILS_NAMESPACE::uint128_t& out);
 
 //-----------------------------------------------------------------------------
 

@@ -34,6 +34,74 @@ namespace HXSL
 			return newVarId;
 		}
 
+		void FunctionInliner::InlineContext::CloneInstruction(Instruction& instr, BasicBlock* block, BasicBlock::instr_iterator insertTarget)
+		{
+			if (auto loadParam = dyn_cast<LoadParamInstr>(&instr))
+			{
+				auto idx = loadParam->GetParamIdx();
+				auto& info = params[idx];
+				auto dst = loadParam->GetResult();
+				if (info.type == ParamInfoType::Imm)
+				{
+					auto newVarId = RemapVarId(dst);
+					block->InsertInstrO<MoveInstr>(insertTarget, newVarId, info.imm);
+				}
+				else if (info.type == ParamInfoType::VarId)
+				{
+					varIdMap[dst] = info.varId;
+				}
+				else
+				{
+					HXSL_ASSERT(false, "Unknown parameter info type in inliner.");
+				}
+
+				return;
+			}
+			else if (auto retInstr = dyn_cast<ReturnInstr>(&instr))
+			{
+				auto src = retInstr->GetReturnValue();
+				if (auto var = dyn_cast<Variable>(src))
+				{
+					auto itt = varIdMap.find(var->varId);
+					HXSL_ASSERT(itt != varIdMap.end(), "Variable has no mapping, this should never happen while inlining.");
+					auto varId = itt->second;
+
+					block->InsertInstrO<MoveInstr>(insertTarget, callSite->GetResult(), varId);
+				}
+				else if (auto constant = dyn_cast<Constant>(src))
+				{
+					block->InsertInstrO<MoveInstr>(insertTarget, callSite->GetResult(), constant->imm());
+				}
+				else
+				{
+					HXSL_ASSERT(false, "Unhandled return value type in inliner.");
+				}
+
+				return;
+			}
+
+			auto& callerCFG = caller->GetContext()->GetCFG();
+			auto clonedInstr = instr.Clone(callerCFG.allocator);
+			if (auto resInstr = dyn_cast<ResultInstr>(clonedInstr))
+			{
+				auto varId = resInstr->GetResult();
+				ILVarId newVarId = RemapVarId(varId);
+				resInstr->SetResult(newVarId);
+			}
+
+			for (auto& op : clonedInstr->GetOperands())
+			{
+				if (auto var = dyn_cast<Variable>(op))
+				{
+					auto it = varIdMap.find(var->varId);
+					HXSL_ASSERT(it != varIdMap.end(), "Variable has no mapping, this should never happen while inlining.");
+					var->varId = it->second;
+				}
+			}
+
+			block->InsertInstr(insertTarget, clonedInstr);
+		}
+
 		/// <summary>
 		/// Configuration struct that defines cost heuristics for function inlining decisions. Each member represents a cost metric used to evaluate whether inlining a function is beneficial.
 		/// Higher = more expensive, Lower = cheaper
@@ -67,7 +135,7 @@ namespace HXSL
 			for (auto& block : cfg.GetNodes())
 			{
 				instrCount += block->GetInstructions().size();
-		
+
 				if (block->NumPredecessors() > 1 || block->NumSuccessors() > 1)
 				{
 					totalCost += heuristics.ControlFlowCost;
@@ -107,7 +175,7 @@ namespace HXSL
 
 		void FunctionInliner::InlineAtSite(FunctionLayout* callerLayout, FunctionLayout* calleeLayout, CallInstr* site)
 		{
-			InlineContext ctx = {callerLayout, calleeLayout, site};
+			InlineContext ctx = { callerLayout, calleeLayout, site };
 
 			auto* caller = callerLayout->GetContext();
 			auto* callee = calleeLayout->GetContext();
@@ -122,7 +190,6 @@ namespace HXSL
 			auto prev = site->GetPrev();
 			auto block = site->GetParent();
 			Instruction* lastArg = site;
-	
 
 			auto insertTarget = BasicBlock::instr_iterator(site);
 
@@ -167,75 +234,26 @@ namespace HXSL
 				}
 			}
 
-			for (auto& calleeBlock : calleeCFG.GetNodes())
+			bool domTreeAltered = false;
+			auto& calleBlocks = calleeCFG.GetNodes();
+			if (calleBlocks.size() > 1) // split block.
+			{
+				auto newNodeId = callerCFG.SplitNode(block->GetId(), insertTarget);
+				domTreeAltered = true;
+			}
+
+			for (auto& calleeBlock : calleBlocks)
 			{
 				// TODO: Handle multiple blocks / control flow
 				for (auto& instr : *calleeBlock)
 				{
-					if (auto loadParam = dyn_cast<LoadParamInstr>(&instr))
-					{
-						auto idx = loadParam->GetParamIdx();
-						auto& info = ctx.params[idx];
-						auto dst = loadParam->GetResult();
-						if (info.type == ParamInfoType::Imm)
-						{
-							auto newVarId = ctx.RemapVarId(dst);
-							block->InsertInstrO<MoveInstr>(insertTarget, newVarId, info.imm);
-						}
-						else if (info.type == ParamInfoType::VarId)
-						{
-							ctx.varIdMap[dst] = info.varId;
-						}
-						else 
-						{
-							HXSL_ASSERT(false, "Unknown parameter info type in inliner.");
-						}
-
-						continue;
-					}
-					else if (auto retInstr = dyn_cast<ReturnInstr>(&instr))
-					{
-						auto src = retInstr->GetReturnValue();
-						if (auto var = dyn_cast<Variable>(src))
-						{
-							auto itt = ctx.varIdMap.find(var->varId);
-							HXSL_ASSERT(itt != ctx.varIdMap.end(), "Variable has no mapping, this should never happen while inlining.");
-							auto varId = itt->second;
-
-							block->InsertInstrO<MoveInstr>(insertTarget, site->GetResult(), varId);
-						}
-						else if (auto constant = dyn_cast<Constant>(src))
-						{
-							block->InsertInstrO<MoveInstr>(insertTarget, site->GetResult(), constant->imm());
-						}
-						else
-						{
-							HXSL_ASSERT(false, "Unhandled return value type in inliner.");
-						}
-
-						continue;
-					}
-
-					auto clonedInstr = instr.Clone(callerCFG.allocator);
-					if (auto resInstr = dyn_cast<ResultInstr>(clonedInstr))
-					{
-						auto varId = resInstr->GetResult();
-						ILVarId newVarId = ctx.RemapVarId(varId);
-						resInstr->SetResult(newVarId);
-					}
-
-					for (auto& op : clonedInstr->GetOperands())
-					{
-						if (auto var = dyn_cast<Variable>(op))
-						{
-							auto it = ctx.varIdMap.find(var->varId);
-							HXSL_ASSERT(it != ctx.varIdMap.end(), "Variable has no mapping, this should never happen while inlining.");
-							var->varId = it->second;
-						}
-					}
-
-					block->InsertInstr(insertTarget, clonedInstr);
+					ctx.CloneInstruction(instr, block, insertTarget);
 				}
+			}
+
+			if (domTreeAltered)
+			{
+				callerCFG.RebuildDomTree();
 			}
 
 			block->RemoveInstr(site);
@@ -291,6 +309,7 @@ namespace HXSL
 
 			std::vector<size_t> sccOrder = sccGraph.TopologicalSort(true); // true == bottom-up order
 
+			bool inlineExtern = options.Get<InlinerInlineExtern>();
 			dense_set<FunctionLayout*> dirtyFunctions;
 			static constexpr float MaxCost = 2.0f;
 			for (auto callerScc : sccOrder)
@@ -300,7 +319,7 @@ namespace HXSL
 					auto* callerLayout = nodes[callerNode]->GetFunction();
 					auto* caller = callerLayout->GetContext();
 					auto& metadata = caller->metadata;
-					if (caller->empty() || caller->IsExtern()) continue;
+					if (caller->empty() || (caller->IsExtern() && !inlineExtern)) continue;
 
 					for (auto& call : metadata.functions)
 					{
@@ -308,7 +327,7 @@ namespace HXSL
 						size_t calleeNode = callGraph.GetIndex(calleeLayout);
 						size_t calleeScc = nodes[calleeNode]->GetSCCIndex();
 
-						if (callerScc == calleeScc || (calleeLayout->IsExtern() && !config.inlineExtern))
+						if (callerScc == calleeScc || (calleeLayout->IsExtern() && !inlineExtern))
 						{
 							continue;
 						}
@@ -334,5 +353,5 @@ namespace HXSL
 
 			return dirtyFunctions;
 		}
-	}	
+	}
 }

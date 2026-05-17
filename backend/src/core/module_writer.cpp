@@ -282,7 +282,7 @@ namespace HXSL
 			{
 				auto [layout, closing] = walkStack.top();
 				walkStack.pop();
-				if (closing)
+				if (closing || layout->IsExtern())
 				{
 					auto res = recordMap.insert({ layout, RecordId() });
 					if (res.second)
@@ -400,7 +400,7 @@ namespace HXSL
 						{
 							walkStack.push({ param, false });
 						}
-						auto ctx = func->GetContext();
+						auto ctx = func->GetCodeBlob();
 						auto& metadata = ctx->GetMetadata();
 						for (auto& func : metadata.functions)
 						{

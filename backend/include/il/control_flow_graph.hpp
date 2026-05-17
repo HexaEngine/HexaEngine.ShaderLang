@@ -222,6 +222,30 @@ namespace HXSL
 				successors.erase(it);
 			}
 
+			void ReplacePredecessor(size_t oldId, size_t newId)
+			{
+				for (auto& pred : predecessors)
+				{
+					if (pred == oldId)
+					{
+						pred = newId;
+						break;
+					}
+				}
+			}
+
+			void ReplaceSuccessor(size_t oldId, size_t newId)
+			{
+				for (auto& succ : successors)
+				{
+					if (succ == oldId)
+					{
+						succ = newId;
+						break;
+					}
+				}
+			}
+
 			size_t GetPredecessorIndex(size_t predId)
 			{
 				auto it = std::find(predecessors.begin(), predecessors.end(), predId);
@@ -301,6 +325,8 @@ namespace HXSL
 			void RemoveNode(size_t index);
 
 			void MergeNodes(size_t from, size_t to);
+
+			size_t SplitNode(size_t node, BasicBlock::instr_iterator at);
 
 			void Print() const;
 		};
@@ -401,7 +427,6 @@ namespace HXSL
 						}
 					}
 				}
-
 			}
 		};
 	}

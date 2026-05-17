@@ -1,23 +1,19 @@
 #ifndef IL_OPTIMIZER_HPP
 #define IL_OPTIMIZER_HPP
 
-#include "pch/il.hpp"
-#include "logging/logger.hpp"
+#include "common.hpp"
 
 namespace HXSL
 {
 	namespace Backend
 	{
-		struct ILOptimizerConfig
-		{
-		};
-
 		class ILOptimizer
 		{
 			Module* module;
+			const OptionCollection& options;
 
 		public:
-			ILOptimizer(ILogger* logger, Module* compilation) : module(compilation)
+			ILOptimizer(ILogger* logger, Module* compilation, const OptionCollection& options) : module(compilation), options(options)
 			{
 			}
 

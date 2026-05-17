@@ -139,7 +139,7 @@ namespace HXSL
 		Backend::ControlFlowAnalyzer cfAnalyzer = Backend::ControlFlowAnalyzer(logger.get(), pModule);
 		cfAnalyzer.Analyze();
 
-		Backend::ILOptimizer optimizer = Backend::ILOptimizer(logger.get(), pModule);
+		Backend::ILOptimizer optimizer = Backend::ILOptimizer(logger.get(), pModule, options);
 		optimizer.Optimize();
 
 		if (!logger->HasErrors())

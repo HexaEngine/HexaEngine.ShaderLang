@@ -4,35 +4,18 @@
 #define _CRTDBG_MAP_ALLOC
 #include <cstdlib>
 #include <crtdbg.h>
+#include <core/options.hpp>
 
 using namespace HXSL;
-
-static size_t nextTask = 0;
-
-TrampolineTask<bool> Test2()
-{
-	nextTask = 1;
-	co_await TrampolineBounce();
-	nextTask = 22;
-	co_await TrampolineBounce();
-	co_return true;
-}
-
-TrampolineTask<bool> Test()
-{
-	if (nextTask == 22) co_return true;
-	co_await Test2();
-	co_return true;
-}
-
-
-
+using namespace HXSL::Backend;
 
 int main()
 {
+	OptionCollection options;
+
 	SetLocale("en_US");
 
-	Compiler compiler = Compiler();
+	Compiler compiler = Compiler(options);
 
 	std::cout << "Compiling library2.hlib" << std::endl;
 	compiler.Compile({ "example/library2.txt" }, "library2.hlib");
@@ -40,6 +23,8 @@ int main()
 	std::cout << "Compiling library.hlib" << std::endl;
 	std::vector<AssemblyReference> refsLib = { { "library2.hlib" } };
 	compiler.Compile({ "example/library.txt" }, "library.hlib", refsLib);
+
+	options.Set<InlinerInlineExtern>(true);
 
 	std::cout << "Compiling test.hlib" << std::endl;
 	std::vector<AssemblyReference> refs = { { "library.hlib" } };

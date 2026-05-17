@@ -1,21 +1,15 @@
 #ifndef FUNCTION_INLINER_HPP
 #define FUNCTION_INLINER_HPP
 
-#include "pch/il.hpp"
+#include "common.hpp"
 
 namespace HXSL
 {
 	namespace Backend
 	{
-		struct FunctionInlinerConfig
-		{
-			bool aggressiveInline;
-			bool inlineExtern;
-		};
-
 		class FunctionInliner
 		{
-			FunctionInlinerConfig config;
+			const OptionCollection& options;
 
 			enum class ParamInfoType
 			{
@@ -51,12 +45,14 @@ namespace HXSL
 				}
 
 				ILVarId RemapVarId(const ILVarId& varId);
+
+				void CloneInstruction(Instruction& instr, BasicBlock* block, BasicBlock::instr_iterator target);
 			};
 
 			float ComputeInlineCost(FunctionLayout* funcLayout);
 
 		public:
-			FunctionInliner(const FunctionInlinerConfig& config) : config(config)
+			FunctionInliner(const OptionCollection& options) : options(options)
 			{
 			}
 
@@ -68,7 +64,7 @@ namespace HXSL
 					InlineAtSite(caller, callee, site);
 				}
 			}
-			
+
 			dense_set<FunctionLayout*> Inline(const Span<FunctionLayout*> functions);
 		};
 	}

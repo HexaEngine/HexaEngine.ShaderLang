@@ -281,7 +281,7 @@ namespace HEXA_UTILS_NAMESPACE
 		size_t hash() const noexcept
 		{
 			uint128_t hash;
-			MurmurHash3_x64_128(reinterpret_cast<const uint8_t*>(data_m), (int)size_bytes(), 0, hash);
+			MurmurHash3_x64_128(reinterpret_cast<const uint8_t*>(data_m), size_bytes(), 0, hash);
 			return static_cast<size_t>(hash);
 		}
 

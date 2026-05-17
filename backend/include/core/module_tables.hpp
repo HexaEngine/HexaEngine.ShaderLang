@@ -378,6 +378,7 @@ namespace HXSL
 
 		struct ModuleReferenceTableBuilder
 		{
+			using ModuleIdCount = LayoutDataTypes::ModuleIdCount;
 			using ModuleId = LayoutDataTypes::ModuleId;
 
 			ModuleReferenceTable& table;
@@ -392,7 +393,7 @@ namespace HXSL
 				return table.IndexToId(index);
 			}
 
-			size_t TotalSizeInBytes() const { return sizeInBytes + ModuleReferenceTableHeader(table.size()).SizeOf(); }
+			size_t TotalSizeInBytes() const { return sizeInBytes + ModuleReferenceTableHeader(static_cast<ModuleIdCount>(table.size())).SizeOf(); }
 
 			void Write(Stream* stream) const
 			{

@@ -29,7 +29,7 @@ namespace HXSL
 
 	enum ParameterFlags : uint8_t
 	{
-		ParameterFlags_None = -1,
+		ParameterFlags_None = static_cast<uint8_t>(-1),
 		ParameterFlags_In = 0,
 		ParameterFlags_Out = 1,
 		ParameterFlags_InOut = 2,
