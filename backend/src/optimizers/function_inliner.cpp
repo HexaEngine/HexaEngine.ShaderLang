@@ -244,8 +244,6 @@ namespace HXSL
 				domTreeAltered = true;
 			}
 
-			callerCFG.Print();
-
 			ctx.PrepareBlockMapping();
 
 			for (auto& calleeBlock : calleeBlocks)
@@ -348,7 +346,7 @@ namespace HXSL
 				}
 			}
 
-			totalCost += (1 - std::exp(-instrCount * heuristics.InstrCostExpMul)) * heuristics.InstrCostMul;
+			totalCost += (1 - std::exp(-static_cast<float>(instrCount) * heuristics.InstrCostExpMul)) * heuristics.InstrCostMul;
 			totalCost = std::clamp(totalCost, heuristics.MinInlineCost, heuristics.MaxInlineCost);
 			return totalCost;
 		}
